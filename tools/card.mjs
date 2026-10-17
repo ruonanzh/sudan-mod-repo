@@ -16,7 +16,7 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync } from "node:fs";
 import path from "node:path";
 import { openMod, ModelError, FIELDS, DEFAULT_VANILLA } from "./model.mjs";
-import { parseDoc, findEntry, findEntries, getDoc, sourceOf, literal } from "./jsonc.mjs";
+import { parseDoc, findEntry, findEntries, getDoc, sourceOf, literal, toPlain } from "./jsonc.mjs";
 
 const CARD_W = 472;
 const CARD_H = 1028;
@@ -146,7 +146,7 @@ function showCard(args) {
     emit("FAIL", `no card ${args.id} in this mod`);
     return 1;
   }
-  process.stdout.write(`${JSON.stringify(got.fields, null, 2)}\n`);
+  process.stdout.write(`${JSON.stringify(toPlain(got.doc, got.node), null, 2)}\n`);
   return 0;
 }
 
