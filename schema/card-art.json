@@ -99,5 +99,46 @@
     "whyNoStonePng": "Because the body was never per-tier. Only the frame and the title font differ per tier.",
     "tintIsNotAMultiply": "Multiplying the paper by stone's material _Color #b09aeb produces a purple card; multiplying by the warm #a88864 produces a dark olive one. Neither matches the pale warm grey in game. The face uses a custom shader (CardFaceUnlit, with CardFaceOutline for the rim), plus _DetailAlbedoMap card_d and _MetallicGlossMap card_mt, so the final colour cannot be reproduced with a channel multiply.",
     "consequence": "Any offline preview of the tier colour is approximate. Say so, and do not claim the preview is what the game shows."
+  },
+  "prefab": {
+    "_note": "Read from sharedassets0.assets: every Image component under the three card prefabs, and the Sprite each one references. CardShowAssets.prefabs holds CardShowItem[] — three prefabs, one per card type.",
+    "prefabs": {
+      "char": "CardShowChar",
+      "item": "CardShowItem",
+      "sudan": "CardShowSudan"
+    },
+    "wiring": [
+      {
+        "part": "body",
+        "evidence": "no Image in any card prefab carries a body sprite, so the body is a plain quad whose look comes entirely from the material",
+        "material": "CardShowAssets.chars/items/sudans[rarity-1], _MainTex = card"
+      },
+      {
+        "part": "art",
+        "evidence": "CardShowChar has an Image with sprite 2000596, a card id: the art is assigned per card at runtime",
+        "material": "CardFaceOutline / CardFaceUnlit"
+      },
+      {
+        "part": "icon",
+        "evidence": "Char -> 1_char_1, Item -> 1_item_10",
+        "material": "char_icons / item_icons[rarity-1]"
+      },
+      {
+        "part": "stackable",
+        "evidence": "Char and Sudan use number_bg, Item uses checkbox_bg",
+        "note": "item cards show a checkbox, not a number — a real behavioural difference between the types"
+      },
+      {
+        "part": "life",
+        "evidence": "LifeBg uses bg_green on all three",
+        "note": "same on every type"
+      },
+      {
+        "part": "frame",
+        "evidence": "char_forgrounds[rarity-1] for char, sudan_forgrond for sudan, nothing for item"
+      }
+    ],
+    "answer": "stone's base plate is the shared `card` texture seen through the stone material. There is no stone-specific body image, which is why only stone_f exists as a per-tier file.",
+    "open": "the exact colour: multiplying card by stone's _Color #b09aeb gives purple and #a88864 gives dark olive, while the game shows pale warm grey. The face is rendered by CardFaceUnlit with CardFaceOutline, blending card_d as detail albedo and card_mt as metallic/gloss, so a channel multiply is not the right model."
   }
 }
