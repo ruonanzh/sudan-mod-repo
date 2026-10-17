@@ -183,6 +183,52 @@ export function cropCover(img, targetWidth, targetHeight) {
   return { width: targetWidth, height: targetHeight, rgba: out };
 }
 
+/**
+ * 9-slice scale: the corners keep their size, the edges stretch along one axis and the
+ * middle stretches both ways. The card body plates are 9-sliced sprites with a wide soft
+ * fringe, so scaling them like a plain picture would smear the fringe into the body.
+ */
+export function nineSlice(img, targetWidth, targetHeight, margin) {
+  const src = img;
+  const m = Math.min(margin, Math.floor(Math.min(src.width, src.height) / 2));
+  const insideW = src.width - 2 * m;
+  const insideH = src.height - 2 * m;
+  const outW = targetWidth;
+  const outH = targetHeight;
+  const midW = Math.max(1, outW - 2 * m);
+  const midH = Math.max(1, outH - 2 * m);
+  const out = Buffer.alloc(outW * outH * 4);
+
+  const copy = (sx, sy, sw, sh) => ({ sx, sy, sw, sh });
+  const dests = [
+    [copy(0, 0, m, m), 0, 0, m, m],
+    [copy(m, 0, insideW, m), m, 0, midW, m],
+    [copy(src.width - m, 0, m, m), outW - m, 0, m, m],
+    [copy(0, m, m, insideH), 0, m, m, midH],
+    [copy(m, m, insideW, insideH), m, m, midW, midH],
+    [copy(src.width - m, m, m, insideH), outW - m, m, m, midH],
+    [copy(0, src.height - m, m, m), 0, outH - m, m, m],
+    [copy(m, src.height - m, insideW, m), m, outH - m, midW, m],
+    [copy(src.width - m, src.height - m, m, m), outW - m, outH - m, m, m],
+  ];
+  for (const [srcRect, dx, dy, dw, dh] of dests) {
+    for (let y = 0; y < dh; y++) {
+      const sy = srcRect.sy + Math.min(srcRect.sh - 1, Math.floor((y * srcRect.sh) / dh));
+      for (let x = 0; x < dw; x++) {
+        const sx = srcRect.sx + Math.min(srcRect.sw - 1, Math.floor((x * srcRect.sw) / dw));
+        const si = (sy * src.width + sx) * 4;
+        const di = ((dy + y) * outW + (dx + x)) * 4;
+        out[di] = src.rgba[si];
+        out[di + 1] = src.rgba[si + 1];
+        out[di + 2] = src.rgba[si + 2];
+        out[di + 3] = src.rgba[si + 3];
+      }
+    }
+  }
+  // Any gap left when the target is smaller than the margins is simply not drawn.
+  return { width: outW, height: outH, rgba: out };
+}
+
 /** A flat colour fill, used when a tier ships no body texture. */
 export function solid(width, height, hex) {
   const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);

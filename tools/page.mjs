@@ -16,7 +16,7 @@ import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { openMod, ModelError } from "./model.mjs";
 import { toPlain } from "./jsonc.mjs";
-import { decodePng, encodePng, cropCover, overlay, solid } from "./png.mjs";
+import { decodePng, encodePng, cropCover, overlay, solid, nineSlice } from "./png.mjs";
 import { composePrompt } from "./art.mjs";
 
 const TAG_ROLES = JSON.parse(readFileSync(new URL("../schema/tag-roles.json", import.meta.url), "utf8"));
@@ -194,14 +194,15 @@ ${statRows || '<tr><td colspan="3" style="color:#8a7a60">没有属性</td></tr>'
 }
 
 /**
- * Build the preview the player will actually see: the tier's plate, then its frame, then
- * the transparent card art. Three layers, because that is how the game stacks them.
+ * The card is three layers, in this order:
  *
- *   body   copper.png / silver.png / gold.png   opaque paper, per tier
- *   frame  copper_f.png ...                     transparent: bottom band and corner brackets
- *   art    image/cards/<id>.png                 transparent
+ *   地面  card_bg_<tier>.png   564x664, 9-sliced: the body with its soft paper fringe
+ *   卡面  image/cards/<id>.png transparent, the subject
+ *   f     <tier>_f.png         the bottom band and the two corner brackets, on top
  *
- * stone ships no body texture, only the frame, so its body is the tier's material colour.
+ * `stone` has no 196x424 body, but it does have card_bg_stone, which is the body that
+ * actually gets drawn. Searching only for names starting with the tier word is what made
+ * it look missing.
  */
 function artInline(modDir, id, rare) {
   const here = path.dirname(new URL(import.meta.url).pathname);
@@ -211,19 +212,21 @@ function artInline(modDir, id, rare) {
     const f = path.join(plateDir, `${name}.png`);
     return existsSync(f) ? f : null;
   };
-  const fit = (file) => cropCover(decodePng(readFileSync(file)), CARD_W, CARD_H);
 
-  let img = null;
-  const body = find(tier);
-  if (body) img = fit(body);
-  else img = solid(CARD_W, CARD_H, CARD_ART.plate?.[tier]?.color ?? "#3a2f22");
-  const frame = find(`${tier}_f`);
-  if (frame) img = overlay(img, fit(frame));
+  const body = find(`card_bg_${tier}`);
+  let img = body
+    ? nineSlice(decodePng(readFileSync(body)), CARD_W, CARD_H, 150)
+    : solid(CARD_W, CARD_H, CARD_ART.plate?.[tier]?.color ?? "#3a2f22");
+
   const artFile = path.join(modDir, "image", "cards", `${id}.png`);
-  if (existsSync(artFile)) img = overlay(img, fit(artFile));
+  if (existsSync(artFile)) img = overlay(img, cropCover(decodePng(readFileSync(artFile)), CARD_W, CARD_H));
+  else img = overlay(img, solid(CARD_W, CARD_H, "transparent"));
+
+  const frame = find(`${tier}_f`);
+  if (frame) img = overlay(img, cropCover(decodePng(readFileSync(frame)), CARD_W, CARD_H));
 
   const b64 = encodePng(img).toString("base64");
-  const note = `${tier}${body ? "" : "（无自身底色图，用材质色填）"}${frame ? " + 框" : ""}`;
+  const note = `${tier}${body ? " · 9-sliced 底牌" : " · 无底牌图"}${frame ? " · 框" : ""}`;
   return `<div class="cardface" style="padding:0;background:none;border-color:#57452c"><img src="data:image/png;base64,${b64}" style="width:100%;height:100%;object-fit:contain;display:block" title="${esc(note)}"></div>`;
 }
 

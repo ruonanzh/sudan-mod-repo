@@ -21,18 +21,40 @@
   "cardFace": "472x1028 RGBA, about half transparent in the shipped cards. The frame, corner ornaments, help button and plate are NOT in this texture; they are drawn by the game.",
   "headIcon": "A texture with the same name at 92x92 exists for some cards; extract-art writes it under head/.",
   "plate": {
-    "_note": "The base plate (底牌) is a real image, not just a material tint. Four of them live in sharedassets0.assets at 196x424, one per rarity, and the game stretches one over the card face.",
-    "source": "sharedassets0.assets (a different file from the card art)",
-    "size": "196x424, aspect 0.462, the same shape as the 472x1028 card face",
-    "files": {
-      "stone": "stone_f.png (no plain stone ships)",
-      "copper": "copper.png",
-      "silver": "silver.png",
-      "gold": "gold.png",
-      "suffix": "_f is a second variant of the same plate for stone, copper, silver and gold"
+    "_note": "Three per-tier families ship, in sharedassets0.assets. The tier word is not always first in the name, which is why `stone` looked missing: it is there as card_bg_stone and cardinfo_stone.",
+    "layersOrder": [
+      "地面 card_bg_<tier>",
+      "卡面 image/cards/<id>.png",
+      "f <tier>_f"
+    ],
+    "families": {
+      "card_bg_<tier>": {
+        "size": "564x664",
+        "what": "the card body, a 9-sliced sprite with a soft paper fringe",
+        "tiers": "all four + card_bg_empty"
+      },
+      "cardinfo_<tier>": {
+        "size": "372x1064",
+        "what": "ornate plate for the detail view: gold beaded border, marbled interior",
+        "tiers": "all four"
+      },
+      "<tier>.png": {
+        "size": "196x424",
+        "what": "the body without the fringe",
+        "tiers": "copper, silver, gold only"
+      },
+      "<tier>_f.png": {
+        "size": "196x424",
+        "what": "the frame: bottom band and two corner brackets, everything else cut out",
+        "tiers": "all four, and it is the ONLY stone file"
+      },
+      "rare_<tier>": {
+        "size": "148x252",
+        "what": "rarity badge",
+        "tiers": "all four"
+      }
     },
     "extract": "python3 tools/extract-art.py --out reference/plates --plates",
-    "what_it_carries": "the rarity colour, the rounded border, the paper noise and the ornamental band along the bottom edge",
-    "consequence": "The card art must stay transparent AND must not run to the edges: the plate border and that bottom band have to remain visible. A full-bleed picture covers exactly the parts that say which tier the card is."
+    "consequence": "Draw in this order: 地面, then 卡面, then f. The frame sits on top of the art, so the subject's feet are partly covered by the band, which is correct. The card art itself must stay transparent and must not run into the band."
   }
 }

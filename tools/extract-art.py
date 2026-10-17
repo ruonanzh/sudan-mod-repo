@@ -105,6 +105,11 @@ def main():
     ap.add_argument("--by-tier", action="store_true", help="one card per (type, rarity)")
     ap.add_argument("--all", action="store_true", help="every Texture2D whose name is a card id")
     ap.add_argument("--plates", action="store_true", help="the four rarity base plates from sharedassets0")
+    ap.add_argument(
+        "--assets",
+        default="resources.assets",
+        help="which asset file to read: resources.assets (card art) or sharedassets0.assets (plates, frames, UI)",
+    )
     args = ap.parse_args()
 
     try:
@@ -123,7 +128,15 @@ def main():
         src = os.path.join(game, "sharedassets0.assets")
         if not os.path.exists(src):
             sys.exit(f"FAIL  no sharedassets0.assets under {game}")
-        want = {"stone", "stone_f", "copper", "copper_f", "silver", "silver_f", "gold", "gold_f"}
+        # Three per-tier families ship, and the tier word is not always first in the name:
+        #   card_bg_<tier>     564x664  the card body (9-sliced, soft fringe)
+        #   cardinfo_<tier>    372x1064 ornate plate for the detail view
+        #   <tier>.png         196x424  body without the fringe; stone has only <tier>_f
+        #   <tier>_f.png       196x424  the frame: bottom band and corner brackets
+        want = set()
+        for tier in ("stone", "copper", "silver", "gold"):
+            want |= {tier, f"{tier}_f", f"card_bg_{tier}", f"cardinfo_{tier}", f"rare_{tier}"}
+        want |= {"card_bg_empty"}
         os.makedirs(args.out, exist_ok=True)
         env = UnityPy.load(src)
         n = 0
@@ -144,9 +157,9 @@ def main():
         print(f"\n{n} plate image(s) written to {args.out}")
         return 0 if n else 1
 
-    assets = os.path.join(game, "resources.assets")
+    assets = os.path.join(game, args.assets)
     if not os.path.exists(assets):
-        sys.exit(f"FAIL  no resources.assets under {game}")
+        sys.exit(f"FAIL  no {args.assets} under {game}")
 
     cards = load_cards(os.path.join(game, "StreamingAssets", "config"))
 
