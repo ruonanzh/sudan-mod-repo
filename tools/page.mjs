@@ -158,6 +158,12 @@ function cardBody(record, prompt, modDir) {
   </div>
 </div>
 
+<h2>四档对照 · 同一张卡面</h2>
+<div class="panel">
+${tierStrip(modDir, record.id, record.name, record.type)}
+<div class="note">底牌是游戏里那张 card 纸，按你从截图量的四个颜色重新上色。卡面只在最上层叠一次。</div>
+</div>
+
 <h2>画面 · 交给 Tripo 的提示词</h2>
 <div class="panel">
 <div class="note" style="margin-top:0">生成的是方图，会自动居中裁成 472 × 1028。所以要<b>竖构图、主体撑满高度</b>，横向的东西会被切掉。</div>
@@ -194,48 +200,50 @@ ${statRows || '<tr><td colspan="3" style="color:#8a7a60">没有属性</td></tr>'
 }
 
 /**
- * The card is four layers, read out of sharedassets0.assets:
+ * Build the card the way the game does, with the colours the player measured:
  *
- *   body   the shared `card` texture (or `card_e`), tinted by the tier material
- *   name   TextMeshPro with `CardTitle SDF - Rare<N>`, over the top fifth
- *   art    image/cards/<id>.png, transparent, top fifth left empty
- *   frame  `<tier>_f` on top: the bottom band and the two corner brackets
+ *   地面  reference/plates/card-<tier>.png   the shipped `card` paper, recoloured per tier
+ *   卡面  image/cards/<id>.png              transparent, top fifth left empty
+ *   名字  TextMeshPro in the game; drawn as text here
  *
- * card_bg_<tier> is the bag background, not the card body. Compositing with it was
- * what made stone look washed out next to the real cards.
+ * card.png already carries the diamond divider and the ornate bottom band, so no extra
+ * frame is stacked. The name goes on last, over the empty top fifth.
  */
-function artInline(modDir, id, rare, name) {
-  const record_type = arguments[4] || "item";
+function composeCard(modDir, id, rare, name, type) {
   const here = path.dirname(new URL(import.meta.url).pathname);
   const tier = ["stone", "copper", "silver", "gold"][(rare ?? 1) - 1] || "stone";
   const plateDir = path.join(here, "..", "reference", "plates");
-  const find = (n) => {
-    const f = path.join(plateDir, `${n}.png`);
-    return existsSync(f) ? f : null;
-  };
   const fit = (f) => cropCover(decodePng(readFileSync(f)), CARD_W, CARD_H);
 
-  const bodyFile = find("card");
-  const tintHex = CARD_ART.plate?.tierTint?.[tier] ?? "#ffffff";
-  let img = bodyFile
-    ? tint(fit(bodyFile), tintHex)
-    : solid(CARD_W, CARD_H, CARD_ART.plate?.materialColor?.[tier] ?? "#3a2f22");
+  const plateFile = path.join(plateDir, `card-${tier}.png`);
+  let img = existsSync(plateFile)
+    ? fit(plateFile)
+    : tint(fit(path.join(plateDir, "card.png")), CARD_ART.plate?.tierTint?.[tier] ?? "#ffffff");
 
   const artFile = path.join(modDir, "image", "cards", `${id}.png`);
   if (existsSync(artFile)) img = overlay(img, fit(artFile));
+  return { img, tier, hasArt: existsSync(artFile) };
+}
 
-  // Only a char card draws the <tier>_f frame; a sudan card draws sudan_f; an item card
-  // has no foreground at all. CardShowAssets has char_forgrounds and sudan_forgrond but
-  // no item_forgrounds.
-  const frameName = record_type === "char" ? `${tier}_f` : record_type === "sudan" ? "sudan_f" : null;
-  const frame = frameName ? find(frameName) : null;
-  if (frame) img = overlay(img, fit(frame));
+const dataUri = (img) => encodePng(img).toString("base64");
 
-  const b64 = encodePng(img).toString("base64");
+function artInline(modDir, id, rare, name, type) {
+  const { img, tier, hasArt } = composeCard(modDir, id, rare, name, type);
   const label = `<div style="position:absolute;left:0;right:0;top:3.5%;text-align:center;font:600 16px ui-serif,Georgia,serif;color:#20180f;letter-spacing:.16em;pointer-events:none">${esc(name)}</div>`;
-  const m = CARD_ART.materialMaps?.perTier?.[tier] || {};
-  const note = `${tier} · body=card×${tintHex}${frame ? " · frame" : ""} · 预览只有底色，游戏还会叠 metallic ${m.metallic ?? "?"} / gloss ${m.glossiness ?? "?"} / 法线 ${m.bumpScale ?? "?"}`;
-  return `<div class="cardface" style="padding:0;background:none;border-color:#57452c;position:relative"><img src="data:image/png;base64,${b64}" style="width:100%;height:100%;object-fit:contain;display:block" title="${esc(note)}">${label}</div>`;
+  const note = `${tier}${hasArt ? "" : " · 没有卡面图"}`;
+  return `<div class="cardface" style="padding:0;background:none;border-color:#57452c;position:relative" title="${esc(note)}"><img src="data:image/png;base64,${dataUri(img)}" style="width:100%;height:100%;object-fit:contain;display:block">${label}</div>`;
+}
+
+/** The same card in all four tiers, so the colour can be judged at a glance. */
+function tierStrip(modDir, id, name, type) {
+  const cells = [1, 2, 3, 4]
+    .map((rare) => {
+      const { img } = composeCard(modDir, id, rare, name, type);
+      const label = `<div style="position:absolute;left:0;right:0;top:4%;text-align:center;font:600 11px ui-serif,Georgia,serif;color:#20180f;letter-spacing:.1em">${esc(name)}</div>`;
+      return `<div style="flex:0 0 118px"><div style="position:relative;border:1px solid #57452c"><img src="data:image/png;base64,${dataUri(img)}" style="width:100%;display:block">${label}</div><div style="text-align:center;color:#8a7a60;font-size:11px;margin-top:4px">${["石块", "铜", "银", "金"][rare - 1]}</div></div>`;
+    })
+    .join("");
+  return `<div style="display:flex;gap:12px;flex-wrap:wrap">${cells}</div>`;
 }
 
 function riteBody(record) {
