@@ -183,6 +183,21 @@ export function cropCover(img, targetWidth, targetHeight) {
   return { width: targetWidth, height: targetHeight, rgba: out };
 }
 
+/** A flat colour fill, used when a tier ships no body texture. */
+export function solid(width, height, hex) {
+  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
+  if (!m) throw new Error(`solid: bad colour ${hex}`);
+  const [r, g, b] = [1, 2, 3].map((i) => parseInt(m[i], 16));
+  const rgba = Buffer.alloc(width * height * 4);
+  for (let i = 0; i < rgba.length; i += 4) {
+    rgba[i] = r;
+    rgba[i + 1] = g;
+    rgba[i + 2] = b;
+    rgba[i + 3] = 255;
+  }
+  return { width, height, rgba };
+}
+
 /** Draw `top` over `base` with source-over alpha, both the same size. */
 export function overlay(base, top) {
   if (base.width !== top.width || base.height !== top.height) throw new Error("overlay: size mismatch");
@@ -198,4 +213,4 @@ export function overlay(base, top) {
   return { width: base.width, height: base.height, rgba: out };
 }
 
-export default { decodePng, encodePng, cropCover, overlay };
+export default { decodePng, encodePng, cropCover, overlay, solid };

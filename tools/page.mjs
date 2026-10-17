@@ -16,12 +16,14 @@ import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { openMod, ModelError } from "./model.mjs";
 import { toPlain } from "./jsonc.mjs";
-import { decodePng, encodePng, cropCover, overlay } from "./png.mjs";
+import { decodePng, encodePng, cropCover, overlay, solid } from "./png.mjs";
 import { composePrompt } from "./art.mjs";
 
 const TAG_ROLES = JSON.parse(readFileSync(new URL("../schema/tag-roles.json", import.meta.url), "utf8"));
 const CARD_ART = JSON.parse(readFileSync(new URL("../schema/card-art.json", import.meta.url), "utf8"));
 const PLATE = ["stone", "copper", "silver", "gold"];
+const CARD_W = 472;
+const CARD_H = 1028;
 
 function parseArgs(argv) {
   const out = { _: [] };
@@ -192,33 +194,36 @@ ${statRows || '<tr><td colspan="3" style="color:#8a7a60">没有属性</td></tr>'
 }
 
 /**
- * Build the preview the player will actually see: the real base plate for that rarity,
- * scaled to the card face, with the transparent art drawn over it. Anything less is a
- * preview that lies about the one thing they asked about — the colour underneath.
+ * Build the preview the player will actually see: the tier's plate, then its frame, then
+ * the transparent card art. Three layers, because that is how the game stacks them.
+ *
+ *   body   copper.png / silver.png / gold.png   opaque paper, per tier
+ *   frame  copper_f.png ...                     transparent: bottom band and corner brackets
+ *   art    image/cards/<id>.png                 transparent
+ *
+ * stone ships no body texture, only the frame, so its body is the tier's material colour.
  */
 function artInline(modDir, id, rare) {
   const here = path.dirname(new URL(import.meta.url).pathname);
-  const plateName = ["stone", "copper", "silver", "gold"][(rare ?? 1) - 1] || "stone";
-  const plateFile = ["stone_f", plateName]
-    .map((n) => path.join(here, "..", "reference", "plates", `${n}.png`))
-    .find((f) => existsSync(f));
-  const artFile = path.join(modDir, "image", "cards", `${id}.png`);
+  const tier = ["stone", "copper", "silver", "gold"][(rare ?? 1) - 1] || "stone";
+  const plateDir = path.join(here, "..", "reference", "plates");
+  const find = (name) => {
+    const f = path.join(plateDir, `${name}.png`);
+    return existsSync(f) ? f : null;
+  };
+  const fit = (file) => cropCover(decodePng(readFileSync(file)), CARD_W, CARD_H);
 
   let img = null;
-  if (existsSync(artFile)) {
-    const art = cropCover(decodePng(readFileSync(artFile)), 472, 1028);
-    if (plateFile) {
-      const plate = cropCover(decodePng(readFileSync(plateFile)), 472, 1028);
-      img = overlay(plate, art);
-    } else {
-      img = art;
-    }
-  } else if (plateFile) {
-    img = cropCover(decodePng(readFileSync(plateFile)), 472, 1028);
-  }
-  if (!img) return null;
+  const body = find(tier);
+  if (body) img = fit(body);
+  else img = solid(CARD_W, CARD_H, CARD_ART.plate?.[tier]?.color ?? "#3a2f22");
+  const frame = find(`${tier}_f`);
+  if (frame) img = overlay(img, fit(frame));
+  const artFile = path.join(modDir, "image", "cards", `${id}.png`);
+  if (existsSync(artFile)) img = overlay(img, fit(artFile));
+
   const b64 = encodePng(img).toString("base64");
-  const note = plateFile ? `参考底牌 ${path.basename(plateFile, ".png")}` : "未解包底牌，仅显示卡面";
+  const note = `${tier}${body ? "" : "（无自身底色图，用材质色填）"}${frame ? " + 框" : ""}`;
   return `<div class="cardface" style="padding:0;background:none;border-color:#57452c"><img src="data:image/png;base64,${b64}" style="width:100%;height:100%;object-fit:contain;display:block" title="${esc(note)}"></div>`;
 }
 
