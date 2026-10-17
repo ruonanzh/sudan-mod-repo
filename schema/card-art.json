@@ -145,6 +145,65 @@
       "textureSet": "gold uses card, card_n, card_d, card_e, card_mt. stone uses card, card_n, card_e, card_mt and NO card_d, so the tiers differ in which maps are present, not only in colour.",
       "shader": "both stone and gold use Shader pathID 187, m_Name CardShow/Default",
       "limit": "the probe does not expand Shader m_ParsedForm here, so the shader's maths stays unreadable; a channel multiply does not reproduce the in-game colour."
+    },
+    "perType": {
+      "_note": "Read with the data probe: the CardRender* component fields, and the m_Material / m_Sprite of each body Image.",
+      "char": {
+        "class": "CardRenderChar",
+        "fields": [
+          "bg",
+          "image",
+          "text",
+          "stackable",
+          "life",
+          "stackCount",
+          "lifeCount",
+          "DotText",
+          "sFxHolders",
+          "waitingTime",
+          "forground"
+        ],
+        "bg": "Image pathID 822: m_Sprite null, m_Material -> gold (chars[3]); m_Color 1,1,1,1",
+        "forground": "Image pathID 882: m_Material null, m_Sprite null today. A placeholder the code fills with char_forgrounds[rarity-1], which is the <tier>_f frame.",
+        "stackable": "number_bg"
+      },
+      "item": {
+        "class": "CardRenderItem",
+        "fields": [
+          "bg",
+          "image",
+          "text",
+          "stackable",
+          "life",
+          "stackCount",
+          "lifeCount",
+          "DotText",
+          "sFxHolders",
+          "waitingTime"
+        ],
+        "bg": "Image pathID 845: m_Sprite null, m_Material -> gold (items[3]); m_Color 1,1,1,1",
+        "forground": "absent. The class has no forground field at all, so an item card has no frame layer.",
+        "stackable": "checkbox_bg"
+      },
+      "sudan": {
+        "class": "CardRenderSudan",
+        "fields": [
+          "bg",
+          "image",
+          "text",
+          "stackable",
+          "life",
+          "stackCount",
+          "lifeCount",
+          "DotText",
+          "sFxHolders",
+          "waitingTime"
+        ],
+        "bg": "Image pathID 857: m_Sprite null, m_Material -> gold (sudans[3]); m_Color 1,1,1,1",
+        "forground": "absent as a field. sudan_forgrond exists in CardShowAssets, so the frame is applied another way; unresolved.",
+        "stackable": "number_bg"
+      },
+      "common": "All three prefabs ship with the gold variant as their default material and swap it per rarity at runtime. Every body image is a sprite-less quad with white tint, so the material is the only thing that decides how it looks."
     }
   },
   "howToInspect": {
