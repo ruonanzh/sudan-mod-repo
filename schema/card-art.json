@@ -221,5 +221,53 @@
     "_note": "Use the data probe from the duckov repository rather than ad-hoc scripts. It reads Sultan's Game once it is pointed at the IL2CPP dummy assemblies.",
     "command": "~/.dotnet/dotnet ~/Documents/Projects/escape-from-duckov-mod/tools/data-probe/bin/Release/net8.0/data-probe.dll --managed /tmp/il2cppdumper/DummyDll --data \"<Sultan's Game/Contents/Resources/Data>\" --action <dump|refs|search|export> [--class X --name Y --pathid N --file sharedassets0.assets --depth N --follow --out file]",
     "prerequisite": "--managed needs DLLs; an IL2CPP build has none, so point it at Il2CppDumper's DummyDll output."
+  },
+  "bodyMaterial": {
+    "_note": "Read from material stone (pathID 15) in sharedassets0.assets. It is a standard URP Lit-style material: the shader is named CardShow/Default but carries the URP Lit property set.",
+    "keywords": [
+      "_ALPHABLEND_ON",
+      "_EMISSION",
+      "_METALLICGLOSSMAP",
+      "_NORMALMAP"
+    ],
+    "renderType": "Transparent, alpha blended",
+    "maps": {
+      "_MainTex": "card  (albedo) — the one paper picture shared by every tier",
+      "_BumpMap": "card_n",
+      "_DetailAlbedoMap": "card_d (stone does not set it)",
+      "_EmissionMap": "card_e",
+      "_MetallicGlossMap": "card_mt"
+    },
+    "perTierParameters": {
+      "stone": {
+        "color": "#b09aeb",
+        "metallic": 0.1,
+        "glossiness": 0.4,
+        "bumpScale": 0.903,
+        "detailMap": false
+      },
+      "copper": {
+        "color": "#b3d9ff",
+        "metallic": 0.8,
+        "glossiness": 0.7,
+        "bumpScale": 0.382,
+        "detailMap": true
+      },
+      "silver": {
+        "color": "#f0d8cb",
+        "metallic": 0.85,
+        "glossiness": 0.8,
+        "bumpScale": 0.285,
+        "detailMap": true
+      },
+      "gold": {
+        "color": "#ffd4a2",
+        "metallic": 0.393,
+        "glossiness": 0.71,
+        "bumpScale": 0.368,
+        "detailMap": true
+      }
+    },
+    "answer": "The base plate is not four images. It is one paper texture with four extra PBR maps, shared by all tiers, and the tiers differ only in material parameters. It renders as transparent, lit and alpha blended, which is why it reads as translucent paper and why a flat channel multiply never matched."
   }
 }
