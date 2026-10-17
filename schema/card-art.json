@@ -98,7 +98,18 @@
     "frame": "stone_f.png",
     "whyNoStonePng": "Because the body was never per-tier. Only the frame and the title font differ per tier.",
     "tintIsNotAMultiply": "Multiplying the paper by stone's material _Color #b09aeb produces a purple card; multiplying by the warm #a88864 produces a dark olive one. Neither matches the pale warm grey in game. The face uses a custom shader (CardFaceUnlit, with CardFaceOutline for the rim), plus _DetailAlbedoMap card_d and _MetallicGlossMap card_mt, so the final colour cannot be reproduced with a channel multiply.",
-    "consequence": "Any offline preview of the tier colour is approximate. Say so, and do not claim the preview is what the game shows."
+    "consequence": "Any offline preview of the tier colour is approximate. Say so, and do not claim the preview is what the game shows.",
+    "resolved": "The 196x424 textures named copper, silver and gold are NOT card bodies. They are the title font's face and outline textures. That family never had a stone member, and it never had anything to do with the body.",
+    "whoUses196x424": {
+      "copper.png": "CardTitle SDF - Rare2 . _FaceTex",
+      "silver.png": "CardTitle SDF - Rare3 . _FaceTex, and CardTitle SDF - Rare1 . _OutlineTex",
+      "gold.png": "CardTitle SDF - Rare1 . _FaceTex, and CardTitle SDF - Rare4 . _FaceTex",
+      "stone_f.png": "material stone_f . _MainTex",
+      "copper_f.png": "material copper_f . _MainTex",
+      "silver_f.png": "material silver_f . _MainTex",
+      "gold_f.png": "material gold_f . _MainTex"
+    },
+    "conclusion": "Rare1..4 are the four tiers in order. Rare1 (stone) draws its title with the gold face texture and the silver outline texture, so it needs no texture of its own. The body of every tier is the shared `card` texture through the tier material. stone is not missing anything: it was never supposed to have a body file."
   },
   "prefab": {
     "_note": "Read from sharedassets0.assets: every Image component under the three card prefabs, and the Sprite each one references. CardShowAssets.prefabs holds CardShowItem[] — three prefabs, one per card type.",
