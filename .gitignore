@@ -2,3 +2,7 @@
 **/.preview/
 node_modules/
 .DS_Store
+
+# extracted vanilla art: DoubleCross owns it, it is a style reference only
+reference/cards/*.png
+reference/cards/head/

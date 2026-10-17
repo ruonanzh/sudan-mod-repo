@@ -1,0 +1,23 @@
+{
+  "_note": "What a card's own texture looks like, measured from the extracted art. 'saturated' is the share of opaque pixels with any real colour; the rest is monochrome line work. The rule of thumb is by card type, not by the 纯色材质 tag: that tag separated the two on four samples and failed on 44.",
+  "measured": {
+    "item": {
+      "saturatedMean": 12,
+      "range": "0-68",
+      "tendency": "often near-monochrome ink drawing"
+    },
+    "char": {
+      "saturatedMean": 38,
+      "range": "9-65",
+      "tendency": "coloured portrait"
+    },
+    "sudan": {
+      "saturatedMean": 31,
+      "range": "26-37",
+      "tendency": "coloured ornament"
+    }
+  },
+  "referenceRule": "reference/cards/<type>-<rare>.png, one extracted vanilla card per combination. When present, art.mjs switches to image-to-image so the mode and palette follow a real card instead of a description.",
+  "cardFace": "472x1028 RGBA. The game draws the frame, the corner ornaments and the help button; the texture is the inner picture only.",
+  "headIcon": "A texture with the same name at 92x92 exists for some cards; extract-art writes it under head/."
+}

@@ -59,6 +59,8 @@ const TYPE_HINT = {
   sudan: "an ornate Sultan card motif, symmetrical",
 };
 
+const CARD_ART = JSON.parse(readFileSync(new URL("../schema/card-art.json", import.meta.url), "utf8"));
+
 const STYLE =
   "flat engraved illustration, warm muted palette of ochre, oxblood and bone, " +
   "visible ink linework, aged paper texture, folk woodcut influence, " +
@@ -74,7 +76,8 @@ export function composePrompt(card) {
   const tier = RARITY[card.rare] || RARITY[1];
   const kind = TYPE_HINT[card.type] || TYPE_HINT.item;
   // The plate colour is fixed by rarity in the game, so the picture has to sit on it.
-  const plate = `A ${tier.name} tier card: ${kind}, set on a ${tier.plate} background that fills the frame.`;
+  const tendency = CARD_ART.measured[card.type]?.tendency ?? "centred subject";
+  const plate = `A ${tier.name} tier card: ${kind}, ${tendency}, set on a ${tier.plate} background that fills the frame.`;
   return `${plate} ${subject}.${facts}${flavour} ${STYLE}`;
 }
 
@@ -103,8 +106,10 @@ function cmdRefs() {
     }
   }
   if (missing.length) {
-    emit("WARN", `${missing.length} reference picture(s) missing. Drop a screenshot crop of one vanilla card of each tier into ${REF_DIR}/, named as above.`);
-    process.stdout.write("NEXT  with a reference present, `gen` switches to image-to-image and the palette follows the game instead of the prompt.\n");
+    emit("WARN", `${missing.length} reference picture(s) missing in ${REF_DIR}/.`);
+    process.stdout.write(
+      "NEXT  extract them from the game: /tmp/unitypy-venv/bin/python tools/extract-art.py --out reference/cards --by-tier\n",
+    );
     return 0;
   }
   emit("PASS", "every tier has a reference picture; gen will use image-to-image");
@@ -203,7 +208,7 @@ function cmdCheck(args) {
 
 async function cmdGen(args) {
   const { mod, card } = loadCard(args);
-  const prompt = args.prompt || composePrompt(card);
+  let prompt = args.prompt || composePrompt(card);
   const key = requireKey();
 
   const ref = args.ref || refFor(card, mod.dir);
