@@ -1,0 +1,29 @@
+{
+  "version": "1.0.0",
+  "modType": "json",
+  "game": {
+    "name": "Sultan's Game",
+    "steamAppId": 3117820,
+    "platforms": ["windows", "mac"],
+    "installDirHint": {
+      "windows": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Sultan's Game",
+      "mac": "~/Library/Application Support/Steam/steamapps/common/Sultan's Game"
+    }
+  },
+  "modInstall": {
+    "_note": "The game computes MOD_ROOT with Environment.GetFolderPath(MyDocuments). On Windows that is %USERPROFILE%\\Documents; on macOS/Unix it is $HOME. So the two platforms have different roots. Verified in game: /Users/<user>/DoubleCross/SultansGame/Mod/",
+    "relativeTo": {
+      "windows": "userDocuments",
+      "mac": "home"
+    },
+    "path": {
+      "windows": "DoubleCross/SultansGame/Mod",
+      "mac": "DoubleCross/SultansGame/Mod"
+    }
+  },
+  "compile": null,
+  "workshop": {
+    "supported": true,
+    "appId": 3117820
+  }
+}

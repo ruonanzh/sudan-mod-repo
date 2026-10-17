@@ -1,0 +1,4 @@
+# A mod page is not part of the mod. install_mod skips it.
+**/.preview/
+node_modules/
+.DS_Store
