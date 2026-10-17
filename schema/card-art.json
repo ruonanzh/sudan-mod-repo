@@ -91,5 +91,13 @@
     "fontColor": "rgba(0.00, 0.95, 0.91, 0.56)",
     "fontMaterial": "CardTitle SDF - SudanTitle",
     "_note": "Sudan cards use their own frame sudan_f and a cyan, semi-transparent title. Every other tier uses CardTitle SDF - Rare1..4."
+  },
+  "stonePlate": {
+    "answer": "stone has NO base-plate image of its own. The body is the one shared `card` paper texture, tinted by the tier material. stone's only per-tier file is stone_f, the frame.",
+    "body": "card.png — the same mottled paper every tier uses",
+    "frame": "stone_f.png",
+    "whyNoStonePng": "Because the body was never per-tier. Only the frame and the title font differ per tier.",
+    "tintIsNotAMultiply": "Multiplying the paper by stone's material _Color #b09aeb produces a purple card; multiplying by the warm #a88864 produces a dark olive one. Neither matches the pale warm grey in game. The face uses a custom shader (CardFaceUnlit, with CardFaceOutline for the rim), plus _DetailAlbedoMap card_d and _MetallicGlossMap card_mt, so the final colour cannot be reproduced with a channel multiply.",
+    "consequence": "Any offline preview of the tier colour is approximate. Say so, and do not claim the preview is what the game shows."
   }
 }
