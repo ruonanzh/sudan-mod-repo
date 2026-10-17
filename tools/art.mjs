@@ -46,10 +46,10 @@ const emit = (code, message, next) => {
  */
 /** The four tiers, with the colour plate the game uses for each. */
 const RARITY = {
-  1: { name: "石块 stone", plate: "cool grey stone plate" },
-  2: { name: "铜 copper", plate: "warm copper plate" },
-  3: { name: "银 silver", plate: "pale silver plate" },
-  4: { name: "金 gold", plate: "deep gold plate" },
+  1: { name: "石块 stone" },
+  2: { name: "铜 copper" },
+  3: { name: "银 silver" },
+  4: { name: "金 gold" },
 };
 
 /** The four tiers, and the composition each card type wants. */
@@ -63,9 +63,11 @@ const CARD_ART = JSON.parse(readFileSync(new URL("../schema/card-art.json", impo
 
 const STYLE =
   "flat engraved illustration, warm muted palette of ochre, oxblood and bone, " +
-  "visible ink linework, aged paper texture, folk woodcut influence, " +
+  "visible ink linework, folk woodcut influence, " +
   "vertical composition with the subject filling the full height and centred, " +
-  "plain dark background, no text, no border, no frame, game card art";
+  "subject only, isolated on a FULLY TRANSPARENT background, " +
+  "no backdrop, no plate, no frame, no border, no floor, no cast shadow, no vignette, " +
+  "no text, game card art";
 
 /** One or two sentences built from the card's own fields. */
 export function composePrompt(card) {
@@ -77,8 +79,8 @@ export function composePrompt(card) {
   const kind = TYPE_HINT[card.type] || TYPE_HINT.item;
   // The plate colour is fixed by rarity in the game, so the picture has to sit on it.
   const tendency = CARD_ART.measured[card.type]?.tendency ?? "centred subject";
-  const plate = `A ${tier.name} tier card: ${kind}, ${tendency}, set on a ${tier.plate} background that fills the frame.`;
-  return `${plate} ${subject}.${facts}${flavour} ${STYLE}`;
+  const head = `A ${tier.name} tier ${card.type} card: ${kind}, ${tendency}.`;
+  return `${head} ${subject}.${facts}${flavour} ${STYLE}`;
 }
 
 /** Where a same-tier, same-type reference picture lives. */
@@ -223,7 +225,7 @@ async function cmdGen(args) {
     // Same tier and type as the card: the model follows the game's own plate and palette.
     body.input = await uploadRef(key, ref);
     endpoint = "/generation/image-to-image";
-    prompt = `${prompt} Match the reference card's palette, lighting and background plate; change only the subject.`;
+    prompt = `${prompt} Match the reference drawing's style and palette, and keep its FULLY TRANSPARENT background: do not add any backdrop, plate or frame.`;
     body.prompt = prompt;
   } else {
     emit("WARN", "no reference picture for this tier; the palette comes from the prompt alone. Run `node tools/art.mjs refs`.");

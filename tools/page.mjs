@@ -19,6 +19,8 @@ import { toPlain } from "./jsonc.mjs";
 import { composePrompt } from "./art.mjs";
 
 const TAG_ROLES = JSON.parse(readFileSync(new URL("../schema/tag-roles.json", import.meta.url), "utf8"));
+const CARD_ART = JSON.parse(readFileSync(new URL("../schema/card-art.json", import.meta.url), "utf8"));
+const PLATE = ["stone", "copper", "silver", "gold"];
 
 function parseArgs(argv) {
   const out = { _: [] };
@@ -135,7 +137,7 @@ function cardBody(record, prompt, modDir) {
   return `
 <h2>卡面</h2>
 <div class="split">
-  ${artInline(modDir, record.id) || '<div class="cardface">472 × 1028<br>卡面图放这里<br><span style="opacity:.6">只替换内部画面，边框由游戏画</span></div>'}
+  ${artInline(modDir, record.id, record.rare) || '<div class="cardface">472 × 1028<br>卡面图放这里<br><span style="opacity:.6">只替换内部画面，边框由游戏画</span></div>'}
   <div class="grow">
     <div class="panel">
       <div class="row"><div class="lbl">名字</div><div><input type="text" name="name" value="${esc(record.name)}"></div></div>
@@ -189,11 +191,13 @@ ${statRows || '<tr><td colspan="3" style="color:#8a7a60">没有属性</td></tr>'
 }
 
 /** Embed the card art so the page is one file and works offline. */
-function artInline(modDir, id) {
+function artInline(modDir, id, rare) {
   const file = path.join(modDir, "image", "cards", `${id}.png`);
   if (!existsSync(file)) return null;
+  // Composite over the tier's real plate colour so the preview is not a lie.
+  const plate = CARD_ART.plate?.[PLATE[(rare ?? 1) - 1]]?.color ?? "#2c241c";
   const b64 = readFileSync(file).toString("base64");
-  return `<div class="cardface" style="padding:0;background:none;border-color:#57452c"><img src="data:image/png;base64,${b64}" style="width:100%;height:100%;object-fit:cover;display:block"></div>`;
+  return `<div class="cardface" style="padding:0;background:${plate};border-color:#57452c"><img src="data:image/png;base64,${b64}" style="width:100%;height:100%;object-fit:contain;display:block"></div>`;
 }
 
 function riteBody(record) {
