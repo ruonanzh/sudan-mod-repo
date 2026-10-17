@@ -270,34 +270,43 @@ function artInline(modDir, id, rare, name, type) {
   var wantPlate = payload.rare || 1;
   var wantArt = Boolean(payload.art);
   var name = payload.name || "";
-  var loaded = 0;
+  var shown = false;
+
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (plate.complete && plate.naturalWidth) ctx.drawImage(plate, 0, 0, canvas.width, canvas.height);
     if (wantArt && art.complete && art.naturalWidth) ctx.drawImage(art, 0, 0, canvas.width, canvas.height);
     ctx.fillStyle = "#20180f";
-    ctx.font = "600 8px ui-serif, Georgia, serif";
+    ctx.font = "600 11px ui-serif, Georgia, serif";
     ctx.textAlign = "center";
-    ctx.fillText(name, canvas.width / 2, 22);
+    ctx.fillText(name, canvas.width / 2, 26);
   }
-  function maybeShow() {
-    if (++loaded < (wantArt ? 2 : 1)) return;
+  function reveal() {
+    if (shown) return;
+    shown = true;
     staticImg.style.display = "none";
     canvas.style.display = "block";
-    draw();
   }
-  plate.onload = maybeShow;
-  art.onload = maybeShow;
+  // Every load redraws. The first load also swaps the static card for the canvas.
+  plate.onload = function () { reveal(); draw(); };
+  art.onload = function () { reveal(); draw(); };
+
   plate.src = payload.plates[wantPlate];
-  if (wantArt) art.src = payload.art; else loaded++;
-  // wire the controls
-  var rareSelect = document.querySelector('select[name="rare"]');
-  if (rareSelect) rareSelect.addEventListener("change", function () {
-    var v = Number(rareSelect.value) || 1;
-    if (payload.plates[v]) { wantPlate = v; plate.src = payload.plates[v]; }
-  });
-  var nameInput = document.querySelector('input[name="name"]');
-  if (nameInput) nameInput.addEventListener("input", function () { name = nameInput.value; draw(); });
+  if (wantArt) art.src = payload.art;
+
+  // The script sits above the fields in the document, so the controls do not exist yet
+  // when it runs. Wire them once the document has parsed.
+  function wire() {
+    var rareSelect = document.querySelector('select[name="rare"]');
+    if (rareSelect) rareSelect.addEventListener("change", function () {
+      var v = Number(rareSelect.value) || 1;
+      if (payload.plates[v]) { wantPlate = v; plate.src = payload.plates[v]; }
+    });
+    var nameInput = document.querySelector('input[name="name"]');
+    if (nameInput) nameInput.addEventListener("input", function () { name = nameInput.value; draw(); });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", wire);
+  else wire();
 })();
 </script>`;
 }
