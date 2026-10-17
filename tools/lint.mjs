@@ -677,6 +677,24 @@ function lintMod(modDir, vanilla, opts) {
               if (isPlainObject(item)) reportFields(fileRel, "settlement", item, `${arr}[${i}]`);
             });
           }
+          // settlement and settlement_prior stop at the first branch whose condition holds.
+          // In every one of the 1498 shipped rites, an empty-condition branch is the last one.
+          // An empty condition anywhere else makes every later branch dead.
+          for (const arr of ["settlement_prior", "settlement"]) {
+            const list = value[arr];
+            if (!Array.isArray(list) || list.length < 2) continue;
+            list.forEach((item, i) => {
+              if (!isPlainObject(item) || i === list.length - 1) return;
+              const c = item.condition;
+              const empty = c === undefined || c === null || (isPlainObject(c) && Object.keys(c).length === 0);
+              if (empty)
+                fail(
+                  "DEAD_BRANCH",
+                  fileRel,
+                  `${arr}[${i}] has an empty condition but is not the last branch. ${arr} stops at the first match, so every branch after it never runs.`,
+                );
+            });
+          }
         }
         if (relPath === "config/loot" && Array.isArray(value.item)) {
           value.item.forEach((item, i) => {

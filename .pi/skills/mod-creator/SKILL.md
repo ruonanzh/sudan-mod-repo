@@ -301,15 +301,23 @@ Three settlement arrays exist. What each does with multiple matching branches:
 
 | array | behaviour |
 |---|---|
-| `settlement_prior` | runs before the others; the first branch whose condition holds |
-| `settlement` | the first branch whose condition holds |
-| `settlement_extre` | every branch whose condition holds |
+| `settlement_prior` | first branch whose condition holds, then the rite ends immediately |
+| `settlement` | first branch whose condition holds, then `settlement_extre` runs |
+| `settlement_extre` | every branch whose condition holds, in order |
 
-**This table is the community description and vanilla's own comments do not confirm it.** Vanilla
-never comments on these three keys. If a design depends on whether one branch or all branches run,
-say that it is unconfirmed rather than promise a result. The three arrays are separate fields on
-`RiteNode` and are all read, which is why `settlement_extre` with two matching branches is the case
-worth checking first.
+**Confirmed twice, from two independent directions.**
+
+The wiki documents it field by field. The shipped data agrees, and it is the data that makes this
+usable as a rule:
+
+- In all 1498 rites, an empty `condition` (`{}` or absent) inside `settlement` or `settlement_prior`
+  is the **last** branch, 69 out of 69 times, never earlier. An unconditional branch placed earlier
+  would make everything after it dead, so no author ever wrote one.
+- In `settlement_extre`, empty conditions appear at every index including index 0 and index 165, 216
+  of them. Position does not matter there, which is what "all matches run" looks like.
+
+So: put the unconditional branch **last** in `settlement_prior` and `settlement`, and anywhere in
+`settlement_extre`. `node tools/lint.mjs` reports `DEAD_BRANCH` when you get this wrong.
 
 `is_empty` is settled, and the community guide that says otherwise is wrong:
 
@@ -323,6 +331,42 @@ The evidence is vanilla's own comments, not a story: `"is_empty":0, // 不能为
 
 One trap remains: `is_empty` is a line inside a bigger object, so a search for `is_empty:1` tells you
 nothing about whether that *rite* is optional. Read the whole slot.
+
+## Triggers, timeouts and the order things settle
+
+`on` and `start_trigger` interact, and the interaction decides whether your event fires at once or
+after a delay:
+
+| `start_trigger` | `"round_begin_ba": x` means |
+|---|---|
+| `true` | fire now; `x` is ignored |
+| `false` | fire `x` rounds later |
+
+`delay` follows the same idea: `"delay": {"round": 5, ...}` fires the next thing after 5 rounds, and
+`round: 1` means the next round. A round is one in-game day.
+
+Rite timing fields:
+
+| field | meaning |
+|---|---|
+| `round_number` | how many rounds the rite itself takes. `0` settles immediately |
+| `waiting_round` | how long it may sit on the map. `0` means no limit |
+| `waiting_round_end_action` | what happens on timeout |
+| `auto_begin` | `1` starts the rite automatically. It overrides the timeout |
+| `open_adsorb` | `1` makes the slot pull matching cards in by itself |
+
+Daily settlement runs in this order: countdown ticks, then each card's own `vanish`, then rites in
+ascending id order, then the used card's `post_rite`. Absorption follows ascending rite id too. So a
+lower id competes harder for a card, which is why a card can get stuck in an early rite and never
+reach a later one.
+
+## Condition helpers that are easy to confuse
+
+| key | means |
+|---|---|
+| `have.<filter>` | a card is alive |
+| `table_have.<filter>` | a card is on the table and free |
+| `hand_have.<filter>` | a card is in hand |
 
 `rite_template` and `rite_template_mappings` control where the slots sit on screen. If you do not ship
 them, the game falls back to a normal template and logs
