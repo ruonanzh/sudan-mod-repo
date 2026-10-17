@@ -16,7 +16,7 @@ import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { openMod, ModelError } from "./model.mjs";
 import { toPlain } from "./jsonc.mjs";
-import { decodePng, encodePng, cropCover, overlay, solid, nineSlice } from "./png.mjs";
+import { decodePng, encodePng, cropCover, overlay, solid, nineSlice, tint } from "./png.mjs";
 import { composePrompt } from "./art.mjs";
 
 const TAG_ROLES = JSON.parse(readFileSync(new URL("../schema/tag-roles.json", import.meta.url), "utf8"));
@@ -194,42 +194,41 @@ ${statRows || '<tr><td colspan="3" style="color:#8a7a60">没有属性</td></tr>'
 }
 
 /**
- * The card is three layers, in this order:
+ * The card is four layers, read out of sharedassets0.assets:
  *
- *   地面  card_bg_<tier>.png   564x664, 9-sliced: the body with its soft paper fringe
- *   卡面  image/cards/<id>.png transparent, the subject
- *   f     <tier>_f.png         the bottom band and the two corner brackets, on top
+ *   body   the shared `card` texture (or `card_e`), tinted by the tier material
+ *   name   TextMeshPro with `CardTitle SDF - Rare<N>`, over the top fifth
+ *   art    image/cards/<id>.png, transparent, top fifth left empty
+ *   frame  `<tier>_f` on top: the bottom band and the two corner brackets
  *
- * `stone` has no 196x424 body, but it does have card_bg_stone, which is the body that
- * actually gets drawn. Searching only for names starting with the tier word is what made
- * it look missing.
+ * card_bg_<tier> is the bag background, not the card body. Compositing with it was
+ * what made stone look washed out next to the real cards.
  */
-function artInline(modDir, id, rare) {
-  const name = arguments[3] || "";
+function artInline(modDir, id, rare, name) {
   const here = path.dirname(new URL(import.meta.url).pathname);
   const tier = ["stone", "copper", "silver", "gold"][(rare ?? 1) - 1] || "stone";
   const plateDir = path.join(here, "..", "reference", "plates");
-  const find = (name) => {
-    const f = path.join(plateDir, `${name}.png`);
+  const find = (n) => {
+    const f = path.join(plateDir, `${n}.png`);
     return existsSync(f) ? f : null;
   };
+  const fit = (f) => cropCover(decodePng(readFileSync(f)), CARD_W, CARD_H);
 
-  const body = find(`card_bg_${tier}`);
-  let img = body
-    ? nineSlice(decodePng(readFileSync(body)), CARD_W, CARD_H, 150)
-    : solid(CARD_W, CARD_H, CARD_ART.plate?.[tier]?.color ?? "#3a2f22");
+  const bodyFile = find("card");
+  const tintHex = CARD_ART.plate?.tierTint?.[tier] ?? "#ffffff";
+  let img = bodyFile
+    ? tint(fit(bodyFile), tintHex)
+    : solid(CARD_W, CARD_H, CARD_ART.plate?.materialColor?.[tier] ?? "#3a2f22");
 
   const artFile = path.join(modDir, "image", "cards", `${id}.png`);
-  if (existsSync(artFile)) img = overlay(img, cropCover(decodePng(readFileSync(artFile)), CARD_W, CARD_H));
-  else img = overlay(img, solid(CARD_W, CARD_H, "transparent"));
+  if (existsSync(artFile)) img = overlay(img, fit(artFile));
 
   const frame = find(`${tier}_f`);
-  if (frame) img = overlay(img, cropCover(decodePng(readFileSync(frame)), CARD_W, CARD_H));
+  if (frame) img = overlay(img, fit(frame));
 
   const b64 = encodePng(img).toString("base64");
-  const note = `${tier}${body ? " · 9-sliced 底牌" : " · 无底牌图"}${frame ? " · 框" : ""}`;
-  // The game writes the name over the top fifth, so the preview draws it there too.
-  const label = `<div style="position:absolute;left:0;right:0;top:4%;text-align:center;font:600 15px ui-serif,Georgia,serif;color:#2a2622;letter-spacing:.12em;pointer-events:none">${esc(name)}</div>`;
+  const label = `<div style="position:absolute;left:0;right:0;top:3.5%;text-align:center;font:600 16px ui-serif,Georgia,serif;color:#20180f;letter-spacing:.16em;pointer-events:none">${esc(name)}</div>`;
+  const note = `${tier} · body=card·${tintHex}${frame ? " · frame" : ""}`;
   return `<div class="cardface" style="padding:0;background:none;border-color:#57452c;position:relative"><img src="data:image/png;base64,${b64}" style="width:100%;height:100%;object-fit:contain;display:block" title="${esc(note)}">${label}</div>`;
 }
 

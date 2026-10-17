@@ -136,7 +136,11 @@ def main():
         want = set()
         for tier in ("stone", "copper", "silver", "gold"):
             want |= {tier, f"{tier}_f", f"card_bg_{tier}", f"cardinfo_{tier}", f"rare_{tier}"}
-        want |= {"card_bg_empty"}
+        # The body that actually gets drawn is `card` / `card_e`, tinted by the tier
+        # material. card_bg_<tier> is the bag/detail background, not the card body.
+        want |= {"card", "card_d", "card_e", "card_mt", "card_n", "card_bg_empty", "sudan_f",
+                 "card_type_char", "card_type_item", "card_type_sudan",
+                 "card_type_char_required", "card_type_item_required", "card_type_sudan_required"}
         os.makedirs(args.out, exist_ok=True)
         env = UnityPy.load(src)
         n = 0

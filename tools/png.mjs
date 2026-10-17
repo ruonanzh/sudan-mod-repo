@@ -229,6 +229,20 @@ export function nineSlice(img, targetWidth, targetHeight, margin) {
   return { width: outW, height: outH, rgba: out };
 }
 
+/** Multiply every pixel by a colour, the way a tinted material does. */
+export function tint(img, hex) {
+  const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
+  if (!m) throw new Error(`tint: bad colour ${hex}`);
+  const [r, g, b] = [1, 2, 3].map((i) => parseInt(m[i], 16) / 255);
+  const out = Buffer.from(img.rgba);
+  for (let i = 0; i < out.length; i += 4) {
+    out[i] = Math.round(out[i] * r);
+    out[i + 1] = Math.round(out[i + 1] * g);
+    out[i + 2] = Math.round(out[i + 2] * b);
+  }
+  return { width: img.width, height: img.height, rgba: out };
+}
+
 /** A flat colour fill, used when a tier ships no body texture. */
 export function solid(width, height, hex) {
   const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex);
