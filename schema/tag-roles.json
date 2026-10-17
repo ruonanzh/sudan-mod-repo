@@ -1,0 +1,1084 @@
+{
+  "_note": "How a card tag behaves, read off all 1294 shipped cards. 'marker' tags are present or absent: every vanilla use is exactly 1. 'stat' tags carry a number and their observed range is listed. The editor renders a marker as a checkbox and a stat as a number input with that range.",
+  "markerCount": 197,
+  "statCount": 20,
+  "marker": {
+    "纯色材质": {
+      "uses": 497,
+      "tagType": "attribute"
+    },
+    "已拥有": {
+      "uses": 311,
+      "tagType": "attribute"
+    },
+    "装备": {
+      "uses": 204,
+      "tagType": "attribute"
+    },
+    "已装备": {
+      "uses": 192,
+      "tagType": "buff"
+    },
+    "可堆叠": {
+      "uses": 132,
+      "tagType": "attribute"
+    },
+    "读物": {
+      "uses": 128,
+      "tagType": "attribute"
+    },
+    "银趴绝缘者": {
+      "uses": 125,
+      "tagType": "attribute"
+    },
+    "男性": {
+      "uses": 106,
+      "tagType": "attribute"
+    },
+    "饰品": {
+      "uses": 92,
+      "tagType": "attribute"
+    },
+    "消耗品": {
+      "uses": 82,
+      "tagType": "attribute"
+    },
+    "部队": {
+      "uses": 77,
+      "tagType": "attribute"
+    },
+    "贵族": {
+      "uses": 68,
+      "tagType": "attribute"
+    },
+    "武器": {
+      "uses": 62,
+      "tagType": "attribute"
+    },
+    "女性": {
+      "uses": 56,
+      "tagType": "attribute"
+    },
+    "食客": {
+      "uses": 52,
+      "tagType": "attribute"
+    },
+    "有跟班": {
+      "uses": 52,
+      "tagType": "attribute"
+    },
+    "怪物": {
+      "uses": 50,
+      "tagType": "attribute"
+    },
+    "装备商人": {
+      "uses": 49,
+      "tagType": "attribute"
+    },
+    "大餐": {
+      "uses": 36,
+      "tagType": "attribute"
+    },
+    "服装": {
+      "uses": 34,
+      "tagType": "attribute"
+    },
+    "情报": {
+      "uses": 28,
+      "tagType": "attribute"
+    },
+    "动物": {
+      "uses": 24,
+      "tagType": "attribute"
+    },
+    "苏丹卡": {
+      "uses": 20,
+      "tagType": "attribute"
+    },
+    "思潮": {
+      "uses": 19,
+      "tagType": "attribute"
+    },
+    "驯兽": {
+      "uses": 15,
+      "tagType": "attribute"
+    },
+    "恶名谋杀者": {
+      "uses": 15,
+      "tagType": "attribute"
+    },
+    "秘宝": {
+      "uses": 15,
+      "tagType": "attribute"
+    },
+    "宝石": {
+      "uses": 15,
+      "tagType": "attribute"
+    },
+    "地点": {
+      "uses": 14,
+      "tagType": "attribute"
+    },
+    "天象": {
+      "uses": 14,
+      "tagType": "attribute"
+    },
+    "爱书人": {
+      "uses": 13,
+      "tagType": "attribute"
+    },
+    "妆扮": {
+      "uses": 10,
+      "tagType": "attribute"
+    },
+    "黑暗知识": {
+      "uses": 9,
+      "tagType": "attribute"
+    },
+    "任意处置": {
+      "uses": 9,
+      "tagType": "attribute"
+    },
+    "部落遗物": {
+      "uses": 9,
+      "tagType": "attribute"
+    },
+    "空屋": {
+      "uses": 9,
+      "tagType": "attribute"
+    },
+    "苏丹的精兵": {
+      "uses": 9,
+      "tagType": "attribute"
+    },
+    "苏丹的近卫": {
+      "uses": 8,
+      "tagType": "attribute"
+    },
+    "奴隶": {
+      "uses": 8,
+      "tagType": "attribute"
+    },
+    "奇珍": {
+      "uses": 8,
+      "tagType": "attribute"
+    },
+    "坐骑": {
+      "uses": 7,
+      "tagType": "attribute"
+    },
+    "囚徒": {
+      "uses": 7,
+      "tagType": "attribute"
+    },
+    "恶名挑战者": {
+      "uses": 7,
+      "tagType": "attribute"
+    },
+    "墓碑": {
+      "uses": 7,
+      "tagType": "attribute"
+    },
+    "小颗": {
+      "uses": 7,
+      "tagType": "attribute"
+    },
+    "大颗": {
+      "uses": 7,
+      "tagType": "attribute"
+    },
+    "黑街居民": {
+      "uses": 6,
+      "tagType": "attribute"
+    },
+    "耐心": {
+      "uses": 6,
+      "tagType": "buff"
+    },
+    "装潢": {
+      "uses": 6,
+      "tagType": "buff"
+    },
+    "情诗": {
+      "uses": 6,
+      "tagType": "attribute"
+    },
+    "史诗": {
+      "uses": 6,
+      "tagType": "attribute"
+    },
+    "小筹": {
+      "uses": 6,
+      "tagType": "attribute"
+    },
+    "描边": {
+      "uses": 6,
+      "tagType": "?"
+    },
+    "将领": {
+      "uses": 5,
+      "tagType": "attribute"
+    },
+    "金色文字": {
+      "uses": 5,
+      "tagType": "?"
+    },
+    "杀戮": {
+      "uses": 5,
+      "tagType": "attribute"
+    },
+    "纵欲": {
+      "uses": 5,
+      "tagType": "attribute"
+    },
+    "奢靡": {
+      "uses": 5,
+      "tagType": "attribute"
+    },
+    "征服": {
+      "uses": 5,
+      "tagType": "attribute"
+    },
+    "讽刺诗": {
+      "uses": 5,
+      "tagType": "attribute"
+    },
+    "预言诗": {
+      "uses": 5,
+      "tagType": "attribute"
+    },
+    "倒计时": {
+      "uses": 5,
+      "tagType": "buff"
+    },
+    "主角": {
+      "uses": 4,
+      "tagType": "attribute"
+    },
+    "弓箭": {
+      "uses": 4,
+      "tagType": "attribute"
+    },
+    "破除封锁": {
+      "uses": 4,
+      "tagType": "attribute"
+    },
+    "租赁协议": {
+      "uses": 4,
+      "tagType": "attribute"
+    },
+    "邪神的面容": {
+      "uses": 4,
+      "tagType": "attribute"
+    },
+    "正神的面容": {
+      "uses": 4,
+      "tagType": "attribute"
+    },
+    "孤儿": {
+      "uses": 4,
+      "tagType": "attribute"
+    },
+    "梅姬": {
+      "uses": 3,
+      "tagType": "attribute"
+    },
+    "妻子": {
+      "uses": 3,
+      "tagType": "attribute"
+    },
+    "命运的羁绊": {
+      "uses": 3,
+      "tagType": "attribute"
+    },
+    "金币": {
+      "uses": 3,
+      "tagType": "attribute"
+    },
+    "妓女": {
+      "uses": 3,
+      "tagType": "attribute"
+    },
+    "食物": {
+      "uses": 3,
+      "tagType": "attribute"
+    },
+    "激情": {
+      "uses": 3,
+      "tagType": "buff"
+    },
+    "专属": {
+      "uses": 3,
+      "tagType": "attribute"
+    },
+    "关闭": {
+      "uses": 3,
+      "tagType": "attribute"
+    },
+    "未被苏丹所知": {
+      "uses": 3,
+      "tagType": "attribute"
+    },
+    "主角专属2": {
+      "uses": 3,
+      "tagType": "attribute"
+    },
+    "主角专属1": {
+      "uses": 3,
+      "tagType": "attribute"
+    },
+    "法拉杰": {
+      "uses": 3,
+      "tagType": "attribute"
+    },
+    "妖精": {
+      "uses": 3,
+      "tagType": "attribute"
+    },
+    "爱": {
+      "uses": 3,
+      "tagType": "attribute"
+    },
+    "信": {
+      "uses": 3,
+      "tagType": "attribute"
+    },
+    "智": {
+      "uses": 3,
+      "tagType": "attribute"
+    },
+    "力": {
+      "uses": 3,
+      "tagType": "attribute"
+    },
+    "乐": {
+      "uses": 3,
+      "tagType": "attribute"
+    },
+    "金血之证": {
+      "uses": 3,
+      "tagType": "attribute"
+    },
+    "小筹征服": {
+      "uses": 3,
+      "tagType": "attribute"
+    },
+    "异国商人": {
+      "uses": 2,
+      "tagType": "attribute"
+    },
+    "正教的信徒": {
+      "uses": 2,
+      "tagType": "attribute"
+    },
+    "盖斯": {
+      "uses": 2,
+      "tagType": "attribute"
+    },
+    "哲瓦德": {
+      "uses": 2,
+      "tagType": "attribute"
+    },
+    "小偷": {
+      "uses": 2,
+      "tagType": "attribute"
+    },
+    "淫具": {
+      "uses": 2,
+      "tagType": "attribute"
+    },
+    "未鉴定": {
+      "uses": 2,
+      "tagType": "attribute"
+    },
+    "魔力戒指": {
+      "uses": 2,
+      "tagType": "attribute"
+    },
+    "犯罪计划": {
+      "uses": 2,
+      "tagType": "attribute"
+    },
+    "神器": {
+      "uses": 2,
+      "tagType": "attribute"
+    },
+    "玛瑙": {
+      "uses": 2,
+      "tagType": "attribute"
+    },
+    "红玉髓": {
+      "uses": 2,
+      "tagType": "attribute"
+    },
+    "紫水晶": {
+      "uses": 2,
+      "tagType": "attribute"
+    },
+    "祖母绿": {
+      "uses": 2,
+      "tagType": "attribute"
+    },
+    "红宝石": {
+      "uses": 2,
+      "tagType": "attribute"
+    },
+    "蓝宝石": {
+      "uses": 2,
+      "tagType": "attribute"
+    },
+    "钻石": {
+      "uses": 2,
+      "tagType": "attribute"
+    },
+    "热娜": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "密教徒": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "苏丹专属": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "苏丹": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "影响力": {
+      "uses": 1,
+      "tagType": "buff"
+    },
+    "污名": {
+      "uses": 1,
+      "tagType": "buff"
+    },
+    "法图娜": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "扎齐伊": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "不满": {
+      "uses": 1,
+      "tagType": "buff"
+    },
+    "恶名": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "受伤": {
+      "uses": 1,
+      "tagType": "debuff"
+    },
+    "诅咒": {
+      "uses": 1,
+      "tagType": "debuff"
+    },
+    "镜子": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "谗言": {
+      "uses": 1,
+      "tagType": "buff"
+    },
+    "主旋律": {
+      "uses": 1,
+      "tagType": "buff"
+    },
+    "黑街声望": {
+      "uses": 1,
+      "tagType": "buff"
+    },
+    "生病": {
+      "uses": 1,
+      "tagType": "debuff"
+    },
+    "抑郁": {
+      "uses": 1,
+      "tagType": "buff"
+    },
+    "书店老板": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "鳄鱼": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "疯狂": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "宰相": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "质子": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "锁定穆尔台兹": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "主角专属3": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "主角专属4": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "主角专属5": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "小薇": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "小安": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "小留": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "令人开心的妆扮": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "抱猫人": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "魅力护符": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "生命权杖": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "罪证": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "蓄谋": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "奈费勒的优势": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "铁头的优势": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "免疫": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "猜忌": {
+      "uses": 1,
+      "tagType": "buff"
+    },
+    "军队的好感": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "国民的好感": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "官吏的好感": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "赤字": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "不举的传言": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "娜依拉的不满": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "火焰大王": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "芮尔": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "哲瓦德的优势": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "蒙面苏丹": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "苏丹的怒火": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "信誉": {
+      "uses": 1,
+      "tagType": "buff"
+    },
+    "善名的遮掩": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "权势的遮掩": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "侠名的遮掩": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "灵视的遮掩": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "被覆者": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "回应誓言": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "淬毒": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "冤魂": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "正当性": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "尸体": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "被囚禁": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "被流放": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "被侮辱的": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "承阳": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "芮尔手下": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "新月": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "剑客蓄势": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "避孕套": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "锁定祭司": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "伊曼的残留": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "正教的乙太": {
+      "uses": 1,
+      "tagType": "buff"
+    },
+    "变革戒": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "生命之心": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "毒蛇之链": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "欲蛇之纱": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "纯洁之纱": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "群星戒": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "小筹的金币": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "挖矿奴隶": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "妖精女王": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "疲劳": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "羊肉炉": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "羊肉炉飞升进度": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "飞升的阶梯": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "虚空护盾": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "造物的工具": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "第一推动力": {
+      "uses": 1,
+      "tagType": "attribute"
+    },
+    "传说地点": {
+      "uses": 1,
+      "tagType": "attribute"
+    }
+  },
+  "stat": {
+    "体魄": {
+      "uses": 365,
+      "min": -3,
+      "max": 99,
+      "values": {
+        "-3": 3,
+        "-2": 2,
+        "-1": 6,
+        "1": 100,
+        "2": 82,
+        "3": 67,
+        "4": 34,
+        "5": 27,
+        "6": 16,
+        "7": 2,
+        "8": 9,
+        "9": 1,
+        "10": 4,
+        "12": 2,
+        "13": 1,
+        "15": 5,
+        "99": 4
+      }
+    },
+    "战斗": {
+      "uses": 356,
+      "min": -1,
+      "max": 99,
+      "values": {
+        "-1": 3,
+        "1": 53,
+        "2": 58,
+        "3": 63,
+        "4": 45,
+        "5": 40,
+        "6": 21,
+        "7": 13,
+        "8": 11,
+        "9": 3,
+        "10": 16,
+        "12": 4,
+        "14": 1,
+        "15": 12,
+        "18": 1,
+        "20": 7,
+        "30": 1,
+        "99": 4
+      }
+    },
+    "魅力": {
+      "uses": 294,
+      "min": -10,
+      "max": 11,
+      "values": {
+        "-10": 1,
+        "-3": 1,
+        "-2": 8,
+        "-1": 8,
+        "1": 92,
+        "2": 76,
+        "3": 53,
+        "4": 24,
+        "5": 17,
+        "7": 5,
+        "8": 3,
+        "9": 3,
+        "10": 2,
+        "11": 1
+      }
+    },
+    "智慧": {
+      "uses": 216,
+      "min": -5,
+      "max": 10,
+      "values": {
+        "-5": 1,
+        "-3": 2,
+        "-2": 2,
+        "-1": 2,
+        "1": 62,
+        "2": 55,
+        "3": 57,
+        "4": 13,
+        "5": 14,
+        "8": 1,
+        "9": 1,
+        "10": 6
+      }
+    },
+    "魔力": {
+      "uses": 196,
+      "min": 1,
+      "max": 99,
+      "values": {
+        "1": 44,
+        "2": 43,
+        "3": 47,
+        "4": 18,
+        "5": 20,
+        "6": 6,
+        "7": 4,
+        "10": 5,
+        "12": 1,
+        "15": 3,
+        "99": 5
+      }
+    },
+    "生存": {
+      "uses": 190,
+      "min": -3,
+      "max": 20,
+      "values": {
+        "-3": 1,
+        "-1": 2,
+        "1": 59,
+        "2": 52,
+        "3": 31,
+        "4": 21,
+        "5": 13,
+        "6": 2,
+        "8": 3,
+        "9": 1,
+        "10": 4,
+        "20": 1
+      }
+    },
+    "社交": {
+      "uses": 182,
+      "min": -5,
+      "max": 10,
+      "values": {
+        "-5": 1,
+        "-3": 1,
+        "-2": 1,
+        "-1": 5,
+        "1": 64,
+        "2": 53,
+        "3": 33,
+        "4": 10,
+        "5": 7,
+        "6": 4,
+        "8": 1,
+        "9": 1,
+        "10": 1
+      }
+    },
+    "隐匿": {
+      "uses": 133,
+      "min": -1,
+      "max": 10,
+      "values": {
+        "-1": 3,
+        "1": 31,
+        "2": 31,
+        "3": 34,
+        "4": 12,
+        "5": 11,
+        "6": 3,
+        "8": 5,
+        "10": 3
+      }
+    },
+    "重投": {
+      "uses": 48,
+      "min": 1,
+      "max": 8,
+      "values": {
+        "1": 14,
+        "2": 12,
+        "3": 13,
+        "4": 8,
+        "8": 1
+      }
+    },
+    "反对": {
+      "uses": 26,
+      "min": 1,
+      "max": 3,
+      "values": {
+        "1": 25,
+        "3": 1
+      }
+    },
+    "支持": {
+      "uses": 25,
+      "min": 1,
+      "max": 3,
+      "values": {
+        "1": 22,
+        "2": 2,
+        "3": 1
+      }
+    },
+    "命运点": {
+      "uses": 16,
+      "min": 1,
+      "max": 4,
+      "values": {
+        "1": 4,
+        "2": 4,
+        "3": 4,
+        "4": 4
+      }
+    },
+    "深度": {
+      "uses": 16,
+      "min": 1,
+      "max": 4,
+      "values": {
+        "1": 4,
+        "2": 4,
+        "3": 4,
+        "4": 4
+      }
+    },
+    "价值": {
+      "uses": 10,
+      "min": 2,
+      "max": 10,
+      "values": {
+        "2": 1,
+        "3": 2,
+        "4": 3,
+        "5": 2,
+        "8": 1,
+        "10": 1
+      }
+    },
+    "身价": {
+      "uses": 7,
+      "min": 1,
+      "max": 12,
+      "values": {
+        "1": 1,
+        "4": 1,
+        "5": 1,
+        "6": 1,
+        "7": 1,
+        "9": 1,
+        "12": 1
+      }
+    },
+    "改革": {
+      "uses": 6,
+      "min": 2,
+      "max": 3,
+      "values": {
+        "2": 4,
+        "3": 2
+      }
+    },
+    "传统": {
+      "uses": 5,
+      "min": 2,
+      "max": 4,
+      "values": {
+        "2": 3,
+        "3": 1,
+        "4": 1
+      }
+    },
+    "追随者": {
+      "uses": 4,
+      "min": -1,
+      "max": 1,
+      "values": {
+        "-1": 1,
+        "1": 3
+      }
+    },
+    "犯罪号召": {
+      "uses": 2,
+      "min": 1,
+      "max": 2,
+      "values": {
+        "1": 1,
+        "2": 1
+      }
+    },
+    "灵感": {
+      "uses": 1,
+      "min": 20,
+      "max": 20,
+      "values": {
+        "20": 1
+      }
+    }
+  }
+}

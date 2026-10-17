@@ -18,6 +18,8 @@ import { openMod, ModelError } from "./model.mjs";
 import { toPlain } from "./jsonc.mjs";
 import { composePrompt } from "./art.mjs";
 
+const TAG_ROLES = JSON.parse(readFileSync(new URL("../schema/tag-roles.json", import.meta.url), "utf8"));
+
 function parseArgs(argv) {
   const out = { _: [] };
   for (let i = 0; i < argv.length; i++) {
@@ -106,14 +108,28 @@ ${body}
 
 function cardBody(record, prompt, modDir) {
   const tags = Object.entries(record.tag || {});
-  const tagRows = tags
+  // A marker tag is present or absent: every vanilla use is exactly 1. A stat tag carries a
+  // number and has an observed range. Rendering both as numbers invites a value the game never sees.
+  const markerRows = tags
+    .filter(([name]) => TAG_ROLES.marker[name])
     .map(
-      ([name, value]) => `<tr>
-  <td><input type="text" name="tag_name_${esc(name)}" value="${esc(name)}"></td>
-  <td class="num"><input type="number" name="tag_${esc(name)}" value="${esc(value)}"></td>
+      ([name]) => `<tr>
+  <td>${esc(name)}</td>
+  <td class="num"><input type="checkbox" name="tag_${esc(name)}" value="1" checked> 有</td>
   <td><input type="checkbox" name="tag_drop_${esc(name)}"> 删掉</td>
 </tr>`,
     )
+    .join("\n");
+  const statRows = tags
+    .filter(([name]) => !TAG_ROLES.marker[name])
+    .map(([name, value]) => {
+      const range = TAG_ROLES.stat[name];
+      return `<tr>
+  <td>${esc(name)}</td>
+  <td class="num"><input type="number" name="tag_${esc(name)}" value="${esc(value)}"></td>
+  <td style="color:#8a7a60;font-size:12px">${range ? `${range.min} … ${range.max}` : "自定义"}</td>
+</tr>`;
+    })
     .join("\n");
 
   return `
@@ -144,12 +160,21 @@ function cardBody(record, prompt, modDir) {
 <div class="note">风格写在这句里：flat engraved、暖色低饱和、可见线稿、做旧纸质。改这句话比改别的地方更直接。</div>
 </div>
 
-<h2>标签 · 这张卡的数值全在这里</h2>
+<h2>标记 · 有或没有</h2>
 <div class="panel">
 <table>
-<tr><th>标签</th><th>数值</th><th></th></tr>
-${tagRows || '<tr><td colspan="3" style="color:#8a7a60">这张卡还没有标签</td></tr>'}
-<tr><td><input type="text" name="tag_new_name" placeholder="新标签（中文名）"></td>
+<tr><th>标记</th><th>状态</th><th></th></tr>
+${markerRows || '<tr><td colspan="3" style="color:#8a7a60">没有标记</td></tr>'}
+</table>
+<div class="note">这些标签在游戏里只可能是 1（有）或不存在。1294 张卡里没有一张用过别的值。</div>
+</div>
+
+<h2>数值 · 这张卡的属性</h2>
+<div class="panel">
+<table>
+<tr><th>属性</th><th>数值</th><th>原版范围</th></tr>
+${statRows || '<tr><td colspan="3" style="color:#8a7a60">没有属性</td></tr>'}
+<tr><td><input type="text" name="tag_new_name" placeholder="新属性（中文名）"></td>
     <td class="num"><input type="number" name="tag_new_value" value="1"></td>
     <td></td></tr>
 </table>

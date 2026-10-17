@@ -40,11 +40,23 @@ const emit = (code, message, next) => {
   if (next) process.stdout.write(`NEXT  ${next}\n`);
 };
 
-/** "体魄+2" or "体魄" (means 1) -> [name, value] */
+const TAG_ROLES = JSON.parse(readFileSync(new URL("../schema/tag-roles.json", import.meta.url), "utf8"));
+
+/**
+ * "体魄+2" or "体魄" (means 1) -> [name, value].
+ * A marker tag is present or absent, so any value other than 1 is a mistake worth naming:
+ * 已拥有 is 1 in all 311 vanilla uses, and no card anywhere uses another value.
+ */
 function parseTagSpec(spec) {
   const m = /^(.+?)([+-]\d+)?$/.exec(spec);
   if (!m) throw new ModelError(`tag ${JSON.stringify(spec)} is not of the form 体魄+2`);
-  return [m[1], m[2] ? Number(m[2]) : 1];
+  const name = m[1];
+  const value = m[2] ? Number(m[2]) : 1;
+  if (TAG_ROLES.marker[name] && value !== 1)
+    throw new ModelError(
+      `${name} is a marker tag: it is present or absent, so the value is always 1. All ${TAG_ROLES.marker[name].uses} vanilla uses are 1. Use \`--add ${name}\` for 1, or \`--remove ${name}\` to drop it.`,
+    );
+  return [name, value];
 }
 
 /** Minimal PNG header check: no dependency, and the game only reads PNG. */

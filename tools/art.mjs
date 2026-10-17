@@ -44,6 +44,21 @@ const emit = (code, message, next) => {
  * warm limited palette, visible linework. The composition clause matters most, because
  * a square generation gets cut down to a tall card.
  */
+/** The four tiers, with the colour plate the game uses for each. */
+const RARITY = {
+  1: { name: "石块 stone", plate: "cool grey stone plate" },
+  2: { name: "铜 copper", plate: "warm copper plate" },
+  3: { name: "银 silver", plate: "pale silver plate" },
+  4: { name: "金 gold", plate: "deep gold plate" },
+};
+
+/** The four tiers, and the composition each card type wants. */
+const TYPE_HINT = {
+  char: "a single character, full body, facing the viewer",
+  item: "a single object, centred, shown large",
+  sudan: "an ornate Sultan card motif, symmetrical",
+};
+
 const STYLE =
   "flat engraved illustration, warm muted palette of ochre, oxblood and bone, " +
   "visible ink linework, aged paper texture, folk woodcut influence, " +
@@ -56,7 +71,54 @@ export function composePrompt(card) {
   const subject = [card.name, card.title].filter(Boolean).join("，");
   const facts = card.text ? ` ${card.text}` : "";
   const flavour = tags.length ? ` Mood: ${tags.slice(0, 5).join(" / ")}.` : "";
-  return `${subject}.${facts}${flavour} ${STYLE}`;
+  const tier = RARITY[card.rare] || RARITY[1];
+  const kind = TYPE_HINT[card.type] || TYPE_HINT.item;
+  // The plate colour is fixed by rarity in the game, so the picture has to sit on it.
+  const plate = `A ${tier.name} tier card: ${kind}, set on a ${tier.plate} background that fills the frame.`;
+  return `${plate} ${subject}.${facts}${flavour} ${STYLE}`;
+}
+
+/** Where a same-tier, same-type reference picture lives. */
+const REF_DIR = "reference/cards";
+
+function refFor(card, modDir) {
+  const here = path.dirname(new URL(import.meta.url).pathname);
+  const candidates = [
+    path.join(here, "..", REF_DIR, `${card.type}-${card.rare}.png`),
+    path.join(here, "..", REF_DIR, `${card.type}-${card.rare}.jpg`),
+  ];
+  return candidates.find((p) => existsSync(p)) || null;
+}
+
+function cmdRefs() {
+  const here = path.dirname(new URL(import.meta.url).pathname);
+  const dir = path.join(here, "..", REF_DIR);
+  const missing = [];
+  for (const type of ["char", "item", "sudan"]) {
+    for (const rare of [1, 2, 3, 4]) {
+      const name = `${type}-${rare}.png`;
+      const has = existsSync(path.join(dir, name));
+      process.stdout.write(`${has ? "OK  " : "MISS"}  ${name}   ${RARITY[rare].name} / ${type}\n`);
+      if (!has) missing.push(name);
+    }
+  }
+  if (missing.length) {
+    emit("WARN", `${missing.length} reference picture(s) missing. Drop a screenshot crop of one vanilla card of each tier into ${REF_DIR}/, named as above.`);
+    process.stdout.write("NEXT  with a reference present, `gen` switches to image-to-image and the palette follows the game instead of the prompt.\n");
+    return 0;
+  }
+  emit("PASS", "every tier has a reference picture; gen will use image-to-image");
+  return 0;
+}
+
+async function uploadRef(key, file) {
+  const fd = new FormData();
+  fd.append("file", new Blob([new Uint8Array(readFileSync(file))]), path.basename(file));
+  const r = await fetch(TRIPO_V3 + "/files", { method: "POST", headers: { Authorization: `Bearer ${key}` }, body: fd });
+  const j = await r.json().catch(() => ({}));
+  const token = j?.data?.file_token ?? j?.data?.image_token;
+  if (!token) throw new ModelError(`uploading the reference failed: ${JSON.stringify(j).slice(0, 200)}`);
+  return String(token);
 }
 
 function requireKey() {
@@ -144,13 +206,26 @@ async function cmdGen(args) {
   const prompt = args.prompt || composePrompt(card);
   const key = requireKey();
 
-  process.stdout.write(`prompt  ${prompt}\n`);
-  const created = await api(key, "/generation/text-to-image", {
+  const ref = args.ref || refFor(card, mod.dir);
+  const body = {
     prompt,
     model: "chat_image_2.5_flare",
     background: "transparent",
     output_format: "png",
-  });
+  };
+  let endpoint = "/generation/text-to-image";
+  if (ref) {
+    // Same tier and type as the card: the model follows the game's own plate and palette.
+    body.input = await uploadRef(key, ref);
+    endpoint = "/generation/image-to-image";
+    prompt = `${prompt} Match the reference card's palette, lighting and background plate; change only the subject.`;
+    body.prompt = prompt;
+  } else {
+    emit("WARN", "no reference picture for this tier; the palette comes from the prompt alone. Run `node tools/art.mjs refs`.");
+  }
+  process.stdout.write(`prompt  ${prompt}\n`);
+  process.stdout.write(`ref     ${ref ? path.basename(ref) : "none"}\n`);
+  const created = await api(key, endpoint, body);
   const taskId = String(created?.task_id ?? "");
   if (!taskId) throw new ModelError(`Tripo accepted no task: ${JSON.stringify(created).slice(0, 200)}`);
   process.stdout.write(`task    ${taskId}\n`);
@@ -176,9 +251,11 @@ async function main() {
   const argv = process.argv.slice(2);
   const cmd = argv[0];
   const args = parseArgs(argv.slice(1));
-  const table = { prompt: cmdPrompt, gen: cmdGen, fit: cmdFit, check: cmdCheck };
+  const table = { prompt: cmdPrompt, gen: cmdGen, fit: cmdFit, check: cmdCheck, refs: cmdRefs };
   if (!table[cmd]) {
-    process.stderr.write("usage: node tools/art.mjs <prompt|gen|fit|check> [--mod <dir> --id <id>] [--in f] [--out f] [--prompt text]\n");
+    process.stderr.write(
+      "usage: node tools/art.mjs <prompt|gen|fit|check|refs> [--mod <dir> --id <id>] [--ref f] [--in f] [--out f] [--prompt text]\n",
+    );
     return 2;
   }
   try {
