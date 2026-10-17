@@ -398,5 +398,24 @@
       "problem": "stone's _Color is (0.69,0.60,0.92), and `card` is blue-green, so any albedo multiply stays lavender or blue. It cannot produce warm tan.",
       "so": "Either the shader does not use _Color as an albedo multiply, or the material is swapped at runtime, or the visible warm body comes from something other than the bg image. Not settled; do not claim the parameters are sufficient."
     }
+  },
+  "fourTierPlates": {
+    "_note": "The player's four screenshots are one card at four rarities, which is a controlled experiment.",
+    "card": "秘密 exists four times in cards.json: 2000032 (rare1), 2000038 (rare2), 2000044 (rare3), 2000413 (rare4). All four are type item, all tagged 纯色材质, and all four point at the SAME art resource cards/2000032. So the drawing is shared across tiers and only the plate changes.",
+    "measuredScreenshots": {
+      "rare1": "#8d806b warm grey",
+      "rare2": "#94a56a olive",
+      "rare3": "#b0becc blue white",
+      "rare4": "#e9d678 gold"
+    },
+    "measuredPlates": {
+      "cardinfo_stone.png": "#756b5b warm grey",
+      "cardinfo_copper.png": "#697351 olive",
+      "cardinfo_silver.png": "#747e79 grey green",
+      "cardinfo_gold.png": "#8e7c41 olive gold"
+    },
+    "match": "The hue order of the screenshots matches cardinfo_<tier>, not the material _Color values (lavender, pale blue, warm white, pale gold). stone's warm grey appears in both. So the plate shown by this view is cardinfo_<tier>, and stone HAS one: cardinfo_stone.png.",
+    "difference": "The screenshots are brighter and, for rare3, far more specular than the raw plate. That is the lit, metallic, alpha blended render of the same plate, so the plate is the albedo and the material parameters plus scene lighting make the rest.",
+    "consequence": "For a generated card the drawing is tier independent: one black line-art asset serves rarity 1 through 4, which is exactly how the shipped 秘密 cards work."
   }
 }
