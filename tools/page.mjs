@@ -233,7 +233,8 @@ function artInline(modDir, id, rare, name) {
 
   const b64 = encodePng(img).toString("base64");
   const label = `<div style="position:absolute;left:0;right:0;top:3.5%;text-align:center;font:600 16px ui-serif,Georgia,serif;color:#20180f;letter-spacing:.16em;pointer-events:none">${esc(name)}</div>`;
-  const note = `${tier} · body=card·${tintHex}${frame ? " · frame" : ""}`;
+  const m = CARD_ART.materialMaps?.perTier?.[tier] || {};
+  const note = `${tier} · body=card×${tintHex}${frame ? " · frame" : ""} · 预览只有底色，游戏还会叠 metallic ${m.metallic ?? "?"} / gloss ${m.glossiness ?? "?"} / 法线 ${m.bumpScale ?? "?"}`;
   return `<div class="cardface" style="padding:0;background:none;border-color:#57452c;position:relative"><img src="data:image/png;base64,${b64}" style="width:100%;height:100%;object-fit:contain;display:block" title="${esc(note)}">${label}</div>`;
 }
 

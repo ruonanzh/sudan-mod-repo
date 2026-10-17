@@ -49,5 +49,47 @@
     "topEmpty": "19.1% and 21.0% of the height is fully transparent: the game writes the card name and a row of small diamonds there.",
     "bottomEmpty": "2.0% and 2.6%: the art runs almost to the bottom edge, and the frame band is drawn over it.",
     "rule": "Generated art must keep the top fifth blank and may use the bottom. A subject that fills the top hides the card's name."
+  },
+  "materialMaps": {
+    "_note": "card / card_n / card_d / card_e / card_mt are NOT five different card backs. They are the five texture channels of one PBR material, resolved from each material's texture slots.",
+    "slots": {
+      "_MainTex": "card (albedo)",
+      "_BumpMap": "card_n (normal)",
+      "_DetailAlbedoMap": "card_d",
+      "_EmissionMap": "card_e",
+      "_MetallicGlossMap": "card_mt (metallic + smoothness)"
+    },
+    "perTier": {
+      "stone": {
+        "color": "#b09aeb",
+        "metallic": 0.1,
+        "glossiness": 0.4,
+        "bumpScale": 0.903
+      },
+      "copper": {
+        "color": "#b3d9ff",
+        "metallic": 0.8,
+        "glossiness": 0.7,
+        "bumpScale": 0.382
+      },
+      "silver": {
+        "color": "#f0d8cb",
+        "metallic": 0.85,
+        "glossiness": 0.8,
+        "bumpScale": 0.285
+      },
+      "gold": {
+        "color": "#ffd4a2",
+        "metallic": 0.393,
+        "glossiness": 0.71,
+        "bumpScale": 0.368
+      }
+    },
+    "consequence": "The tiers differ in more than hue: stone is matte (metallic 0.10, gloss 0.40) and silver is shiny (0.85 / 0.80). A flat albedo preview cannot show that, so the page says the preview is albedo only."
+  },
+  "sudan": {
+    "fontColor": "rgba(0.00, 0.95, 0.91, 0.56)",
+    "fontMaterial": "CardTitle SDF - SudanTitle",
+    "_note": "Sudan cards use their own frame sudan_f and a cyan, semi-transparent title. Every other tier uses CardTitle SDF - Rare1..4."
   }
 }
