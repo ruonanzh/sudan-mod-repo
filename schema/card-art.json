@@ -139,6 +139,17 @@
       }
     ],
     "answer": "stone's base plate is the shared `card` texture seen through the stone material. There is no stone-specific body image, which is why only stone_f exists as a per-tier file.",
-    "open": "the exact colour: multiplying card by stone's _Color #b09aeb gives purple and #a88864 gives dark olive, while the game shows pale warm grey. The face is rendered by CardFaceUnlit with CardFaceOutline, blending card_d as detail albedo and card_mt as metallic/gloss, so a channel multiply is not the right model."
+    "open": "the exact colour: multiplying card by stone's _Color #b09aeb gives purple and #a88864 gives dark olive, while the game shows pale warm grey. The face is rendered by CardFaceUnlit with CardFaceOutline, blending card_d as detail albedo and card_mt as metallic/gloss, so a channel multiply is not the right model.",
+    "probeEvidence": {
+      "body": "CardShowChar body Image: m_Sprite -> (null), m_Material -> gold (pathID 11). The prefab ships with a default material; the rarity is swapped at runtime.",
+      "textureSet": "gold uses card, card_n, card_d, card_e, card_mt. stone uses card, card_n, card_e, card_mt and NO card_d, so the tiers differ in which maps are present, not only in colour.",
+      "shader": "both stone and gold use Shader pathID 187, m_Name CardShow/Default",
+      "limit": "the probe does not expand Shader m_ParsedForm here, so the shader's maths stays unreadable; a channel multiply does not reproduce the in-game colour."
+    }
+  },
+  "howToInspect": {
+    "_note": "Use the data probe from the duckov repository rather than ad-hoc scripts. It reads Sultan's Game once it is pointed at the IL2CPP dummy assemblies.",
+    "command": "~/.dotnet/dotnet ~/Documents/Projects/escape-from-duckov-mod/tools/data-probe/bin/Release/net8.0/data-probe.dll --managed /tmp/il2cppdumper/DummyDll --data \"<Sultan's Game/Contents/Resources/Data>\" --action <dump|refs|search|export> [--class X --name Y --pathid N --file sharedassets0.assets --depth N --follow --out file]",
+    "prerequisite": "--managed needs DLLs; an IL2CPP build has none, so point it at Il2CppDumper's DummyDll output."
   }
 }
