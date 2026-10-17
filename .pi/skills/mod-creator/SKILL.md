@@ -301,17 +301,28 @@ Three settlement arrays exist. What each does with multiple matching branches:
 
 | array | behaviour |
 |---|---|
-| `settlement_prior` | the first branch whose condition holds runs, then the rite ends |
-| `settlement` | the first branch whose condition holds runs |
-| `settlement_extre` | every branch whose condition holds runs |
+| `settlement_prior` | runs before the others; the first branch whose condition holds |
+| `settlement` | the first branch whose condition holds |
+| `settlement_extre` | every branch whose condition holds |
 
-The middle row is observed everywhere in vanilla and is safe. **The two claims about "first match
-only" versus "all matches" are community statements, not experiments.** If the player's design depends
-on the difference, run the experiment before you promise the result.
+**This table is the community description and vanilla's own comments do not confirm it.** Vanilla
+never comments on these three keys. If a design depends on whether one branch or all branches run,
+say that it is unconfirmed rather than promise a result. The three arrays are separate fields on
+`RiteNode` and are all read, which is why `settlement_extre` with two matching branches is the case
+worth checking first.
 
-`is_empty` is a known trap. The official guide says `1` means a card must be placed; vanilla writes
-`"is_empty": 0, // 不能为空`, which means `0` is "may not be empty". The file comment is the one to
-trust, but this is also worth an experiment before you rely on it.
+`is_empty` is settled, and the community guide that says otherwise is wrong:
+
+| value | meaning |
+|---|---|
+| `0` | the slot must hold a card |
+| `1` | the slot may stay empty |
+
+The evidence is vanilla's own comments, not a story: `"is_empty":0, // 不能为空` appears 53 times and
+`"is_empty":1, //可以为空` / `// 可以为空` 10 times. The shipped data never contradicts itself on this.
+
+One trap remains: `is_empty` is a line inside a bigger object, so a search for `is_empty:1` tells you
+nothing about whether that *rite* is optional. Read the whole slot.
 
 `rite_template` and `rite_template_mappings` control where the slots sit on screen. If you do not ship
 them, the game falls back to a normal template and logs

@@ -136,6 +136,31 @@ const NODE_FIELDS = {
     handler: ["tips", "fail_tag", "tag_vanishing"],
     legacy: [],
   },
+  init: {
+    fields: ["id", "name", "wizard", "show_deadline", "show_story", "show_ithink", "show_prestige", "show_helpbtn", "sudan_box_show_after_wizard", "disable_auto_gen_sudan_card", "sudan_pool", "sudan_card_desc", "sudan_pool_desc", "sudan_shuffle", "sudan_redraw_count", "sudan_redraw_times_per_round", "sudan_redraw_times_recovery_round", "default_cards", "card_equips", "default_rite", "default_event", "single_dice_face_weight", "think_id", "think_show_settlement", "gold_dice_count", "back_to_prev_round_count", "sudan_life_time", "difficulty"],
+    handler: ["cards"],
+    legacy: [],
+  },
+  quest: {
+    fields: ["isComplete", "isReceived", "id", "name", "text", "icon", "favour_text", "upgrade_point", "target"],
+    handler: ["pre"],
+    legacy: [],
+  },
+  over: {
+    fields: ["id", "name", "sub_name", "text_extra", "open_after_story", "text", "manual_prompt", "success", "comment", "bg", "icon", "title"],
+    handler: [],
+    legacy: [],
+  },
+  riteTemplate: {
+    fields: ["id", "name", "tips", "bg", "fg", "fg_in_slot_index", "nomal_slot_bg", "bg_pos", "mobile_bg_pos", "mobile_scale", "title_pos", "title_bg_hide", "title_help_btn_hide", "slots"],
+    handler: [],
+    legacy: [],
+  },
+  riteMapping: {
+    fields: ["id", "tips", "template_id", "slot_open"],
+    handler: [],
+    legacy: [],
+  },
 };
 
 /** node kind for a directory-style config path */
@@ -143,6 +168,8 @@ const DIR_KIND = new Map([
   ["config/event", "event"],
   ["config/rite", "rite"],
   ["config/loot", "loot"],
+  ["config/init", "init"],
+  ["config/rite_template", "riteTemplate"],
 ]);
 
 /** node kind for a table-style config path */
@@ -150,6 +177,9 @@ const TABLE_KIND = new Map([
   ["config/cards.json", "card"],
   ["config/upgrade.json", "upgrade"],
   ["config/tag.json", "tag"],
+  ["config/quest.json", "quest"],
+  ["config/over.json", "over"],
+  ["config/rite_template_mappings.json", "riteMapping"],
 ]);
 
 /** Return the keys of `obj` that the given node kind does not declare. */
