@@ -300,9 +300,24 @@ export function valueOf(doc, node) {
   return doc.text.slice(node.start, node.end);
 }
 
+/**
+ * Decode a node fully into plain JS values. A repeated key keeps the last value, which is
+ * fine for display; use findEntries when the repeats matter.
+ */
+export function toPlain(doc, node) {
+  if (!node) return undefined;
+  if (node.type === "object") {
+    const out = {};
+    for (const e of node.entries) out[e.key] = toPlain(doc, e.value);
+    return out;
+  }
+  if (node.type === "array") return node.items.map((n) => toPlain(doc, n));
+  return valueOf(doc, node);
+}
+
 /** Build a literal for a plain JS value. Strings are quoted; objects become compact JSON. */
 export function literal(value) {
   return JSON.stringify(value);
 }
 
-export default { parseDoc, getDoc, findEntry, findEntries, sourceOf, valueOf, literal };
+export default { parseDoc, getDoc, findEntry, findEntries, sourceOf, valueOf, toPlain, literal };
