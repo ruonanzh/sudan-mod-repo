@@ -140,7 +140,7 @@ function cardBody(record, prompt, modDir) {
   return `
 <h2>卡面</h2>
 <div class="split">
-  ${artInline(modDir, record.id, record.rare, record.name) || '<div class="cardface">472 × 1028<br>卡面图放这里<br><span style="opacity:.6">只替换内部画面，边框由游戏画</span></div>'}
+  ${artInline(modDir, record.id, record.rare, record.name, record.type) || '<div class="cardface">472 × 1028<br>卡面图放这里<br><span style="opacity:.6">只替换内部画面，边框由游戏画</span></div>'}
   <div class="grow">
     <div class="panel">
       <div class="row"><div class="lbl">名字</div><div><input type="text" name="name" value="${esc(record.name)}"></div></div>
@@ -205,6 +205,7 @@ ${statRows || '<tr><td colspan="3" style="color:#8a7a60">没有属性</td></tr>'
  * what made stone look washed out next to the real cards.
  */
 function artInline(modDir, id, rare, name) {
+  const record_type = arguments[4] || "item";
   const here = path.dirname(new URL(import.meta.url).pathname);
   const tier = ["stone", "copper", "silver", "gold"][(rare ?? 1) - 1] || "stone";
   const plateDir = path.join(here, "..", "reference", "plates");
@@ -223,7 +224,11 @@ function artInline(modDir, id, rare, name) {
   const artFile = path.join(modDir, "image", "cards", `${id}.png`);
   if (existsSync(artFile)) img = overlay(img, fit(artFile));
 
-  const frame = find(`${tier}_f`);
+  // Only a char card draws the <tier>_f frame; a sudan card draws sudan_f; an item card
+  // has no foreground at all. CardShowAssets has char_forgrounds and sudan_forgrond but
+  // no item_forgrounds.
+  const frameName = record_type === "char" ? `${tier}_f` : record_type === "sudan" ? "sudan_f" : null;
+  const frame = frameName ? find(frameName) : null;
   if (frame) img = overlay(img, fit(frame));
 
   const b64 = encodePng(img).toString("base64");

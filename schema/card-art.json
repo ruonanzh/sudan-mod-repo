@@ -21,50 +21,28 @@
   "cardFace": "472x1028 RGBA, about half transparent in the shipped cards. The frame, corner ornaments, help button and plate are NOT in this texture; they are drawn by the game.",
   "headIcon": "A texture with the same name at 92x92 exists for some cards; extract-art writes it under head/.",
   "plate": {
-    "_note": "Read out of sharedassets0.assets. The card body is a shared texture tinted by a per-rarity material; card_bg_<tier> is the BAG background, not the card body, which is why compositing with it looked too pale.",
-    "layers": [
-      {
-        "layer": "body",
-        "source": "texture `card` or `card_e` (472x1028), tinted by the tier material _Color",
-        "note": "card is used by three material instances per tier, card_e by one"
-      },
-      {
-        "layer": "name",
-        "source": "TextMeshPro with material `CardTitle SDF - Rare1..4`, or `SudanTitle` for sudan cards",
-        "note": "the name is text, drawn over the top fifth"
-      },
-      {
-        "layer": "art",
-        "source": "image/cards/<id>.png, transparent",
-        "note": "top fifth must stay empty"
-      },
-      {
-        "layer": "frame",
-        "source": "`<tier>_f` texture, 196x424, drawn on top",
-        "note": "bottom band plus two corner brackets, all four tiers"
-      }
-    ],
-    "tierTint": {
-      "stone": "#b09aeb",
-      "copper": "#b3d9ff",
-      "silver": "#f0d8cb",
-      "gold": "#ffd4a2"
-    },
-    "cardE": {
-      "_note": "a second body variant; stone uses #a88864 for it",
+    "_note": "Read out of the CardShowAssets asset in sharedassets0.assets: the reference order plus each material's _MainTex. Groups of four are the rarities in order stone, copper, silver, gold.",
+    "body": {
+      "texture": "card",
       "tint": {
-        "stone": "#a88864"
-      }
+        "stone": "#b09aeb",
+        "copper": "#b3d9ff",
+        "silver": "#f0d8cb",
+        "gold": "#ffd4a2"
+      },
+      "note": "chars[], items[] and sudans[] are different material objects but all point _MainTex at the same `card` texture, so the body is the same picture tinted per tier."
     },
-    "typeBadge": {
-      "files": "card_type_char / card_type_item / card_type_sudan at 36x58, each with a _required variant",
-      "note": "this is how item, char and sudan cards are marked apart"
+    "foreground": {
+      "char": "<tier>_f materials (char_forgrounds[]), drawn over the art",
+      "sudan": "sudan_f, one material for every tier (sudan_forgrond)",
+      "item": "none: CardShowAssets has no item_forgrounds",
+      "_note": "This is the per-type difference: a char card has the bottom band and corner brackets, a sudan card has its own frame and its own title font (CardTitle SDF - SudanTitle), an item card has neither."
     },
-    "sudan": {
-      "_note": "sudan cards use their own frame texture sudan_f (472x1028, 87% transparent) and the SudanTitle font material"
+    "cardTypeBadge": "card_type_char / card_type_item / card_type_sudan at 36x58, plus _required variants, held in the card_type_icons dictionaries",
+    "cardBack": {
+      "_note": "card.png plus card_d / card_e / card_mt / card_n at 472x1028 are card backs, not bodies. card.png is the back of a gold character card. One copper material uses card_e."
     },
-    "frames": "<tier>_f.png is the only 196x424 file stone has; the body comes from `card` tinted",
-    "rejected": "card_bg_<tier> (564x664) is a 9-sliced bag/detail background. Compositing with it made the card look washed out."
+    "open": "what card_d / card_mt / card_n are, and which field uses card_e"
   },
   "emptyAreas": {
     "_note": "Measured on two real stone cards (快脚 2000370, 小圆 2000371), both 472x1028.",
