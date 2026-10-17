@@ -64,8 +64,22 @@ Extensions `.wav`, `.mp3`, `.ogg`. The one published example replaces `start_gam
 16-bit PCM 48 kHz stereo WAV. `ogg` is a fraction of the size and is accepted, so prefer it when the
 file is large.
 
+**A mod can replace a music clip. It cannot add one.** The swap happens through
+`SFxManager.ModifyAudio`, which finds a `ModAudioModifyer` component already sitting on an `AudioSource`
+in the scene, reads its `audioName`, and asks the mod data for a clip with that name. A mod cannot add
+that component, so there has to be a place in the game that already plays music for you to replace.
+
+Two log lines tell you what happened:
+
+| line | meaning |
+|---|---|
+| `mod modify key {0} {1} not found` | your filename matches no audio name in the game. Nothing plays |
+| `modAudioModifyerMap already contains ` | two mods claim the same clip. One wins |
+
 Clip names other than `start_game` are mostly unknown. `config/over_music_config.json` lists the ending
 tracks (`over_game_dead`, `over_game_happiness`, and so on) and those are a different subsystem.
+If the player wants a clip you cannot name, the honest move is to say that only replacement is
+supported and to find the name together from the game's own files.
 
 ## Do not
 
