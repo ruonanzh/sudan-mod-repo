@@ -96,110 +96,11 @@ const DEFAULT_VANILLA =
 // `legacy` are keys vanilla writes that no field backs and no handler is known
 // to read. They do nothing. Warn, because deleting them changes nothing.
 // ---------------------------------------------------------------------------
-const NODE_FIELDS = {
-  card: {
-    fields: ["id", "name", "title", "text", "pops", "type", "rare", "resource", "destroy_resources", "tag", "card_vanishing", "vanish", "equips", "is_only", "sfx", "post_rite"],
-    handler: ["tips", "card_favour"],
-    legacy: [],
-  },
-  event: {
-    fields: ["id", "is_replay", "auto_start_init", "on", "start_trigger", "condition", "settlement"],
-    handler: ["text", "cached_settlement"],
-    legacy: ["auto_start"],
-  },
-  rite: {
-    fields: ["id", "name", "text", "tips", "type", "final_pin", "from_pins", "mapping_id", "round_number", "auto_begin", "auto_result", "restore_fill_times", "once_new", "waiting_round", "waiting_round_end_action", "icon", "location", "tag_tips_up", "tips_text", "random_text", "random_text_up", "open_conditions", "settlement_prior", "settlement", "settlement_extre", "cards_slot"],
-    handler: ["tag_tips", "method_settlement", "random_effect"],
-    legacy: ["mapping"],
-  },
-  slot: {
-    fields: ["guid", "condition", "open_adsorb", "is_key", "is_empty", "is_enemy", "text", "tips_icon", "pops"],
-    handler: [],
-    legacy: [],
-  },
-  settlement: {
-    fields: ["guid", "condition", "result_title", "result_text", "result", "action", "id", "type", "index", "key", "sort", "pic"],
-    handler: ["tips_resource", "tips_text"],
-    legacy: [],
-  },
-  loot: {
-    fields: ["id", "name", "repeat", "type", "item"],
-    handler: [],
-    legacy: [],
-  },
-  lootItem: {
-    fields: ["refLoot", "type", "id", "num", "weight", "condition"],
-    handler: [],
-    legacy: [],
-  },
-  upgrade: {
-    fields: ["link_card_inst", "id", "name", "text", "cost", "condition", "icon", "link_card", "effect", "incompatible"],
-    handler: [],
-    legacy: [],
-  },
-  tag: {
-    fields: ["is_composite", "id", "name", "code", "type", "text", "resource", "can_add", "can_visible", "can_inherit", "can_nagative_and_zero", "tag_sfx", "tag_rank", "attributes"],
-    handler: ["tips", "fail_tag", "tag_vanishing"],
-    legacy: [],
-  },
-  init: {
-    fields: ["id", "name", "wizard", "show_deadline", "show_story", "show_ithink", "show_prestige", "show_helpbtn", "sudan_box_show_after_wizard", "disable_auto_gen_sudan_card", "sudan_pool", "sudan_card_desc", "sudan_pool_desc", "sudan_shuffle", "sudan_redraw_count", "sudan_redraw_times_per_round", "sudan_redraw_times_recovery_round", "default_cards", "card_equips", "default_rite", "default_event", "single_dice_face_weight", "think_id", "think_show_settlement", "gold_dice_count", "back_to_prev_round_count", "sudan_life_time", "difficulty"],
-    handler: ["cards"],
-    legacy: [],
-  },
-  quest: {
-    fields: ["isComplete", "isReceived", "id", "name", "text", "icon", "favour_text", "upgrade_point", "target"],
-    handler: ["pre"],
-    legacy: [],
-  },
-  over: {
-    fields: ["id", "name", "sub_name", "text_extra", "open_after_story", "text", "manual_prompt", "success", "comment", "bg", "icon", "title"],
-    handler: [],
-    legacy: [],
-  },
-  riteTemplate: {
-    fields: ["id", "name", "tips", "bg", "fg", "fg_in_slot_index", "nomal_slot_bg", "bg_pos", "mobile_bg_pos", "mobile_scale", "title_pos", "title_bg_hide", "title_help_btn_hide", "slots"],
-    handler: [],
-    legacy: [],
-  },
-  riteMapping: {
-    fields: ["id", "tips", "template_id", "slot_open"],
-    handler: [],
-    legacy: [],
-  },
-  dtRoot: {
-    fields: ["dialog_tree_id", "first_word_id", "description", "Item"],
-    handler: [],
-    // `words` is get-only and derived from Item; vanilla never writes it.
-    legacy: ["words"],
-  },
-  dtWord: {
-    fields: ["word_id", "word", "jump_type", "direct_id", "Option", "action"],
-    handler: [],
-    legacy: [],
-  },
-  dtOption: {
-    fields: ["option_Jump_condition", "option_Jump_word", "option_Jump_id", "action"],
-    handler: [],
-    legacy: [],
-  },
-  sfxTop: {
-    // top level of sfx_config.json: five loop groups, NOT clip/start/loop_start/loop_end
-    fields: ["main_game_loop", "main_game_loop_difficulty", "settle_loop", "settle_loop_difficulty", "armageddon_music_loop"],
-    handler: [],
-    legacy: [],
-  },
-  sfxLoop: {
-    fields: ["clip", "start", "loop_start", "loop_end"],
-    handler: [],
-    legacy: [],
-  },
-  game: {
-    fields: ["init", "map", "rite_icon", "rite_outline_icon", "equip_icon", "card_materials"],
-    handler: [],
-    legacy: [],
-  },
-};
+// Field tables live in schema/fields.json so there is exactly one copy. They were read
+// out of the decompiled node classes and re-checked against every shipped file.
+const NODE_FIELDS = JSON.parse(
+  readFileSync(new URL("../schema/fields.json", import.meta.url), "utf8"),
+);
 
 /** node kind for a directory-style config path */
 const DIR_KIND = new Map([
@@ -239,6 +140,101 @@ function checkDeadBranches(fileRel, arrName, list) {
         `${arrName}[${i}] has an empty condition but is not the last branch. ${arrName} stops at the first match, so every branch after it never runs.`,
       );
   });
+}
+
+/** Minimum keys a record of each kind needs to be usable. */
+const REQUIRED = {
+  card: ["id", "name", "type", "rare"],
+  event: ["id", "on", "settlement"],
+  rite: ["id", "name", "cards_slot"],
+  loot: ["id", "name", "item"],
+  upgrade: ["id", "name", "cost", "effect"],
+  tag: ["id", "name", "code"],
+  riteTemplate: ["id"],
+  quest: ["id", "name"],
+  // over.json records do not carry their own id: the dictionary key is the id, and one
+  // vanilla record has no name at all. Requiring either would flag 160 shipped records.
+  over: [],
+  init: ["id", "name"],
+  dtRoot: ["dialog_tree_id", "first_word_id", "Item"],
+  sfxTop: [],
+};
+
+/** Operation verb -> the id namespace its argument points at. */
+const OP_REF = {
+  rite: "rite",
+  event_on: "event",
+  event_off: "event",
+  over: "over",
+  loot: "loot",
+  "g.card": "card",
+};
+
+/** Collect every id a reference operation points at. */
+function referenceIds(obj, out) {
+  // settlement and pops are arrays, so recursion must walk arrays too.
+  if (Array.isArray(obj)) {
+    for (const item of obj) referenceIds(item, out);
+    return out;
+  }
+  if (!isPlainObject(obj)) return out;
+  for (const [key, value] of Object.entries(obj)) {
+    const kind = OP_REF[key];
+    if (kind) {
+      const list = Array.isArray(value) ? value : [value];
+      for (const v of list) {
+        const id = Array.isArray(v) ? v[0] : v;
+        if (typeof id === "number" || (typeof id === "string" && /^\d+$/.test(id))) out.push([key, kind, String(id)]);
+      }
+    }
+    // Recurse into arrays too: settlement and pops hold the actions.
+    if (isPlainObject(value) || Array.isArray(value)) referenceIds(value, out);
+  }
+  return out;
+}
+
+/** Report a missing minimum key. */
+function reportRequired(fileRel, kind, obj, where) {
+  const need = REQUIRED[kind];
+  if (!need || !need.length) return;
+  const at = where ? ` (${where})` : "";
+  for (const key of need) {
+    if (obj[key] === undefined) warn("REQUIRED_MISSING", fileRel, `${kind}${at} has no "${key}".`);
+  }
+}
+
+/** Report a value outside its observed domain. */
+function reportRange(fileRel, kind, obj, where) {
+  const at = where ? ` (${where})` : "";
+  const inSet = (key, allowed) => {
+    if (obj[key] === undefined) return;
+    if (!allowed.includes(obj[key]))
+      fail("RANGE", fileRel, `${kind}${at} ${key}=${JSON.stringify(obj[key])}; vanilla only uses ${allowed.join(", ")}.`);
+  };
+  const nonNegative = (key) => {
+    if (typeof obj[key] === "number" && obj[key] < 0)
+      fail("RANGE", fileRel, `${kind}${at} ${key} is negative (${obj[key]}); vanilla is 0 or more.`);
+  };
+  if (kind === "card") {
+    if (typeof obj.rare === "number" && !(obj.rare >= 1 && obj.rare <= 4))
+      fail("RANGE", fileRel, `card ${at} rare=${obj.rare}; vanilla only uses 1..4.`);
+    nonNegative("card_vanishing");
+  }
+  if (kind === "event") inSet("is_replay", [0, 1, false, true]);
+  if (kind === "rite") {
+    inSet("auto_begin", [0, 1, false, true]);
+    inSet("auto_result", [0, 1, false, true]);
+    inSet("once_new", [-1, 0, 1]);
+    nonNegative("round_number");
+    nonNegative("waiting_round");
+  }
+  if (kind === "slot") {
+    inSet("open_adsorb", [0, 1, false, true]);
+    inSet("is_empty", [0, 1, false, true]);
+    inSet("is_enemy", [0, 1, false, true]);
+  }
+  if (kind === "loot") nonNegative("repeat");
+  if (kind === "lootItem") nonNegative("weight");
 }
 
 /** Return the keys of `obj` that the given node kind does not declare. */
@@ -497,6 +493,8 @@ export function parseJsonc(text) {
 // ---------------------------------------------------------------------------
 
 const results = [];
+/** {fileRel, obj} pairs to check for dangling id references after every file is read. */
+const pendingRefs = [];
 
 /** Timing keys the engine registers. A key not here is never scheduled. */
 const TIMING_KEYS = new Set([
@@ -740,7 +738,12 @@ function lintMod(modDir, vanilla, opts) {
 
         // Field dictionary: a key the node class does not declare is not read.
         const dirKind = DIR_KIND.get(relPath);
-        if (dirKind) reportFields(fileRel, dirKind, value);
+        if (dirKind) {
+          reportFields(fileRel, dirKind, value);
+          reportRequired(fileRel, dirKind, value);
+          reportRange(fileRel, dirKind, value);
+          pendingRefs.push({ fileRel, obj: value });
+        }
 
         // Timing keys are registered by name; anything else never fires.
         if (isPlainObject(value.on)) {
@@ -826,7 +829,12 @@ function lintMod(modDir, vanilla, opts) {
           fail("JSON_SHAPE", relPath, `entry ${JSON.stringify(key)} is not an object.`);
           continue;
         }
-        if (tblKind) reportFields(relPath, tblKind, rec, String(key));
+        if (tblKind) {
+          reportFields(relPath, tblKind, rec, String(key));
+          reportRequired(relPath, tblKind, rec, String(key));
+          reportRange(relPath, tblKind, rec, String(key));
+          pendingRefs.push({ fileRel: relPath, obj: rec });
+        }
         if (kind) put(kind, key);
         if (keyIsId && rec.id !== undefined && String(rec.id) !== String(key))
           warn("ID_MISMATCH", relPath, `key ${key} but entry id is ${rec.id}. The game keys by the object key; keep them equal.`);
@@ -953,6 +961,26 @@ function lintMod(modDir, vanilla, opts) {
   // ---- preview -----------------------------------------------------------
   const hasPreview = ["preview.png", "preview.jpg"].some((n) => existsSync(path.join(modDir, n)));
   if (!hasPreview) info("PREVIEW_MISSING", null, "no preview.png or preview.jpg. The Workshop page will have no thumbnail.");
+
+  // ---- dangling id references -------------------------------------------
+  const known = new Map();
+  for (const [kind, set] of vanilla.ids) known.set(kind, new Set(set));
+  for (const [kind, ids] of modIds) {
+    if (!known.has(kind)) known.set(kind, new Set());
+    for (const id of ids.keys()) known.get(kind).add(id);
+  }
+  for (const { fileRel, obj } of pendingRefs) {
+    const refs = referenceIds(obj, []);
+    for (const [verb, kind, id] of refs) {
+      const set = known.get(kind);
+      if (!set || !set.size) continue;
+      // Every real id is 7 digits. event_off:1 is the documented sentinel for
+      // "turn off every backstage event" (vanilla comment: 关闭所有幕后), not an id.
+      if (Number(id) < 1000000) continue;
+      if (!set.has(id))
+        warn("REF_MISSING", fileRel, `${verb} points at ${kind} ${id}, which is neither in vanilla nor in this mod.`);
+    }
+  }
 
   return { label, added: results.length - before };
 }

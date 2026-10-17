@@ -1,0 +1,451 @@
+{
+  "card": {
+    "fields": [
+      "id",
+      "name",
+      "title",
+      "text",
+      "pops",
+      "type",
+      "rare",
+      "resource",
+      "destroy_resources",
+      "tag",
+      "card_vanishing",
+      "vanish",
+      "equips",
+      "is_only",
+      "sfx",
+      "post_rite"
+    ],
+    "handler": [
+      "tips",
+      "card_favour"
+    ],
+    "legacy": []
+  },
+  "event": {
+    "fields": [
+      "id",
+      "is_replay",
+      "auto_start_init",
+      "on",
+      "start_trigger",
+      "condition",
+      "settlement"
+    ],
+    "handler": [
+      "text",
+      "cached_settlement"
+    ],
+    "legacy": [
+      "auto_start"
+    ]
+  },
+  "rite": {
+    "fields": [
+      "id",
+      "name",
+      "text",
+      "tips",
+      "type",
+      "final_pin",
+      "from_pins",
+      "mapping_id",
+      "round_number",
+      "auto_begin",
+      "auto_result",
+      "restore_fill_times",
+      "once_new",
+      "waiting_round",
+      "waiting_round_end_action",
+      "icon",
+      "location",
+      "tag_tips_up",
+      "tips_text",
+      "random_text",
+      "random_text_up",
+      "open_conditions",
+      "settlement_prior",
+      "settlement",
+      "settlement_extre",
+      "cards_slot"
+    ],
+    "handler": [
+      "tag_tips",
+      "method_settlement",
+      "random_effect"
+    ],
+    "legacy": [
+      "mapping"
+    ]
+  },
+  "slot": {
+    "fields": [
+      "guid",
+      "condition",
+      "open_adsorb",
+      "is_key",
+      "is_empty",
+      "is_enemy",
+      "text",
+      "tips_icon",
+      "pops"
+    ],
+    "handler": [],
+    "legacy": []
+  },
+  "settlement": {
+    "fields": [
+      "guid",
+      "condition",
+      "result_title",
+      "result_text",
+      "result",
+      "action",
+      "id",
+      "type",
+      "index",
+      "key",
+      "sort",
+      "pic"
+    ],
+    "handler": [
+      "tips_resource",
+      "tips_text"
+    ],
+    "legacy": []
+  },
+  "loot": {
+    "fields": [
+      "id",
+      "name",
+      "repeat",
+      "type",
+      "item"
+    ],
+    "handler": [],
+    "legacy": []
+  },
+  "lootItem": {
+    "fields": [
+      "refLoot",
+      "type",
+      "id",
+      "num",
+      "weight",
+      "condition"
+    ],
+    "handler": [],
+    "legacy": []
+  },
+  "upgrade": {
+    "fields": [
+      "link_card_inst",
+      "id",
+      "name",
+      "text",
+      "cost",
+      "condition",
+      "icon",
+      "link_card",
+      "effect",
+      "incompatible"
+    ],
+    "handler": [],
+    "legacy": []
+  },
+  "tag": {
+    "fields": [
+      "is_composite",
+      "id",
+      "name",
+      "code",
+      "type",
+      "text",
+      "resource",
+      "can_add",
+      "can_visible",
+      "can_inherit",
+      "can_nagative_and_zero",
+      "tag_sfx",
+      "tag_rank",
+      "attributes"
+    ],
+    "handler": [
+      "tips",
+      "fail_tag",
+      "tag_vanishing"
+    ],
+    "legacy": []
+  },
+  "init": {
+    "fields": [
+      "id",
+      "name",
+      "wizard",
+      "show_deadline",
+      "show_story",
+      "show_ithink",
+      "show_prestige",
+      "show_helpbtn",
+      "sudan_box_show_after_wizard",
+      "disable_auto_gen_sudan_card",
+      "sudan_pool",
+      "sudan_card_desc",
+      "sudan_pool_desc",
+      "sudan_shuffle",
+      "sudan_redraw_count",
+      "sudan_redraw_times_per_round",
+      "sudan_redraw_times_recovery_round",
+      "default_cards",
+      "card_equips",
+      "default_rite",
+      "default_event",
+      "single_dice_face_weight",
+      "think_id",
+      "think_show_settlement",
+      "gold_dice_count",
+      "back_to_prev_round_count",
+      "sudan_life_time",
+      "difficulty"
+    ],
+    "handler": [
+      "cards"
+    ],
+    "legacy": []
+  },
+  "quest": {
+    "fields": [
+      "isComplete",
+      "isReceived",
+      "id",
+      "name",
+      "text",
+      "icon",
+      "favour_text",
+      "upgrade_point",
+      "target"
+    ],
+    "handler": [
+      "pre"
+    ],
+    "legacy": []
+  },
+  "over": {
+    "fields": [
+      "id",
+      "name",
+      "sub_name",
+      "text_extra",
+      "open_after_story",
+      "text",
+      "manual_prompt",
+      "success",
+      "comment",
+      "bg",
+      "icon",
+      "title"
+    ],
+    "handler": [],
+    "legacy": []
+  },
+  "riteTemplate": {
+    "fields": [
+      "id",
+      "name",
+      "tips",
+      "bg",
+      "fg",
+      "fg_in_slot_index",
+      "nomal_slot_bg",
+      "bg_pos",
+      "mobile_bg_pos",
+      "mobile_scale",
+      "title_pos",
+      "title_bg_hide",
+      "title_help_btn_hide",
+      "slots"
+    ],
+    "handler": [],
+    "legacy": []
+  },
+  "riteMapping": {
+    "fields": [
+      "id",
+      "tips",
+      "template_id",
+      "slot_open"
+    ],
+    "handler": [],
+    "legacy": []
+  },
+  "dtRoot": {
+    "fields": [
+      "dialog_tree_id",
+      "first_word_id",
+      "description",
+      "Item"
+    ],
+    "handler": [],
+    "legacy": [
+      "words"
+    ]
+  },
+  "dtWord": {
+    "fields": [
+      "word_id",
+      "word",
+      "jump_type",
+      "direct_id",
+      "Option",
+      "action"
+    ],
+    "handler": [],
+    "legacy": []
+  },
+  "dtOption": {
+    "fields": [
+      "option_Jump_condition",
+      "option_Jump_word",
+      "option_Jump_id",
+      "action"
+    ],
+    "handler": [],
+    "legacy": []
+  },
+  "sfxTop": {
+    "fields": [
+      "main_game_loop",
+      "main_game_loop_difficulty",
+      "settle_loop",
+      "settle_loop_difficulty",
+      "armageddon_music_loop"
+    ],
+    "handler": [],
+    "legacy": []
+  },
+  "sfxLoop": {
+    "fields": [
+      "clip",
+      "start",
+      "loop_start",
+      "loop_end"
+    ],
+    "handler": [],
+    "legacy": []
+  },
+  "game": {
+    "fields": [
+      "init",
+      "map",
+      "rite_icon",
+      "rite_outline_icon",
+      "equip_icon",
+      "card_materials"
+    ],
+    "handler": [],
+    "legacy": []
+  },
+  "questTarget": {
+    "fields": [
+      "isComplete",
+      "value",
+      "text",
+      "show_counter",
+      "condition"
+    ],
+    "handler": [],
+    "legacy": []
+  },
+  "wizard": {
+    "fields": [
+      "id",
+      "init",
+      "prompt_draw_sudan_start",
+      "prompt_draw_sudan_start_first",
+      "prompt_draw_sudan_end_with_times",
+      "prompt_draw_sudan_end_without_times"
+    ],
+    "handler": [
+      "name",
+      "options",
+      "text"
+    ],
+    "legacy": []
+  },
+  "afterStory": {
+    "fields": [
+      "id",
+      "name",
+      "pic",
+      "close_condition",
+      "prior",
+      "extra"
+    ],
+    "handler": [],
+    "legacy": []
+  },
+  "gameMap": {
+    "fields": [
+      "overwrite",
+      "desktop",
+      "map",
+      "locations"
+    ],
+    "handler": [],
+    "legacy": []
+  },
+  "gameMapLocation": {
+    "fields": [
+      "name",
+      "icon",
+      "x",
+      "y",
+      "sub_locations"
+    ],
+    "handler": [],
+    "legacy": []
+  },
+  "gameEquipIcon": {
+    "fields": [
+      "name",
+      "equip",
+      "unequip"
+    ],
+    "handler": [],
+    "legacy": []
+  },
+  "gameCardMaterial": {
+    "fields": [
+      "main",
+      "color",
+      "metallic",
+      "metallic_smooth",
+      "bump",
+      "bump_scale",
+      "emission",
+      "emission_color"
+    ],
+    "handler": [],
+    "legacy": []
+  },
+  "gameCardMaterialGroup": {
+    "fields": [
+      "chars",
+      "char_forgrounds",
+      "items",
+      "sudans"
+    ],
+    "handler": [],
+    "legacy": []
+  },
+  "gamePoint": {
+    "fields": [
+      "x",
+      "y"
+    ],
+    "handler": [],
+    "legacy": []
+  }
+}
