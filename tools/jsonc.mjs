@@ -24,14 +24,32 @@ class Doc {
   constructor(text, bom) {
     this.text = text;
     this.bom = Boolean(bom);
-    this.edits = [];
+    this.root = parseValue(this, skipWs(this, 0));
+  }
+
+  /**
+   * Apply one edit immediately, then re-parse. Immediate application keeps node offsets
+   * valid for the next call, which matters because an editor chains several edits on the
+   * same record. The files here are at most a couple of megabytes, so re-parsing is cheap.
+   */
+  applyEdit(edits) {
+    const list = Array.isArray(edits) ? edits : [edits];
+    const sorted = [...list].sort((a, b) => a.start - b.start || a.end - b.end);
+    let out = "";
+    let cursor = 0;
+    for (const e of sorted) {
+      if (e.start < cursor) throw new Error(`applyEdit: overlapping edit at ${e.start}`);
+      out += this.text.slice(cursor, e.start) + e.text;
+      cursor = e.end;
+    }
+    this.text = out + this.text.slice(cursor);
     this.root = parseValue(this, skipWs(this, 0));
   }
 
   /** Replace one node wholesale with literal source text. */
   set(node, literalText) {
     if (!node) throw new Error("set: no node");
-    this.edits.push({ start: node.start, end: node.end, text: literalText });
+    this.applyEdit({ start: node.start, end: node.end, text: literalText });
     return this;
   }
 
@@ -46,8 +64,13 @@ class Doc {
     const last = objNode.entries[objNode.entries.length - 1];
 
     if (!last) {
-      // Empty object: keep it on one line.
-      this.edits.push({ start: objNode.openBrace + 1, end: objNode.openBrace + 1, text: `${JSON.stringify(key)}: ${literalText}` });
+      // An empty nested object stays on one line; an empty file gets a real body.
+      const at = objNode.openBrace + 1;
+      const text =
+        objNode === this.root
+          ? `\n    ${JSON.stringify(key)}: ${literalText}\n`
+          : `${JSON.stringify(key)}: ${literalText}`;
+      this.applyEdit({ start: at, end: at, text });
       return this;
     }
 
@@ -55,14 +78,35 @@ class Doc {
     // A trailing line comment belongs to the last entry's line. The separator comma
     // must go before it, or the comma is swallowed by the comment.
     const after = skipWs(this, last.value.end);
-    if (t[after] !== ",") {
-      this.edits.push({ start: last.value.end, end: last.value.end, text: "," });
-    }
+    const edits = [];
+    if (t[after] !== ",") edits.push({ start: last.value.end, end: last.value.end, text: "," });
     // Insert the new entry on its own line, after the line the last entry ends on.
     const nl = t.indexOf("\n", last.value.end);
     const at = nl === -1 || nl > close ? close : nl + 1;
     const prefix = nl === -1 || nl > close ? `\n${indent}` : indent;
-    this.edits.push({ start: at, end: at, text: `${prefix}${JSON.stringify(key)}: ${literalText}\n` });
+    edits.push({ start: at, end: at, text: `${prefix}${JSON.stringify(key)}: ${literalText}\n` });
+    this.applyEdit(edits);
+    return this;
+  }
+
+  /**
+   * Add an entry from raw source text, `"key": value` where value is already valid JSONC.
+   * Used to copy a vanilla record across without re-serialising it.
+   */
+  appendSource(key, entrySource) {
+    if (this.root.type !== "object") throw new Error("appendSource: root is not an object");
+    const last = this.root.entries[this.root.entries.length - 1];
+    const indent = this.entryIndent(this.root);
+    if (!last) {
+      this.applyEdit({ start: this.root.openBrace + 1, end: this.root.openBrace + 1, text: `\n${indent}${entrySource}\n` });
+      return this;
+    }
+    const nl = this.text.indexOf("\n", last.value.end);
+    const at = nl === -1 || nl > this.root.closeBrace ? this.root.closeBrace : nl + 1;
+    this.applyEdit([
+      { start: last.value.end, end: last.value.end, text: "," },
+      { start: at, end: at, text: `${indent}${entrySource}\n` },
+    ]);
     return this;
   }
 
@@ -87,7 +131,7 @@ class Doc {
     let k = start - 1;
     while (k >= 0 && (this.text[k] === " " || this.text[k] === "\t" || this.text[k] === "\r")) k--;
     if (this.text[k] === "\n") start = k;
-    this.edits.push({ start, end, text: "" });
+    this.applyEdit({ start, end, text: "" });
     return this;
   }
 
@@ -102,17 +146,7 @@ class Doc {
 
   /** Apply the pending edits. Edits must not overlap. */
   render() {
-    const prefix = this.bom ? "\ufeff" : "";
-    if (!this.edits.length) return prefix + this.text;
-    const sorted = [...this.edits].sort((a, b) => a.start - b.start || a.end - b.end);
-    let out = "";
-    let cursor = 0;
-    for (const e of sorted) {
-      if (e.start < cursor) throw new Error(`render: overlapping edit at ${e.start}`);
-      out += this.text.slice(cursor, e.start) + e.text;
-      cursor = e.end;
-    }
-    return prefix + out + this.text.slice(cursor);
+    return (this.bom ? "\ufeff" : "") + this.text;
   }
 }
 

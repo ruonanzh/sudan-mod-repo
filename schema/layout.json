@@ -1,0 +1,42 @@
+{
+  "_note": "Where each record kind lives and how a file maps to a kind. An editor reads this to find the right file; tools/lint.mjs carries the same table and a test asserts the two agree, so they cannot drift.",
+  "table": {
+    "card": { "file": "config/cards.json", "class": "CardNode", "keyOf": "id" },
+    "upgrade": { "file": "config/upgrade.json", "class": "UpgradeNode", "keyOf": "id" },
+    "tag": { "file": "config/tag.json", "class": "TagNode", "keyOf": "code" },
+    "quest": { "file": "config/quest.json", "class": "QuestNode", "keyOf": "id" },
+    "over": { "file": "config/over.json", "class": "OverNode", "keyOf": "dictionary key only" }
+  },
+  "dir": {
+    "event": { "dir": "config/event", "class": "EventNode", "filename": "id", "strict": false },
+    "rite": { "dir": "config/rite", "class": "RiteNode", "filename": "id", "strict": true },
+    "loot": { "dir": "config/loot", "class": "LootNode", "filename": "id", "strict": false },
+    "init": { "dir": "config/init", "class": "InitNode", "filename": "id", "strict": false },
+    "riteTemplate": { "dir": "config/rite_template", "class": "RiteTemplateNode", "filename": "id", "strict": false },
+    "afterStory": { "dir": "config/after_story", "class": "AfterStoryNode", "filename": "id", "strict": false },
+    "dtRoot": { "dir": "config/dt", "class": "DialogTreeNode", "filename": null, "strict": false },
+    "wizard": { "dir": "config/wizard", "class": "WizardNode", "filename": null, "strict": false }
+  },
+  "single": {
+    "game": { "file": "config/game.json", "class": "ModGameNode" },
+    "riteMapping": { "file": "config/rite_template_mappings.json", "class": "RiteMappingNode" },
+    "sfxTop": { "file": "config/sfx_config.json", "class": "SfxConfigNode" }
+  },
+  "notModdable": {
+    "_note": "The game reads these for itself. A mod that ships one is ignored.",
+    "files": [
+      "achievement.json", "credits.json", "gallery_cards.json", "gallery_cg.json", "imagestyle.json",
+      "mobile_help.json", "textstyle.json", "ui.json", "variable.json", "rite.json"
+    ]
+  },
+  "idRanges": {
+    "_note": "Observed in vanilla. Not reserved: check for collisions before you pick an id.",
+    "card": "2000001-2010016",
+    "event": "5300000-5329999",
+    "rite": "5000001-5010214",
+    "loot": "6000004-6001xxx",
+    "upgrade": "3300002-3300052",
+    "tag": "3000001-3020368",
+    "riteTemplate": "8000001-8001141"
+  }
+}
