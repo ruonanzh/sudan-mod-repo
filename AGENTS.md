@@ -44,7 +44,12 @@ These are fixed. They prevent wasted turns.
   - `mod-installer` — copy a mod into the mod root, enable it, and confirm from the log.
   - `card-art` — the image contract: sizes, names, and what a sprite replaces.
   - `mod-page` — write the HTML page that shows the player what a mod changes and collects their marks.
-- `tools/lint.mjs` — the validator. Run it before you install.
+- `schema/` — the single source of truth, and the only place a field rule lives.
+  `fields.json` holds every node shape, `vocab.json` the timing/condition/operation
+  vocabulary, `save-fields.json` the save shapes, and `SCHEMA.md` is generated from
+  those three by `tools/gen-schema-doc.mjs`. Never edit `SCHEMA.md` by hand.
+- `tools/lint.mjs` — the validator. Run it before you install. It reads `schema/`.
+  `--save <file|dir>` validates save files instead of a mod.
 - `your_mods/` — the mod output area. Write mods only here, as `your_mods/<ModName>/`.
 - `mod-repo.json` — the machine-readable game and path declaration.
 - `reference/` — reserved. Not populated in this version.
@@ -73,7 +78,9 @@ These are fixed. They prevent wasted turns.
 
 Nothing here can compile, so a claim of "done" needs evidence of these three things:
 
-1. `node tools/lint.mjs your_mods/<ModName>` exits 0.
+1. `node tools/lint.mjs your_mods/<ModName>` exits 0. Vanilla does not: the shipped data has
+   one file with dead settlement branches and two operations that point at ids which do not
+   exist. `schema/SCHEMA.md` lists them, so a failure there is not your bug.
 2. The mod is installed and the player enabled it. Its `_local.log` shows
    `read mod <name> file: config/<what you changed>`.
 3. The change shows in the game. Read the log for the card or rite id the player touched.

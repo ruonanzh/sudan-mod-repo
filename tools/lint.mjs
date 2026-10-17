@@ -745,6 +745,61 @@ function lintMod(modDir, vanilla, opts) {
           pendingRefs.push({ fileRel, obj: value });
         }
 
+        // ---- sub-object shapes ------------------------------------------
+        if (relPath === "config/quest.json" && rec.target !== undefined) {
+          const targets = Array.isArray(rec.target) ? rec.target : [rec.target];
+          targets.forEach((t, i) => {
+            if (isPlainObject(t)) reportFields(relPath, "questTargetItem", t, `${key}.target[${i}]`);
+          });
+        }
+        if (relPath === "config/wizard" && Array.isArray(value.options)) {
+          const walk = (list, where) =>
+            list.forEach((o, i) => {
+              if (!isPlainObject(o)) return;
+              reportFields(fileRel, "wizardOption", o, `${where}[${i}]`);
+              if (Array.isArray(o.options)) walk(o.options, `${where}[${i}].options`);
+            });
+          walk(value.options, "options");
+        }
+        if (relPath === "config/after_story") {
+          for (const arr of ["prior", "extra"]) {
+            if (!Array.isArray(value[arr])) continue;
+            value[arr].forEach((e, i) => {
+              if (isPlainObject(e)) reportFields(fileRel, "afterStoryExtra", e, `${arr}[${i}]`);
+            });
+          }
+        }
+        if (relPath === "config/rite") {
+          if (isPlainObject(value.tag_tips_up)) reportFields(fileRel, "riteTagTipsUp", value.tag_tips_up, "tag_tips_up");
+          if (isPlainObject(value.random_text_up)) {
+            for (const [r, up] of Object.entries(value.random_text_up)) {
+              if (isPlainObject(up)) reportFields(fileRel, "riteRandomTextUp", up, `random_text_up.${r}`);
+            }
+          }
+          if (Array.isArray(value.open_conditions)) {
+            value.open_conditions.forEach((c, i) => {
+              if (isPlainObject(c)) reportFields(fileRel, "riteOpenCondition", c, `open_conditions[${i}]`);
+            });
+          }
+          if (Array.isArray(value.from_pins)) {
+            value.from_pins.forEach((pin, i) => {
+              if (isPlainObject(pin)) reportFields(fileRel, "riteFromPin", pin, `from_pins[${i}]`);
+            });
+          }
+          if (isPlainObject(value.cards_slot)) {
+            for (const [sn, slot] of Object.entries(value.cards_slot)) {
+              if (!isPlainObject(slot)) continue;
+              reportFields(fileRel, "slot", slot, sn);
+              reportRange(fileRel, "slot", slot, sn);
+              if (Array.isArray(slot.pops)) {
+                slot.pops.forEach((pop, i) => {
+                  if (isPlainObject(pop)) reportFields(fileRel, "riteSlotPop", pop, `${sn}.pops[${i}]`);
+                });
+              }
+            }
+          }
+        }
+
         // Timing keys are registered by name; anything else never fires.
         if (isPlainObject(value.on)) {
           for (const t of Object.keys(value.on)) {
@@ -994,12 +1049,13 @@ function isPlainObject(v) {
 // ---------------------------------------------------------------------------
 
 function parseArgs(argv) {
-  const out = { json: false, vanilla: null, modDir: null, modRoot: null };
+  const out = { json: false, vanilla: null, modDir: null, modRoot: null, save: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--json") out.json = true;
     else if (a === "--vanilla") out.vanilla = argv[++i];
     else if (a === "--mod-root") out.modRoot = argv[++i];
+    else if (a === "--save") out.save = argv[++i];
     else if (!a.startsWith("-") && !out.modDir) out.modDir = a;
     else {
       process.stderr.write(`unknown argument: ${a}\n`);
@@ -1009,12 +1065,119 @@ function parseArgs(argv) {
   return out;
 }
 
-function main() {
-  const args = parseArgs(process.argv.slice(2));
-  if (!args.modDir && !args.modRoot) {
-    process.stderr.write("usage: node tools/lint.mjs <modDir> | --mod-root <dir> [--vanilla <configDir>] [--json]\n");
+/**
+ * Which save shape a file has, from its name. The four shapes come from four classes:
+ * Player (a run), Global (the account), the ending record, and the user archive.
+ */
+function saveShapeFor(file) {
+  const base = path.basename(file);
+  if (base === "global.json" || base.startsWith("global.json.")) return "global";
+  if (base.startsWith("over_record")) return "overRecord";
+  if (base === "user_archive.json") return "archiveIndex";
+  // USERARCHIVE/<NNN>.json is a full run snapshot, same shape as auto_save.json.
+  return "player";
+}
+
+/**
+ * Validate save files against schema/save-fields.json.
+ *
+ * An unknown key is a WARN, never a FAIL: the shapes were read off this machine's
+ * corpus, so a newer build may legitimately add keys. A missing key is normal too,
+ * because an older build writes 52 of the 60 Player keys.
+ */
+function lintSave(args) {
+  const shapes = JSON.parse(readFileSync(new URL("../schema/save-fields.json", import.meta.url), "utf8"));
+  const target = String(args.save).replace(/^~/, os.homedir());
+  if (!existsSync(target)) {
+    process.stderr.write(`no such save path: ${target}\n`);
     process.exit(2);
   }
+  const files = [];
+  const push = (p) => {
+    if (p.endsWith(".json")) files.push(p);
+    else if (p.endsWith(".bak.json")) files.push(p);
+  };
+  if (statSync(target).isDirectory()) {
+    for (const name of readdirSync(target)) {
+      const full = path.join(target, name);
+      if (statSync(full).isDirectory()) {
+        for (const inner of readdirSync(full)) push(path.join(full, inner));
+      } else push(full);
+    }
+  } else push(target);
+
+  if (!files.length) {
+    process.stderr.write(`no .json files under ${target}\n`);
+    process.exit(2);
+  }
+
+  for (const file of files) {
+    const rel = path.basename(file);
+    const shapeName = saveShapeFor(file);
+    const shape = shapes[shapeName];
+    const allowed = new Set(shape ? shape.fields : []);
+    let parsed;
+    try {
+      parsed = parseJsonc(readText(file)).value;
+    } catch (e) {
+      fail("SAVE_PARSE", rel, `not parseable: ${e.message}`);
+      continue;
+    }
+    // user_archive.json is an array of records; every other save file is one object.
+    const records = Array.isArray(parsed) ? parsed : [parsed];
+    if (!Array.isArray(parsed) && !isPlainObject(parsed)) {
+      fail("SAVE_PARSE", rel, "expected a JSON object, or an array of objects.");
+      continue;
+    }
+    for (const rec of records) {
+      if (rec === null) continue; // user_archive.json keeps null holes for deleted slots
+      if (!isPlainObject(rec)) {
+        fail("SAVE_PARSE", rel, "array entries must be objects or null.");
+        break;
+      }
+      if (!allowed.size) continue;
+      for (const key of Object.keys(rec)) {
+        if (!allowed.has(key))
+          warn("SAVE_UNKNOWN_KEY", rel, `${key} is not a ${shapeName} key in this corpus. A newer build may have added it.`);
+      }
+    }
+    if (Array.isArray(parsed)) continue;
+    // A run names the init it was started from and the round it is on. Both are load-bearing.
+    if (shapeName === "player") {
+      if (parsed.configId === undefined) warn("SAVE_REQUIRED", rel, 'player save has no "configId"; the run cannot pick its init.');
+      if (typeof parsed.round !== "number") warn("SAVE_REQUIRED", rel, 'player save has no numeric "round".');
+      const index = parsed.card_uid_index;
+      if (typeof index === "number" && Array.isArray(parsed.cards)) {
+        for (const card of parsed.cards) {
+          if (isPlainObject(card) && typeof card.uid === "number" && card.uid >= index)
+            warn("SAVE_UID", rel, `card uid ${card.uid} is not below card_uid_index ${index}; the bag index is built from uid.`);
+        }
+      }
+    }
+  }
+
+  const counts = { FAIL: 0, WARN: 0, INFO: 0 };
+  for (const r of results) counts[r.level] = (counts[r.level] || 0) + 1;
+  if (args.json) {
+    process.stdout.write(JSON.stringify({ results, counts }, null, 2) + "\n");
+  } else {
+    for (const r of results)
+      process.stdout.write(`${r.level.padEnd(5)} ${String(r.file ?? "-").padEnd(34)} ${r.code.padEnd(20)} ${r.message}\n`);
+    process.stdout.write(`\n${counts.FAIL} fail, ${counts.WARN} warn, ${counts.INFO} info\n`);
+    process.stdout.write(`RESULT: ${counts.FAIL === 0 ? "PASS" : "FAIL"}\n`);
+  }
+  process.exit(counts.FAIL === 0 ? 0 : 1);
+}
+
+function main() {
+  const args = parseArgs(process.argv.slice(2));
+  if (!args.modDir && !args.modRoot && !args.save) {
+    process.stderr.write(
+      "usage: node tools/lint.mjs <modDir> | --mod-root <dir> | --save <file|dir> [--vanilla <configDir>] [--json]\n",
+    );
+    process.exit(2);
+  }
+  if (args.save) return lintSave(args);
   const vanilla = loadVanilla(args.vanilla || DEFAULT_VANILLA);
   if (!vanilla.dir) warn("VANILLA_MISSING", null, "vanilla config not found; id collision and tag checks are skipped. Pass --vanilla.");
 

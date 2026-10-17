@@ -447,5 +447,75 @@
     ],
     "handler": [],
     "legacy": []
+  },
+  "questTargetItem": {
+    "fields": [
+      "isComplete",
+      "value",
+      "text",
+      "show_counter",
+      "condition"
+    ],
+    "handler": [],
+    "legacy": []
+  },
+  "wizardOption": {
+    "fields": [
+      "condition",
+      "name",
+      "text",
+      "op",
+      "dt",
+      "action",
+      "options"
+    ],
+    "handler": [],
+    "legacy": []
+  },
+  "afterStoryExtra": {
+    "fields": [
+      "condition",
+      "key",
+      "pic",
+      "result_text",
+      "sort"
+    ],
+    "handler": [],
+    "legacy": []
+  },
+  "riteTagTipsUp": {
+    "fields": [
+      "tips",
+      "type"
+    ],
+    "handler": [],
+    "legacy": []
+  },
+  "riteRandomTextUp": {
+    "fields": [
+      "text",
+      "type",
+      "type_tips",
+      "low_target",
+      "low_target_tips"
+    ],
+    "handler": [],
+    "legacy": []
+  },
+  "riteOpenCondition": {
+    "fields": [
+      "condition",
+      "tips"
+    ],
+    "handler": [],
+    "legacy": []
+  },
+  "riteSlotPop": {
+    "fields": [
+      "condition",
+      "action"
+    ],
+    "handler": [],
+    "legacy": []
   }
 }
