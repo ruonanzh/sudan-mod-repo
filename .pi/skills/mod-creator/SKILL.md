@@ -211,9 +211,12 @@ must hold, `settlement` is an array of branches with an `action`.
 
 Facts that decide whether the file works:
 
-- The event object has exactly these fields: `id`, `text`, `is_replay`, `auto_start_init`, `on`,
-  `start_trigger`, `condition`, `settlement`. There is no `auto_start`, even though most vanilla files
-  carry one. The type has no such field and it does nothing, so do not copy it.
+- **The field list per node type is in `tools/lint.mjs`, in `NODE_FIELDS`.** It was read out of the
+  decompiled types and checked against every shipped file: zero keys in the game's own 3365 event and
+  rite files are missing from it. A key that is not listed for that node is never read, so
+  `node tools/lint.mjs` reports it as `UNKNOWN_FIELD`. Trust that over any prose, including this file.
+- `EventNode` has no `auto_start`, even though 1520 vanilla event files carry one. It does nothing.
+  `auto_start_init` is the real field.
 - `auto_start_init` is a list of `init` config ids. `config/init/1.json` is the normal run, so
   `[1]` means "on from the start of a normal game". An event that is in no `auto_start_init` list and
   is never named by another event's `event_on` does not run. A brand-new event that must run every
