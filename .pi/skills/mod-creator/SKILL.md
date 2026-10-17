@@ -222,20 +222,16 @@ Facts that decide whether the file works:
   is never named by another event's `event_on` does not run. A brand-new event that must run every
   round needs `"auto_start_init": [1]`.
 
-- **Timing keys.** These are the ones that actually appear in the shipped data, so they are safe to
-  use: `round_begin_ba`, `rite_start`, `rite_end`, `rite_cancel`, `card_born`, `card_clean`,
-  `counter`, `game_end`, `open_rite`, `open_rite_end`, `open_card_info`, `open_card_info_end`,
-  `rite_can_start`, `rite_can_fill`, `rite_can_stop`, `close_prompt`, `close_wizard`,
-  `close_begin_guide`, `show_wizard_option`, `sudan_redraw_start`, `back_to_prev_round_end`.
-  A number means "every round"; `[lo, hi]` means a random round in that range.
-  The engine also has classes for `round_begin_fr`, `round_end`, `rite_open`, `rite_open_end`,
-  `rite_settlement`, `rite_clean`, `card_dead`, `counter_changed`, `global_counter_changed` and a few
-  more, but none of those keys appears anywhere in the shipped data. Their JSON spelling is
-  **unverified**. A wrong key is logged as `unknown how to read timing`, so try one and read the log
-  rather than assume.
+- **Timing keys.** There are exactly 29, and a key outside that set is never scheduled. Do not
+  memorise them and do not trust a list in any document: read
+  [`schema/SCHEMA.md`](../../../schema/SCHEMA.md) section Timings, or run
+  `node tools/lint.mjs <modDir>` and let `UNKNOWN_TIMING` tell you. A number means "every round";
+  `[lo, hi]` means a random round in that range. Eight of the 29 are registered by the engine but
+  never written by vanilla; SCHEMA.md marks which ones.
 - **Condition keys** carry their operator: `counter.7000017<=`, `rare<`, `r1:体魄`, `hand_have.<id>`,
   `table_have.<id>`, `have.<id>`, `cost.<id>`, `is`, `type`, `any`, `all`, `!` for negation, and
-  `s1`..`sN` to scope to a rite slot.
+  `s1`..`sN` to scope to a rite slot. The full grammar, with the shapes vanilla actually uses, is the
+  Conditions section of [`schema/SCHEMA.md`](../../../schema/SCHEMA.md).
 - **Action keys** carry their argument: `rite`, `card`, `g.card`, `event_on`, `event_off`,
   `clean.self`, `clean.rite`, `clean.sN`, `counter+<id>`, `counter=<id>`, `global_counter+<id>`,
   `total.<id>+<tag>`, `pop.<shorthand>`, `loot`, `coin`, `table`, `choose`, `option`, `confirm`,
