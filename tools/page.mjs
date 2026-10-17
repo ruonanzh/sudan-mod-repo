@@ -257,6 +257,7 @@ function artInline(modDir, id, rare, name, type) {
   return `<div style="position:relative;width:236px">
   <img id="cardStatic" src="data:image/png;base64,${dataUri(half(img))}" style="width:236px;display:block;border:1px solid #57452c" alt="${esc(tier)} card">
   <canvas id="cardCanvas" width="236" height="514" style="display:none;border:1px solid #57452c"></canvas>
+  <div id="cardName" style="position:absolute;left:5%;right:5%;top:3.5%;text-align:center;white-space:nowrap;overflow:hidden;font:700 ${nameFont(name)}px/1.05 ui-serif,Georgia,'Songti SC',serif;color:#20180f;letter-spacing:0;text-shadow:0 1px 0 rgba(255,255,255,.3)">${esc(name)}</div>
 </div>
 <script type="application/json" id="cardPayload">${payload}</script>
 <script>
@@ -276,10 +277,6 @@ function artInline(modDir, id, rare, name, type) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (plate.complete && plate.naturalWidth) ctx.drawImage(plate, 0, 0, canvas.width, canvas.height);
     if (wantArt && art.complete && art.naturalWidth) ctx.drawImage(art, 0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#20180f";
-    ctx.font = "600 11px ui-serif, Georgia, serif";
-    ctx.textAlign = "center";
-    ctx.fillText(name, canvas.width / 2, 26);
   }
   function reveal() {
     if (shown) return;
@@ -303,12 +300,27 @@ function artInline(modDir, id, rare, name, type) {
       if (payload.plates[v]) { wantPlate = v; plate.src = payload.plates[v]; }
     });
     var nameInput = document.querySelector('input[name="name"]');
-    if (nameInput) nameInput.addEventListener("input", function () { name = nameInput.value; draw(); });
+    var nameEl = document.getElementById("cardName");
+    if (nameInput && nameEl) nameInput.addEventListener("input", function () {
+      name = nameInput.value;
+      nameEl.textContent = name;
+      // A long name must shrink rather than run off the card, the way the game clips it.
+      nameEl.style.fontSize = (name.length <= 2 ? 56 : Math.min(46, Math.floor(200 / Math.max(1, name.length)))) + "px";
+    });
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", wire);
   else wire();
 })();
 </script>`;
+}
+
+/**
+ * The game sets the name large: in a real card, two characters fill about half the width.
+ * A longer name shrinks so it stays on one line instead of wrapping onto the art.
+ */
+function nameFont(name) {
+  const n = Math.max(1, [...String(name)].length);
+  return n <= 2 ? 56 : Math.min(46, Math.floor(200 / n));
 }
 
 /** The same card in all four tiers, so the colour can be judged at a glance. */
