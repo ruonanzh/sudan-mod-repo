@@ -9,3 +9,6 @@ reference/cards/head/
 
 # extracted vanilla plates: DoubleCross owns them
 reference/plates/*.png
+
+# extracted vanilla fonts: commercial licences, reference only
+reference/fonts/

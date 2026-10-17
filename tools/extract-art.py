@@ -105,6 +105,7 @@ def main():
     ap.add_argument("--by-tier", action="store_true", help="one card per (type, rarity)")
     ap.add_argument("--all", action="store_true", help="every Texture2D whose name is a card id")
     ap.add_argument("--plates", action="store_true", help="the four rarity base plates from sharedassets0")
+    ap.add_argument("--fonts", action="store_true", help="every embedded font file in the chosen --assets")
     ap.add_argument(
         "--assets",
         default="resources.assets",
@@ -121,6 +122,43 @@ def main():
         )
 
     game = os.path.expanduser(args.game)
+
+    if args.fonts:
+        # Unity keeps the whole font binary in the Font object's m_FontData, so the game's
+        # typefaces can be written back out as real files.
+        src = os.path.join(game, args.assets)
+        if not os.path.exists(src):
+            sys.exit(f"FAIL  no {args.assets} under {game}")
+        os.makedirs(args.out, exist_ok=True)
+        env = UnityPy.load(src)
+        n = 0
+        for obj in env.objects:
+            if obj.type.name != "Font":
+                continue
+            try:
+                d = obj.read()
+            except Exception:
+                continue
+            data = getattr(d, "m_FontData", None)
+            if not data:
+                continue
+            blob = bytes(data)
+            if blob[:4] == b"OTTO":
+                ext = "otf"
+            elif blob[:4] == b"ttcf":
+                ext = "ttc"
+            elif blob[:4] == b"true" or blob[:4] == b"\x00\x01\x00\x00":
+                ext = "ttf"
+            else:
+                ext = "bin"
+            name = str(getattr(d, "m_Name", f"font_{n}")).replace("/", "_")
+            path = os.path.join(args.out, f"{name}.{ext}")
+            with open(path, "wb") as fh:
+                fh.write(blob)
+            n += 1
+            print(f"OK    {name:40s} {len(blob):>9} bytes -> {os.path.basename(path)}")
+        print(f"\n{n} font file(s) written to {args.out}")
+        return 0 if n else 1
 
     if args.plates:
         # The base plate (底牌) is a separate 196x424 texture per rarity, in a different

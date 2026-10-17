@@ -93,11 +93,30 @@ code { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; color: #d
 .fb { min-height: 120px; }
 `;
 
+/**
+ * The card name is set in HYJieLongTaoHuaYuanW-2, which is the font behind the game's
+ * CardTitle SDF materials. If it has been extracted we use it, otherwise the page falls
+ * back to a serif. It is a commercial typeface: reference/fonts is git-ignored, and the
+ * page only uses it locally.
+ */
+function fontFace() {
+  const here = path.dirname(new URL(import.meta.url).pathname);
+  const f = path.join(here, "..", "reference", "fonts", "HYJieLongTaoHuaYuanW-2.ttf");
+  if (!existsSync(f)) return { css: "", family: "ui-serif, Georgia, 'Songti SC', serif" };
+  return {
+    css: `@font-face { font-family: "GameCardTitle"; src: url("file://${f}"); font-weight: 700; font-display: block; }`,
+    // single quotes: this string lands inside a double-quoted style attribute
+    family: `'GameCardTitle', ui-serif, Georgia, serif`,
+  };
+}
+
 function pageHtml({ title, sub, body }) {
+  const ff = fontFace();
   return `<!doctype html>
 <meta charset="utf-8">
 <title>${esc(title)}</title>
-<style>${CSS}</style>
+<style>${CSS}
+${ff.css}</style>
 <div class="wrap">
 <h1>${esc(title)}</h1>
 <div class="sub">${sub}</div>
@@ -140,7 +159,7 @@ function cardBody(record, prompt, modDir) {
   return `
 <h2>卡面</h2>
 <div class="split">
-  ${artInline(modDir, record.id, record.rare, record.name, record.type) || '<div class="cardface">472 × 1028<br>卡面图放这里<br><span style="opacity:.6">只替换内部画面，边框由游戏画</span></div>'}
+  ${artInline(modDir, record.id, record.rare, record.name, record.type, fontFace().family) || '<div class="cardface">472 × 1028<br>卡面图放这里<br><span style="opacity:.6">只替换内部画面，边框由游戏画</span></div>'}
   <div class="grow">
     <div class="panel">
       <div class="row"><div class="lbl">名字</div><div><input type="text" name="name" value="${esc(record.name)}"></div></div>
@@ -244,14 +263,15 @@ function plateSources(modDir, id, type) {
  * A static composite sits under it for the case where scripts do not run, which is what
  * happens inside the game's panel.
  */
-function artInline(modDir, id, rare, name, type) {
+function artInline(modDir, id, rare, name, type, fontFamily) {
+  const nameFamily = fontFamily || "ui-serif, Georgia, serif";
   const { img, tier } = composeCard(modDir, id, rare, name, type);
   const { sources, art } = plateSources(modDir, id, type);
   const payload = JSON.stringify({ plates: sources, art, name, rare });
   return `<div style="position:relative;width:236px">
   <img id="cardStatic" src="data:image/png;base64,${dataUri(half(img))}" style="width:236px;display:block;border:1px solid #57452c" alt="${esc(tier)} card">
   <canvas id="cardCanvas" width="236" height="514" style="display:none;border:1px solid #57452c"></canvas>
-  <div id="cardName" style="position:absolute;left:5%;right:5%;top:3.5%;text-align:center;white-space:nowrap;overflow:hidden;font:700 ${nameFont(name)}px/1.05 ui-serif,Georgia,'Songti SC',serif;color:#20180f;letter-spacing:0;text-shadow:0 1px 0 rgba(255,255,255,.3)">${esc(name)}</div>
+  <div id="cardName" style="position:absolute;left:5%;right:5%;top:3.5%;text-align:center;white-space:nowrap;overflow:hidden;font:700 ${nameFont(name)}px/1.05 ${nameFamily};color:#20180f;letter-spacing:0;text-shadow:0 1px 0 rgba(255,255,255,.3)">${esc(name)}</div>
 </div>
 <script type="application/json" id="cardPayload">${payload}</script>
 <script>
