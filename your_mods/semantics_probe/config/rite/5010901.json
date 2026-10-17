@@ -1,0 +1,78 @@
+{
+    "id": 5010901,
+    "name": "语义探针",
+    "text": "只放一张卡进 s1（标着 is_empty=0 的槽），s2 留空，然后开始。",
+    "tips": "结算三段探针",
+    "once_new": 0,
+    "round_number": 1,
+    "waiting_round": 0,
+    "waiting_round_end_action": [],
+    "method_settlement": "",
+    "auto_begin": 0,
+    "auto_result": 0,
+    "location": "自宅:[1,10]",
+    "icon": "rite_9",
+    "tag_tips": [],
+    "tag_tips_up": {},
+    "tips_text": [
+        "三个结算数组各放一条必然命中的分支，看哪几条真的执行。",
+        "s1 = is_empty:0，s2 = is_empty:1。只填 s1。"
+    ],
+    "open_conditions": [],
+    "random_text": {},
+    "random_text_up": {},
+    "settlement_prior": [
+        {
+            "condition": {},
+            "result_title": "PRIOR 执行了",
+            "result_text": "看到这条说明 settlement_prior 的分支跑了。计数器 7999001 +1。",
+            "result": { "counter+7999001": 1 },
+            "action": {}
+        }
+    ],
+    "settlement": [
+        {
+            "condition": {},
+            "result_title": "SETTLEMENT 执行了",
+            "result_text": "看到这条说明 settlement 的分支跑了。计数器 7999002 +1。",
+            "result": { "counter+7999002": 1 },
+            "action": {}
+        }
+    ],
+    "settlement_extre": [
+        {
+            "condition": {},
+            "result_title": "EXTRE-A 执行了",
+            "result_text": "extre 第一条。计数器 7999003 +1。",
+            "result": { "counter+7999003": 1 },
+            "action": {}
+        },
+        {
+            "condition": {},
+            "result_title": "EXTRE-B 执行了",
+            "result_text": "extre 第二条。它也会跑，说明 extre 是全部命中都执行。计数器 7999004 +1。",
+            "result": { "counter+7999004": 1 },
+            "action": {}
+        }
+    ],
+    "cards_slot": {
+        "s1": {
+            "condition": {},
+            "open_adsorb": 0,
+            "is_key": 0,
+            "is_empty": 0,
+            "is_enemy": 0,
+            "text": "必填槽 is_empty=0（只填这一格）",
+            "pops": []
+        },
+        "s2": {
+            "condition": {},
+            "open_adsorb": 0,
+            "is_key": 0,
+            "is_empty": 1,
+            "is_enemy": 0,
+            "text": "可选槽 is_empty=1（留空）",
+            "pops": []
+        }
+    }
+}

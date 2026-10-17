@@ -1,0 +1,21 @@
+{
+    "id": 5999001,
+    "text": "语义探针：放置仪式",
+    "is_replay": 1,
+    "auto_start": false,
+    "start_trigger": true,
+    "on": {
+        "round_begin_ba": 1
+    },
+    "condition": {},
+    "settlement": [
+        {
+            "tips_resource": "",
+            "tips_text": "语义探针：自宅出现一个叫「语义探针」的仪式",
+            "action": {
+                "rite": 5010901,
+                "counter+7999000": 1
+            }
+        }
+    ]
+}
