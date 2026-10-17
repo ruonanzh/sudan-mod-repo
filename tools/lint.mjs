@@ -77,6 +77,118 @@ const DEFAULT_VANILLA =
   "~/Library/Application Support/Steam/steamapps/common/Sultan's Game/Sultan's Game.app/Contents/Resources/Data/StreamingAssets/config";
 
 // ---------------------------------------------------------------------------
+// Field dictionary.
+//
+// `fields` is the declared field list of the node class in the installed build,
+// read out of the decompiled types. That list IS the JSON key set: the loader
+// binds keys to fields by name. So a key that is not here and not in `handler`
+// is not read, and this is how `auto_start` should have been caught.
+//
+// `handler` are keys vanilla writes that the class does not declare. The
+// generated JsonHandler consumes them explicitly, so they are legal.
+//
+// `legacy` are keys vanilla writes that no field backs and no handler is known
+// to read. They do nothing. Warn, because deleting them changes nothing.
+// ---------------------------------------------------------------------------
+const NODE_FIELDS = {
+  card: {
+    fields: ["id", "name", "title", "text", "pops", "type", "rare", "resource", "destroy_resources", "tag", "card_vanishing", "vanish", "equips", "is_only", "sfx", "post_rite"],
+    handler: ["tips", "card_favour"],
+    legacy: [],
+  },
+  event: {
+    fields: ["id", "is_replay", "auto_start_init", "on", "start_trigger", "condition", "settlement"],
+    handler: ["text", "cached_settlement"],
+    legacy: ["auto_start"],
+  },
+  rite: {
+    fields: ["id", "name", "text", "tips", "type", "final_pin", "from_pins", "mapping_id", "round_number", "auto_begin", "auto_result", "restore_fill_times", "once_new", "waiting_round", "waiting_round_end_action", "icon", "location", "tag_tips_up", "tips_text", "random_text", "random_text_up", "open_conditions", "settlement_prior", "settlement", "settlement_extre", "cards_slot"],
+    handler: ["tag_tips", "method_settlement", "random_effect"],
+    legacy: ["mapping"],
+  },
+  slot: {
+    fields: ["guid", "condition", "open_adsorb", "is_key", "is_empty", "is_enemy", "text", "tips_icon", "pops"],
+    handler: [],
+    legacy: [],
+  },
+  settlement: {
+    fields: ["guid", "condition", "result_title", "result_text", "result", "action", "id", "type", "index", "key", "sort", "pic"],
+    handler: ["tips_resource", "tips_text"],
+    legacy: [],
+  },
+  loot: {
+    fields: ["id", "name", "repeat", "type", "item"],
+    handler: [],
+    legacy: [],
+  },
+  lootItem: {
+    fields: ["refLoot", "type", "id", "num", "weight", "condition"],
+    handler: [],
+    legacy: [],
+  },
+  upgrade: {
+    fields: ["link_card_inst", "id", "name", "text", "cost", "condition", "icon", "link_card", "effect", "incompatible"],
+    handler: [],
+    legacy: [],
+  },
+  tag: {
+    fields: ["is_composite", "id", "name", "code", "type", "text", "resource", "can_add", "can_visible", "can_inherit", "can_nagative_and_zero", "tag_sfx", "tag_rank", "attributes"],
+    handler: ["tips", "fail_tag", "tag_vanishing"],
+    legacy: [],
+  },
+};
+
+/** node kind for a directory-style config path */
+const DIR_KIND = new Map([
+  ["config/event", "event"],
+  ["config/rite", "rite"],
+  ["config/loot", "loot"],
+]);
+
+/** node kind for a table-style config path */
+const TABLE_KIND = new Map([
+  ["config/cards.json", "card"],
+  ["config/upgrade.json", "upgrade"],
+  ["config/tag.json", "tag"],
+]);
+
+/** Return the keys of `obj` that the given node kind does not declare. */
+function splitKeys(kind, obj) {  const spec = NODE_FIELDS[kind];
+  if (!spec || !isPlainObject(obj)) return { fail: [], legacy: [] };
+  const ok = new Set([...spec.fields, ...spec.handler]);
+  const legacy = new Set(spec.legacy);
+  const bad = [];
+  const old = [];
+  for (const key of Object.keys(obj)) {
+    if (ok.has(key)) continue;
+    if (legacy.has(key)) old.push(key);
+    else bad.push(key);
+  }
+  return { fail: bad, legacy: old };
+}
+
+/** Report unknown and legacy keys for one object. */
+function reportFields(fileRel, kind, obj, where) {
+  const { fail: bad, legacy } = splitKeys(kind, obj);
+  const at = where ? ` (at ${where})` : "";
+  if (bad.length) {
+    const known = NODE_FIELDS[kind].fields;
+    fail(
+      "UNKNOWN_FIELD",
+      fileRel,
+      `${bad.map((k) => JSON.stringify(k)).join(", ")}${at} is not a ${kind} key, so the game never reads it. Known keys: ${known.join(", ")}.`,
+    );
+  }
+  if (legacy.length) {
+    warn(
+      "LEGACY_FIELD",
+      fileRel,
+      `${legacy.map((k) => JSON.stringify(k)).join(", ")}${at} appears in vanilla but no field backs it, so it does nothing.`,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // JSONC parser. The game accepts //, /* */, trailing commas and a BOM.
 // We accept the same, but report duplicates because duplicate keys are a
 // semantic feature here (they mean "append") and authors must know.
@@ -497,9 +609,10 @@ function lintMod(modDir, vanilla, opts) {
         }
         const kind = relPath.split("/").pop().replace(/s$/, "");
         const id = value.id;
-        if (id === undefined) {
+        const needsId = dspec.filename !== null;
+        if (id === undefined && needsId) {
           fail("ID_MISSING", fileRel, 'the object has no "id" field.');
-        } else {
+        } else if (id !== undefined) {
           put(kind, id);
           if (dspec.filename === "id") {
             const stem = name.slice(0, -dspec.ext.length);
@@ -519,6 +632,27 @@ function lintMod(modDir, vanilla, opts) {
             if (!/^s\d+$/.test(s)) warn("SLOT_NAME", fileRel, `slot ${JSON.stringify(s)} is not of the form s1..sN.`);
           }
         }
+
+        // Field dictionary: a key the node class does not declare is not read.
+        const dirKind = DIR_KIND.get(relPath);
+        if (dirKind) reportFields(fileRel, dirKind, value);
+        if (relPath === "config/rite") {
+          for (const [sName, sVal] of Object.entries(value.cards_slot || {})) {
+            if (isPlainObject(sVal)) reportFields(fileRel, "slot", sVal, `cards_slot.${sName}`);
+          }
+          for (const arr of ["settlement_prior", "settlement", "settlement_extre", "waiting_round_end_action"]) {
+            const list = value[arr];
+            if (!Array.isArray(list)) continue;
+            list.forEach((item, i) => {
+              if (isPlainObject(item)) reportFields(fileRel, "settlement", item, `${arr}[${i}]`);
+            });
+          }
+        }
+        if (relPath === "config/loot" && Array.isArray(value.item)) {
+          value.item.forEach((item, i) => {
+            if (isPlainObject(item)) reportFields(fileRel, "lootItem", item, `item[${i}]`);
+          });
+        }
       }
     } else if (spec === "table") {
       let value;
@@ -535,14 +669,21 @@ function lintMod(modDir, vanilla, opts) {
         continue;
       }
       const kind = ID_TABLES.get(relPath);
+      const tblKind = TABLE_KIND.get(relPath);
+      // tag.json is keyed by the tag code string, and sfx_npc_role_dub.json maps
+      // an id to a string array. Neither is an object-per-key table.
+      const looseShape = relPath === "config/sfx_npc_role_dub.json" || relPath === "config/sfx_settle_card_new.json";
+      const keyIsId = relPath !== "config/tag.json";
       for (const key of Object.keys(value)) {
         const rec = value[key];
+        if (looseShape && (Array.isArray(rec) || typeof rec === "string")) continue;
         if (!isPlainObject(rec)) {
           fail("JSON_SHAPE", relPath, `entry ${JSON.stringify(key)} is not an object.`);
           continue;
         }
+        if (tblKind) reportFields(relPath, tblKind, rec, String(key));
         if (kind) put(kind, key);
-        if (rec.id !== undefined && String(rec.id) !== String(key))
+        if (keyIsId && rec.id !== undefined && String(rec.id) !== String(key))
           warn("ID_MISMATCH", relPath, `key ${key} but entry id is ${rec.id}. The game keys by the object key; keep them equal.`);
         if (relPath === "config/cards.json") {
           if (!rec.type) warn("CARD_TYPE", relPath, `card ${key} has no "type" (char | item | sudan).`);
