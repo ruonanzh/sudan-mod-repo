@@ -227,11 +227,79 @@ function composeCard(modDir, id, rare, name, type) {
 
 const dataUri = (img) => encodePng(img).toString("base64");
 
+/** Halve the size before embedding: the page is displayed at 236px wide anyway. */
+const half = (img) => cropCover(img, Math.round(img.width / 2), Math.round(img.height / 2));
+
+function plateSources(modDir, id, type) {
+  const here = path.dirname(new URL(import.meta.url).pathname);
+  const plateDir = path.join(here, "..", "reference", "plates");
+  const sources = {};
+  for (const [i, tier] of ["stone", "copper", "silver", "gold"].entries()) {
+    const f = path.join(plateDir, `card-${tier}.png`);
+    if (existsSync(f)) sources[i + 1] = `data:image/png;base64,${dataUri(half(cropCover(decodePng(readFileSync(f)), CARD_W, CARD_H)))}`;
+  }
+  const artFile = path.join(modDir, "image", "cards", `${id}.png`);
+  const art = existsSync(artFile)
+    ? `data:image/png;base64,${dataUri(half(cropCover(decodePng(readFileSync(artFile)), CARD_W, CARD_H)))}`
+    : null;
+  return { sources, art };
+}
+
+/**
+ * The card is drawn live in a canvas so the rarity and the name respond immediately.
+ * A static composite sits under it for the case where scripts do not run, which is what
+ * happens inside the game's panel.
+ */
 function artInline(modDir, id, rare, name, type) {
-  const { img, tier, hasArt } = composeCard(modDir, id, rare, name, type);
-  const label = `<div style="position:absolute;left:0;right:0;top:3.5%;text-align:center;font:600 16px ui-serif,Georgia,serif;color:#20180f;letter-spacing:.16em;pointer-events:none">${esc(name)}</div>`;
-  const note = `${tier}${hasArt ? "" : " · 没有卡面图"}`;
-  return `<div class="cardface" style="padding:0;background:none;border-color:#57452c;position:relative" title="${esc(note)}"><img src="data:image/png;base64,${dataUri(img)}" style="width:100%;height:100%;object-fit:contain;display:block">${label}</div>`;
+  const { img, tier } = composeCard(modDir, id, rare, name, type);
+  const { sources, art } = plateSources(modDir, id, type);
+  const payload = JSON.stringify({ plates: sources, art, name, rare });
+  return `<div style="position:relative;width:236px">
+  <img id="cardStatic" src="data:image/png;base64,${dataUri(half(img))}" style="width:236px;display:block;border:1px solid #57452c" alt="${esc(tier)} card">
+  <canvas id="cardCanvas" width="236" height="514" style="display:none;border:1px solid #57452c"></canvas>
+</div>
+<script type="application/json" id="cardPayload">${payload}</script>
+<script>
+(function () {
+  var payload = JSON.parse(document.getElementById("cardPayload").textContent);
+  var canvas = document.getElementById("cardCanvas");
+  var staticImg = document.getElementById("cardStatic");
+  if (!canvas.getContext) return;                       // no canvas: keep the static card
+  var ctx = canvas.getContext("2d");
+  var plate = new Image(), art = new Image();
+  var wantPlate = payload.rare || 1;
+  var wantArt = Boolean(payload.art);
+  var name = payload.name || "";
+  var loaded = 0;
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (plate.complete && plate.naturalWidth) ctx.drawImage(plate, 0, 0, canvas.width, canvas.height);
+    if (wantArt && art.complete && art.naturalWidth) ctx.drawImage(art, 0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#20180f";
+    ctx.font = "600 8px ui-serif, Georgia, serif";
+    ctx.textAlign = "center";
+    ctx.fillText(name, canvas.width / 2, 22);
+  }
+  function maybeShow() {
+    if (++loaded < (wantArt ? 2 : 1)) return;
+    staticImg.style.display = "none";
+    canvas.style.display = "block";
+    draw();
+  }
+  plate.onload = maybeShow;
+  art.onload = maybeShow;
+  plate.src = payload.plates[wantPlate];
+  if (wantArt) art.src = payload.art; else loaded++;
+  // wire the controls
+  var rareSelect = document.querySelector('select[name="rare"]');
+  if (rareSelect) rareSelect.addEventListener("change", function () {
+    var v = Number(rareSelect.value) || 1;
+    if (payload.plates[v]) { wantPlate = v; plate.src = payload.plates[v]; }
+  });
+  var nameInput = document.querySelector('input[name="name"]');
+  if (nameInput) nameInput.addEventListener("input", function () { name = nameInput.value; draw(); });
+})();
+</script>`;
 }
 
 /** The same card in all four tiers, so the colour can be judged at a glance. */
@@ -240,7 +308,7 @@ function tierStrip(modDir, id, name, type) {
     .map((rare) => {
       const { img } = composeCard(modDir, id, rare, name, type);
       const label = `<div style="position:absolute;left:0;right:0;top:4%;text-align:center;font:600 11px ui-serif,Georgia,serif;color:#20180f;letter-spacing:.1em">${esc(name)}</div>`;
-      return `<div style="flex:0 0 118px"><div style="position:relative;border:1px solid #57452c"><img src="data:image/png;base64,${dataUri(img)}" style="width:100%;display:block">${label}</div><div style="text-align:center;color:#8a7a60;font-size:11px;margin-top:4px">${["石块", "铜", "银", "金"][rare - 1]}</div></div>`;
+      return `<div style="flex:0 0 108px"><div style="position:relative;border:1px solid #57452c"><img src="data:image/png;base64,${dataUri(half(img))}" style="width:100%;display:block">${label}</div><div style="text-align:center;color:#8a7a60;font-size:11px;margin-top:4px">${["石块", "铜", "银", "金"][rare - 1]}</div></div>`;
     })
     .join("");
   return `<div style="display:flex;gap:12px;flex-wrap:wrap">${cells}</div>`;
