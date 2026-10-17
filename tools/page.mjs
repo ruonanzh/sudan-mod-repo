@@ -158,12 +158,6 @@ function cardBody(record, prompt, modDir) {
   </div>
 </div>
 
-<h2>四档对照 · 同一张卡面</h2>
-<div class="panel">
-${tierStrip(modDir, record.id, record.name, record.type)}
-<div class="note">底牌是游戏里那张 card 纸，按你从截图量的四个颜色重新上色。卡面只在最上层叠一次。</div>
-</div>
-
 <h2>画面 · 交给 Tripo 的提示词</h2>
 <div class="panel">
 <div class="note" style="margin-top:0">生成的是方图，会自动居中裁成 472 × 1028。所以要<b>竖构图、主体撑满高度</b>，横向的东西会被切掉。</div>
@@ -321,18 +315,6 @@ function artInline(modDir, id, rare, name, type) {
 function nameFont(name) {
   const n = Math.max(1, [...String(name)].length);
   return n <= 2 ? 56 : Math.min(46, Math.floor(200 / n));
-}
-
-/** The same card in all four tiers, so the colour can be judged at a glance. */
-function tierStrip(modDir, id, name, type) {
-  const cells = [1, 2, 3, 4]
-    .map((rare) => {
-      const { img } = composeCard(modDir, id, rare, name, type);
-      const label = `<div style="position:absolute;left:0;right:0;top:4%;text-align:center;font:600 11px ui-serif,Georgia,serif;color:#20180f;letter-spacing:.1em">${esc(name)}</div>`;
-      return `<div style="flex:0 0 108px"><div style="position:relative;border:1px solid #57452c"><img src="data:image/png;base64,${dataUri(half(img))}" style="width:100%;display:block">${label}</div><div style="text-align:center;color:#8a7a60;font-size:11px;margin-top:4px">${["石块", "铜", "银", "金"][rare - 1]}</div></div>`;
-    })
-    .join("");
-  return `<div style="display:flex;gap:12px;flex-wrap:wrap">${cells}</div>`;
 }
 
 function riteBody(record) {
