@@ -66,6 +66,8 @@ const STYLE =
   "visible ink linework, folk woodcut influence, " +
   "vertical composition with the subject filling the full height and centred, " +
   "subject only, isolated on a FULLY TRANSPARENT background, " +
+  "the subject must not touch the frame edges: keep a clear margin, and leave the " +
+  "bottom sixth of the image empty because the plate draws an ornamental band there, " +
   "no backdrop, no plate, no frame, no border, no floor, no cast shadow, no vignette, " +
   "no text, game card art";
 

@@ -183,4 +183,19 @@ export function cropCover(img, targetWidth, targetHeight) {
   return { width: targetWidth, height: targetHeight, rgba: out };
 }
 
-export default { decodePng, encodePng, cropCover };
+/** Draw `top` over `base` with source-over alpha, both the same size. */
+export function overlay(base, top) {
+  if (base.width !== top.width || base.height !== top.height) throw new Error("overlay: size mismatch");
+  const out = Buffer.from(base.rgba);
+  for (let i = 0; i < out.length; i += 4) {
+    const a = top.rgba[i + 3] / 255;
+    if (a === 0) continue;
+    out[i] = Math.round(top.rgba[i] * a + out[i] * (1 - a));
+    out[i + 1] = Math.round(top.rgba[i + 1] * a + out[i + 1] * (1 - a));
+    out[i + 2] = Math.round(top.rgba[i + 2] * a + out[i + 2] * (1 - a));
+    out[i + 3] = 255;
+  }
+  return { width: base.width, height: base.height, rgba: out };
+}
+
+export default { decodePng, encodePng, cropCover, overlay };

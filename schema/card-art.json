@@ -18,50 +18,21 @@
     }
   },
   "referenceRule": "reference/cards/<type>-<rare>.png, one extracted vanilla card per combination. When present, art.mjs switches to image-to-image so the mode and palette follow a real card instead of a description.",
-  "cardFace": "472x1028 RGBA. The texture is the inner picture ONLY and it is transparent: an extracted vanilla card is about 53% alpha=0. The game draws the frame, the corner ornaments, the help button and the plate underneath.",
+  "cardFace": "472x1028 RGBA, about half transparent in the shipped cards. The frame, corner ornaments, help button and plate are NOT in this texture; they are drawn by the game.",
   "headIcon": "A texture with the same name at 92x92 exists for some cards; extract-art writes it under head/.",
   "plate": {
-    "_note": "The base plate (底牌) is not part of the card texture. It is a Unity Material per rarity, named stone/copper/silver/gold, applied through game.json card_materials. Read out of resources.assets. Colours are the material's _Color.",
-    "stone": {
-      "color": "#68565c",
-      "rgba": [
-        0.41,
-        0.34,
-        0.361,
-        1.0
-      ],
-      "metallic": 0.75
+    "_note": "The base plate (底牌) is a real image, not just a material tint. Four of them live in sharedassets0.assets at 196x424, one per rarity, and the game stretches one over the card face.",
+    "source": "sharedassets0.assets (a different file from the card art)",
+    "size": "196x424, aspect 0.462, the same shape as the 472x1028 card face",
+    "files": {
+      "stone": "stone_f.png (no plain stone ships)",
+      "copper": "copper.png",
+      "silver": "silver.png",
+      "gold": "gold.png",
+      "suffix": "_f is a second variant of the same plate for stone, copper, silver and gold"
     },
-    "copper": {
-      "color": "#567692",
-      "rgba": [
-        0.34,
-        0.465,
-        0.573,
-        1.0
-      ],
-      "metallic": 0.84
-    },
-    "silver": {
-      "color": "#b3c6e1",
-      "rgba": [
-        0.705,
-        0.778,
-        0.885,
-        1.0
-      ],
-      "metallic": 0.75
-    },
-    "gold": {
-      "color": "#ecd6b1",
-      "rgba": [
-        0.927,
-        0.84,
-        0.694,
-        1.0
-      ],
-      "metallic": 0.79
-    },
-    "consequence": "Never paint a background into the card texture. An opaque picture covers the plate and shows as a rectangle on the card. Generate on full transparency and let the material show through."
+    "extract": "python3 tools/extract-art.py --out reference/plates --plates",
+    "what_it_carries": "the rarity colour, the rounded border, the paper noise and the ornamental band along the bottom edge",
+    "consequence": "The card art must stay transparent AND must not run to the edges: the plate border and that bottom band have to remain visible. A full-bleed picture covers exactly the parts that say which tier the card is."
   }
 }

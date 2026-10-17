@@ -104,6 +104,7 @@ def main():
     ap.add_argument("--ids", help="comma separated card ids")
     ap.add_argument("--by-tier", action="store_true", help="one card per (type, rarity)")
     ap.add_argument("--all", action="store_true", help="every Texture2D whose name is a card id")
+    ap.add_argument("--plates", action="store_true", help="the four rarity base plates from sharedassets0")
     args = ap.parse_args()
 
     try:
@@ -115,6 +116,34 @@ def main():
         )
 
     game = os.path.expanduser(args.game)
+
+    if args.plates:
+        # The base plate (底牌) is a separate 196x424 texture per rarity, in a different
+        # file from the card art. stone only ships as stone_f.
+        src = os.path.join(game, "sharedassets0.assets")
+        if not os.path.exists(src):
+            sys.exit(f"FAIL  no sharedassets0.assets under {game}")
+        want = {"stone", "stone_f", "copper", "copper_f", "silver", "silver_f", "gold", "gold_f"}
+        os.makedirs(args.out, exist_ok=True)
+        env = UnityPy.load(src)
+        n = 0
+        for obj in env.objects:
+            if obj.type.name != "Texture2D":
+                continue
+            try:
+                d = obj.read()
+            except Exception:
+                continue
+            name = str(getattr(d, "m_Name", ""))
+            if name not in want:
+                continue
+            img = d.image
+            img.save(os.path.join(args.out, f"{name}.png"))
+            n += 1
+            print(f"OK    {name} -> {name}.png  {img.width}x{img.height}")
+        print(f"\n{n} plate image(s) written to {args.out}")
+        return 0 if n else 1
+
     assets = os.path.join(game, "resources.assets")
     if not os.path.exists(assets):
         sys.exit(f"FAIL  no resources.assets under {game}")

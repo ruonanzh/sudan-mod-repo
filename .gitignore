@@ -6,3 +6,6 @@ node_modules/
 # extracted vanilla art: DoubleCross owns it, it is a style reference only
 reference/cards/*.png
 reference/cards/head/
+
+# extracted vanilla plates: DoubleCross owns them
+reference/plates/*.png
