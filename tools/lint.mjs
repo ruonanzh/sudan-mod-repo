@@ -188,6 +188,25 @@ const TABLE_KIND = new Map([
   ["config/rite_template_mappings.json", "riteMapping"],
 ]);
 
+/**
+ * settlement and settlement_prior stop at the first branch whose condition holds, so an
+ * unconditional branch must be last. In vanilla, 358 such arrays put it last and none earlier.
+ */
+function checkDeadBranches(fileRel, arrName, list) {
+  if (!Array.isArray(list) || list.length < 2) return;
+  list.forEach((item, i) => {
+    if (!isPlainObject(item) || i === list.length - 1) return;
+    const c = item.condition;
+    const empty = c === undefined || c === null || (isPlainObject(c) && Object.keys(c).length === 0);
+    if (empty)
+      fail(
+        "DEAD_BRANCH",
+        fileRel,
+        `${arrName}[${i}] has an empty condition but is not the last branch. ${arrName} stops at the first match, so every branch after it never runs.`,
+      );
+  });
+}
+
 /** Return the keys of `obj` that the given node kind does not declare. */
 function splitKeys(kind, obj) {  const spec = NODE_FIELDS[kind];
   if (!spec || !isPlainObject(obj)) return { fail: [], legacy: [] };
@@ -444,6 +463,16 @@ export function parseJsonc(text) {
 // ---------------------------------------------------------------------------
 
 const results = [];
+
+/** Timing keys the engine registers. A key not here is never scheduled. */
+const TIMING_KEYS = new Set([
+  "round_begin_ba", "rite_end", "card_clean", "counter", "game_end", "rite_start",
+  "card_born", "close_wizard", "close_begin_guide", "sudan_redraw_start", "rite_cancel",
+  "open_rite", "open_rite_end", "open_card_info", "open_card_info_end", "close_prompt",
+  "show_wizard_option", "rite_can_start", "rite_can_fill", "rite_can_stop",
+  "back_to_prev_round_end", "round_begin_fr", "round_end", "rite_begin", "rite_clean",
+  "rite_settlement", "card_dead", "back_to_round_begin", "global_counter",
+]);
 const rel = (mount, p) => p;
 function add(level, code, file, message, extra) {
   results.push({ level, code, file, message, ...(extra ? { extra } : {}) });
@@ -678,6 +707,18 @@ function lintMod(modDir, vanilla, opts) {
         // Field dictionary: a key the node class does not declare is not read.
         const dirKind = DIR_KIND.get(relPath);
         if (dirKind) reportFields(fileRel, dirKind, value);
+
+        // Timing keys are registered by name; anything else never fires.
+        if (isPlainObject(value.on)) {
+          for (const t of Object.keys(value.on)) {
+            if (!TIMING_KEYS.has(t))
+              fail(
+                "UNKNOWN_TIMING",
+                fileRel,
+                `on.${JSON.stringify(t)} is not a timing key, so this event never triggers on it. 29 keys exist; the common ones are round_begin_ba, rite_end, card_clean, counter, game_end, rite_start.`,
+              );
+          }
+        }
         if (relPath === "config/rite") {
           for (const [sName, sVal] of Object.entries(value.cards_slot || {})) {
             if (isPlainObject(sVal)) reportFields(fileRel, "slot", sVal, `cards_slot.${sName}`);
@@ -693,20 +734,11 @@ function lintMod(modDir, vanilla, opts) {
           // In every one of the 1498 shipped rites, an empty-condition branch is the last one.
           // An empty condition anywhere else makes every later branch dead.
           for (const arr of ["settlement_prior", "settlement"]) {
-            const list = value[arr];
-            if (!Array.isArray(list) || list.length < 2) continue;
-            list.forEach((item, i) => {
-              if (!isPlainObject(item) || i === list.length - 1) return;
-              const c = item.condition;
-              const empty = c === undefined || c === null || (isPlainObject(c) && Object.keys(c).length === 0);
-              if (empty)
-                fail(
-                  "DEAD_BRANCH",
-                  fileRel,
-                  `${arr}[${i}] has an empty condition but is not the last branch. ${arr} stops at the first match, so every branch after it never runs.`,
-                );
-            });
+            if (Array.isArray(value[arr])) checkDeadBranches(fileRel, arr, value[arr]);
           }
+        }
+        if (relPath === "config/event" && Array.isArray(value.settlement)) {
+          checkDeadBranches(fileRel, "settlement", value.settlement);
         }
         if (relPath === "config/loot" && Array.isArray(value.item)) {
           value.item.forEach((item, i) => {

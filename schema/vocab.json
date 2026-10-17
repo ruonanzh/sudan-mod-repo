@@ -1,0 +1,103 @@
+{
+  "_note": "Vocabulary recovered from the [Timing] attributes in the decompiled assembly. `used` counts come from a strict walk of the 1867 vanilla event files. A timing key that is not in `keys` is never read by the game.",
+  "timings": {
+    "keys": [
+      "round_begin_ba", "rite_end", "card_clean", "counter", "game_end", "rite_start",
+      "card_born", "close_wizard", "close_begin_guide", "sudan_redraw_start", "rite_cancel",
+      "open_rite", "open_rite_end", "open_card_info", "open_card_info_end", "close_prompt",
+      "show_wizard_option", "rite_can_start", "rite_can_fill", "rite_can_stop",
+      "back_to_prev_round_end", "round_begin_fr", "round_end", "rite_begin", "rite_clean",
+      "rite_settlement", "card_dead", "back_to_round_begin", "global_counter"
+    ],
+    "arg": {
+      "round_begin_ba": "int period in rounds, or [min,max] random range",
+      "round_begin_fr": "int period in rounds, or [min,max]",
+      "round_end": "int period in rounds, or [min,max]",
+      "rite_end": "rite id, or an array of rite ids",
+      "rite_begin": "rite id",
+      "rite_clean": "rite id",
+      "rite_settlement": "rite id",
+      "card_clean": "card id, or an array of card ids",
+      "card_dead": "card id",
+      "counter": "counter id",
+      "global_counter": "counter id",
+      "rite_end.<id>": "rite id",
+      "game_end": "1",
+      "rite_start": "1",
+      "card_born": "1",
+      "close_wizard": "1",
+      "close_begin_guide": "1",
+      "sudan_redraw_start": "1",
+      "rite_cancel": "1",
+      "open_rite": "1",
+      "open_rite_end": "1",
+      "open_card_info": "1",
+      "open_card_info_end": "1",
+      "close_prompt": "1",
+      "show_wizard_option": "1",
+      "rite_can_start": "1",
+      "rite_can_fill": "1",
+      "rite_can_stop": "1",
+      "back_to_prev_round_end": "1",
+      "back_to_round_begin": "1"
+    },
+    "unused_in_vanilla": [
+      "round_begin_fr", "round_end", "rite_begin", "rite_clean", "rite_settlement",
+      "card_dead", "back_to_round_begin", "global_counter"
+    ]
+  },
+  "operations": {
+    "_note": "79 [Operation] registrations; 58 observed in vanilla. Key shapes are regexes over the JSON key, with the argument embedded in the key. Only the shapes listed here are read.",
+    "observed_shapes": [
+      "<ref>[+\\-=]<tag>", "counter[+\\-=]<7 digits>", "clean.<sN|rite|self|cardId>",
+      "card", "event_on", "rite", "prompt", "event_off", "case:<tag>",
+      "global_counter[+\\-=]<id>", "pop.<popId>.<cardId|self>", "choose[:<n>]",
+      "table.<ref>[+\\-=]<tag>", "success", "clean.rite", "<ref>equip", "over",
+      "<ref>.uprare", "loot[.<tag><sign>n]", "option", "total.<ref>[+\\-=]<tag>",
+      "coin", "金币", "no_show", "table.clean.<ref>", "delay", "no_prompt",
+      "hand_pop.<id>.<cardId|self>", "steam_achievement", "copy.<ref>", "debug", "failed",
+      "change_card_name.<id>.<ref>", "change_card_text.<id>.<ref>", "equip_slot",
+      "think_pop.<id>", "focus.<7 digits>", "delay_off", "sudan_pool.<ref>[+\\-=]<tag>",
+      "enable_auto_gen_sudan_card", "begin_guide", "sleep", "rite_pop.<id>.<cardId>",
+      "close_box", "rebirth.<ref>", "change_desk_bg", "change_name", "slide", "magic_sudan",
+      "hand_card_refresh", "close_story", "close_prestige", "close_deadline", "close_helpbtn",
+      "change_location_icon", "confirm", "difficulty"
+    ],
+    "registered_but_unused": [
+      "sudan_card", "all", "group", "random", "mask_on", "mask_off",
+      "back_to_prev_round_end", "back_to_round_begin", "change_rite_name", "dt",
+      "warn", "error"
+    ],
+    "parameter_keys_not_operations": {
+      "_note": "Inside these objects the keys are that operation's parameters, not further operations. A strict walker must stop descending here.",
+      "prompt": ["id", "text", "icon"],
+      "confirm": ["id", "text", "icon", "confirm_text", "confirm_icon", "cancel_text", "cancel_icon"],
+      "option": ["id", "text", "icon", "items"],
+      "option.items[]": ["text", "icon", "tag"],
+      "delay": ["id", "round"],
+      "choose": ["<popId> maps to a text string"],
+      "card_pop": ["<popId>.<cardId|self> maps to a text string"]
+    }
+  },
+  "conditions": {
+    "_note": "28 [Condition] registrations plus 4 containers, plus HasTag which is registered per tag from tag.json. Grammar: [!|~]<name>[.<sub>...][<cmp>] with cmp in >= <= <> != = < >.",
+    "used_shapes": [
+      "s<N>.is", "type", "is", "any", "counter.<7 digits><cmp>", "s<N>", "all",
+      "have[.<id>][.<tag>]<cmp>", "table_have[.<id>][.<tag>]<cmp>", "s<N>.<tag><cmp>",
+      "cost.<tag><cmp>", "<tag>", "<tag><cmp>", "rare<cmp>", "s<N>.rare<cmp>",
+      "hand_have[.<id>][.<tag>]<cmp>", "rite", "s<N>.type", "global_counter.<id><cmp>",
+      "rite_end.<7 digits>", "round[cmp]", "loot", "sudan_pool_have<cmp>",
+      "rite_have.<id>", "difficulty", "(f|r<N>):<expr><cmp>", "parent.<tag>", "self.<tag>",
+      "tag_tips.<tag>", "unlock_upgrade", "over_id"
+    ],
+    "unused_in_vanilla": [
+      "first.<id>", "tag_tips", "over_id", "unlock_upgrade", "change_name", "is_rite",
+      "not", "not_any"
+    ],
+    "dice_checks": {
+      "shape": "(f|r<N>):<expr><cmp>",
+      "value": "f: => scalar int; rN: => [target, diceCount]",
+      "observed": "2721 of 2721 rN values have diceCount exactly 5; target ranges 1..15"
+    }
+  }
+}
