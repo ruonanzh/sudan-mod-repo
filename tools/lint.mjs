@@ -72,7 +72,13 @@ const ID_TABLES = new Map([
   ["config/tag.json", "tag"],
 ]);
 
-/** Sprite name prefix that mod images live under, relative to the mod's image/ dir. */
+/** Card `tag` keys that are engine pseudo-tags, not tag.json entries. */
+const PSEUDO_TAG_NAMES = new Set([
+  "描边", // OUTLINE_TAG_CHS = "描边"
+  "金色文字", // GOLD_TEXT_TAG_CHS = "金色文字"
+]);
+
+/** Default vanilla config dir. */
 const DEFAULT_VANILLA =
   "~/Library/Application Support/Steam/steamapps/common/Sultan's Game/Sultan's Game.app/Contents/Resources/Data/StreamingAssets/config";
 
@@ -491,6 +497,11 @@ const isAscii = (s) => /^[\x20-\x7e]*$/.test(s);
 // Vanilla index (for collision + reference checks)
 // ---------------------------------------------------------------------------
 
+/** Join a `config/...` relative path onto the vanilla config directory. */
+function vanillaPath(configDir, relPath) {
+  return path.join(configDir, relPath.replace(/^config[\/\\]/, ""));
+}
+
 function loadVanilla(configDir) {
   const dir = configDir.replace(/^~/, os.homedir());
   if (!existsSync(dir)) return { dir: null, ids: new Map(), tags: new Set(), sprites: null };
@@ -502,20 +513,21 @@ function loadVanilla(configDir) {
   };
 
   for (const [relPath, kind] of ID_TABLES) {
-    const full = path.join(dir, relPath);
+    const full = vanillaPath(dir, relPath);
     if (!existsSync(full)) continue;
     try {
       const { value } = parseJsonc(readText(full));
       for (const key of Object.keys(value)) {
         put(kind, key);
-        if (kind === "tag" && value[key] && value[key].code) tags.add(String(value[key].code));
+        // A card's `tag` map is keyed by the tag's display name, not its code string.
+        if (kind === "tag" && value[key] && typeof value[key].name === "string") tags.add(value[key].name);
       }
     } catch (e) {
       warn("VANILLA_PARSE", relPath, `could not parse vanilla file: ${e.message}`);
     }
   }
   for (const [relPath, spec] of DIR_STYLE) {
-    const full = path.join(dir, relPath);
+    const full = vanillaPath(dir, relPath);
     if (!existsSync(full)) continue;
     const kind = relPath.split("/").pop();
     for (const name of readdirSync(full)) {
@@ -743,14 +755,31 @@ function lintMod(modDir, vanilla, opts) {
             const list = Array.isArray(rec.resource) ? rec.resource : [rec.resource];
             for (const r of list) {
               if (typeof r !== "string") fail("CARD_RESOURCE", relPath, `card ${key} resource must be a string or array of strings.`);
+              else if (!/^(cards|sudan_big)\//.test(r))
+                warn("CARD_RESOURCE_PREFIX", relPath, `card ${key} resource ${JSON.stringify(r)} does not start with cards/ or sudan_big/. Vanilla has no other prefix.`);
+            }
+          }
+          if (Array.isArray(rec.destroy_resources) && rec.destroy_resources.length && rec.type !== "sudan")
+            warn(
+              "CARD_DESTROY_RES",
+              relPath,
+              `card ${key} is type ${JSON.stringify(rec.type)} but has destroy_resources; only the 20 vanilla sudan cards use it, always with 7 sudan_big/ sprites.`,
+            );
+          // `equips` entries are equipment-slot tag names, and repeats are meaningful.
+          if (Array.isArray(rec.equips) && vanilla.tags.size) {
+            for (const e of rec.equips) {
+              if (typeof e !== "string") fail("CARD_EQUIPS", relPath, `card ${key} equips must be an array of tag names.`);
+              else if (!vanilla.tags.has(e))
+                warn("EQUIP_UNKNOWN", relPath, `card ${key} equips entry ${JSON.stringify(e)} is not a tag name; vanilla only uses 武器, 服装, 饰品, 驯兽.`);
             }
           }
           if (rec.tag !== undefined) {
             if (!isPlainObject(rec.tag)) fail("CARD_TAG", relPath, `card ${key} tag must be an object of name -> number.`);
             else if (vanilla.tags.size) {
               for (const t of Object.keys(rec.tag)) {
+                if (PSEUDO_TAG_NAMES.has(t)) continue;
                 if (!vanilla.tags.has(t))
-                  warn("TAG_UNKNOWN", relPath, `card ${key} uses tag ${JSON.stringify(t)}, which is not in vanilla tag.json. Add it to config/tag.json or fix the name.`);
+                  warn("TAG_UNKNOWN", relPath, `card ${key} uses tag ${JSON.stringify(t)}, which is not a tag name in vanilla tag.json. Card tag keys are the tag's display name, not its code string. Add it to config/tag.json or fix the name.`);
               }
             }
           }
