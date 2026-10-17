@@ -228,12 +228,10 @@ function resolve(root, fieldPath) {
   let node = root;
   for (const step of fieldPath) {
     if (!node) return null;
-    if (/^\d+$/.test(step)) {
-      if (node.type !== "array") return null;
-      node = node.items[Number(step)] || null;
-    } else {
-      node = node.type === "object" ? findEntry(node, step)?.value : null;
-    }
+    // Decide by the node type, not by the shape of the step: a counter id such as
+    // 7100001 is a numeric object key, not an array index.
+    if (node.type === "array") node = node.items[Number(step)] || null;
+    else node = node.type === "object" ? findEntry(node, step)?.value : null;
   }
   return node || null;
 }
