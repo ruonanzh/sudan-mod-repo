@@ -268,6 +268,135 @@
         "detailMap": true
       }
     },
-    "answer": "The base plate is not four images. It is one paper texture with four extra PBR maps, shared by all tiers, and the tiers differ only in material parameters. It renders as transparent, lit and alpha blended, which is why it reads as translucent paper and why a flat channel multiply never matched."
+    "answer": "The base plate is not four images. It is one paper texture with four extra PBR maps, shared by all tiers, and the tiers differ only in material parameters. It renders as transparent, lit and alpha blended, which is why it reads as translucent paper and why a flat channel multiply never matched.",
+    "fullParameters": {
+      "_note": "Every colour and float on the four char body materials, read with UnityPy from sharedassets0.assets. _Color values are the shader's linear values.",
+      "stone": {
+        "colors": {
+          "_Color": [
+            0.6902,
+            0.6039,
+            0.9216,
+            1.0
+          ],
+          "_EmissionColor": [
+            0.1415,
+            0.1415,
+            0.1415,
+            1.0
+          ]
+        },
+        "floats": {
+          "_Metallic": 0.1,
+          "_Glossiness": 0.4,
+          "_GlossMapScale": 0.3021,
+          "_BumpScale": 0.9028,
+          "_Parallax": 0.02
+        },
+        "maps": {
+          "_MainTex": "card",
+          "_BumpMap": "card_n",
+          "_EmissionMap": "card_e",
+          "_MetallicGlossMap": "card_mt"
+        }
+      },
+      "copper": {
+        "colors": {
+          "_Color": [
+            0.7049,
+            0.8542,
+            1.0,
+            1.0
+          ],
+          "_EmissionColor": [
+            0.0,
+            0.0486,
+            0.1146,
+            1.0
+          ]
+        },
+        "floats": {
+          "_Metallic": 0.8,
+          "_Glossiness": 0.7,
+          "_GlossMapScale": 0.7847,
+          "_BumpScale": 0.3819,
+          "_Parallax": 0.02
+        },
+        "maps": {
+          "_MainTex": "card",
+          "_BumpMap": "card_n",
+          "_DetailAlbedoMap": "card_d",
+          "_EmissionMap": "card_e",
+          "_MetallicGlossMap": "card_mt"
+        }
+      },
+      "silver": {
+        "colors": {
+          "_Color": [
+            0.9444,
+            0.8507,
+            0.7986,
+            1.0
+          ],
+          "_EmissionColor": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        },
+        "floats": {
+          "_Metallic": 0.85,
+          "_Glossiness": 0.8,
+          "_GlossMapScale": 0.809,
+          "_BumpScale": 0.2847,
+          "_Parallax": 0.02
+        },
+        "maps": {
+          "_MainTex": "card",
+          "_BumpMap": "card_n",
+          "_DetailAlbedoMap": "card_e",
+          "_EmissionMap": "card_d",
+          "_MetallicGlossMap": "card_mt"
+        },
+        "quirk": "silver has _DetailAlbedoMap and _EmissionMap swapped compared with copper and gold. That is how the shipped material is, not a reading error."
+      },
+      "gold": {
+        "colors": {
+          "_Color": [
+            1.0,
+            0.8333,
+            0.6389,
+            1.0
+          ],
+          "_EmissionColor": [
+            0.0451,
+            0.0451,
+            0.0208,
+            1.0
+          ]
+        },
+        "floats": {
+          "_Metallic": 0.393,
+          "_Glossiness": 0.71,
+          "_GlossMapScale": 0.75,
+          "_BumpScale": 0.3681,
+          "_Parallax": 0.0393
+        },
+        "maps": {
+          "_MainTex": "card",
+          "_BumpMap": "card_n",
+          "_DetailAlbedoMap": "card_d",
+          "_EmissionMap": "card_e",
+          "_MetallicGlossMap": "card_mt"
+        }
+      }
+    },
+    "openIssue": {
+      "claim": "Applying these parameters to `card` reproduces the tier's look.",
+      "measurement": "Pixels sampled from the player's screenshot of two stone cards are warm tan, for example (136,125,98) and (172,157,138).",
+      "problem": "stone's _Color is (0.69,0.60,0.92), and `card` is blue-green, so any albedo multiply stays lavender or blue. It cannot produce warm tan.",
+      "so": "Either the shader does not use _Color as an albedo multiply, or the material is swapped at runtime, or the visible warm body comes from something other than the bg image. Not settled; do not claim the parameters are sufficient."
+    }
   }
 }
