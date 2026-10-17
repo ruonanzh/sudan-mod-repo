@@ -1,6 +1,12 @@
 ---
 name: mod-creator
-description: The reference for writing and changing Sultan's Game mods. Read it first, before you search the vanilla config, before you write your first file, and before you answer what a mod can do. Covers the mod layout, info.json, the exact set of config entries a mod may supply, merge-by-key versus whole-file replacement, the JSONC rules, authoring a card and an event or rite with working examples, and the verified facts about ids and sprites. Sultan's Game mods are data only: there is no compile step and no code.
+description: >
+  The reference for writing and changing Sultan's Game mods. Read it first, before you search the
+  vanilla config, before you write your first file, and before you answer what a mod can do. Covers
+  the mod layout, info.json, the exact set of config entries a mod may supply, merge-by-key versus
+  whole-file replacement, the JSONC rules, authoring a card and an event or rite with working
+  examples, and the verified facts about ids and sprites. Sultan's Game mods are data only. There is
+  no compile step and no code.
 ---
 
 # Writing Sultan's Game mods
