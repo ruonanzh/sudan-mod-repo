@@ -56,5 +56,11 @@
     },
     "extract": "python3 tools/extract-art.py --out reference/plates --plates",
     "consequence": "Draw in this order: 地面, then 卡面, then f. The frame sits on top of the art, so the subject's feet are partly covered by the band, which is correct. The card art itself must stay transparent and must not run into the band."
+  },
+  "emptyAreas": {
+    "_note": "Measured on two real stone cards (快脚 2000370, 小圆 2000371), both 472x1028.",
+    "topEmpty": "19.1% and 21.0% of the height is fully transparent: the game writes the card name and a row of small diamonds there.",
+    "bottomEmpty": "2.0% and 2.6%: the art runs almost to the bottom edge, and the frame band is drawn over it.",
+    "rule": "Generated art must keep the top fifth blank and may use the bottom. A subject that fills the top hides the card's name."
   }
 }

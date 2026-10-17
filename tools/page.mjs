@@ -140,7 +140,7 @@ function cardBody(record, prompt, modDir) {
   return `
 <h2>卡面</h2>
 <div class="split">
-  ${artInline(modDir, record.id, record.rare) || '<div class="cardface">472 × 1028<br>卡面图放这里<br><span style="opacity:.6">只替换内部画面，边框由游戏画</span></div>'}
+  ${artInline(modDir, record.id, record.rare, record.name) || '<div class="cardface">472 × 1028<br>卡面图放这里<br><span style="opacity:.6">只替换内部画面，边框由游戏画</span></div>'}
   <div class="grow">
     <div class="panel">
       <div class="row"><div class="lbl">名字</div><div><input type="text" name="name" value="${esc(record.name)}"></div></div>
@@ -205,6 +205,7 @@ ${statRows || '<tr><td colspan="3" style="color:#8a7a60">没有属性</td></tr>'
  * it look missing.
  */
 function artInline(modDir, id, rare) {
+  const name = arguments[3] || "";
   const here = path.dirname(new URL(import.meta.url).pathname);
   const tier = ["stone", "copper", "silver", "gold"][(rare ?? 1) - 1] || "stone";
   const plateDir = path.join(here, "..", "reference", "plates");
@@ -227,7 +228,9 @@ function artInline(modDir, id, rare) {
 
   const b64 = encodePng(img).toString("base64");
   const note = `${tier}${body ? " · 9-sliced 底牌" : " · 无底牌图"}${frame ? " · 框" : ""}`;
-  return `<div class="cardface" style="padding:0;background:none;border-color:#57452c"><img src="data:image/png;base64,${b64}" style="width:100%;height:100%;object-fit:contain;display:block" title="${esc(note)}"></div>`;
+  // The game writes the name over the top fifth, so the preview draws it there too.
+  const label = `<div style="position:absolute;left:0;right:0;top:4%;text-align:center;font:600 15px ui-serif,Georgia,serif;color:#2a2622;letter-spacing:.12em;pointer-events:none">${esc(name)}</div>`;
+  return `<div class="cardface" style="padding:0;background:none;border-color:#57452c;position:relative"><img src="data:image/png;base64,${b64}" style="width:100%;height:100%;object-fit:contain;display:block" title="${esc(note)}">${label}</div>`;
 }
 
 function riteBody(record) {
