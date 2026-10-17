@@ -167,6 +167,38 @@ const NODE_FIELDS = {
     handler: [],
     legacy: [],
   },
+  dtRoot: {
+    fields: ["dialog_tree_id", "first_word_id", "description", "Item"],
+    handler: [],
+    // `words` is get-only and derived from Item; vanilla never writes it.
+    legacy: ["words"],
+  },
+  dtWord: {
+    fields: ["word_id", "word", "jump_type", "direct_id", "Option", "action"],
+    handler: [],
+    legacy: [],
+  },
+  dtOption: {
+    fields: ["option_Jump_condition", "option_Jump_word", "option_Jump_id", "action"],
+    handler: [],
+    legacy: [],
+  },
+  sfxTop: {
+    // top level of sfx_config.json: five loop groups, NOT clip/start/loop_start/loop_end
+    fields: ["main_game_loop", "main_game_loop_difficulty", "settle_loop", "settle_loop_difficulty", "armageddon_music_loop"],
+    handler: [],
+    legacy: [],
+  },
+  sfxLoop: {
+    fields: ["clip", "start", "loop_start", "loop_end"],
+    handler: [],
+    legacy: [],
+  },
+  game: {
+    fields: ["init", "map", "rite_icon", "rite_outline_icon", "equip_icon", "card_materials"],
+    handler: [],
+    legacy: [],
+  },
 };
 
 /** node kind for a directory-style config path */
@@ -176,6 +208,8 @@ const DIR_KIND = new Map([
   ["config/loot", "loot"],
   ["config/init", "init"],
   ["config/rite_template", "riteTemplate"],
+  ["config/dt", "dtRoot"],
+  ["config/game.json", "game"],
 ]);
 
 /** node kind for a table-style config path */
@@ -735,6 +769,25 @@ function lintMod(modDir, vanilla, opts) {
           // An empty condition anywhere else makes every later branch dead.
           for (const arr of ["settlement_prior", "settlement"]) {
             if (Array.isArray(value[arr])) checkDeadBranches(fileRel, arr, value[arr]);
+          }
+        }
+        if (relPath === "config/dt") {
+          if (Array.isArray(value.Item))
+            value.Item.forEach((w, i) => {
+              if (!isPlainObject(w)) return;
+              reportFields(fileRel, "dtWord", w, `Item[${i}]`);
+              if (Array.isArray(w.Option))
+                w.Option.forEach((o, j) => {
+                  if (isPlainObject(o)) reportFields(fileRel, "dtOption", o, `Item[${i}].Option[${j}]`);
+                });
+            });
+        }
+        if (relPath === "config/sfx_config.json" && isPlainObject(value)) {
+          for (const [group, inner] of Object.entries(value)) {
+            if (!isPlainObject(inner)) continue;
+            for (const [k, loop] of Object.entries(inner)) {
+              if (isPlainObject(loop)) reportFields(fileRel, "sfxLoop", loop, `${group}.${k}`);
+            }
           }
         }
         if (relPath === "config/event" && Array.isArray(value.settlement)) {
