@@ -192,7 +192,7 @@ must hold, `settlement` is an array of branches with an `action`.
     "id": 5300029,
     "text": "书店营业",
     "is_replay": 1,                 // may it trigger more than once
-    "auto_start": false,
+    "auto_start_init": [1],         // already enabled when init config 1 starts
     "start_trigger": true,          // check conditions as soon as the run begins
     "on": { "round_begin_ba": 1 },  // timing; 1 means every round start
     "condition": {
@@ -210,6 +210,14 @@ must hold, `settlement` is an array of branches with an `action`.
 ```
 
 Facts that decide whether the file works:
+
+- The event object has exactly these fields: `id`, `text`, `is_replay`, `auto_start_init`, `on`,
+  `start_trigger`, `condition`, `settlement`. There is no `auto_start`, even though most vanilla files
+  carry one. The type has no such field and it does nothing, so do not copy it.
+- `auto_start_init` is a list of `init` config ids. `config/init/1.json` is the normal run, so
+  `[1]` means "on from the start of a normal game". An event that is in no `auto_start_init` list and
+  is never named by another event's `event_on` does not run. A brand-new event that must run every
+  round needs `"auto_start_init": [1]`.
 
 - **Timing keys.** These are the ones that actually appear in the shipped data, so they are safe to
   use: `round_begin_ba`, `rite_start`, `rite_end`, `rite_cancel`, `card_born`, `card_clean`,
