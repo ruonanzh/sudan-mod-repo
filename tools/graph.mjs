@@ -402,7 +402,14 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
   }
 
   // ---------------------------------------------------------------- labels
-  for (const n of nodes.values()) n.l = labels(n, vanilla, i18n, lang);
+  for (const n of nodes.values()) {
+    n.l = labels(n, vanilla, i18n, lang);
+    // Event narration is translated per line, not per record, so it rides alongside the label.
+    if (n.t === "event") {
+      const nr = { en: i18n.en?.narr.get(n.id) || null, ja: i18n.ja?.narr.get(n.id) || null, zhTW: i18n.zhTW?.narr.get(n.id) || null };
+      if (nr.en || nr.ja || nr.zhTW) n.nr = nr;
+    }
+  }
 
   // ---------------------------------------------------------------- lint badges
   const lintSummary = { FAIL: 0, WARN: 0, INFO: 0, results: [] };
@@ -534,30 +541,68 @@ function components(edges, nodes) {
  * The naive version scanned 56892 keys per node, which is 300M comparisons over the whole
  * graph. Indexing once turns a 25 s build into a fraction of a second.
  */
+/**
+ * Build the translation lookup.
+ *
+ * The tables use one flat namespace with a fixed grammar: `<KIND>_<id>_<field>`, where KIND is
+ * card / rite / quest / over / after_story / upgrade for record fields, and OPTION / PROMPT for
+ * the narration lines of an event. There is no `event_` KIND at all: an event has no translated
+ * title, and its text is a short label (median 7 characters, 84.5% are 12 or fewer) that the
+ * tables never touch. What the tables do translate is the narration the player reads:
+ *   OPTION_<eventId>_option_<n>_TEXT          the paragraph the event opens with
+ *   OPTION_<eventId>_option_<n>_ITEM_<m>_TEXT a button label inside that paragraph
+ *   PROMPT_<eventId>_prompt_<n>_TEXT          the paragraph after the choice
+ * Of 1867 events, 279 have OPTION lines and 793 have PROMPT lines; the rest are silent.
+ */
 function indexI18n(table) {
-  const byKey = new Map(); // "event:5300000" -> string
-  const byId = new Map(); // "5300000" -> first PROMPT/OPTION/CONFIRM line
-  if (!table) return { byKey, byId };
+  const byKey = new Map(); // "card:2000001" -> { text, pref }
+  const narr = new Map(); // "5300176" -> { opt: [...], prompt: [...] }
+  if (!table) return { byKey, narr };
   const PREF = { name: 0, title: 1, text: 2 };
+  const slot = (id) => {
+    let rec = narr.get(id);
+    if (!rec) { rec = { opt: [], prompt: [] }; narr.set(id, rec); }
+    return rec;
+  };
   for (const [k, v] of Object.entries(table)) {
     if (typeof v !== "string" || !v.trim()) continue;
-    const named = k.match(/^(card|rite|quest|after_story|loot|event)_(\d+)_(name|title|text)$/);
+    const named = k.match(/^(card|rite|quest|over|after_story|upgrade)_(\d+)_([a-z0-9_]+)$/);
     if (named) {
+      // Fields are ranked, not concatenated: a card's name is its label, and its text is a
+      // paragraph. Mixing them makes one language show a paragraph where another shows a name.
       const key = `${named[1]}:${named[2]}`;
+      const pref = PREF[named[3]] ?? 3;
       const prev = byKey.get(key);
-      if (!prev || PREF[named[3]] < prev.pref) byKey.set(key, { text: v, pref: PREF[named[3]] });
+      if (!prev || pref < prev.pref) byKey.set(key, { text: v, pref });
       continue;
     }
-    // Events have no name key at all; their first line lives under a family prefix that
-    // varies by node type (PROMPT / OPTION / CONFIRM / POP ...). Any key carrying the id
-    // is a usable fallback, and the first one in file order wins.
-    const m = k.match(/_(\d{6,7})_/);
-    if (m && !byId.has(m[1])) byId.set(m[1], v);
+    let m = k.match(/^OPTION_(\d+)_option_(\d+)_ITEM_(\d+)_TEXT$/);
+    if (m) {
+      const rec = slot(m[1]);
+      let o = rec.opt.find((x) => x.n === m[2]);
+      if (!o) { o = { n: m[2], text: "", items: [] }; rec.opt.push(o); }
+      o.items.push({ n: m[3], text: v });
+      continue;
+    }
+    m = k.match(/^OPTION_(\d+)_option_(\d+)_TEXT$/);
+    if (m) {
+      const rec = slot(m[1]);
+      let o = rec.opt.find((x) => x.n === m[2]);
+      if (!o) { o = { n: m[2], text: "", items: [] }; rec.opt.push(o); }
+      o.text = v;
+      continue;
+    }
+    m = k.match(/^PROMPT_(\d+)_prompt_(\d+)_TEXT$/);
+    if (m) slot(m[1]).prompt.push({ n: m[2], text: v });
   }
-  return { byKey, byId };
+  for (const rec of narr.values()) {
+    rec.opt.sort((a, b) => a.n - b.n);
+    rec.prompt.sort((a, b) => a.n - b.n);
+    for (const o of rec.opt) o.items.sort((a, b) => a.n - b.n);
+  }
+  return { byKey, narr };
 }
 
-/** Four-language label with the fallback order the data actually supports. */
 function labels(node, vanilla, i18n, lang) {
   const prefixOf = { event: "event", rite: "rite", card: "card", quest: "quest", afterStory: "after_story", loot: "loot" };
   const prefix = prefixOf[node.t];
@@ -569,8 +614,9 @@ function labels(node, vanilla, i18n, lang) {
   const tr = { en: false, ja: false, zhTW: false };
   for (const l of LANGS) {
     const idx = l === "zh" ? null : i18n[l];
-    let v = idx && prefix ? (idx.byKey.get(`${prefix}:${node.id}`) || {}).text : null;
-    if (!v && idx) v = idx.byId.get(node.id);
+    // Only an exact `<prefix>:<id>` hit counts. Falling back to "any key that carries this id"
+    // used to put an option button's text where the event's title belongs.
+    const v = idx && prefix ? (idx.byKey.get(`${prefix}:${node.id}`) || {}).text : null;
     if (v) {
       if (l !== "zh") tr[l] = true;
       out[l] = clean(v);

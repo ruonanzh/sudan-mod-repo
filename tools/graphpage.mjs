@@ -82,7 +82,9 @@ export function payload(g) {
       x: (n.col || 0) * COL_W,
       y: n.y || 0,
       ch: Boolean(n.chain),
+      cs: n.compSize || 0,
       tr: n.tr || { en: false, ja: false, zhTW: false },
+      nr: n.nr || null,
       b: (() => {
         const levels = (n.badges || []).map((x) => x.level);
         return levels.includes("FAIL") ? "FAIL" : levels.includes("WARN") ? "WARN" : levels.includes("INFO") ? "INFO" : null;
@@ -311,8 +313,38 @@ function chip(key) {
 }
 
 function labelRow(code, text, fallback) {
-  return "<tr><th>" + code + "</th><td>" + escHtml(text || "—") +
+  return '<tr><th style="width:72px">' + code + "</th><td>" + escHtml(text || "—") +
     (fallback ? ' <span class="toless">无此语言，回退简中</span>' : "") + "</td></tr>";
+}
+
+// An event's title is never translated; what the tables do translate is the narration lines.
+function narrationBlock(n) {
+  var nr = n.nr;
+  if (!nr) return "";
+  var lang = document.getElementById("lang").value;
+  var cur = lang === "zh" ? null : nr[lang === "zhTW" ? "zhTW" : lang];
+  var rec = cur || nr.en || nr.ja || nr.zhTW;
+  var used = cur ? lang : nr.en ? "en" : nr.ja ? "ja" : "zhTW";
+  if (!rec) return "";
+  var html = '<h3>叙事 · ' + escHtml(used) + "</h3>";
+  if (rec.opt.length) {
+    html += '<div class="note">开场（选卡前的叙述）</div>';
+    for (var i = 0; i < rec.opt.length; i++) {
+      var o = rec.opt[i];
+      html += '<div class="story">' + escHtml(o.text || "（无）") + "</div>";
+      if (o.items.length) {
+        html += '<div class="note">选项 ' + escHtml(o.n) + "：" +
+          o.items.map(function (it) { return escHtml(it.text); }).join(" / ") + "</div>";
+      }
+    }
+  }
+  if (rec.prompt.length) {
+    html += '<div class="note">结算后</div>';
+    for (var j = 0; j < rec.prompt.length; j++) {
+      html += '<div class="story">' + escHtml(rec.prompt[j].text) + "</div>";
+    }
+  }
+  return html;
 }
 
 window.__openNode = (key) => {
@@ -325,7 +357,7 @@ window.__openNode = (key) => {
     '<h2 style="margin-top:0">' + escHtml(n.id) + " · " + escHtml(n.t) + "</h2>" +
     '<div class="note" style="margin-top:0">' + escHtml(CAT_NAME[n.c] || n.c) + " · " +
     (n.o === "mod" ? "mod 覆盖/新增" : "vanilla") + " · " +
-    (n.ch ? "在剧情链上（分量 " + n.compSize + "）" : "不在链上") +
+    (n.ch ? "在剧情链上（分量 " + (n.cs || 0) + "）" : "不在链上") +
     (n.b ? " · " + n.b + "：" + escHtml((n.bm || []).join(", ")) : "") + "</div>" +
     "<table>" +
     labelRow("简中", n.l.zh, false) +
@@ -333,6 +365,10 @@ window.__openNode = (key) => {
     labelRow("ja", n.l.ja, n.fb && n.fb.ja) +
     labelRow("zhTW", n.l.zhTW, n.fb && n.fb.zhTW) +
     "</table>" +
+    (n.t === "event"
+      ? '<div class="note">标题只有中文。i18n 表里没有 event_ 前缀，游戏翻译的是叙述而不是标题，见下方「叙事」。</div>'
+      : "") +
+    narrationBlock(n) +
     "<h3>出边 " + out.length + "</h3><div class=\\"note\\">" +
     (out.map(([k, r]) => chip(k) + ' <code>' + escHtml(r) + "</code>").join("<br>") || "无") + "</div>" +
     "<h3>入边 " + inc.length + "</h3><div class=\\"note\\">" +
@@ -446,6 +482,7 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图" } = {}) {
 .row.sel { background: #3a2f1e; }
 .row.sel .id { color: var(--gold); }
 .toless { color: #7a6f5e; font-size: 10px; border: 1px solid #4a4238; border-radius: 2px; padding: 0 3px; margin-left: 4px; }
+.story { background: #1d1710; border-left: 2px solid #4a3c28; padding: 8px 10px; margin: 6px 0; line-height: 1.65; font-size: 13px; color: #cfc0a4; }
 #modal-body h3 { font-size: 13px; color: var(--gold); letter-spacing: .08em; margin: 18px 0 6px; }
 .badge { font-size: 10px; padding: 0 4px; border-radius: 2px; }
 .badge.FAIL { background: var(--bad); color: #fff; }
