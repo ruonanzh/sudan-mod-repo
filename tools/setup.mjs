@@ -11,9 +11,11 @@
  *   node tools/setup.mjs --check         say what is present and what is missing
  *   node tools/setup.mjs --game <path>   the install, or its Data directory
  *   node tools/setup.mjs --python <py>   the interpreter that has UnityPy
+ *   node tools/setup.mjs --index <url>   a pip index, for a network that needs one
  *
  * Extraction needs UnityPy. Without it the script creates .setup-venv/ and installs it
- * there, which is a one-time download.
+ * there, which is a one-time download. PyPI direct measured 5m58s without a VPN against
+ * 4s from the Tsinghua mirror, so the mirror is tried first and PyPI is the fallback.
  */
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { spawnSync } from "node:child_process";
@@ -153,9 +155,34 @@ function main() {
     console.log("UnityPy is not installed. Creating .setup-venv and installing it once (needs network).");
     run(base, ["-m", "venv", VENV], "create .setup-venv");
     py = process.platform === "win32" ? path.join(VENV, "Scripts", "python.exe") : path.join(VENV, "bin", "python");
-    const pip = spawnSync(py, ["-m", "pip", "install", "--quiet", "UnityPy"], { stdio: "inherit", cwd: ROOT });
-    if (pip.status !== 0) {
-      console.error("pip could not install UnityPy. Check the network, or install it yourself and pass --python.");
+
+    // Direct PyPI is slow from mainland China; a mirror is not slower anywhere else and
+    // falls back, so try mirrors first and finish with the default index.
+    const mirrors = [
+      arg("--index"),
+      process.env.SUDAN_PIP_INDEX,
+      "https://pypi.tuna.tsinghua.edu.cn/simple",
+      "https://mirrors.aliyun.com/pypi/simple",
+    ].filter(Boolean);
+    const indexes = [...new Set(mirrors), null];
+
+    let installed = false;
+    for (const index of indexes) {
+      const where = index || "pypi.org (default)";
+      process.stdout.write(`  installing UnityPy from ${where}\n`);
+      const args = ["-m", "pip", "install", "--quiet", "--disable-pip-version-check", "UnityPy"];
+      if (index) args.push("--index-url", index);
+      const started = Date.now();
+      const pip = spawnSync(py, args, { stdio: "inherit", cwd: ROOT });
+      if (pip.status === 0) {
+        process.stdout.write(`  ok in ${((Date.now() - started) / 1000).toFixed(1)}s\n`);
+        installed = true;
+        break;
+      }
+      process.stdout.write("  that index did not work, trying the next\n");
+    }
+    if (!installed) {
+      console.error("No index worked. Install UnityPy yourself and pass --python <interpreter>,\n  or point --index at a mirror you can reach.");
       return 2;
     }
   }
