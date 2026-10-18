@@ -141,11 +141,23 @@ function main() {
 
   let py = pythonWithUnityPy(arg("--python"));
   if (!py) {
-    console.log("UnityPy is not installed. Creating .setup-venv and installing it once.");
-    const base = process.platform === "win32" ? "python" : "python3";
+    const base = arg("--python") || (process.platform === "win32" ? "python" : "python3");
+    if (spawnSync(base, ["--version"], { stdio: "ignore" }).status !== 0) {
+      console.error(
+        `Python 3 is required: the extraction step is tools/extract-art.py, which reads Unity asset bundles.\n` +
+          `  ${base} was not found. Install Python 3.9 or newer, then run this again.\n` +
+          `  https://www.python.org/downloads/   (on Windows, tick "Add python.exe to PATH")`
+      );
+      return 2;
+    }
+    console.log("UnityPy is not installed. Creating .setup-venv and installing it once (needs network).");
     run(base, ["-m", "venv", VENV], "create .setup-venv");
     py = process.platform === "win32" ? path.join(VENV, "Scripts", "python.exe") : path.join(VENV, "bin", "python");
-    run(py, ["-m", "pip", "install", "--quiet", "UnityPy"], "install UnityPy");
+    const pip = spawnSync(py, ["-m", "pip", "install", "--quiet", "UnityPy"], { stdio: "inherit", cwd: ROOT });
+    if (pip.status !== 0) {
+      console.error("pip could not install UnityPy. Check the network, or install it yourself and pass --python.");
+      return 2;
+    }
   }
 
   // sharedassets0 holds the plates and the fonts; resources.assets holds the card art.
