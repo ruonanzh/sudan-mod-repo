@@ -132,7 +132,16 @@ ${body}
 
 function cardBody(record, modDir) {
   const subject = composeSubject(record);
-  const { head, tail } = composeBoilerplate(record);
+  const allNames = TAG_ROLES.allTagNames?.names || [];
+  const groups = { used: [], other: [] };
+  for (const t of allNames) (t.usedOnCards ? groups.used : groups.other).push(t);
+  const tagNameOptions =
+    `<option value="">（选择要加的标签）</option>` +
+    `<optgroup label="原版卡上用过的 ${groups.used.length} 个">` +
+    groups.used.map((t) => `<option value="${esc(t.name)}">${esc(t.name)}${t.type === "buff" ? " · 数值" : t.type === "debuff" ? " · 负面" : ""}</option>`).join("") +
+    `</optgroup><optgroup label="tag.json 里定义但卡上没用过 ${groups.other.length} 个">` +
+    groups.other.map((t) => `<option value="${esc(t.name)}">${esc(t.name)}</option>`).join("") +
+    `</optgroup>`;
   const tags = Object.entries(record.tag || {});
   // A marker tag is present or absent: every vanilla use is exactly 1. A stat tag carries a
   // number and has an observed range. Rendering both as numbers invites a value the game never sees.
@@ -149,17 +158,10 @@ function cardBody(record, modDir) {
     .filter(([name]) => !TAG_ROLES.marker[name])
     .map(([name, value]) => {
       const range = TAG_ROLES.stat[name];
-      // Every value vanilla ever uses, plus an escape hatch for one it never did.
-      const seen = range ? Object.keys(range.values).map(Number).sort((a, b) => b - a) : [];
-      const options = seen
-        .map((v) => `<option value="${v}"${v === value ? " selected" : ""}>${v}</option>`)
-        .join("");
-      const known = seen.includes(Number(value));
       return `<tr>
   <td>${esc(name)}</td>
-  <td class="num"><select name="tag_${esc(name)}" data-custom="tag_custom_${esc(name)}">${options}<option value="custom"${known ? "" : " selected"}>自定义…</option></select></td>
-  <td class="num" style="display:${known ? "none" : "table-cell"}"><input type="number" id="tag_custom_${esc(name)}" name="tag_custom_${esc(name)}" value="${esc(value)}"></td>
-  <td style="color:#8a7a60;font-size:12px">${range ? `原版用过 ${seen.length} 种值` : "新属性"}</td>
+  <td class="num"><input type="number" name="tag_${esc(name)}" value="${esc(value)}"></td>
+  <td style="color:#8a7a60;font-size:12px">${range ? `${range.min} … ${range.max}` : "新属性"}</td>
 </tr>`;
     })
     .join("\n");
@@ -205,7 +207,7 @@ ${markerRows || '<tr><td colspan="2" style="color:#8a7a60">没有标记</td></tr
 <table>
 <tr><th>属性</th><th>数值</th><th>原版范围</th></tr>
 ${statRows || '<tr><td colspan="3" style="color:#8a7a60">没有属性</td></tr>'}
-<tr><td><input type="text" name="tag_new_name" placeholder="新属性（中文名）"></td>
+<tr><td><select name="tag_new_name">${tagNameOptions}</select></td>
     <td class="num"><input type="number" name="tag_new_value" value="1"></td>
     <td></td></tr>
 </table>
@@ -319,14 +321,6 @@ function artInline(modDir, id, rare, name, type, fontFamily) {
     if (rareSelect) rareSelect.addEventListener("change", function () {
       var v = Number(rareSelect.value) || 1;
       if (payload.plates[v]) { wantPlate = v; plate.src = payload.plates[v]; }
-    });
-    // 自定义… reveals the number box next to a stat dropdown.
-    Array.prototype.forEach.call(document.querySelectorAll("select[data-custom]"), function (sel) {
-      sel.addEventListener("change", function () {
-        var custom = document.getElementById(sel.getAttribute("data-custom"));
-        if (!custom) return;
-        custom.parentElement.style.display = sel.value === "custom" ? "table-cell" : "none";
-      });
     });
     var nameInput = document.querySelector('input[name="name"]');
     var nameEl = document.getElementById("cardName");

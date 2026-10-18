@@ -1,1084 +1,4643 @@
 {
-  "_note": "How a card tag behaves, read off all 1294 shipped cards. 'marker' tags are present or absent: every vanilla use is exactly 1. 'stat' tags carry a number and their observed range is listed. The editor renders a marker as a checkbox and a stat as a number input with that range.",
-  "markerCount": 197,
-  "statCount": 20,
-  "marker": {
-    "纯色材质": {
-      "uses": 497,
-      "tagType": "attribute"
-    },
-    "已拥有": {
-      "uses": 311,
-      "tagType": "attribute"
-    },
-    "装备": {
-      "uses": 204,
-      "tagType": "attribute"
-    },
-    "已装备": {
-      "uses": 192,
-      "tagType": "buff"
-    },
-    "可堆叠": {
-      "uses": 132,
-      "tagType": "attribute"
-    },
-    "读物": {
-      "uses": 128,
-      "tagType": "attribute"
-    },
-    "银趴绝缘者": {
-      "uses": 125,
-      "tagType": "attribute"
-    },
-    "男性": {
-      "uses": 106,
-      "tagType": "attribute"
-    },
-    "饰品": {
-      "uses": 92,
-      "tagType": "attribute"
-    },
-    "消耗品": {
-      "uses": 82,
-      "tagType": "attribute"
-    },
-    "部队": {
-      "uses": 77,
-      "tagType": "attribute"
-    },
-    "贵族": {
-      "uses": 68,
-      "tagType": "attribute"
-    },
-    "武器": {
-      "uses": 62,
-      "tagType": "attribute"
-    },
-    "女性": {
-      "uses": 56,
-      "tagType": "attribute"
-    },
-    "食客": {
-      "uses": 52,
-      "tagType": "attribute"
-    },
-    "有跟班": {
-      "uses": 52,
-      "tagType": "attribute"
-    },
-    "怪物": {
-      "uses": 50,
-      "tagType": "attribute"
-    },
-    "装备商人": {
-      "uses": 49,
-      "tagType": "attribute"
-    },
-    "大餐": {
-      "uses": 36,
-      "tagType": "attribute"
-    },
-    "服装": {
-      "uses": 34,
-      "tagType": "attribute"
-    },
-    "情报": {
-      "uses": 28,
-      "tagType": "attribute"
-    },
-    "动物": {
-      "uses": 24,
-      "tagType": "attribute"
-    },
-    "苏丹卡": {
-      "uses": 20,
-      "tagType": "attribute"
-    },
-    "思潮": {
-      "uses": 19,
-      "tagType": "attribute"
-    },
-    "驯兽": {
-      "uses": 15,
-      "tagType": "attribute"
-    },
-    "恶名谋杀者": {
-      "uses": 15,
-      "tagType": "attribute"
-    },
-    "秘宝": {
-      "uses": 15,
-      "tagType": "attribute"
-    },
-    "宝石": {
-      "uses": 15,
-      "tagType": "attribute"
-    },
-    "地点": {
-      "uses": 14,
-      "tagType": "attribute"
-    },
-    "天象": {
-      "uses": 14,
-      "tagType": "attribute"
-    },
-    "爱书人": {
-      "uses": 13,
-      "tagType": "attribute"
-    },
-    "妆扮": {
-      "uses": 10,
-      "tagType": "attribute"
-    },
-    "黑暗知识": {
-      "uses": 9,
-      "tagType": "attribute"
-    },
-    "任意处置": {
-      "uses": 9,
-      "tagType": "attribute"
-    },
-    "部落遗物": {
-      "uses": 9,
-      "tagType": "attribute"
-    },
-    "空屋": {
-      "uses": 9,
-      "tagType": "attribute"
-    },
-    "苏丹的精兵": {
-      "uses": 9,
-      "tagType": "attribute"
-    },
-    "苏丹的近卫": {
-      "uses": 8,
-      "tagType": "attribute"
-    },
-    "奴隶": {
-      "uses": 8,
-      "tagType": "attribute"
-    },
-    "奇珍": {
-      "uses": 8,
-      "tagType": "attribute"
-    },
-    "坐骑": {
-      "uses": 7,
-      "tagType": "attribute"
-    },
-    "囚徒": {
-      "uses": 7,
-      "tagType": "attribute"
-    },
-    "恶名挑战者": {
-      "uses": 7,
-      "tagType": "attribute"
-    },
-    "墓碑": {
-      "uses": 7,
-      "tagType": "attribute"
-    },
-    "小颗": {
-      "uses": 7,
-      "tagType": "attribute"
-    },
-    "大颗": {
-      "uses": 7,
-      "tagType": "attribute"
-    },
-    "黑街居民": {
-      "uses": 6,
-      "tagType": "attribute"
-    },
-    "耐心": {
-      "uses": 6,
-      "tagType": "buff"
-    },
-    "装潢": {
-      "uses": 6,
-      "tagType": "buff"
-    },
-    "情诗": {
-      "uses": 6,
-      "tagType": "attribute"
-    },
-    "史诗": {
-      "uses": 6,
-      "tagType": "attribute"
-    },
-    "小筹": {
-      "uses": 6,
-      "tagType": "attribute"
-    },
-    "描边": {
-      "uses": 6,
-      "tagType": "?"
-    },
-    "将领": {
-      "uses": 5,
-      "tagType": "attribute"
-    },
-    "金色文字": {
-      "uses": 5,
-      "tagType": "?"
-    },
-    "杀戮": {
-      "uses": 5,
-      "tagType": "attribute"
-    },
-    "纵欲": {
-      "uses": 5,
-      "tagType": "attribute"
-    },
-    "奢靡": {
-      "uses": 5,
-      "tagType": "attribute"
-    },
-    "征服": {
-      "uses": 5,
-      "tagType": "attribute"
-    },
-    "讽刺诗": {
-      "uses": 5,
-      "tagType": "attribute"
-    },
-    "预言诗": {
-      "uses": 5,
-      "tagType": "attribute"
-    },
-    "倒计时": {
-      "uses": 5,
-      "tagType": "buff"
-    },
-    "主角": {
-      "uses": 4,
-      "tagType": "attribute"
-    },
-    "弓箭": {
-      "uses": 4,
-      "tagType": "attribute"
-    },
-    "破除封锁": {
-      "uses": 4,
-      "tagType": "attribute"
-    },
-    "租赁协议": {
-      "uses": 4,
-      "tagType": "attribute"
-    },
-    "邪神的面容": {
-      "uses": 4,
-      "tagType": "attribute"
-    },
-    "正神的面容": {
-      "uses": 4,
-      "tagType": "attribute"
-    },
-    "孤儿": {
-      "uses": 4,
-      "tagType": "attribute"
-    },
-    "梅姬": {
-      "uses": 3,
-      "tagType": "attribute"
-    },
-    "妻子": {
-      "uses": 3,
-      "tagType": "attribute"
-    },
-    "命运的羁绊": {
-      "uses": 3,
-      "tagType": "attribute"
-    },
-    "金币": {
-      "uses": 3,
-      "tagType": "attribute"
-    },
-    "妓女": {
-      "uses": 3,
-      "tagType": "attribute"
-    },
-    "食物": {
-      "uses": 3,
-      "tagType": "attribute"
-    },
-    "激情": {
-      "uses": 3,
-      "tagType": "buff"
-    },
-    "专属": {
-      "uses": 3,
-      "tagType": "attribute"
-    },
-    "关闭": {
-      "uses": 3,
-      "tagType": "attribute"
-    },
-    "未被苏丹所知": {
-      "uses": 3,
-      "tagType": "attribute"
-    },
-    "主角专属2": {
-      "uses": 3,
-      "tagType": "attribute"
-    },
-    "主角专属1": {
-      "uses": 3,
-      "tagType": "attribute"
-    },
-    "法拉杰": {
-      "uses": 3,
-      "tagType": "attribute"
-    },
-    "妖精": {
-      "uses": 3,
-      "tagType": "attribute"
-    },
-    "爱": {
-      "uses": 3,
-      "tagType": "attribute"
-    },
-    "信": {
-      "uses": 3,
-      "tagType": "attribute"
-    },
-    "智": {
-      "uses": 3,
-      "tagType": "attribute"
-    },
-    "力": {
-      "uses": 3,
-      "tagType": "attribute"
-    },
-    "乐": {
-      "uses": 3,
-      "tagType": "attribute"
-    },
-    "金血之证": {
-      "uses": 3,
-      "tagType": "attribute"
-    },
-    "小筹征服": {
-      "uses": 3,
-      "tagType": "attribute"
-    },
-    "异国商人": {
-      "uses": 2,
-      "tagType": "attribute"
-    },
-    "正教的信徒": {
-      "uses": 2,
-      "tagType": "attribute"
-    },
-    "盖斯": {
-      "uses": 2,
-      "tagType": "attribute"
-    },
-    "哲瓦德": {
-      "uses": 2,
-      "tagType": "attribute"
-    },
-    "小偷": {
-      "uses": 2,
-      "tagType": "attribute"
-    },
-    "淫具": {
-      "uses": 2,
-      "tagType": "attribute"
-    },
-    "未鉴定": {
-      "uses": 2,
-      "tagType": "attribute"
-    },
-    "魔力戒指": {
-      "uses": 2,
-      "tagType": "attribute"
-    },
-    "犯罪计划": {
-      "uses": 2,
-      "tagType": "attribute"
-    },
-    "神器": {
-      "uses": 2,
-      "tagType": "attribute"
-    },
-    "玛瑙": {
-      "uses": 2,
-      "tagType": "attribute"
-    },
-    "红玉髓": {
-      "uses": 2,
-      "tagType": "attribute"
-    },
-    "紫水晶": {
-      "uses": 2,
-      "tagType": "attribute"
-    },
-    "祖母绿": {
-      "uses": 2,
-      "tagType": "attribute"
-    },
-    "红宝石": {
-      "uses": 2,
-      "tagType": "attribute"
-    },
-    "蓝宝石": {
-      "uses": 2,
-      "tagType": "attribute"
-    },
-    "钻石": {
-      "uses": 2,
-      "tagType": "attribute"
-    },
-    "热娜": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "密教徒": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "苏丹专属": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "苏丹": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "影响力": {
-      "uses": 1,
-      "tagType": "buff"
-    },
-    "污名": {
-      "uses": 1,
-      "tagType": "buff"
-    },
-    "法图娜": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "扎齐伊": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "不满": {
-      "uses": 1,
-      "tagType": "buff"
-    },
-    "恶名": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "受伤": {
-      "uses": 1,
-      "tagType": "debuff"
-    },
-    "诅咒": {
-      "uses": 1,
-      "tagType": "debuff"
-    },
-    "镜子": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "谗言": {
-      "uses": 1,
-      "tagType": "buff"
-    },
-    "主旋律": {
-      "uses": 1,
-      "tagType": "buff"
-    },
-    "黑街声望": {
-      "uses": 1,
-      "tagType": "buff"
-    },
-    "生病": {
-      "uses": 1,
-      "tagType": "debuff"
-    },
-    "抑郁": {
-      "uses": 1,
-      "tagType": "buff"
-    },
-    "书店老板": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "鳄鱼": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "疯狂": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "宰相": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "质子": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "锁定穆尔台兹": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "主角专属3": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "主角专属4": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "主角专属5": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "小薇": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "小安": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "小留": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "令人开心的妆扮": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "抱猫人": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "魅力护符": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "生命权杖": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "罪证": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "蓄谋": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "奈费勒的优势": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "铁头的优势": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "免疫": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "猜忌": {
-      "uses": 1,
-      "tagType": "buff"
-    },
-    "军队的好感": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "国民的好感": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "官吏的好感": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "赤字": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "不举的传言": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "娜依拉的不满": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "火焰大王": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "芮尔": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "哲瓦德的优势": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "蒙面苏丹": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "苏丹的怒火": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "信誉": {
-      "uses": 1,
-      "tagType": "buff"
-    },
-    "善名的遮掩": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "权势的遮掩": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "侠名的遮掩": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "灵视的遮掩": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "被覆者": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "回应誓言": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "淬毒": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "冤魂": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "正当性": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "尸体": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "被囚禁": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "被流放": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "被侮辱的": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "承阳": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "芮尔手下": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "新月": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "剑客蓄势": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "避孕套": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "锁定祭司": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "伊曼的残留": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "正教的乙太": {
-      "uses": 1,
-      "tagType": "buff"
-    },
-    "变革戒": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "生命之心": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "毒蛇之链": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "欲蛇之纱": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "纯洁之纱": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "群星戒": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "小筹的金币": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "挖矿奴隶": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "妖精女王": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "疲劳": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "羊肉炉": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "羊肉炉飞升进度": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "飞升的阶梯": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "虚空护盾": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "造物的工具": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "第一推动力": {
-      "uses": 1,
-      "tagType": "attribute"
-    },
-    "传说地点": {
-      "uses": 1,
-      "tagType": "attribute"
-    }
+ "_note": "How a card tag behaves, read off all 1294 shipped cards. 'marker' tags are present or absent: every vanilla use is exactly 1. 'stat' tags carry a number and their observed range is listed. The editor renders a marker as a checkbox and a stat as a number input with that range.",
+ "markerCount": 197,
+ "statCount": 20,
+ "marker": {
+  "纯色材质": {
+   "uses": 497,
+   "tagType": "attribute"
   },
-  "stat": {
-    "体魄": {
-      "uses": 365,
-      "min": -3,
-      "max": 99,
-      "values": {
-        "-3": 3,
-        "-2": 2,
-        "-1": 6,
-        "1": 100,
-        "2": 82,
-        "3": 67,
-        "4": 34,
-        "5": 27,
-        "6": 16,
-        "7": 2,
-        "8": 9,
-        "9": 1,
-        "10": 4,
-        "12": 2,
-        "13": 1,
-        "15": 5,
-        "99": 4
-      }
-    },
-    "战斗": {
-      "uses": 356,
-      "min": -1,
-      "max": 99,
-      "values": {
-        "-1": 3,
-        "1": 53,
-        "2": 58,
-        "3": 63,
-        "4": 45,
-        "5": 40,
-        "6": 21,
-        "7": 13,
-        "8": 11,
-        "9": 3,
-        "10": 16,
-        "12": 4,
-        "14": 1,
-        "15": 12,
-        "18": 1,
-        "20": 7,
-        "30": 1,
-        "99": 4
-      }
-    },
-    "魅力": {
-      "uses": 294,
-      "min": -10,
-      "max": 11,
-      "values": {
-        "-10": 1,
-        "-3": 1,
-        "-2": 8,
-        "-1": 8,
-        "1": 92,
-        "2": 76,
-        "3": 53,
-        "4": 24,
-        "5": 17,
-        "7": 5,
-        "8": 3,
-        "9": 3,
-        "10": 2,
-        "11": 1
-      }
-    },
-    "智慧": {
-      "uses": 216,
-      "min": -5,
-      "max": 10,
-      "values": {
-        "-5": 1,
-        "-3": 2,
-        "-2": 2,
-        "-1": 2,
-        "1": 62,
-        "2": 55,
-        "3": 57,
-        "4": 13,
-        "5": 14,
-        "8": 1,
-        "9": 1,
-        "10": 6
-      }
-    },
-    "魔力": {
-      "uses": 196,
-      "min": 1,
-      "max": 99,
-      "values": {
-        "1": 44,
-        "2": 43,
-        "3": 47,
-        "4": 18,
-        "5": 20,
-        "6": 6,
-        "7": 4,
-        "10": 5,
-        "12": 1,
-        "15": 3,
-        "99": 5
-      }
-    },
-    "生存": {
-      "uses": 190,
-      "min": -3,
-      "max": 20,
-      "values": {
-        "-3": 1,
-        "-1": 2,
-        "1": 59,
-        "2": 52,
-        "3": 31,
-        "4": 21,
-        "5": 13,
-        "6": 2,
-        "8": 3,
-        "9": 1,
-        "10": 4,
-        "20": 1
-      }
-    },
-    "社交": {
-      "uses": 182,
-      "min": -5,
-      "max": 10,
-      "values": {
-        "-5": 1,
-        "-3": 1,
-        "-2": 1,
-        "-1": 5,
-        "1": 64,
-        "2": 53,
-        "3": 33,
-        "4": 10,
-        "5": 7,
-        "6": 4,
-        "8": 1,
-        "9": 1,
-        "10": 1
-      }
-    },
-    "隐匿": {
-      "uses": 133,
-      "min": -1,
-      "max": 10,
-      "values": {
-        "-1": 3,
-        "1": 31,
-        "2": 31,
-        "3": 34,
-        "4": 12,
-        "5": 11,
-        "6": 3,
-        "8": 5,
-        "10": 3
-      }
-    },
-    "重投": {
-      "uses": 48,
-      "min": 1,
-      "max": 8,
-      "values": {
-        "1": 14,
-        "2": 12,
-        "3": 13,
-        "4": 8,
-        "8": 1
-      }
-    },
-    "反对": {
-      "uses": 26,
-      "min": 1,
-      "max": 3,
-      "values": {
-        "1": 25,
-        "3": 1
-      }
-    },
-    "支持": {
-      "uses": 25,
-      "min": 1,
-      "max": 3,
-      "values": {
-        "1": 22,
-        "2": 2,
-        "3": 1
-      }
-    },
-    "命运点": {
-      "uses": 16,
-      "min": 1,
-      "max": 4,
-      "values": {
-        "1": 4,
-        "2": 4,
-        "3": 4,
-        "4": 4
-      }
-    },
-    "深度": {
-      "uses": 16,
-      "min": 1,
-      "max": 4,
-      "values": {
-        "1": 4,
-        "2": 4,
-        "3": 4,
-        "4": 4
-      }
-    },
-    "价值": {
-      "uses": 10,
-      "min": 2,
-      "max": 10,
-      "values": {
-        "2": 1,
-        "3": 2,
-        "4": 3,
-        "5": 2,
-        "8": 1,
-        "10": 1
-      }
-    },
-    "身价": {
-      "uses": 7,
-      "min": 1,
-      "max": 12,
-      "values": {
-        "1": 1,
-        "4": 1,
-        "5": 1,
-        "6": 1,
-        "7": 1,
-        "9": 1,
-        "12": 1
-      }
-    },
-    "改革": {
-      "uses": 6,
-      "min": 2,
-      "max": 3,
-      "values": {
-        "2": 4,
-        "3": 2
-      }
-    },
-    "传统": {
-      "uses": 5,
-      "min": 2,
-      "max": 4,
-      "values": {
-        "2": 3,
-        "3": 1,
-        "4": 1
-      }
-    },
-    "追随者": {
-      "uses": 4,
-      "min": -1,
-      "max": 1,
-      "values": {
-        "-1": 1,
-        "1": 3
-      }
-    },
-    "犯罪号召": {
-      "uses": 2,
-      "min": 1,
-      "max": 2,
-      "values": {
-        "1": 1,
-        "2": 1
-      }
-    },
-    "灵感": {
-      "uses": 1,
-      "min": 20,
-      "max": 20,
-      "values": {
-        "20": 1
-      }
-    }
+  "已拥有": {
+   "uses": 311,
+   "tagType": "attribute"
+  },
+  "装备": {
+   "uses": 204,
+   "tagType": "attribute"
+  },
+  "已装备": {
+   "uses": 192,
+   "tagType": "buff"
+  },
+  "可堆叠": {
+   "uses": 132,
+   "tagType": "attribute"
+  },
+  "读物": {
+   "uses": 128,
+   "tagType": "attribute"
+  },
+  "银趴绝缘者": {
+   "uses": 125,
+   "tagType": "attribute"
+  },
+  "男性": {
+   "uses": 106,
+   "tagType": "attribute"
+  },
+  "饰品": {
+   "uses": 92,
+   "tagType": "attribute"
+  },
+  "消耗品": {
+   "uses": 82,
+   "tagType": "attribute"
+  },
+  "部队": {
+   "uses": 77,
+   "tagType": "attribute"
+  },
+  "贵族": {
+   "uses": 68,
+   "tagType": "attribute"
+  },
+  "武器": {
+   "uses": 62,
+   "tagType": "attribute"
+  },
+  "女性": {
+   "uses": 56,
+   "tagType": "attribute"
+  },
+  "食客": {
+   "uses": 52,
+   "tagType": "attribute"
+  },
+  "有跟班": {
+   "uses": 52,
+   "tagType": "attribute"
+  },
+  "怪物": {
+   "uses": 50,
+   "tagType": "attribute"
+  },
+  "装备商人": {
+   "uses": 49,
+   "tagType": "attribute"
+  },
+  "大餐": {
+   "uses": 36,
+   "tagType": "attribute"
+  },
+  "服装": {
+   "uses": 34,
+   "tagType": "attribute"
+  },
+  "情报": {
+   "uses": 28,
+   "tagType": "attribute"
+  },
+  "动物": {
+   "uses": 24,
+   "tagType": "attribute"
+  },
+  "苏丹卡": {
+   "uses": 20,
+   "tagType": "attribute"
+  },
+  "思潮": {
+   "uses": 19,
+   "tagType": "attribute"
+  },
+  "驯兽": {
+   "uses": 15,
+   "tagType": "attribute"
+  },
+  "恶名谋杀者": {
+   "uses": 15,
+   "tagType": "attribute"
+  },
+  "秘宝": {
+   "uses": 15,
+   "tagType": "attribute"
+  },
+  "宝石": {
+   "uses": 15,
+   "tagType": "attribute"
+  },
+  "地点": {
+   "uses": 14,
+   "tagType": "attribute"
+  },
+  "天象": {
+   "uses": 14,
+   "tagType": "attribute"
+  },
+  "爱书人": {
+   "uses": 13,
+   "tagType": "attribute"
+  },
+  "妆扮": {
+   "uses": 10,
+   "tagType": "attribute"
+  },
+  "黑暗知识": {
+   "uses": 9,
+   "tagType": "attribute"
+  },
+  "任意处置": {
+   "uses": 9,
+   "tagType": "attribute"
+  },
+  "部落遗物": {
+   "uses": 9,
+   "tagType": "attribute"
+  },
+  "空屋": {
+   "uses": 9,
+   "tagType": "attribute"
+  },
+  "苏丹的精兵": {
+   "uses": 9,
+   "tagType": "attribute"
+  },
+  "苏丹的近卫": {
+   "uses": 8,
+   "tagType": "attribute"
+  },
+  "奴隶": {
+   "uses": 8,
+   "tagType": "attribute"
+  },
+  "奇珍": {
+   "uses": 8,
+   "tagType": "attribute"
+  },
+  "坐骑": {
+   "uses": 7,
+   "tagType": "attribute"
+  },
+  "囚徒": {
+   "uses": 7,
+   "tagType": "attribute"
+  },
+  "恶名挑战者": {
+   "uses": 7,
+   "tagType": "attribute"
+  },
+  "墓碑": {
+   "uses": 7,
+   "tagType": "attribute"
+  },
+  "小颗": {
+   "uses": 7,
+   "tagType": "attribute"
+  },
+  "大颗": {
+   "uses": 7,
+   "tagType": "attribute"
+  },
+  "黑街居民": {
+   "uses": 6,
+   "tagType": "attribute"
+  },
+  "耐心": {
+   "uses": 6,
+   "tagType": "buff"
+  },
+  "装潢": {
+   "uses": 6,
+   "tagType": "buff"
+  },
+  "情诗": {
+   "uses": 6,
+   "tagType": "attribute"
+  },
+  "史诗": {
+   "uses": 6,
+   "tagType": "attribute"
+  },
+  "小筹": {
+   "uses": 6,
+   "tagType": "attribute"
+  },
+  "描边": {
+   "uses": 6,
+   "tagType": "?"
+  },
+  "将领": {
+   "uses": 5,
+   "tagType": "attribute"
+  },
+  "金色文字": {
+   "uses": 5,
+   "tagType": "?"
+  },
+  "杀戮": {
+   "uses": 5,
+   "tagType": "attribute"
+  },
+  "纵欲": {
+   "uses": 5,
+   "tagType": "attribute"
+  },
+  "奢靡": {
+   "uses": 5,
+   "tagType": "attribute"
+  },
+  "征服": {
+   "uses": 5,
+   "tagType": "attribute"
+  },
+  "讽刺诗": {
+   "uses": 5,
+   "tagType": "attribute"
+  },
+  "预言诗": {
+   "uses": 5,
+   "tagType": "attribute"
+  },
+  "倒计时": {
+   "uses": 5,
+   "tagType": "buff"
+  },
+  "主角": {
+   "uses": 4,
+   "tagType": "attribute"
+  },
+  "弓箭": {
+   "uses": 4,
+   "tagType": "attribute"
+  },
+  "破除封锁": {
+   "uses": 4,
+   "tagType": "attribute"
+  },
+  "租赁协议": {
+   "uses": 4,
+   "tagType": "attribute"
+  },
+  "邪神的面容": {
+   "uses": 4,
+   "tagType": "attribute"
+  },
+  "正神的面容": {
+   "uses": 4,
+   "tagType": "attribute"
+  },
+  "孤儿": {
+   "uses": 4,
+   "tagType": "attribute"
+  },
+  "梅姬": {
+   "uses": 3,
+   "tagType": "attribute"
+  },
+  "妻子": {
+   "uses": 3,
+   "tagType": "attribute"
+  },
+  "命运的羁绊": {
+   "uses": 3,
+   "tagType": "attribute"
+  },
+  "金币": {
+   "uses": 3,
+   "tagType": "attribute"
+  },
+  "妓女": {
+   "uses": 3,
+   "tagType": "attribute"
+  },
+  "食物": {
+   "uses": 3,
+   "tagType": "attribute"
+  },
+  "激情": {
+   "uses": 3,
+   "tagType": "buff"
+  },
+  "专属": {
+   "uses": 3,
+   "tagType": "attribute"
+  },
+  "关闭": {
+   "uses": 3,
+   "tagType": "attribute"
+  },
+  "未被苏丹所知": {
+   "uses": 3,
+   "tagType": "attribute"
+  },
+  "主角专属2": {
+   "uses": 3,
+   "tagType": "attribute"
+  },
+  "主角专属1": {
+   "uses": 3,
+   "tagType": "attribute"
+  },
+  "法拉杰": {
+   "uses": 3,
+   "tagType": "attribute"
+  },
+  "妖精": {
+   "uses": 3,
+   "tagType": "attribute"
+  },
+  "爱": {
+   "uses": 3,
+   "tagType": "attribute"
+  },
+  "信": {
+   "uses": 3,
+   "tagType": "attribute"
+  },
+  "智": {
+   "uses": 3,
+   "tagType": "attribute"
+  },
+  "力": {
+   "uses": 3,
+   "tagType": "attribute"
+  },
+  "乐": {
+   "uses": 3,
+   "tagType": "attribute"
+  },
+  "金血之证": {
+   "uses": 3,
+   "tagType": "attribute"
+  },
+  "小筹征服": {
+   "uses": 3,
+   "tagType": "attribute"
+  },
+  "异国商人": {
+   "uses": 2,
+   "tagType": "attribute"
+  },
+  "正教的信徒": {
+   "uses": 2,
+   "tagType": "attribute"
+  },
+  "盖斯": {
+   "uses": 2,
+   "tagType": "attribute"
+  },
+  "哲瓦德": {
+   "uses": 2,
+   "tagType": "attribute"
+  },
+  "小偷": {
+   "uses": 2,
+   "tagType": "attribute"
+  },
+  "淫具": {
+   "uses": 2,
+   "tagType": "attribute"
+  },
+  "未鉴定": {
+   "uses": 2,
+   "tagType": "attribute"
+  },
+  "魔力戒指": {
+   "uses": 2,
+   "tagType": "attribute"
+  },
+  "犯罪计划": {
+   "uses": 2,
+   "tagType": "attribute"
+  },
+  "神器": {
+   "uses": 2,
+   "tagType": "attribute"
+  },
+  "玛瑙": {
+   "uses": 2,
+   "tagType": "attribute"
+  },
+  "红玉髓": {
+   "uses": 2,
+   "tagType": "attribute"
+  },
+  "紫水晶": {
+   "uses": 2,
+   "tagType": "attribute"
+  },
+  "祖母绿": {
+   "uses": 2,
+   "tagType": "attribute"
+  },
+  "红宝石": {
+   "uses": 2,
+   "tagType": "attribute"
+  },
+  "蓝宝石": {
+   "uses": 2,
+   "tagType": "attribute"
+  },
+  "钻石": {
+   "uses": 2,
+   "tagType": "attribute"
+  },
+  "热娜": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "密教徒": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "苏丹专属": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "苏丹": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "影响力": {
+   "uses": 1,
+   "tagType": "buff"
+  },
+  "污名": {
+   "uses": 1,
+   "tagType": "buff"
+  },
+  "法图娜": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "扎齐伊": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "不满": {
+   "uses": 1,
+   "tagType": "buff"
+  },
+  "恶名": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "受伤": {
+   "uses": 1,
+   "tagType": "debuff"
+  },
+  "诅咒": {
+   "uses": 1,
+   "tagType": "debuff"
+  },
+  "镜子": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "谗言": {
+   "uses": 1,
+   "tagType": "buff"
+  },
+  "主旋律": {
+   "uses": 1,
+   "tagType": "buff"
+  },
+  "黑街声望": {
+   "uses": 1,
+   "tagType": "buff"
+  },
+  "生病": {
+   "uses": 1,
+   "tagType": "debuff"
+  },
+  "抑郁": {
+   "uses": 1,
+   "tagType": "buff"
+  },
+  "书店老板": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "鳄鱼": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "疯狂": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "宰相": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "质子": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "锁定穆尔台兹": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "主角专属3": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "主角专属4": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "主角专属5": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "小薇": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "小安": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "小留": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "令人开心的妆扮": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "抱猫人": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "魅力护符": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "生命权杖": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "罪证": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "蓄谋": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "奈费勒的优势": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "铁头的优势": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "免疫": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "猜忌": {
+   "uses": 1,
+   "tagType": "buff"
+  },
+  "军队的好感": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "国民的好感": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "官吏的好感": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "赤字": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "不举的传言": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "娜依拉的不满": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "火焰大王": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "芮尔": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "哲瓦德的优势": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "蒙面苏丹": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "苏丹的怒火": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "信誉": {
+   "uses": 1,
+   "tagType": "buff"
+  },
+  "善名的遮掩": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "权势的遮掩": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "侠名的遮掩": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "灵视的遮掩": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "被覆者": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "回应誓言": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "淬毒": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "冤魂": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "正当性": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "尸体": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "被囚禁": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "被流放": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "被侮辱的": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "承阳": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "芮尔手下": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "新月": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "剑客蓄势": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "避孕套": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "锁定祭司": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "伊曼的残留": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "正教的乙太": {
+   "uses": 1,
+   "tagType": "buff"
+  },
+  "变革戒": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "生命之心": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "毒蛇之链": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "欲蛇之纱": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "纯洁之纱": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "群星戒": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "小筹的金币": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "挖矿奴隶": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "妖精女王": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "疲劳": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "羊肉炉": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "羊肉炉飞升进度": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "飞升的阶梯": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "虚空护盾": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "造物的工具": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "第一推动力": {
+   "uses": 1,
+   "tagType": "attribute"
+  },
+  "传说地点": {
+   "uses": 1,
+   "tagType": "attribute"
   }
+ },
+ "stat": {
+  "体魄": {
+   "uses": 365,
+   "min": -3,
+   "max": 99,
+   "values": {
+    "-3": 3,
+    "-2": 2,
+    "-1": 6,
+    "1": 100,
+    "2": 82,
+    "3": 67,
+    "4": 34,
+    "5": 27,
+    "6": 16,
+    "7": 2,
+    "8": 9,
+    "9": 1,
+    "10": 4,
+    "12": 2,
+    "13": 1,
+    "15": 5,
+    "99": 4
+   }
+  },
+  "战斗": {
+   "uses": 356,
+   "min": -1,
+   "max": 99,
+   "values": {
+    "-1": 3,
+    "1": 53,
+    "2": 58,
+    "3": 63,
+    "4": 45,
+    "5": 40,
+    "6": 21,
+    "7": 13,
+    "8": 11,
+    "9": 3,
+    "10": 16,
+    "12": 4,
+    "14": 1,
+    "15": 12,
+    "18": 1,
+    "20": 7,
+    "30": 1,
+    "99": 4
+   }
+  },
+  "魅力": {
+   "uses": 294,
+   "min": -10,
+   "max": 11,
+   "values": {
+    "-10": 1,
+    "-3": 1,
+    "-2": 8,
+    "-1": 8,
+    "1": 92,
+    "2": 76,
+    "3": 53,
+    "4": 24,
+    "5": 17,
+    "7": 5,
+    "8": 3,
+    "9": 3,
+    "10": 2,
+    "11": 1
+   }
+  },
+  "智慧": {
+   "uses": 216,
+   "min": -5,
+   "max": 10,
+   "values": {
+    "-5": 1,
+    "-3": 2,
+    "-2": 2,
+    "-1": 2,
+    "1": 62,
+    "2": 55,
+    "3": 57,
+    "4": 13,
+    "5": 14,
+    "8": 1,
+    "9": 1,
+    "10": 6
+   }
+  },
+  "魔力": {
+   "uses": 196,
+   "min": 1,
+   "max": 99,
+   "values": {
+    "1": 44,
+    "2": 43,
+    "3": 47,
+    "4": 18,
+    "5": 20,
+    "6": 6,
+    "7": 4,
+    "10": 5,
+    "12": 1,
+    "15": 3,
+    "99": 5
+   }
+  },
+  "生存": {
+   "uses": 190,
+   "min": -3,
+   "max": 20,
+   "values": {
+    "-3": 1,
+    "-1": 2,
+    "1": 59,
+    "2": 52,
+    "3": 31,
+    "4": 21,
+    "5": 13,
+    "6": 2,
+    "8": 3,
+    "9": 1,
+    "10": 4,
+    "20": 1
+   }
+  },
+  "社交": {
+   "uses": 182,
+   "min": -5,
+   "max": 10,
+   "values": {
+    "-5": 1,
+    "-3": 1,
+    "-2": 1,
+    "-1": 5,
+    "1": 64,
+    "2": 53,
+    "3": 33,
+    "4": 10,
+    "5": 7,
+    "6": 4,
+    "8": 1,
+    "9": 1,
+    "10": 1
+   }
+  },
+  "隐匿": {
+   "uses": 133,
+   "min": -1,
+   "max": 10,
+   "values": {
+    "-1": 3,
+    "1": 31,
+    "2": 31,
+    "3": 34,
+    "4": 12,
+    "5": 11,
+    "6": 3,
+    "8": 5,
+    "10": 3
+   }
+  },
+  "重投": {
+   "uses": 48,
+   "min": 1,
+   "max": 8,
+   "values": {
+    "1": 14,
+    "2": 12,
+    "3": 13,
+    "4": 8,
+    "8": 1
+   }
+  },
+  "反对": {
+   "uses": 26,
+   "min": 1,
+   "max": 3,
+   "values": {
+    "1": 25,
+    "3": 1
+   }
+  },
+  "支持": {
+   "uses": 25,
+   "min": 1,
+   "max": 3,
+   "values": {
+    "1": 22,
+    "2": 2,
+    "3": 1
+   }
+  },
+  "命运点": {
+   "uses": 16,
+   "min": 1,
+   "max": 4,
+   "values": {
+    "1": 4,
+    "2": 4,
+    "3": 4,
+    "4": 4
+   }
+  },
+  "深度": {
+   "uses": 16,
+   "min": 1,
+   "max": 4,
+   "values": {
+    "1": 4,
+    "2": 4,
+    "3": 4,
+    "4": 4
+   }
+  },
+  "价值": {
+   "uses": 10,
+   "min": 2,
+   "max": 10,
+   "values": {
+    "2": 1,
+    "3": 2,
+    "4": 3,
+    "5": 2,
+    "8": 1,
+    "10": 1
+   }
+  },
+  "身价": {
+   "uses": 7,
+   "min": 1,
+   "max": 12,
+   "values": {
+    "1": 1,
+    "4": 1,
+    "5": 1,
+    "6": 1,
+    "7": 1,
+    "9": 1,
+    "12": 1
+   }
+  },
+  "改革": {
+   "uses": 6,
+   "min": 2,
+   "max": 3,
+   "values": {
+    "2": 4,
+    "3": 2
+   }
+  },
+  "传统": {
+   "uses": 5,
+   "min": 2,
+   "max": 4,
+   "values": {
+    "2": 3,
+    "3": 1,
+    "4": 1
+   }
+  },
+  "追随者": {
+   "uses": 4,
+   "min": -1,
+   "max": 1,
+   "values": {
+    "-1": 1,
+    "1": 3
+   }
+  },
+  "犯罪号召": {
+   "uses": 2,
+   "min": 1,
+   "max": 2,
+   "values": {
+    "1": 1,
+    "2": 1
+   }
+  },
+  "灵感": {
+   "uses": 1,
+   "min": 20,
+   "max": 20,
+   "values": {
+    "20": 1
+   }
+  }
+ },
+ "allTagNames": {
+  "_note": "Every tag defined in tag.json, so the editor can offer a real key instead of free text. usedOnCards marks the ones that actually appear on a card in vanilla. A card tag key that is not one of these names is inert: the engine registers its tag conditions from tag.json, so nothing can test it.",
+  "count": 444,
+  "usedOnCards": 215,
+  "names": [
+   {
+    "name": "不举的传言",
+    "code": "lock_37",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "专属",
+    "code": "exclusive",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "主角",
+    "code": "player",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "主角专属1",
+    "code": "lock_7",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "主角专属2",
+    "code": "lock_8",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "主角专属3",
+    "code": "lock_9",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "主角专属4",
+    "code": "lock_10",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "主角专属5",
+    "code": "lock_11",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "乐",
+    "code": "lock_77",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "书店老板",
+    "code": "lock_13",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "令人开心的妆扮",
+    "code": "dressup_1",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "任意处置",
+    "code": "lock_130",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "伊曼的残留",
+    "code": "lock_139",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "传说地点",
+    "code": "myth_position",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "侠名的遮掩",
+    "code": "lock_66",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "信",
+    "code": "lock_74",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "免疫",
+    "code": "lock_19",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "关闭",
+    "code": "close",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "军队的好感",
+    "code": "lock_33",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "冤魂",
+    "code": "lock_117",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "剑客蓄势",
+    "code": "lock_120",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "力",
+    "code": "lock_76",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "动物",
+    "code": "animal",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "变革戒",
+    "code": "lock_240",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "可堆叠",
+    "code": "stackable",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "史诗",
+    "code": "lock_172",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "命运点",
+    "code": "upgrade_point",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "命运的羁绊",
+    "code": "lock_friendship",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "哲瓦德",
+    "code": "zhewade",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "哲瓦德的优势",
+    "code": "lock_55",
+    "type": "attribute",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "善名的遮掩",
+    "code": "lock_64",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "囚徒",
+    "code": "prisoner",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "回应誓言",
+    "code": "lock_123",
+    "type": "attribute",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "国民的好感",
+    "code": "lock_34",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "地点",
+    "code": "position",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "坐骑",
+    "code": "mount",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "墓碑",
+    "code": "lock_155",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "大颗",
+    "code": "lock_195",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "大餐",
+    "code": "feast",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "天象",
+    "code": "sky",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "奇珍",
+    "code": "heirloom",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "奈费勒的优势",
+    "code": "lock_16",
+    "type": "attribute",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "奢靡",
+    "code": "wastefulness",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "女性",
+    "code": "female",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "奴隶",
+    "code": "slave",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "妆扮",
+    "code": "dressup",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "妓女",
+    "code": "whore",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "妖精",
+    "code": "faerie",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "妖精女王",
+    "code": "faeriequeen",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "妻子",
+    "code": "wife",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "娜依拉的不满",
+    "code": "lock_40",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "孤儿",
+    "code": "lock_79",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "官吏的好感",
+    "code": "lock_35",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "宝石",
+    "code": "jewel",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "宰相",
+    "code": "minister",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "密教徒",
+    "code": "giaour",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "将领",
+    "code": "general",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "小偷",
+    "code": "thief",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "小安",
+    "code": "lock_205",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "小留",
+    "code": "lock_206",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "小筹",
+    "code": "lock_162",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "小筹征服",
+    "code": "lock_170",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "小筹的金币",
+    "code": "lock_169",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "小薇",
+    "code": "lock_204",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "小颗",
+    "code": "lock_196",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "尸体",
+    "code": "lock_94",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "已拥有",
+    "code": "own",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "异国商人",
+    "code": "foreign_businessmen",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "弓箭",
+    "code": "bow",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "征服",
+    "code": "war",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "思潮",
+    "code": "thought",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "怪物",
+    "code": "monster",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "恶名",
+    "code": "crime",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "恶名挑战者",
+    "code": "lock_15",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "恶名谋杀者",
+    "code": "lock_18",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "情报",
+    "code": "intelligent",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "情诗",
+    "code": "lock_171",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "扎齐伊",
+    "code": "lock_147",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "承阳",
+    "code": "lock_98",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "抱猫人",
+    "code": "catcatcher",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "挖矿奴隶",
+    "code": "mine_slave",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "新月",
+    "code": "lock_115",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "智",
+    "code": "lock_75",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "有跟班",
+    "code": "lock_39",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "服装",
+    "code": "cloth",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "未被苏丹所知",
+    "code": "sudan_miss",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "未鉴定",
+    "code": "unidentified",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "杀戮",
+    "code": "kill",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "权势的遮掩",
+    "code": "lock_65",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "梅姬",
+    "code": "lock_160",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "欲蛇之纱",
+    "code": "lock_157",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "正当性",
+    "code": "lock_87",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "正教的信徒",
+    "code": "believer",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "正神的面容",
+    "code": "lock_57",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "武器",
+    "code": "weapon",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "毒蛇之链",
+    "code": "lock_154",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "法图娜",
+    "code": "lock_159",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "法拉杰",
+    "code": "falajie",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "消耗品",
+    "code": "consumable",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "淫具",
+    "code": "love_treasure",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "淬毒",
+    "code": "lock_92",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "火焰大王",
+    "code": "lock_51",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "灵视的遮掩",
+    "code": "lock_67",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "热娜",
+    "code": "lock_197",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "爱",
+    "code": "lock_73",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "爱书人",
+    "code": "like_reading",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "犯罪计划",
+    "code": "criminal_plan",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "玛瑙",
+    "code": "lock_185",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "生命之心",
+    "code": "lock_156",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "生命权杖",
+    "code": "life_rod_user",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "男性",
+    "code": "man",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "疯狂",
+    "code": "crazy",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "疲劳",
+    "code": "fatigue",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "盖斯",
+    "code": "gaisi",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "破除封锁",
+    "code": "outer_road",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "祖母绿",
+    "code": "lock_188",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "神器",
+    "code": "lock_198",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "秘宝",
+    "code": "lock_168",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "租赁协议",
+    "code": "rent",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "空屋",
+    "code": "lock_22",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "第一推动力",
+    "code": "lock_237",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "紫水晶",
+    "code": "lock_187",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "红宝石",
+    "code": "lock_189",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "红玉髓",
+    "code": "lock_186",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "纯洁之纱",
+    "code": "lock_158",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "纯色材质",
+    "code": "pure",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "纵欲",
+    "code": "desire",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "罪证",
+    "code": "evidence",
+    "type": "attribute",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "羊肉炉",
+    "code": "yrl",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "羊肉炉飞升进度",
+    "code": "lock_231",
+    "type": "attribute",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "群星戒",
+    "code": "lock_241",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "芮尔",
+    "code": "lock_102",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "芮尔手下",
+    "code": "lock_103",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "苏丹",
+    "code": "lock_104",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "苏丹专属",
+    "code": "lock_6",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "苏丹卡",
+    "code": "sudancard",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "苏丹的怒火",
+    "code": "sudan_angry",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "苏丹的精兵",
+    "code": "lock_88",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "苏丹的近卫",
+    "code": "guard",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "蒙面苏丹",
+    "code": "lock_62",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "蓄谋",
+    "code": "lock_20",
+    "type": "attribute",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "蓝宝石",
+    "code": "lock_190",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "虚空护盾",
+    "code": "lock_235",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "被侮辱的",
+    "code": "lock_97",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "被囚禁",
+    "code": "lock_95",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "被流放",
+    "code": "lock_96",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "被覆者",
+    "code": "lock_86",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "装备",
+    "code": "equipment",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "装备商人",
+    "code": "lock_5",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "讽刺诗",
+    "code": "lock_173",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "读物",
+    "code": "read",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "质子",
+    "code": "hostage",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "贵族",
+    "code": "noble",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "赤字",
+    "code": "lock_36",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "追随者",
+    "code": "adherent",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "造物的工具",
+    "code": "lock_236",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "避孕套",
+    "code": "lock_126",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "邪神的面容",
+    "code": "lock_58",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "部落遗物",
+    "code": "tribal_relics",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "部队",
+    "code": "army",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "金币",
+    "code": "coin",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "金血之证",
+    "code": "lock_119",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "钻石",
+    "code": "lock_191",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "铁头的优势",
+    "code": "lock_17",
+    "type": "attribute",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "银趴绝缘者",
+    "code": "noyinpa",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "锁定祭司",
+    "code": "lock_230",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "锁定穆尔台兹",
+    "code": "lock_31",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "镜子",
+    "code": "mirror",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "预言诗",
+    "code": "lock_174",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "飞升的阶梯",
+    "code": "lock_232",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "食客",
+    "code": "lock_23",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "食物",
+    "code": "food",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "饰品",
+    "code": "accessory",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "驯兽",
+    "code": "animal_handling",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "魅力护符",
+    "code": "lock_12",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "魔力戒指",
+    "code": "magic_ring",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "鳄鱼",
+    "code": "lock_99",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "黑暗知识",
+    "code": "dark_ knowledge",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "黑街居民",
+    "code": "criminal",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "不满",
+    "code": "displeased",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "主旋律",
+    "code": "theme",
+    "type": "buff",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "价值",
+    "code": "money",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "传统",
+    "code": "lock_101",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "体魄",
+    "code": "physique",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "信誉",
+    "code": "lock_61",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "倒计时",
+    "code": "lock_49",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "反对",
+    "code": "oppose",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "已装备",
+    "code": "lock_52",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "影响力",
+    "code": "influence",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "战斗",
+    "code": "battle",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "抑郁",
+    "code": "depresssion",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "支持",
+    "code": "support",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "改革",
+    "code": "lock_100",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "智慧",
+    "code": "wisdom",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "正教的乙太",
+    "code": "lock_136",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "污名",
+    "code": "stigma",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "深度",
+    "code": "lock_132",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "激情",
+    "code": "passion",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "灵感",
+    "code": "inspiration",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "犯罪号召",
+    "code": "criminal_call",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "猜忌",
+    "code": "lock_32",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "生存",
+    "code": "survival",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "社交",
+    "code": "social",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "耐心",
+    "code": "patience",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "装潢",
+    "code": "ornament",
+    "type": "buff",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "谗言",
+    "code": "calumny",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": true
+   },
+   {
+    "name": "身价",
+    "code": "salary",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "重投",
+    "code": "reroll",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "隐匿",
+    "code": "conceal",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "魅力",
+    "code": "charm",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "魔力",
+    "code": "magic",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "黑街声望",
+    "code": "black_prestige",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "受伤",
+    "code": "hurt",
+    "type": "debuff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "生病",
+    "code": "sick",
+    "type": "debuff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "诅咒",
+    "code": "cursed",
+    "type": "debuff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": true
+   },
+   {
+    "name": "上朝",
+    "code": "lock_63",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "不洁的援助",
+    "code": "uncleanhelp",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "事件提示",
+    "code": "ithink",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "人类",
+    "code": "human",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "传令官",
+    "code": "lock_90",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "传奇",
+    "code": "legend",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "你的圣主",
+    "code": "lock_125",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "使用过的",
+    "code": "lock_38",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "侍奉苏丹",
+    "code": "lock_3",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "侍奉苏丹2",
+    "code": "lock_4",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "侧室",
+    "code": "concubine",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "入圣",
+    "code": "be_god",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "入宫",
+    "code": "topalace",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "入梦",
+    "code": "lock_83",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "冻结",
+    "code": "freeze",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "准备祭品",
+    "code": "lock_199",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "刀风训练",
+    "code": "lock_108",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "创世书",
+    "code": "creation_book",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "刺青",
+    "code": "tattoo",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "剑客暗杀目标",
+    "code": "lock_122",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "匪帮",
+    "code": "lock_242",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "医典锁定",
+    "code": "lock_177",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "博爱",
+    "code": "turelove",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "友谊的见证",
+    "code": "friendship",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "变身公主",
+    "code": "convert",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "古老的誓约",
+    "code": "ancient_oath",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "召见",
+    "code": "summon",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "可雇佣",
+    "code": "canemploy",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "吃咬人馍",
+    "code": "lock_227",
+    "type": "attribute",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "吃杀人汽水",
+    "code": "lock_224",
+    "type": "attribute",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "吃眼球花馕",
+    "code": "lock_223",
+    "type": "attribute",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "吃空壳酿肉",
+    "code": "lock_226",
+    "type": "attribute",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "吃骷髅泡酒",
+    "code": "lock_228",
+    "type": "attribute",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "吃魅魔奶茶",
+    "code": "lock_229",
+    "type": "attribute",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "吃麻辣蛇脖",
+    "code": "lock_225",
+    "type": "attribute",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "后宫援助",
+    "code": "helpsister",
+    "type": "attribute",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "君王的胸襟",
+    "code": "lock_148",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "吸收信徒",
+    "code": "lock_145",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "吸收天使",
+    "code": "lock_143",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "吸收念珠",
+    "code": "lock_144",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "吸收王冠",
+    "code": "lock_146",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "命运变动",
+    "code": "lock_176",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "和小安纵欲",
+    "code": "lock_207",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "哈桑与美人",
+    "code": "lock_175",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "商人",
+    "code": "businessman",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "善良的样子",
+    "code": "lock_181",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "囚徒奈费勒",
+    "code": "lock_53",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "回收",
+    "code": "recovery",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "圣兽",
+    "code": "lock_218",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "圣者",
+    "code": "lock_209",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "地下城",
+    "code": "dungeon",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "塔",
+    "code": "lock_134",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "墓碑前",
+    "code": "fronttomb",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "处刑",
+    "code": "lock_116",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "夏玛的客人",
+    "code": "guest_3",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "大敌",
+    "code": "enemy",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "失去战力",
+    "code": "lock_89",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "奈布哈尼准备银趴",
+    "code": "lock_85",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "女王的祝福",
+    "code": "lock_216",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "安全屋",
+    "code": "lock_84",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "宝石宣传",
+    "code": "lock_192",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "宝石宣传二",
+    "code": "lock_193",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "密教妆",
+    "code": "lock_141",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "寡妇标记",
+    "code": "mark4",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "屠龙者",
+    "code": "dragon_slayer",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "屠龙苏丹",
+    "code": "dragon_slayer_sudan",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "已体悟",
+    "code": "lock_47",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "已和骑兵队长对决过",
+    "code": "have_vs_riderleader",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "已安利",
+    "code": "lock_140",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "已布道",
+    "code": "lock_214",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "已打孔",
+    "code": "bedrill",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "已拖延",
+    "code": "lock_124",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "已收容",
+    "code": "lock_78",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "已教学",
+    "code": "lock_203",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "已获亵渎之欢",
+    "code": "lock_42",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "已获勇士之欢",
+    "code": "lock_44",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "已获异域之欢",
+    "code": "lock_45",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "已获掠夺之欢",
+    "code": "lock_41",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "已获放浪之欢",
+    "code": "lock_43",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "已获毁灭之欢",
+    "code": "lock_46",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "已镶嵌",
+    "code": "bejewel",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "平等",
+    "code": "equality",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "开启",
+    "code": "open",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "弑神战士",
+    "code": "kill_god",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "强侠的样子",
+    "code": "lock_184",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "御厨",
+    "code": "lock_114",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "忏悔",
+    "code": "confession",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "忠心耿耿",
+    "code": "lock_200",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "恶名锁定",
+    "code": "lock_21",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "战士小筹",
+    "code": "lock_164",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "打包的财物",
+    "code": "lock_70",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "拒绝神",
+    "code": "lock_215",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "掌权的样子",
+    "code": "lock_183",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "推门的协助",
+    "code": "lock_238",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "援助怪物",
+    "code": "helpmonster",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "支持者",
+    "code": "supporter",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "教领",
+    "code": "religion_leader",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "斗技场冠军",
+    "code": "champion",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "新剧情",
+    "code": "newstory",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "新妻",
+    "code": "new_wife",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "新婚",
+    "code": "newlywed",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "新神",
+    "code": "lock_212",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "旗手",
+    "code": "lock_91",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "无主",
+    "code": "lock_48",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "无用",
+    "code": "lock_121",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "晋升",
+    "code": "lock_113",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "智者小筹",
+    "code": "lock_165",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "暂留的食客1",
+    "code": "lock_24",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "暂留的食客2",
+    "code": "lock_25",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "暂留的食客3",
+    "code": "lock_26",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "暂留的食客4",
+    "code": "lock_27",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "暂留的食客5",
+    "code": "lock_28",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "暂留的食客6",
+    "code": "lock_29",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "暗示的印记",
+    "code": "slave_mark",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "最重要的人",
+    "code": "lock_118",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "服装存货",
+    "code": "cloth_keep",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "朱娜的客人",
+    "code": "guest_1",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "枪姬训练",
+    "code": "lock_107",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "梅姬离开",
+    "code": "wife_runaway",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "欢宴之主",
+    "code": "lock_178",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "正教典范",
+    "code": "paragon",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "正神",
+    "code": "lock_210",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "武器存货",
+    "code": "weapon_keep",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "死仇",
+    "code": "enmity",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "污染者",
+    "code": "lock_138",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "治疗者",
+    "code": "healer",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "流浪的人",
+    "code": "wanderer",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "流浪舞姬",
+    "code": "sister_runaway",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "浴场",
+    "code": "bathhouse",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "滋长",
+    "code": "growing",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "火焰大王2",
+    "code": "lock_239",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "烂泥训练",
+    "code": "lock_105",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "独自屠龙",
+    "code": "dragon_alone",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "猎魂训练",
+    "code": "lock_109",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "盟友",
+    "code": "ally",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "目的地",
+    "code": "lock_68",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "碎纸训练",
+    "code": "lock_110",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "社会化",
+    "code": "lock_202",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "祝福",
+    "code": "blessing",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "神临主持",
+    "code": "lock_137",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "神性",
+    "code": "lock_213",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "神明",
+    "code": "lock_208",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "神的代言人",
+    "code": "lock_221",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "神的侍从",
+    "code": "lock_194",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "神的回音",
+    "code": "lock_133",
+    "type": "attribute",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "神的祝福",
+    "code": "lock_219",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "神的诅咒",
+    "code": "lock_220",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "神选冠军",
+    "code": "lock_217",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "秘誓",
+    "code": "lock_50",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "等死吧阿卜德",
+    "code": "lock_56",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "索拉薇儿的客人",
+    "code": "guest_4",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "纵欲的痕迹",
+    "code": "traces_of_desire",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "经历痛苦",
+    "code": "lock_180",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "结局",
+    "code": "lock_72",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "罪犯投奔",
+    "code": "lock_30",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "美德",
+    "code": "virtue",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "自宅",
+    "code": "home",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "自由日",
+    "code": "freedomday",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "苏丹的妃子",
+    "code": "consort_of_sudan",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "苏丹的猎物",
+    "code": "lock_112",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "苏丹的玩偶",
+    "code": "sudan_doll",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "荆棘戒指",
+    "code": "lock_161",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "血肉附魔",
+    "code": "bloodaround",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "被向导",
+    "code": "lock_222",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "被抓",
+    "code": "lock_135",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "被牺牲",
+    "code": "lock_81",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "被献祭",
+    "code": "lock_80",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "被驯服的人",
+    "code": "lock_152",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "被驱逐",
+    "code": "lock_82",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "见证者",
+    "code": "lock_111",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "观点",
+    "code": "viewpoint",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "诗人小筹",
+    "code": "lock_166",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "诞生",
+    "code": "lock_142",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "豺狼训练",
+    "code": "lock_106",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "贬斥",
+    "code": "demoted",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "贵族小筹",
+    "code": "lock_167",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "贾丽拉的客人",
+    "code": "guest_2",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "追随的人",
+    "code": "lock_71",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "逃跑",
+    "code": "run",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "逃跑的方法",
+    "code": "lock_69",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "遗世",
+    "code": "lost",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "邪恶化身",
+    "code": "evil",
+    "type": "attribute",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "邪恶的样子",
+    "code": "lock_182",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "邪神",
+    "code": "lock_211",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "金屋藏娇",
+    "code": "lock_54",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "锁定妓女1",
+    "code": "lock_1",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "锁定妓女2",
+    "code": "lock_2",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "锁定小筹",
+    "code": "lock_163",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "锁定阿萨尔",
+    "code": "lock_179",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "长寿的印记",
+    "code": "longevity_mark",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "障眼法",
+    "code": "myhero",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "额外影响",
+    "code": "constant",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "飞升特殊失败",
+    "code": "lock_234",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "飞升特殊成功",
+    "code": "lock_233",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "饰品存货",
+    "code": "jewelry_keep",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "馆藏",
+    "code": "lock_149",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "马衔使用者",
+    "code": "lock_153",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "魔厨",
+    "code": "chef",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "鹿头装饰",
+    "code": "lock_201",
+    "type": "attribute",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "黑化",
+    "code": "beevil",
+    "type": "attribute",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "休息",
+    "code": "release",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "传染",
+    "code": "lock_131",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "借书次数",
+    "code": "lock_150",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "倦怠",
+    "code": "ennui",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "决斗标记",
+    "code": "mark",
+    "type": "buff",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "出轨",
+    "code": "affair",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "刺杀事件",
+    "code": "assassin_event",
+    "type": "buff",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "学识",
+    "code": "knowledge",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "家务标记",
+    "code": "mark3",
+    "type": "buff",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "对正神的怀疑",
+    "code": "lock_127",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "对邪神的怀疑",
+    "code": "lock_128",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "幽秘的爱意",
+    "code": "true_love",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "怀疑",
+    "code": "lock_129",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "战斗的痕迹",
+    "code": "fight_complete",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "探索欲",
+    "code": "recover",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "改造次数",
+    "code": "zombie_change",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "模糊的思绪",
+    "code": "maybe",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "正在进食",
+    "code": "eating",
+    "type": "buff",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "正在阅读",
+    "code": "reading",
+    "type": "buff",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "正神的连接",
+    "code": "lock_59",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "纳入收藏",
+    "code": "collected",
+    "type": "buff",
+    "canAdd": 0,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "虔信",
+    "code": "piety",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "调查的痕迹",
+    "code": "traces_of_investigation",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "赠予少女",
+    "code": "a_gift",
+    "type": "buff",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "选妃标记",
+    "code": "mark2",
+    "type": "buff",
+    "canAdd": 0,
+    "canVisible": 0,
+    "usedOnCards": false
+   },
+   {
+    "name": "邪神的连接",
+    "code": "lock_60",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "黑暗幻想",
+    "code": "lock_151",
+    "type": "buff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "祭品",
+    "code": "sacrifice",
+    "type": "debuff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": false
+   },
+   {
+    "name": "离间",
+    "code": "broken_friendship",
+    "type": "debuff",
+    "canAdd": 1,
+    "canVisible": 1,
+    "usedOnCards": false
+   }
+  ]
+ }
 }
