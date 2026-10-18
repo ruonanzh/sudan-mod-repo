@@ -1,6 +1,0 @@
-{
-    "name": "S02 语义探针",
-    "description": "Answers two questions about rite settlement with one run: which of settlement_prior / settlement / settlement_extre fire, and what is_empty 0 vs 1 means. Each branch bumps its own counter, so the save file records the answer.",
-    "tags": ["Utilities"],
-    "version": "1.0.0"
-}

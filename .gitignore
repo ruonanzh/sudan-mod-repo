@@ -13,3 +13,7 @@ reference/plates/*.png
 # extracted vanilla fonts: commercial licences, reference only
 reference/fonts/
 .setup-venv/
+
+# a workspace keeps its own mods here; the app refuses to sync a repo that tracks this
+your_mods/
+.gamer-agent.local.json

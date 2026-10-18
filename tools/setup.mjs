@@ -60,8 +60,29 @@ function dataDir(p) {
   return tries.find((d) => existsSync(path.join(d, "resources.assets"))) || null;
 }
 
+/**
+ * The app records the game directory it verified in .gamer-agent.local.json, next to the
+ * repo. That value is judged by the repo's own game-paths logic, so it wins over anything
+ * this script would guess. Absent when the repo is used outside the app.
+ */
+function recordedGameDir() {
+  const f = path.join(ROOT, ".gamer-agent.local.json");
+  if (!existsSync(f)) return null;
+  try {
+    const dir = JSON.parse(readFileSync(f, "utf8")).gameDir;
+    return dir ? dataDir(dir) : null;
+  } catch {
+    return null;
+  }
+}
+
 function findGame(explicit) {
   if (explicit) return dataDir(path.resolve(explicit));
+  const recorded = recordedGameDir();
+  if (recorded) {
+    console.log("Using the game directory already recorded for this workspace.");
+    return recorded;
+  }
   for (const c of candidates()) {
     const d = dataDir(c);
     if (d) return d;
