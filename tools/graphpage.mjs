@@ -15,6 +15,7 @@ import { esc, pageHtml } from "./html.mjs";
 import { DEFAULT_VANILLA } from "./model.mjs";
 
 const ROW_H = 26;
+const EDGE_CAP = 40;
 const COL_W = 268;
 const VIEW_H = 880; // one screenful: the plan's "column height = one screen"
 const PER_COL = Math.floor(VIEW_H / ROW_H);
@@ -81,6 +82,7 @@ export function payload(g) {
       x: (n.col || 0) * COL_W,
       y: n.y || 0,
       ch: Boolean(n.chain),
+      tr: n.tr || { en: false, ja: false, zhTW: false },
       b: (() => {
         const levels = (n.badges || []).map((x) => x.level);
         return levels.includes("FAIL") ? "FAIL" : levels.includes("WARN") ? "WARN" : levels.includes("INFO") ? "INFO" : null;
@@ -96,117 +98,49 @@ export function payload(g) {
 }
 
 
+
 const SCRIPT = (payloadJson) => `
 const DATA = ${payloadJson};
-const ROW_H = ${ROW_H}, COL_W = ${COL_W}, VIEW_H = ${VIEW_H};
+const ROW_H = ${ROW_H}, COL_W = ${COL_W}, EDGE_CAP = ${EDGE_CAP};
 const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
 const listEl = document.getElementById("list"), qEl = document.getElementById("q");
-const canvasWrap = document.getElementById("cwrap");
-let lang = "zh", cat = null, chainOnly = false, zoom = 1, selected = null;
+const wrap = document.getElementById("cwrap"), spacer = document.getElementById("spacer");
+let lang = "zh", cat = null, chainOnly = false, zoom = 1, selected = null, showEdges = false;
+let nodes = [], cols = 0, per = 30;
 
 const CAT_COLOR = {
   unused: "#6b6257", reputation: "#b07a4a", ending: "#c96f5a", guide: "#7f9e8a",
   achievement: "#8d84b8", daily: "#7d8fa8", periodic: "#6f7f96", other: "#8a7a60",
   card: "#b9a887", counter: "#5e5a52",
 };
+const CAT_NAME = { unused: "废弃", reputation: "声望", ending: "结局", guide: "引导", achievement: "成就", daily: "日常", periodic: "周期", other: "其他", card: "卡牌", counter: "计数器" };
 
 function escHtml(s) {
   return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
+// ---------------------------------------------------------------- layout
+// One column is one screenful. The page keeps a real scrollbar by sizing a spacer to the
+// whole content and drawing only the visible slice onto a viewport-sized canvas: a 53 000 px
+// wide canvas was the reason the first version crawled.
 function visible() {
-  return DATA.nodes.filter((n) => !cat || n.c === cat).filter((n) => !chainOnly || n.ch);
+  return DATA.nodes.filter((n) => (!cat || n.c === cat) && (!chainOnly || n.ch));
 }
 
-function layoutView(nodes) {
-  const per = Math.floor(VIEW_H / ROW_H);
-  nodes.forEach((n, i) => { n.vx = Math.floor(i / per) * COL_W; n.vy = (i % per) * ROW_H; });
-  return nodes;
-}
-
-function draw() {
-  const nodes = layoutView(visible());
-  const idx = new Map(nodes.map((n, i) => [n.k, i]));
-  const w = Math.max(1, ...nodes.map((n) => n.vx + COL_W));
-  const h = Math.max(VIEW_H, ...nodes.map((n) => n.vy + ROW_H));
-  cv.width = Math.max(w * zoom, canvasWrap.clientWidth);
-  cv.height = Math.max(h * zoom, 320);
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.clearRect(0, 0, cv.width, cv.height);
-  ctx.setTransform(zoom, 0, 0, zoom, 0, 0);
-  ctx.font = "12px ui-monospace, Menlo, monospace";
-  ctx.textBaseline = "middle";
-  // Drawing every edge over thousands of nodes is a grey smear. Draw the selected node's
-  // edges always, and the whole web only when the view is small enough to read.
-  const sparse = nodes.length <= 400;
-  ctx.lineWidth = 0.6;
-  for (const [a, b] of DATA.edges) {
-    const ka = DATA.nodes[a].k, kb = DATA.nodes[b].k;
-    if (!sparse && selected && ka !== selected && kb !== selected) continue;
-    const na = nodes[idx.get(ka)], nb = nodes[idx.get(kb)];
-    if (!na || !nb) continue;
-    ctx.strokeStyle = ka === selected || kb === selected ? "rgba(201,162,39,0.55)" : "rgba(201,162,39,0.16)";
-    ctx.beginPath();
-    ctx.moveTo(na.vx + 210, na.vy + ROW_H / 2);
-    ctx.lineTo(nb.vx, nb.vy + ROW_H / 2);
-    ctx.stroke();
-  }
-  for (const n of nodes) {
-    const hot = selected === n.k;
-    ctx.fillStyle = hot ? "#c9a227" : CAT_COLOR[n.c] || "#8a7a60";
-    ctx.globalAlpha = n.o === "mod" ? 1 : 0.9;
-    ctx.fillRect(n.vx, n.vy + 5, 4, ROW_H - 10);
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = hot ? "#fff4d0" : n.o === "mod" ? "#ffd9a0" : "#d7c9ab";
-    ctx.fillText((n.id + "  " + (n.l[lang] || n.l.zh || "")).slice(0, 34), n.vx + 12, n.vy + ROW_H / 2);
-    if (n.b) {
-      ctx.fillStyle = n.b === "FAIL" ? "#b4543f" : n.b === "WARN" ? "#c9a227" : "#7f9e8a";
-      ctx.beginPath();
-      ctx.arc(n.vx + 246, n.vy + ROW_H / 2, 4, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    if (n.o === "mod") { ctx.fillStyle = "#c9a227"; ctx.fillText("mod", n.vx + 210, n.vy + ROW_H / 2); }
-  }
-}
-
-function listRows() {
-  const q = qEl.value.trim().toLowerCase();
-  const nodes = visible().filter((n) => {
-    if (!q) return true;
-    return ["zh", "en", "ja", "zhTW"].some((l) => (n.l[l] || "").toLowerCase().includes(q)) || n.id.includes(q);
+function relayout() {
+  nodes = visible();
+  per = Math.max(6, Math.floor(wrap.clientHeight / ROW_H));
+  nodes.forEach((n, i) => {
+    n.vx = Math.floor(i / per) * COL_W;
+    n.vy = (i % per) * ROW_H;
   });
-  listEl.innerHTML = nodes.slice(0, 600).map((n) =>
-    '<div class="row" data-k="' + n.k + '"><span class="id">' + n.id + '</span><span class="nm">' +
-    (n.b ? '<span class="badge ' + n.b + '">' + n.b + "</span> " : "") +
-    escHtml((n.l[lang] || n.l.zh || "").slice(0, 40)) + "</span></div>"
-  ).join("") || '<div class="note">没有匹配</div>';
-  listEl.querySelectorAll(".row").forEach((el) => { el.onclick = () => focusNode(el.dataset.k); });
-  document.getElementById("count").textContent = nodes.length + " / " + DATA.nodes.length;
-}
-
-function focusNode(key) {
-  selected = key;
-  const nodes = layoutView(visible());
-  const n = nodes.find((x) => x.k === key);
-  if (n) canvasWrap.scrollTo({ left: Math.max(0, n.vx * zoom - 40), top: Math.max(0, n.vy * zoom - 60), behavior: "smooth" });
+  cols = Math.ceil(nodes.length / per) || 1;
+  spacer.style.width = Math.round(cols * COL_W * zoom) + "px";
+  spacer.style.height = Math.round(Math.max(per * ROW_H, 320) * zoom) + "px";
   draw();
-  window.__openNode(key);
 }
 
-function cats() {
-  const box = document.getElementById("cats");
-  const all = [["", "全部"]].concat(Object.keys(DATA.categoryCounts).map((c) => [c, c]));
-  box.innerHTML = all.map(([v, label]) =>
-    '<button class="pill' + (v === cat ? " on" : "") + '" data-c="' + v + '">' + label + " " +
-    (v ? (DATA.categoryCounts[v] || 0) : DATA.nodes.length) + "</button>"
-  ).join("");
-  box.querySelectorAll("button").forEach((b) => {
-    b.onclick = () => { cat = b.dataset.c || null; cats(); listRows(); draw(); };
-  });
-}
-
-// ---------------------------------------------------------------- node panel
-const BYKEY = new Map(DATA.nodes.map((n, i) => [n.k, i]));
+const byKey = new Map(DATA.nodes.map((n) => [n.k, n]));
 const OUT = new Map(), IN = new Map();
 DATA.edges.forEach(([a, b, r]) => {
   const ka = DATA.nodes[a].k, kb = DATA.nodes[b].k;
@@ -216,34 +150,193 @@ DATA.edges.forEach(([a, b, r]) => {
   IN.get(kb).push([ka, r]);
 });
 
+let frame = 0;
+function schedule() {
+  if (frame) return;
+  frame = requestAnimationFrame(() => { frame = 0; draw(); });
+}
+
+function draw() {
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+  const sx = wrap.scrollLeft, sy = wrap.scrollTop;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  ctx.setTransform(zoom, 0, 0, zoom, -sx, -sy);
+  ctx.font = (zoom < 0.7 ? "11px" : "12px") + " ui-monospace, Menlo, monospace";
+  ctx.textBaseline = "middle";
+
+  // The visible slice is a contiguous run: node i sits in column floor(i/per). Slicing beats
+  // filtering 6601 nodes on every scroll frame.
+  const firstCol = Math.max(0, Math.floor(sx / zoom / COL_W) - 1);
+  const lastCol = Math.floor((sx + w) / zoom / COL_W) + 1;
+  const from = Math.min(nodes.length, firstCol * per);
+  const to = Math.min(nodes.length, (lastCol + 1) * per);
+  const shown = nodes.slice(from, to);
+
+  // Edges: the selected node's own lines, or every line when the reader asks for them.
+  // Only both-ends-on-screen edges are drawn, and a hub is capped: 俺寻思 has 59 references
+  // and drawing all of them turns the page into a cat's cradle.
+  if (showEdges || selected) {
+    const visible = new Set(shown);
+    const curve = (from, to, colour) => {
+      const ax = from.vx + COL_W - 24, ay = from.vy + ROW_H / 2;
+      const bx = to.vx, by = to.vy + ROW_H / 2;
+      const mid = (ax + bx) / 2;
+      ctx.strokeStyle = colour;
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.bezierCurveTo(mid, ay, mid, by, bx, by);
+      ctx.stroke();
+    };
+    ctx.lineWidth = 1 / zoom;
+    if (selected) {
+      const self = byKey.get(selected);
+      let n = 0;
+      if (self && visible.has(self)) {
+        for (const [to] of OUT.get(selected) || []) {
+          const b = byKey.get(to);
+          if (!b || !visible.has(b) || n >= EDGE_CAP) continue;
+          curve(self, b, "rgba(201,162,39,0.5)"); n++;
+        }
+        for (const [from] of IN.get(selected) || []) {
+          const a = byKey.get(from);
+          if (!a || !visible.has(a) || n >= EDGE_CAP) continue;
+          curve(a, self, "rgba(151,196,255,0.5)"); n++;
+        }
+      }
+    } else if (showEdges) {
+      for (const [from, list] of OUT) {
+        const a = byKey.get(from);
+        if (!a || !visible.has(a)) continue;
+        for (const [to] of list) {
+          const b = byKey.get(to);
+          if (!b || !visible.has(b)) continue;
+          curve(a, b, "rgba(201,162,39,0.18)");
+        }
+      }
+    }
+  }
+
+  // column headers: the category every column belongs to
+  let lastCat = null;
+  for (const n of shown) {
+    if (n.vx !== lastColOfCat(n) && n.vy > 0) continue;
+    void n;
+  }
+  for (const n of shown) {
+    if (n.vy !== 0) continue;
+    ctx.fillStyle = "#8a7a60";
+    ctx.fillText((CAT_NAME[n.c] || n.c) + " · " + n.id, n.vx, n.vy - 12);
+  }
+
+  const maxW = COL_W - 46;
+  for (const n of shown) {
+    const hot = selected === n.k;
+    if (hot) {
+      ctx.fillStyle = "rgba(201,162,39,0.16)";
+      ctx.fillRect(n.vx, n.vy + 1, COL_W - 10, ROW_H - 2);
+    }
+    ctx.fillStyle = hot ? "#c9a227" : CAT_COLOR[n.c] || "#8a7a60";
+    ctx.fillRect(n.vx, n.vy + 6, 3, ROW_H - 12);
+    ctx.fillStyle = hot ? "#fff4d0" : n.o === "mod" ? "#ffd9a0" : "#d7c9ab";
+    // Trim to the column, by measured width: a fixed character count still overflows
+    // because a Chinese glyph is twice as wide as a digit.
+    let label = n.id + "  " + (n.l[lang] || n.l.zh || "");
+    while (label.length > 4 && ctx.measureText(label).width > maxW) label = label.slice(0, -2);
+    if (label !== n.id + "  " + (n.l[lang] || n.l.zh || "")) label += "…";
+    ctx.fillText(label, n.vx + 10, n.vy + ROW_H / 2);
+    if (n.o === "mod") { ctx.fillStyle = "#c9a227"; ctx.fillText("mod", n.vx + 214, n.vy + ROW_H / 2); }
+    if (n.b) {
+      ctx.fillStyle = n.b === "FAIL" ? "#b4543f" : n.b === "WARN" ? "#c9a227" : "#7f9e8a";
+      ctx.beginPath();
+      ctx.arc(n.vx + 250, n.vy + ROW_H / 2, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+function lastColOfCat() { return -1; }
+
+// ---------------------------------------------------------------- list
+function listRows() {
+  const q = qEl.value.trim().toLowerCase();
+  const rows = visible().filter((n) => {
+    if (!q) return true;
+    return ["zh", "en", "ja", "zhTW"].some((l) => (n.l[l] || "").toLowerCase().includes(q)) || n.id.includes(q);
+  });
+  listEl.innerHTML = rows.slice(0, 500).map((n) =>
+    '<div class="row' + (selected === n.k ? " sel" : "") + '" data-k="' + n.k + '">' +
+    '<span class="id">' + n.id + "</span>" +
+    '<span class="nm">' + (n.b ? '<span class="badge ' + n.b + '">' + n.b + "</span> " : "") +
+    escHtml((n.l[lang] || n.l.zh || "").slice(0, 40)) +
+    (lang !== "zh" && n.tr && !n.tr[lang] ? ' <span class="toless">无' + lang + "</span>" : "") + "</span></div>"
+  ).join("") || '<div class="note">没有匹配</div>';
+  listEl.querySelectorAll(".row").forEach((el) => { el.onclick = () => focusNode(el.dataset.k); });
+  document.getElementById("count").textContent = rows.length + " / " + DATA.nodes.length;
+}
+
+function focusNode(key) {
+  selected = key;
+  const n = byKey.get(key);
+  if (n && nodes.includes(n)) {
+    wrap.scrollTo({
+      left: Math.max(0, n.vx * zoom - wrap.clientWidth / 2),
+      top: Math.max(0, n.vy * zoom - wrap.clientHeight / 2),
+      behavior: "smooth",
+    });
+  }
+  window.__openNode(key);
+  listRows();
+  schedule();
+}
+
+function cats() {
+  const box = document.getElementById("cats");
+  const all = [["", "全部"]].concat(Object.keys(DATA.categoryCounts).map((c) => [c, CAT_NAME[c] || c]));
+  box.innerHTML = all.map(([v, label]) =>
+    '<button class="pill' + (v === cat ? " on" : "") + '" data-c="' + v + '">' + label +
+    " <b>" + (v ? (DATA.categoryCounts[v] || 0) : DATA.nodes.length) + "</b></button>"
+  ).join("");
+  box.querySelectorAll("button").forEach((b) => {
+    b.onclick = () => { cat = b.dataset.c || null; cats(); listRows(); relayout(); };
+  });
+}
+
+// ---------------------------------------------------------------- node panel
 function chip(key) {
-  const n = DATA.nodes[BYKEY.get(key)];
+  const n = byKey.get(key);
   if (!n) return escHtml(key);
-  return '<a href="#" data-go="' + key + '">' + n.id + " " + escHtml((n.l[lang] || n.l.zh || "").slice(0, 24)) + "</a>";
+  return '<a href="#" data-go="' + key + '">' + n.id + " " + escHtml((n.l[lang] || n.l.zh || "").slice(0, 26)) + "</a>";
+}
+
+function labelRow(code, text, fallback) {
+  return "<tr><th>" + code + "</th><td>" + escHtml(text || "—") +
+    (fallback ? ' <span class="toless">无此语言，回退简中</span>' : "") + "</td></tr>";
 }
 
 window.__openNode = (key) => {
-  const n = DATA.nodes[BYKEY.get(key)];
+  const n = byKey.get(key);
   if (!n) return;
-  const out = (OUT.get(key) || []).slice(0, 40);
-  const inc = (IN.get(key) || []).slice(0, 40);
+  const out = (OUT.get(key) || []).slice(0, 30);
+  const inc = (IN.get(key) || []).slice(0, 30);
   const box = document.getElementById("modal-body");
   box.innerHTML =
     '<h2 style="margin-top:0">' + escHtml(n.id) + " · " + escHtml(n.t) + "</h2>" +
-    '<div class="note" style="margin-top:0">' + escHtml(n.c) + " · " +
+    '<div class="note" style="margin-top:0">' + escHtml(CAT_NAME[n.c] || n.c) + " · " +
     (n.o === "mod" ? "mod 覆盖/新增" : "vanilla") + " · " +
     (n.ch ? "在剧情链上（分量 " + n.compSize + "）" : "不在链上") +
     (n.b ? " · " + n.b + "：" + escHtml((n.bm || []).join(", ")) : "") + "</div>" +
     "<table>" +
-    "<tr><th>简中</th><td>" + escHtml(n.l.zh || "") + "</td></tr>" +
-    "<tr><th>en</th><td>" + escHtml(n.l.en || "") + "</td></tr>" +
-    "<tr><th>ja</th><td>" + escHtml(n.l.ja || "") + "</td></tr>" +
-    "<tr><th>zhTW</th><td>" + escHtml(n.l.zhTW || "") + "</td></tr>" +
+    labelRow("简中", n.l.zh, false) +
+    labelRow("en", n.l.en, n.fb && n.fb.en) +
+    labelRow("ja", n.l.ja, n.fb && n.fb.ja) +
+    labelRow("zhTW", n.l.zhTW, n.fb && n.fb.zhTW) +
     "</table>" +
-    "<h2>出边 " + out.length + '</h2><div class="note">' +
-    (out.map(([k, r]) => chip(k) + " <code>" + escHtml(r) + "</code>").join("<br>") || "无") + "</div>" +
-    "<h2>入边 " + inc.length + '</h2><div class="note">' +
-    (inc.map(([k, r]) => chip(k) + " <code>" + escHtml(r) + "</code>").join("<br>") || "无") + "</div>" +
+    "<h3>出边 " + out.length + "</h3><div class=\\"note\\">" +
+    (out.map(([k, r]) => chip(k) + ' <code>' + escHtml(r) + "</code>").join("<br>") || "无") + "</div>" +
+    "<h3>入边 " + inc.length + "</h3><div class=\\"note\\">" +
+    (inc.map(([k, r]) => chip(k) + ' <code>' + escHtml(r) + "</code>").join("<br>") || "无") + "</div>" +
     '<div class="note" id="editbox">' +
     (location.protocol === "http:"
       ? '<button id="editbtn" class="pill">编辑这个节点</button>'
@@ -282,24 +375,29 @@ async function openEditor(key) {
   };
 }
 
+// ---------------------------------------------------------------- wiring
 document.onkeydown = (e) => { if (e.key === "Escape") document.getElementById("modal").hidden = true; };
-
 qEl.oninput = listRows;
-document.getElementById("chain").onchange = (e) => { chainOnly = e.target.checked; listRows(); draw(); };
+document.getElementById("chain").onchange = (e) => { chainOnly = e.target.checked; listRows(); relayout(); };
 document.getElementById("lang").onchange = (e) => { lang = e.target.value; listRows(); draw(); };
+document.getElementById("edges").onchange = (e) => { showEdges = e.target.checked; schedule(); };
+wrap.onscroll = schedule;
+window.onresize = relayout;
 cv.onwheel = (e) => {
   e.preventDefault();
   const next = Math.min(2, Math.max(0.4, zoom * (e.deltaY < 0 ? 1.1 : 0.9)));
-  if (next !== zoom) { zoom = next; document.getElementById("z").textContent = Math.round(zoom * 100) + "%"; draw(); }
+  if (next === zoom) return;
+  zoom = next;
+  document.getElementById("z").textContent = Math.round(zoom * 100) + "%";
+  relayout();
 };
 cv.onclick = (e) => {
-  const nodes = layoutView(visible());
-  const x = e.offsetX / zoom, y = e.offsetY / zoom;
+  const x = (e.offsetX + wrap.scrollLeft) / zoom, y = (e.offsetY + wrap.scrollTop) / zoom;
   const hit = nodes.find((n) => x >= n.vx && x < n.vx + COL_W && y >= n.vy && y < n.vy + ROW_H);
-  if (hit) { selected = hit.k; draw(); window.__openNode(hit.k); }
+  if (hit) { selected = hit.k; listRows(); window.__openNode(hit.k); schedule(); }
 };
-
-cats(); listRows(); draw();
+cats(); listRows(); relayout();
+window.__draw = draw;
 `;
 
 export function renderPage(g, { title = "苏丹的游戏 · 剧情图" } = {}) {
@@ -311,6 +409,7 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图" } = {}) {
       <span class="ctl">
         <input id="q" type="text" placeholder="搜索 ID / 名字 / 任意语言">
         <label><input id="chain" type="checkbox"> 只看剧情链</label>
+        <label><input id="edges" type="checkbox"> 显示全部连线</label>
         <select id="lang">
           <option value="zh">简中</option><option value="en">en</option><option value="ja">ja</option><option value="zhTW">zhTW</option>
         </select>
@@ -321,7 +420,7 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图" } = {}) {
   </div>
   <div class="gmain">
     <div class="glist" id="list"></div>
-    <div class="gcanvas" id="cwrap"><canvas id="cv"></canvas></div>
+    <div class="gcanvas" id="cwrap"><div id="spacer"></div><canvas id="cv"></canvas></div>
   </div>
   <div class="note">滚轮缩放 40%–200%，点节点打开编辑页。<span id="count"></span></div>
 </div>
@@ -341,8 +440,13 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图" } = {}) {
 .glist .row:hover { background: #35291c; }
 .glist .id { color: var(--dim); font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
 .glist .nm { font-size: 13px; }
-.gcanvas { overflow: auto; border: 1px solid var(--rule); background: #17120c; }
-canvas { display: block; }
+.gcanvas { overflow: auto; border: 1px solid var(--rule); background: #17120c; position: relative; }
+.gcanvas canvas { position: sticky; top: 0; left: 0; display: block; }
+#spacer { position: absolute; top: 0; left: 0; }
+.row.sel { background: #3a2f1e; }
+.row.sel .id { color: var(--gold); }
+.toless { color: #7a6f5e; font-size: 10px; border: 1px solid #4a4238; border-radius: 2px; padding: 0 3px; margin-left: 4px; }
+#modal-body h3 { font-size: 13px; color: var(--gold); letter-spacing: .08em; margin: 18px 0 6px; }
 .badge { font-size: 10px; padding: 0 4px; border-radius: 2px; }
 .badge.FAIL { background: var(--bad); color: #fff; }
 .badge.WARN { background: var(--gold); color: #1a1510; }

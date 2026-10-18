@@ -561,17 +561,25 @@ function indexI18n(table) {
 function labels(node, vanilla, i18n, lang) {
   const prefixOf = { event: "event", rite: "rite", card: "card", quest: "quest", afterStory: "after_story", loot: "loot" };
   const prefix = prefixOf[node.t];
-  // The game writes Unity rich text in these strings (<color=…><size=172%>…). A label is
-  // not a renderer, so the tags are stripped rather than shown.
+  // The game writes Unity rich text in these strings (<color=…><size=172%>…); a label is not
+  // a renderer, so the tags are stripped. `tr` records which languages had a real string, so
+  // a fallback can be labelled as one instead of passing Chinese off as a translation.
   const clean = (s) => String(s).replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().slice(0, 60);
   const out = {};
+  const tr = { en: false, ja: false, zhTW: false };
   for (const l of LANGS) {
     const idx = l === "zh" ? null : i18n[l];
     let v = idx && prefix ? (idx.byKey.get(`${prefix}:${node.id}`) || {}).text : null;
-    if (!v && idx && prefix === "event") v = idx.byId.get(node.id);
-    out[l] = clean(v || node.labelSource || node.id);
+    if (!v && idx) v = idx.byId.get(node.id);
+    if (v) {
+      if (l !== "zh") tr[l] = true;
+      out[l] = clean(v);
+    } else {
+      out[l] = clean(node.labelSource || node.id);
+    }
   }
   out.zh = clean(node.labelSource || node.id);
+  node.tr = tr;
   return out;
 }
 
