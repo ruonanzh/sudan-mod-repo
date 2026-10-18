@@ -130,6 +130,13 @@ ${body}
 `;
 }
 
+/**
+ * Every slot name vanilla puts in a character's `equips`, measured across the 131 char
+ * cards that declare any. A slot is a repeatable entry, so the page edits counts: three
+ * 饰品 means three trinket slots. A fifth name would need a matching tag for items.
+ */
+const SLOTS = ["武器", "服装", "饰品", "驯兽"];
+
 function cardBody(record, modDir) {
   const subject = composeSubject(record);
   const allNames = TAG_ROLES.allTagNames?.names || [];
@@ -181,7 +188,12 @@ function cardBody(record, modDir) {
         ${[1, 2, 3, 4].map((r) => `<option value="${r}"${record.rare === r ? " selected" : ""}>${r} · ${["石块", "铜", "银", "金"][r - 1]}</option>`).join("")}
       </select></div></div>
       <div class="row"><div class="lbl">说明</div><div><textarea name="text">${esc(record.text || "")}</textarea></div></div>
-      <div class="row"><div class="lbl">可装备槽</div><div><input type="text" name="equips" value="${esc((record.equips || []).join(","))}"></div></div>
+      <div class="row"><div class="lbl">可装备槽</div><div>${record.type === "char"
+        ? `<div class="slots">${SLOTS.map((slot) => {
+            const n = (record.equips || []).filter((x) => x === slot).length;
+            return `<label>${esc(slot)} <input type="number" name="slot_${esc(slot)}" value="${n}" min="0" max="9"></label>`;
+          }).join("")}</div>`
+        : `<div class="note" style="margin:0">这张卡不是角色，没有槽位。物品能不能穿、穿到哪，由标签决定：<b>装备</b>=1 加 <b>武器</b>/<b>服装</b>/<b>饰品</b>/<b>驯兽</b> 之一。</div>`}</div></div>
       <div class="row"><div class="lbl">唯一</div><div><input type="checkbox" name="is_only"${record.is_only ? " checked" : ""}> 只能有一张</div></div>
     </div>
   </div>
