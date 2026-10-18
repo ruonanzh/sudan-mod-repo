@@ -73,17 +73,30 @@ const STYLE =
   "no text, game card art";
 
 /** One or two sentences built from the card's own fields. */
-export function composePrompt(card) {
+/**
+ * The part the player is allowed to write: who or what the picture shows. Everything
+ * about framing, style and transparency is boilerplate and stays out of it.
+ */
+export function composeSubject(card) {
   const tags = Object.keys(card.tag || {}).filter((t) => !["已拥有", "纯色材质", "装备", "已装备", "可堆叠"].includes(t));
   const subject = [card.name, card.title].filter(Boolean).join("，");
   const facts = card.text ? ` ${card.text}` : "";
   const flavour = tags.length ? ` Mood: ${tags.slice(0, 5).join(" / ")}.` : "";
+  return `${subject}.${facts}${flavour}`.trim();
+}
+
+/** The fixed head and tail the generator needs and the player does not edit. */
+export function composeBoilerplate(card) {
   const tier = RARITY[card.rare] || RARITY[1];
   const kind = TYPE_HINT[card.type] || TYPE_HINT.item;
-  // The plate colour is fixed by rarity in the game, so the picture has to sit on it.
   const tendency = CARD_ART.measured[card.type]?.tendency ?? "centred subject";
-  const head = `A ${tier.name} tier ${card.type} card: ${kind}, ${tendency}.`;
-  return `${head} ${subject}.${facts}${flavour} ${STYLE}`;
+  return { head: `A ${tier.name} tier ${card.type} card: ${kind}, ${tendency}.`, tail: STYLE };
+}
+
+/** Full prompt for the generator: boilerplate, then the player's words, then boilerplate. */
+export function composePrompt(card, subjectOverride) {
+  const { head, tail } = composeBoilerplate(card);
+  return `${head} ${subjectOverride || composeSubject(card)} ${tail}`;
 }
 
 /** Where a same-tier, same-type reference picture lives. */

@@ -17,7 +17,7 @@ import path from "node:path";
 import { openMod, ModelError } from "./model.mjs";
 import { toPlain } from "./jsonc.mjs";
 import { decodePng, encodePng, cropCover, overlay, solid, nineSlice, tint } from "./png.mjs";
-import { composePrompt } from "./art.mjs";
+import { composePrompt, composeSubject, composeBoilerplate } from "./art.mjs";
 
 const TAG_ROLES = JSON.parse(readFileSync(new URL("../schema/tag-roles.json", import.meta.url), "utf8"));
 const CARD_ART = JSON.parse(readFileSync(new URL("../schema/card-art.json", import.meta.url), "utf8"));
@@ -130,7 +130,9 @@ ${body}
 `;
 }
 
-function cardBody(record, prompt, modDir) {
+function cardBody(record, modDir) {
+  const subject = composeSubject(record);
+  const { head, tail } = composeBoilerplate(record);
   const tags = Object.entries(record.tag || {});
   // A marker tag is present or absent: every vanilla use is exactly 1. A stat tag carries a
   // number and has an observed range. Rendering both as numbers invites a value the game never sees.
@@ -140,7 +142,6 @@ function cardBody(record, prompt, modDir) {
       ([name]) => `<tr>
   <td>${esc(name)}</td>
   <td class="num"><input type="checkbox" name="tag_${esc(name)}" value="1" checked> 有</td>
-  <td><input type="checkbox" name="tag_drop_${esc(name)}"> 删掉</td>
 </tr>`,
     )
     .join("\n");
@@ -148,10 +149,17 @@ function cardBody(record, prompt, modDir) {
     .filter(([name]) => !TAG_ROLES.marker[name])
     .map(([name, value]) => {
       const range = TAG_ROLES.stat[name];
+      // Every value vanilla ever uses, plus an escape hatch for one it never did.
+      const seen = range ? Object.keys(range.values).map(Number).sort((a, b) => b - a) : [];
+      const options = seen
+        .map((v) => `<option value="${v}"${v === value ? " selected" : ""}>${v}</option>`)
+        .join("");
+      const known = seen.includes(Number(value));
       return `<tr>
   <td>${esc(name)}</td>
-  <td class="num"><input type="number" name="tag_${esc(name)}" value="${esc(value)}"></td>
-  <td style="color:#8a7a60;font-size:12px">${range ? `${range.min} … ${range.max}` : "自定义"}</td>
+  <td class="num"><select name="tag_${esc(name)}" data-custom="tag_custom_${esc(name)}">${options}<option value="custom"${known ? "" : " selected"}>自定义…</option></select></td>
+  <td class="num" style="display:${known ? "none" : "table-cell"}"><input type="number" id="tag_custom_${esc(name)}" name="tag_custom_${esc(name)}" value="${esc(value)}"></td>
+  <td style="color:#8a7a60;font-size:12px">${range ? `原版用过 ${seen.length} 种值` : "新属性"}</td>
 </tr>`;
     })
     .join("\n");
@@ -177,18 +185,18 @@ function cardBody(record, prompt, modDir) {
   </div>
 </div>
 
-<h2>画面 · 交给 Tripo 的提示词</h2>
+<h2>画面 · 你想让图画成什么</h2>
 <div class="panel">
-<div class="note" style="margin-top:0">生成的是方图，会自动居中裁成 472 × 1028。所以要<b>竖构图、主体撑满高度</b>，横向的东西会被切掉。</div>
-<textarea name="art_prompt" style="min-height:120px">${esc(prompt)}</textarea>
-<div class="note">风格写在这句里：flat engraved、暖色低饱和、可见线稿、做旧纸质。改这句话比改别的地方更直接。</div>
+<div class="note" style="margin-top:0">只写主体：画谁、画什么、什么神态。构图、风格、透明底这些我按游戏要求自动补，不用你管。</div>
+<textarea name="art_subject" style="min-height:110px">${esc(subject)}</textarea>
+<div class="note">生成时我会拼成：<code>${esc(head)}</code> + 你这段 + <code>${esc(tail.slice(0, 90))}…</code></div>
 </div>
 
 <h2>标记 · 有或没有</h2>
 <div class="panel">
 <table>
-<tr><th>标记</th><th>状态</th><th></th></tr>
-${markerRows || '<tr><td colspan="3" style="color:#8a7a60">没有标记</td></tr>'}
+<tr><th>标记</th><th>状态</th></tr>
+${markerRows || '<tr><td colspan="2" style="color:#8a7a60">没有标记</td></tr>'}
 </table>
 <div class="note">这些标签在游戏里只可能是 1（有）或不存在。1294 张卡里没有一张用过别的值。</div>
 </div>
@@ -313,6 +321,14 @@ function artInline(modDir, id, rare, name, type, fontFamily) {
       var v = Number(rareSelect.value) || 1;
       if (payload.plates[v]) { wantPlate = v; plate.src = payload.plates[v]; }
     });
+    // 自定义… reveals the number box next to a stat dropdown.
+    Array.prototype.forEach.call(document.querySelectorAll("select[data-custom]"), function (sel) {
+      sel.addEventListener("change", function () {
+        var custom = document.getElementById(sel.getAttribute("data-custom"));
+        if (!custom) return;
+        custom.parentElement.style.display = sel.value === "custom" ? "table-cell" : "none";
+      });
+    });
     var nameInput = document.querySelector('input[name="name"]');
     var nameEl = document.getElementById("cardName");
     if (nameInput && nameEl) nameInput.addEventListener("input", function () {
@@ -430,7 +446,7 @@ function main() {
   const html = pageHtml({
     title,
     sub,
-    body: kind === "card" ? cardBody(record, composePrompt(record), mod.dir) : riteBody(record),
+    body: kind === "card" ? cardBody(record, mod.dir) : riteBody(record),
   });
   const out = args.out || path.join(mod.dir, ".preview", `${kind}-${args.id}.modpage.html`);
   mkdirSync(path.dirname(out), { recursive: true });
