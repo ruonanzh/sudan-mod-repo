@@ -17,3 +17,7 @@ reference/fonts/
 # a workspace keeps its own mods here; the app refuses to sync a repo that tracks this
 your_mods/
 .gamer-agent.local.json
+
+# decompiled game code lives outside repos: ~/decompiled
+# this guard only blocks an accidental copy
+decompiled/
