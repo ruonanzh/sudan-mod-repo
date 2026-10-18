@@ -10,7 +10,7 @@ description: >
 
 # The mod page
 
-Part of the Sultan's Game mod workspace. If you have not read `mod-creator`, read it first.
+Part of the Sultan's Game(苏丹的游戏) mod workspace. If you have not read `mod-creator`, read it first.
 
 A mod page is one HTML file the player reads. It shows what the mod changes, which values it sets, and
 which choices are still open. The player comments on the page and you revise.

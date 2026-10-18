@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "modType": "json",
   "game": {
-    "name": "Sultan's Game",
+    "name": "Sultan's Game(苏丹的游戏)",
     "steamAppId": 3117820,
     "platforms": ["windows", "mac"],
     "installDirHint": {

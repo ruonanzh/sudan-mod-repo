@@ -1,7 +1,7 @@
 ---
 name: card-art
 description: >
-  The image contract for Sultan's Game mod art. Covers the card face size, the sprite name rule, how
+  The image contract for Sultan's Game(苏丹的游戏) mod art. Covers the card face size, the sprite name rule, how
   a card points at its art, the head icon, and what a sprite does and does not replace. Read it
   before you generate or place any image, and before you promise the player a visual change. Also
   covers where the reference art comes from, since it is not in this repo.

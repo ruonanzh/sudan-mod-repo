@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * lint.mjs - validate a Sultan's Game mod folder.
+ * lint.mjs - validate a Sultan's Game(苏丹的游戏) mod folder.
  *
  * Usage:
  *   node tools/lint.mjs <modDir> [--vanilla <configDir>] [--json]

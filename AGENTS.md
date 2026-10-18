@@ -1,4 +1,4 @@
-# Sultan's Game mod workspace
+# Sultan's Game(苏丹的游戏) mod workspace
 
 **Sultan's Game** (苏丹的游戏, DoubleCross, Steam `3117820`). Mods are **data**: JSONC files plus
 PNG images and audio clips. There is no compilation, no scripting host, and no plugin API.

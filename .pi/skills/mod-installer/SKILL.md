@@ -1,7 +1,7 @@
 ---
 name: mod-installer
 description: >
-  Put a Sultan's Game mod into the game and confirm the game read it. Covers the mod root path on
+  Put a Sultan's Game(苏丹的游戏) mod into the game and confirm the game read it. Covers the mod root path on
   macOS and Windows, why a copied folder is not yet an enabled mod, how to read the per-mod log, and
   how to update or remove a mod. Read it when the player wants the mod in the game, says they cannot
   see it, or after you finish writing one.
