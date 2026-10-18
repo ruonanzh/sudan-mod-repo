@@ -548,10 +548,11 @@ function indexI18n(table) {
       if (!prev || PREF[named[3]] < prev.pref) byKey.set(key, { text: v, pref: PREF[named[3]] });
       continue;
     }
-    if (!byId.size || /^(PROMPT|OPTION|CONFIRM)_/.test(k)) {
-      const m = k.match(/_(\d{6,7})_/);
-      if (m && /^(PROMPT|OPTION|CONFIRM)_/.test(k) && !byId.has(m[1])) byId.set(m[1], v);
-    }
+    // Events have no name key at all; their first line lives under a family prefix that
+    // varies by node type (PROMPT / OPTION / CONFIRM / POP ...). Any key carrying the id
+    // is a usable fallback, and the first one in file order wins.
+    const m = k.match(/_(\d{6,7})_/);
+    if (m && !byId.has(m[1])) byId.set(m[1], v);
   }
   return { byKey, byId };
 }
@@ -560,7 +561,9 @@ function indexI18n(table) {
 function labels(node, vanilla, i18n, lang) {
   const prefixOf = { event: "event", rite: "rite", card: "card", quest: "quest", afterStory: "after_story", loot: "loot" };
   const prefix = prefixOf[node.t];
-  const clean = (s) => String(s).replace(/\s+/g, " ").slice(0, 60);
+  // The game writes Unity rich text in these strings (<color=…><size=172%>…). A label is
+  // not a renderer, so the tags are stripped rather than shown.
+  const clean = (s) => String(s).replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().slice(0, 60);
   const out = {};
   for (const l of LANGS) {
     const idx = l === "zh" ? null : i18n[l];

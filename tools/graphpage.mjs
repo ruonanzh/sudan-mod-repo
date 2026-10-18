@@ -136,11 +136,16 @@ function draw() {
   ctx.setTransform(zoom, 0, 0, zoom, 0, 0);
   ctx.font = "12px ui-monospace, Menlo, monospace";
   ctx.textBaseline = "middle";
+  // Drawing every edge over thousands of nodes is a grey smear. Draw the selected node's
+  // edges always, and the whole web only when the view is small enough to read.
+  const sparse = nodes.length <= 400;
   ctx.lineWidth = 0.6;
   for (const [a, b] of DATA.edges) {
-    const na = nodes[idx.get(DATA.nodes[a].k)], nb = nodes[idx.get(DATA.nodes[b].k)];
+    const ka = DATA.nodes[a].k, kb = DATA.nodes[b].k;
+    if (!sparse && selected && ka !== selected && kb !== selected) continue;
+    const na = nodes[idx.get(ka)], nb = nodes[idx.get(kb)];
     if (!na || !nb) continue;
-    ctx.strokeStyle = "rgba(201,162,39,0.18)";
+    ctx.strokeStyle = ka === selected || kb === selected ? "rgba(201,162,39,0.55)" : "rgba(201,162,39,0.16)";
     ctx.beginPath();
     ctx.moveTo(na.vx + 210, na.vy + ROW_H / 2);
     ctx.lineTo(nb.vx, nb.vy + ROW_H / 2);
@@ -301,16 +306,18 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图" } = {}) {
   const body = `
 <div class="gwrap">
   <div class="gtop">
-    <span class="note" style="margin:0">节点 ${g.nodes.length} · 边 ${g.edges.length} · 剧情链 ${g.components.count} 条（最大 ${g.components.largest}）</span>
+    <div class="grow-row">
+      <span class="note" style="margin:0">节点 ${g.nodes.length} · 边 ${g.edges.length} · 剧情链 ${g.components.count} 条（最大 ${g.components.largest}）</span>
+      <span class="ctl">
+        <input id="q" type="text" placeholder="搜索 ID / 名字 / 任意语言">
+        <label><input id="chain" type="checkbox"> 只看剧情链</label>
+        <select id="lang">
+          <option value="zh">简中</option><option value="en">en</option><option value="ja">ja</option><option value="zhTW">zhTW</option>
+        </select>
+        <span id="z" class="note" style="margin:0">100%</span>
+      </span>
+    </div>
     <span id="cats" class="cats"></span>
-    <span class="ctl">
-      <input id="q" type="text" placeholder="搜索 ID / 名字 / 任意语言">
-      <label><input id="chain" type="checkbox"> 只看剧情链</label>
-      <select id="lang">
-        <option value="zh">简中</option><option value="en">en</option><option value="ja">ja</option><option value="zhTW">zhTW</option>
-      </select>
-      <span id="z" class="note" style="margin:0">100%</span>
-    </span>
   </div>
   <div class="gmain">
     <div class="glist" id="list"></div>
@@ -322,10 +329,11 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图" } = {}) {
 `;
   const css = `
 .gwrap { display: flex; flex-direction: column; gap: 10px; }
-.gtop { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.gtop { display: flex; flex-direction: column; gap: 8px; }
+.grow-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .cats { display: flex; gap: 6px; flex-wrap: wrap; }
-.pill.on { border-color: var(--gold); color: var(--ink); }
-.ctl { display: flex; gap: 10px; align-items: center; margin-left: auto; }
+.ctl label, .ctl { white-space: nowrap; }
+.ctl { display: flex; gap: 12px; align-items: center; margin-left: auto; }
 .ctl input[type=text] { width: 240px; }
 .gmain { display: grid; grid-template-columns: 340px 1fr; gap: 12px; height: 78vh; }
 .glist { overflow: auto; border: 1px solid var(--rule); background: var(--panel); }

@@ -57,7 +57,12 @@ td.num { width: 92px; }
 }
 .split { display: flex; gap: 22px; align-items: flex-start; flex-wrap: wrap; }
 .grow { flex: 1 1 380px; }
-.pill { display: inline-block; border: 1px solid var(--rule); padding: 1px 8px; margin: 0 6px 6px 0; font-size: 12px; color: var(--dim); }
+.pill {
+  display: inline-block; border: 1px solid var(--rule); padding: 1px 8px; margin: 0 6px 6px 0;
+  font-size: 12px; color: var(--dim); background: transparent; font-family: inherit; cursor: pointer;
+}
+.pill:hover { border-color: var(--gold); color: var(--ink); }
+.pill.on { background: var(--gold); border-color: var(--gold); color: #1a1510; font-weight: 600; }
 .bad { color: var(--bad); }
 .note { color: var(--dim); font-size: 12.5px; margin-top: 10px; }
 .branch { border-left: 2px solid var(--rule); padding: 8px 0 8px 14px; margin-bottom: 12px; }
