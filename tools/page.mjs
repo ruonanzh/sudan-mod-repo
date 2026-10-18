@@ -189,7 +189,6 @@ function cardBody(record, modDir) {
 <div class="panel">
 <div class="note" style="margin-top:0">只写主体：画谁、画什么、什么神态。构图、风格、透明底这些我按游戏要求自动补，不用你管。</div>
 <textarea name="art_subject" style="min-height:110px">${esc(subject)}</textarea>
-<div class="note">生成时我会拼成：<code>${esc(head)}</code> + 你这段 + <code>${esc(tail.slice(0, 90))}…</code></div>
 </div>
 
 <h2>标记 · 有或没有</h2>
