@@ -9,6 +9,8 @@ description: >
 
 # Install a mod
 
+Part of the Sultan's Game mod workspace. If you have not read `mod-creator`, read it first.
+
 ## The mod root
 
 ```

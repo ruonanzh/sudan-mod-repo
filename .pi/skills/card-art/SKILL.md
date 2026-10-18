@@ -9,6 +9,8 @@ description: >
 
 # Card and character art
 
+Part of the Sultan's Game mod workspace. If you have not read `mod-creator`, read it first.
+
 ## The card face
 
 | item | value |

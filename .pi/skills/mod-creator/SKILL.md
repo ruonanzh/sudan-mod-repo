@@ -27,6 +27,10 @@ The devs left Chinese `//` comments in these files that explain each field. `con
 is the tutorial opening and documents `confirm`, `option`, `success` and `failed` in place, with both
 the short and the long form side by side. It is the single best example file.
 
+When the change needs an image, also load `card-art`. When the player must agree on a scope or a
+value, the answer is a page: load `mod-page`. After writing, `mod-installer` puts it in the game and
+reads the log back.
+
 ## Mod layout
 
 ```
