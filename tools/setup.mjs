@@ -120,8 +120,11 @@ function pythonWithUnityPy(explicit) {
   return null;
 }
 
-function run(cmd, args, label) {
-  process.stdout.write(`  ${label}\n`);
+/** Total steps, so a caller can turn the [n/N] markers into a bar. */
+const STEPS = 5;
+
+function run(cmd, args, label, step) {
+  process.stdout.write(`[${step}/${STEPS}] ${label}\n`);
   const r = spawnSync(cmd, args, { stdio: "inherit", cwd: ROOT });
   if (r.status !== 0) throw new Error(`${label} failed (exit ${r.status})`);
 }
@@ -179,7 +182,7 @@ function main() {
       return 2;
     }
     console.log("UnityPy is not installed. Creating .setup-venv and installing it once (needs network).");
-    run(base, ["-m", "venv", VENV], "create .setup-venv");
+    run(base, ["-m", "venv", VENV], "create .setup-venv", 0);
     py = process.platform === "win32" ? path.join(VENV, "Scripts", "python.exe") : path.join(VENV, "bin", "python");
 
     // Direct PyPI is slow from mainland China; a mirror is not slower anywhere else and
@@ -201,7 +204,7 @@ function main() {
       const started = Date.now();
       const pip = spawnSync(py, args, { stdio: "inherit", cwd: ROOT });
       if (pip.status === 0) {
-        process.stdout.write(`  ok in ${((Date.now() - started) / 1000).toFixed(1)}s\n`);
+        process.stdout.write(`[0/${STEPS}] UnityPy ready in ${((Date.now() - started) / 1000).toFixed(1)}s\n`);
         installed = true;
         break;
       }
@@ -215,9 +218,9 @@ function main() {
 
   // One --plates call covers both bundles: resources.assets and sharedassets0 return the
   // same 57 textures, `card` included, so a second pass would only rewrite them.
-  run(py, [path.join(ROOT, "tools/extract-art.py"), "--game", game, "--out", path.join(REF, "plates"), "--plates"], "extract the base plates");
-  run(py, [path.join(ROOT, "tools/extract-art.py"), "--game", game, "--out", path.join(REF, "fonts"), "--assets", "sharedassets0.assets", "--fonts"], "extract the fonts");
-  run(py, [path.join(ROOT, "tools/extract-art.py"), "--game", game, "--out", path.join(REF, "cards"), "--by-tier"], "extract one reference card per tier");
+  run(py, [path.join(ROOT, "tools/extract-art.py"), "--game", game, "--out", path.join(REF, "plates"), "--plates"], "extract the base plates", 1);
+  run(py, [path.join(ROOT, "tools/extract-art.py"), "--game", game, "--out", path.join(REF, "fonts"), "--assets", "sharedassets0.assets", "--fonts"], "extract the fonts", 2);
+  run(py, [path.join(ROOT, "tools/extract-art.py"), "--game", game, "--out", path.join(REF, "cards"), "--by-tier"], "extract one reference card per tier", 3);
 
   const colours = { stone: "#8d806b", copper: "#94a56a", silver: "#b0becc", gold: "#e9d678" };
   run(process.execPath, [
@@ -225,7 +228,7 @@ function main() {
     "--from", path.join(REF, "plates", "card.png"),
     "--out", path.join(REF, "plates"),
     ...Object.entries(colours).flatMap(([tier, hex]) => [`--${tier}`, hex]),
-  ], "build the four recoloured plates");
+  ], "build the four recoloured plates", 4);
 
   // Extraction writes every plate it can find, but nothing reads the extras: the page
   // needs card.png and the four recolours, and art.mjs needs the reference cards.
@@ -237,7 +240,7 @@ function main() {
     rmSync(path.join(plateDir, f));
     pruned++;
   }
-  if (pruned) console.log(`  kept the 5 plates the tools read, dropped ${pruned} research extras`);
+  if (pruned) console.log(`[5/${STEPS}] kept the 5 plates the tools read, dropped ${pruned} research extras`);
 
   console.log("\nDone. node tools/setup.mjs --check reports the result.");
   return 0;
