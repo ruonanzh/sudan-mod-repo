@@ -33,6 +33,15 @@ These are fixed. They prevent wasted turns.
   inventing a code route. One popular mod ships a `code/` folder full of Python; the game never
   reads it.
 
+- **`reference/` is not in git, and is built from the player's install.**
+  It holds the four tier plates, the card title font and twelve reference cards. DoubleCross owns the
+  art and the fonts are commercial, so none of it may be redistributed.
+  `node tools/setup.mjs` builds it and takes `gameDir` from `.gamer-agent.local.json` when present.
+  Opening the editor (`tools/page.mjs`) builds it automatically the first time, with a progress bar,
+  and falls back to a plain placeholder if it cannot. Extraction needs Python 3 with UnityPy;
+  the installer is on `https://mirrors.huaweicloud.com/python/`, because `python.org` is throttled
+  to a few KB/s here.
+
 - **Prefer `node` for scripts.** The product ships its own node. `tools/lint.mjs` is dependency-free.
 
 ## Directory map

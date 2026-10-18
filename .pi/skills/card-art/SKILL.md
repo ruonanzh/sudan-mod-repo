@@ -3,7 +3,8 @@ name: card-art
 description: >
   The image contract for Sultan's Game mod art. Covers the card face size, the sprite name rule, how
   a card points at its art, the head icon, and what a sprite does and does not replace. Read it
-  before you generate or place any image, and before you promise the player a visual change.
+  before you generate or place any image, and before you promise the player a visual change. Also
+  covers where the reference art comes from, since it is not in this repo.
 ---
 
 # Card and character art
@@ -55,7 +56,17 @@ player is asking for, say it is untested and try it before you promise it.
 The game's art is a flat, engraved, warm-toned illustration with a limited palette and visible
 linework. A render with soft gradients, bloom, or a cool palette will read as foreign on the board.
 Pull two vanilla card images and look at them before you generate anything. Vanilla sprites are packed
-inside the Unity assets, so the practical source is the mods and screenshots the player already has.
+inside the Unity assets, so they cannot ship in this repo: `reference/` is git-ignored, because the art
+belongs to DoubleCross and the fonts are commercial.
+
+`node tools/setup.mjs` extracts them from the player's own install, and `tools/page.mjs` runs it by
+itself the first time the editor is opened, with a progress bar. It reads `gameDir` from
+`.gamer-agent.local.json` when the app recorded one. Three groups come out: the four tier plates
+(`reference/plates/card-*.png`), the card title font (`reference/fonts/`), and one reference card per
+type and tier (`reference/cards/{char,item,sudan}-{1..4}.png`).
+
+`node tools/art.mjs refs` reports whether all twelve reference cards are present. They are not
+decoration: with them present, generation runs as image-to-image, which is what keeps the style close.
 
 ## Audio
 
