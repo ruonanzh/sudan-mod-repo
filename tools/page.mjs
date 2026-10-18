@@ -250,13 +250,28 @@ function composeCard(modDir, id, rare, name, type) {
   const fit = (f) => cropCover(decodePng(readFileSync(f)), CARD_W, CARD_H);
 
   const plateFile = path.join(plateDir, `card-${tier}.png`);
-  let img = existsSync(plateFile)
-    ? fit(plateFile)
-    : tint(fit(path.join(plateDir, "card.png")), CARD_ART.plate?.tierTint?.[tier] ?? "#ffffff");
+  const paper = path.join(plateDir, "card.png");
+  // A clone has no reference art: it is DoubleCross's and never enters git. Draw a plain
+  // tier-coloured plate instead of failing, and say so on the page.
+  let missingPlate = false;
+  let img;
+  if (existsSync(plateFile)) img = fit(plateFile);
+  else if (existsSync(paper)) img = tint(fit(paper), CARD_ART.plate?.tierTint?.[tier] ?? "#ffffff");
+  else {
+    missingPlate = true;
+    img = tint(cropCover(blankPlate(), CARD_W, CARD_H), CARD_ART.plate?.tierTint?.[tier] ?? "#ffffff");
+  }
 
   const artFile = path.join(modDir, "image", "cards", `${id}.png`);
   if (existsSync(artFile)) img = overlay(img, fit(artFile));
-  return { img, tier, hasArt: existsSync(artFile) };
+  return { img, tier, hasArt: existsSync(artFile), missingPlate };
+}
+
+/** Flat paper-coloured rectangle, used when the extracted plate is absent. */
+function blankPlate() {
+  const rgba = Buffer.alloc(CARD_W * CARD_H * 4, 0xf2);
+  for (let i = 3; i < rgba.length; i += 4) rgba[i] = 255;
+  return { width: CARD_W, height: CARD_H, rgba };
 }
 
 const dataUri = (img) => encodePng(img).toString("base64");
@@ -286,14 +301,17 @@ function plateSources(modDir, id, type) {
  */
 function artInline(modDir, id, rare, name, type, fontFamily) {
   const nameFamily = fontFamily || "ui-serif, Georgia, serif";
-  const { img, tier } = composeCard(modDir, id, rare, name, type);
+  const { img, tier, missingPlate } = composeCard(modDir, id, rare, name, type);
+  const plateNote = missingPlate
+    ? `<div class="note" style="margin-top:8px">用的是<b>占位底图</b>：原版纸纹没解出来。先跑 <code>node tools/setup.mjs</code>。</div>`
+    : "";
   const { sources, art } = plateSources(modDir, id, type);
   const payload = JSON.stringify({ plates: sources, art, name, rare });
   return `<div style="position:relative;width:236px">
   <img id="cardStatic" src="data:image/png;base64,${dataUri(half(img))}" style="width:236px;display:block;border:1px solid #57452c" alt="${esc(tier)} card">
   <canvas id="cardCanvas" width="236" height="514" style="display:none;border:1px solid #57452c"></canvas>
   <div id="cardName" style="position:absolute;left:5%;right:5%;top:3.5%;text-align:center;white-space:nowrap;overflow:hidden;font:700 ${nameFont(name)}px/1.05 ${nameFamily};color:#20180f;letter-spacing:0;text-shadow:0 1px 0 rgba(255,255,255,.3)">${esc(name)}</div>
-</div>
+</div>${plateNote}
 <script type="application/json" id="cardPayload">${payload}</script>
 <script>
 (function () {

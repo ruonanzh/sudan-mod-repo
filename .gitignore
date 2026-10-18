@@ -12,3 +12,4 @@ reference/plates/*.png
 
 # extracted vanilla fonts: commercial licences, reference only
 reference/fonts/
+.setup-venv/
