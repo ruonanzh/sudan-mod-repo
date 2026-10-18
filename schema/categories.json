@@ -1,0 +1,67 @@
+{
+ "_note": "Ordered, mutually exclusive classification. graph.mjs tries the rules in order and the first match wins, so exactly one category holds each event and the last rule absorbs the residual. The counts are NOT stored here: `graph.mjs --check` prints them and the sum must equal the number of events.",
+ "appliesTo": "event",
+ "rites": {
+  "_note": "A rite has no category of its own. It inherits the category of the events that reach it; when events disagree the most frequent one wins; a rite no event reaches stays with `other`.",
+  "inherit": "reaching-event-majority"
+ },
+ "rules": [
+  {
+   "id": "unused",
+   "name": "未使用/废弃",
+   "lang": "zh",
+   "when": { "textStartsWith": ["废弃"] },
+   "note": "Dead content the devs left in. Useful when making a mod: the text says what it was for."
+  },
+  {
+   "id": "reputation",
+   "name": "声望线",
+   "lang": "zh",
+   "when": { "textContains": ["声望"] },
+   "note": "One line per character. The character name is the prefix before 声望事件."
+  },
+  {
+   "id": "ending",
+   "name": "结局",
+   "lang": "zh",
+   "when": { "any": [{ "textContains": ["结局"] }, { "onAny": ["game_end"] }] },
+   "note": "Drawn together with over.json (159) and after_story (66)."
+  },
+  {
+   "id": "guide",
+   "name": "引导/教程",
+   "lang": "zh",
+   "when": { "textContains": ["引导", "教程"] },
+   "note": "Includes the single open_card_info event."
+  },
+  {
+   "id": "achievement",
+   "name": "成就",
+   "lang": "zh",
+   "when": { "textContains": ["成就"] },
+   "note": "Drawn together with quest.json (161)."
+  },
+  {
+   "id": "daily",
+   "name": "日常·可重复",
+   "lang": "zh",
+   "when": { "isReplay": true, "onOnly": ["round_begin_ba"] },
+   "note": "Fires on rounds and may replay."
+  },
+  {
+   "id": "periodic",
+   "name": "周期触发",
+   "lang": "zh",
+   "when": { "onOnly": ["round_begin_ba"] },
+   "note": "Fires on rounds, once."
+  },
+  {
+   "id": "other",
+   "name": "其他",
+   "lang": "zh",
+   "when": { "always": true },
+   "note": "Residual bucket. English mod events land here too, because every earlier rule tests Chinese text."
+  }
+ ],
+ "limitation": "The text predicates match Chinese substrings from the config, which is the only label the developers left. An event authored in another language can never match rules 1-5 and will fall into `other`. This is documented, not a bug to fix silently."
+}

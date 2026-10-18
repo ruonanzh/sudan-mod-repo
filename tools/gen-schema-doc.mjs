@@ -13,6 +13,8 @@ const read = (p) => JSON.parse(readFileSync(new URL(p, import.meta.url), "utf8")
 const FIELDS = read("../schema/fields.json");
 const VOCAB = read("../schema/vocab.json");
 const SAVES = read("../schema/save-fields.json");
+const EDGES = read("../schema/edges.json");
+const CATEGORIES = read("../schema/categories.json");
 
 /** kind -> [what it is, which file, what the key is] */
 const ABOUT = {
@@ -186,6 +188,71 @@ for (const [name, spec] of Object.entries(SAVES)) {
 w("An unknown save key is a warning, never a failure: these shapes were read off one machine,");
 w("so a newer build may add keys. A missing key is also normal, because an older build writes");
 w("fewer of them.");
+w();
+
+w("## How the story graph is derived");
+w();
+w("`schema/edges.json` is the only place that says what points at what. `tools/graph.mjs`");
+w("executes it; no edge rule lives in code. Counts are deliberately absent: they depend on");
+w("whether you follow descendant keys (`case:opN`, `delay`) and whether duplicates count, so");
+w("`node tools/graph.mjs --check` prints them instead.");
+w();
+w("### Id spaces");
+w();
+w("| kind | range |");
+w("|---|---|");
+for (const [kind, range] of Object.entries(EDGES.idSpaces)) {
+  if (kind.startsWith("_")) continue;
+  w(`| ${kind} | ${range[0]}–${range[1]} |`);
+}
+w();
+w("A reference outside its kind's range is not an edge: it is a cross-type pointer, and");
+w("`--check` lists those separately.");
+w();
+w("### Timings that carry an id");
+w();
+w("| timing | points at |");
+w("|---|---|");
+for (const [timing, target] of Object.entries(EDGES.timings)) {
+  if (timing.startsWith("_")) continue;
+  w(`| \`${timing}\` | ${target} |`);
+}
+w();
+w("Everything else in `event.on` carries a round number, a period, or nothing at all.");
+w();
+w("The literal `1` on an id-valued timing means **any**, not card/rite id 1; `game_end` also");
+w("accepts the sentinels `-1` and `-3`. Both are excluded from the graph.");
+w();
+w("### Edge rules");
+w();
+w("| id | from | match | to | note |");
+w("|---|---|---|---|---|");
+for (const r of EDGES.rules) {
+  w(`| \`${r.id}\` | ${r.from.join(", ")} | ${r.match} | ${r.to} | ${(r.note || "").replace(/\|/g, "\\|")} |`);
+}
+w();
+w("### Known data bugs the graph reports");
+w();
+w("| what | why it matters |");
+w("|---|---|");
+for (const b of EDGES.knownDataBugs) w(`| ${b.what} | ${b.why} |`);
+w();
+w("## How events are classified");
+w();
+w("Rules are ordered and mutually exclusive: the first match wins, and the last rule absorbs");
+w("the rest. `node tools/graph.mjs --check` prints each bucket's size, and the sum must equal");
+w("the number of events.");
+w();
+w("| # | id | name | predicate |");
+w("|---|---|---|---|");
+CATEGORIES.rules.forEach((r, i) => {
+  const when = Object.entries(r.when)
+    .map(([k, v]) => `${k}=${JSON.stringify(v)}`)
+    .join(" ");
+  w(`| ${i + 1} | \`${r.id}\` | ${r.name} | ${when.replace(/\|/g, "\\|")} |`);
+});
+w();
+w(CATEGORIES.limitation);
 w();
 
 w("## Known defects in the shipped data");

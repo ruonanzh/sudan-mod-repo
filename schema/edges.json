@@ -1,0 +1,145 @@
+{
+ "_note": "How every edge in the story graph is derived. graph.mjs executes this file; it does not hardcode any rule. `from` lists the source node kinds, `match` names the extractor, and `to` is the target node kind. Counts are NOT stored here: `graph.mjs --check` prints them, because the number depends on the counting method.",
+ "idSpaces": {
+  "_note": "Used to decide whether a number is a plausible id of a given kind before it becomes an edge.",
+  "event": [5300000, 5399999],
+  "rite": [5000000, 5099999],
+  "card": [2000000, 2099999],
+  "loot": [6000000, 6099999],
+  "rite_template": [8000000, 8099999],
+  "over": [0, 999],
+  "counter": [7000000, 7299999],
+  "quest": [3300000, 3399999]
+ },
+ "sentinels": {
+  "_note": "A timing that carries ids may also carry a literal meaning. These values are never node ids.",
+  "wildcard": [
+   {
+    "value": 1,
+    "why": "no card or rite id is 1; vanilla writes 1 to mean any (6 events on rite_end, 8 on card_clean)"
+   }
+  ],
+  "gameEnd": [
+   {
+    "value": -1,
+    "why": "sentinel, not an ending id"
+   },
+   {
+    "value": -3,
+    "why": "sentinel, not an ending id"
+   }
+  ]
+ },
+ "timings": {
+  "_note": "What each timing in event.on points at. Anything absent here (round_begin_ba, round_begin_fr, round_end, and every flag timing) carries no node id and produces no edge.",
+  "rite_end": "rite",
+  "rite_start": "rite",
+  "rite_cancel": "rite",
+  "open_rite_end": "rite",
+  "card_clean": "card",
+  "card_born": "card",
+  "card_dead": "card",
+  "counter": "counter",
+  "global_counter": "counter",
+  "game_end": "over"
+ },
+ "rules": [
+  {
+   "id": "event.on",
+   "from": ["event"],
+   "match": "timing",
+   "to": "see timings",
+   "note": "event.on.<timing>; value is a single id or an array. Sentinel 1 is dropped."
+  },
+  {
+   "id": "action.rite",
+   "from": ["event", "rite"],
+   "match": "nestedKey",
+   "within": ["settlement", "settlement_prior", "settlement_extre", "waiting_round_end_action", "post_rite", "vanish"],
+   "key": "rite",
+   "to": "rite",
+   "note": "Recurses into the whole settlement object, so case:opN.rite, delay.rite, success.rite and failed.rite are all covered. Every occurrence is an edge: vanilla appends operations."
+  },
+  {
+   "id": "action.loot",
+   "from": ["event", "rite"],
+   "match": "nestedKey",
+   "within": ["settlement", "settlement_prior", "settlement_extre", "waiting_round_end_action", "post_rite", "vanish"],
+   "key": "loot",
+   "to": "loot",
+   "note": "Events keep loot under settlement[].action; rites keep it under settlement[].result. Both are reached here, and a tag-qualified key such as loot.已拥有+1 keeps its base id."
+  },
+  {
+   "id": "action.event",
+   "from": ["event", "rite", "card"],
+   "match": "nestedKey",
+   "within": ["settlement", "settlement_prior", "settlement_extre", "waiting_round_end_action", "post_rite", "vanish"],
+   "key": "event_on",
+   "to": "event"
+  },
+  {
+   "id": "action.over",
+   "from": ["event", "rite", "card"],
+   "match": "nestedKey",
+   "within": ["settlement", "settlement_prior", "settlement_extre", "waiting_round_end_action", "post_rite", "vanish"],
+   "key": "over",
+   "to": "over"
+  },
+  {
+   "id": "condition.have",
+   "from": ["event", "rite", "card", "loot", "quest", "afterStory"],
+   "match": "condition",
+   "to": "card",
+   "note": "have.<cardId>[.<tag>], table_have.<cardId>, hand_have.<cardId>; a non-numeric second segment is a tag and yields no edge."
+  },
+  {
+   "id": "condition.rite",
+   "from": ["event", "rite", "card"],
+   "match": "condition",
+   "to": "rite",
+   "note": "is_rite / rite / !rite. 165 branches on 174 cards use is_rite."
+  },
+  {
+   "id": "condition.counter",
+   "from": ["event", "rite", "card", "quest", "afterStory", "loot"],
+   "match": "condition",
+   "to": "counter"
+  },
+  {
+   "id": "slot.card",
+   "from": ["rite"],
+   "match": "condition",
+   "within": ["cards_slot"],
+   "to": "card",
+   "note": "Which cards a slot accepts: is:<cardId>, sN.type, sN.<tag>. 667 distinct cards."
+  },
+  {
+   "id": "loot.item",
+   "from": ["loot"],
+   "match": "lootItem",
+   "to": "see item.type",
+   "note": "item[].type is card | event | rite | loot; 24 entries chain to another table."
+  },
+  {
+   "id": "rite.template",
+   "from": ["rite"],
+   "match": "mapping",
+   "via": "rite_template_mappings",
+   "to": "rite_template"
+  }
+ ],
+ "knownDataBugs": [
+  {
+   "what": "loot/6001103.json declares \"id\": 6001102",
+   "why": "Duplicate internal id: two files claim 6001102. The loader keys by filename (layout.json: filename = id), so both files load; only the declared id is wrong. Kept, not hidden."
+  },
+  {
+   "what": "event 5320511 waits on rite_end 5320511",
+   "why": "5320511 is an event id, not a rite id. Cross-type dangling reference."
+  },
+  {
+   "what": "rite 5008112 delay.rite 5321118",
+   "why": "5321118 is an event id. Cross-type dangling reference."
+  }
+ ]
+}

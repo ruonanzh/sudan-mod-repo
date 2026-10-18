@@ -652,15 +652,15 @@ A key that is not in this table is never scheduled.
 | `rite_end` | rite id, or an array of rite ids | yes |
 | `card_clean` | card id, or an array of card ids | yes |
 | `counter` | counter id | yes |
-| `game_end` | 1 | yes |
-| `rite_start` | 1 | yes |
-| `card_born` | 1 | yes |
+| `game_end` | over id (ending id in over.json), or an array of ids; -1/-3 are sentinels, not ids | yes |
+| `rite_start` | rite id | yes |
+| `card_born` | card id | yes |
 | `close_wizard` | 1 | yes |
-| `close_begin_guide` | 1 | yes |
+| `close_begin_guide` | guide key string: RIGHT_CLICK_SLOT | CHANGE_SUDAN_CARD | TIME_OUT | yes |
 | `sudan_redraw_start` | 1 | yes |
-| `rite_cancel` | 1 | yes |
+| `rite_cancel` | rite id | yes |
 | `open_rite` | 1 | yes |
-| `open_rite_end` | 1 | yes |
+| `open_rite_end` | rite id | yes |
 | `open_card_info` | 1 | yes |
 | `open_card_info_end` | 1 | yes |
 | `close_prompt` | 1 | yes |
@@ -950,6 +950,92 @@ Samples used: 1
 An unknown save key is a warning, never a failure: these shapes were read off one machine,
 so a newer build may add keys. A missing key is also normal, because an older build writes
 fewer of them.
+
+## How the story graph is derived
+
+`schema/edges.json` is the only place that says what points at what. `tools/graph.mjs`
+executes it; no edge rule lives in code. Counts are deliberately absent: they depend on
+whether you follow descendant keys (`case:opN`, `delay`) and whether duplicates count, so
+`node tools/graph.mjs --check` prints them instead.
+
+### Id spaces
+
+| kind | range |
+|---|---|
+| event | 5300000–5399999 |
+| rite | 5000000–5099999 |
+| card | 2000000–2099999 |
+| loot | 6000000–6099999 |
+| rite_template | 8000000–8099999 |
+| over | 0–999 |
+| counter | 7000000–7299999 |
+| quest | 3300000–3399999 |
+
+A reference outside its kind's range is not an edge: it is a cross-type pointer, and
+`--check` lists those separately.
+
+### Timings that carry an id
+
+| timing | points at |
+|---|---|
+| `rite_end` | rite |
+| `rite_start` | rite |
+| `rite_cancel` | rite |
+| `open_rite_end` | rite |
+| `card_clean` | card |
+| `card_born` | card |
+| `card_dead` | card |
+| `counter` | counter |
+| `global_counter` | counter |
+| `game_end` | over |
+
+Everything else in `event.on` carries a round number, a period, or nothing at all.
+
+The literal `1` on an id-valued timing means **any**, not card/rite id 1; `game_end` also
+accepts the sentinels `-1` and `-3`. Both are excluded from the graph.
+
+### Edge rules
+
+| id | from | match | to | note |
+|---|---|---|---|---|
+| `event.on` | event | timing | see timings | event.on.<timing>; value is a single id or an array. Sentinel 1 is dropped. |
+| `action.rite` | event, rite | nestedKey | rite | Recurses into the whole settlement object, so case:opN.rite, delay.rite, success.rite and failed.rite are all covered. Every occurrence is an edge: vanilla appends operations. |
+| `action.loot` | event, rite | nestedKey | loot | Events keep loot under settlement[].action; rites keep it under settlement[].result. Both are reached here, and a tag-qualified key such as loot.已拥有+1 keeps its base id. |
+| `action.event` | event, rite, card | nestedKey | event |  |
+| `action.over` | event, rite, card | nestedKey | over |  |
+| `condition.have` | event, rite, card, loot, quest, afterStory | condition | card | have.<cardId>[.<tag>], table_have.<cardId>, hand_have.<cardId>; a non-numeric second segment is a tag and yields no edge. |
+| `condition.rite` | event, rite, card | condition | rite | is_rite / rite / !rite. 165 branches on 174 cards use is_rite. |
+| `condition.counter` | event, rite, card, quest, afterStory, loot | condition | counter |  |
+| `slot.card` | rite | condition | card | Which cards a slot accepts: is:<cardId>, sN.type, sN.<tag>. 667 distinct cards. |
+| `loot.item` | loot | lootItem | see item.type | item[].type is card \| event \| rite \| loot; 24 entries chain to another table. |
+| `rite.template` | rite | mapping | rite_template |  |
+
+### Known data bugs the graph reports
+
+| what | why it matters |
+|---|---|
+| loot/6001103.json declares "id": 6001102 | Duplicate internal id: two files claim 6001102. The loader keys by filename (layout.json: filename = id), so both files load; only the declared id is wrong. Kept, not hidden. |
+| event 5320511 waits on rite_end 5320511 | 5320511 is an event id, not a rite id. Cross-type dangling reference. |
+| rite 5008112 delay.rite 5321118 | 5321118 is an event id. Cross-type dangling reference. |
+
+## How events are classified
+
+Rules are ordered and mutually exclusive: the first match wins, and the last rule absorbs
+the rest. `node tools/graph.mjs --check` prints each bucket's size, and the sum must equal
+the number of events.
+
+| # | id | name | predicate |
+|---|---|---|---|
+| 1 | `unused` | 未使用/废弃 | textStartsWith=["废弃"] |
+| 2 | `reputation` | 声望线 | textContains=["声望"] |
+| 3 | `ending` | 结局 | any=[{"textContains":["结局"]},{"onAny":["game_end"]}] |
+| 4 | `guide` | 引导/教程 | textContains=["引导","教程"] |
+| 5 | `achievement` | 成就 | textContains=["成就"] |
+| 6 | `daily` | 日常·可重复 | isReplay=true onOnly=["round_begin_ba"] |
+| 7 | `periodic` | 周期触发 | onOnly=["round_begin_ba"] |
+| 8 | `other` | 其他 | always=true |
+
+The text predicates match Chinese substrings from the config, which is the only label the developers left. An event authored in another language can never match rules 1-5 and will fall into `other`. This is documented, not a bug to fix silently.
 
 ## Known defects in the shipped data
 

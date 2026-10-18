@@ -19,6 +19,7 @@ import { openMod, ModelError } from "./model.mjs";
 import { toPlain } from "./jsonc.mjs";
 import { decodePng, encodePng, cropCover, overlay, solid, nineSlice, tint } from "./png.mjs";
 import { composePrompt, composeSubject, composeBoilerplate } from "./art.mjs";
+import { esc, CSS, pageHtml as shellPage } from "./html.mjs";
 
 const TAG_ROLES = JSON.parse(readFileSync(new URL("../schema/tag-roles.json", import.meta.url), "utf8"));
 const CARD_ART = JSON.parse(readFileSync(new URL("../schema/card-art.json", import.meta.url), "utf8"));
@@ -35,64 +36,6 @@ function parseArgs(argv) {
   }
   return out;
 }
-
-const esc = (s) =>
-  String(s ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-
-const CSS = `
-:root {
-  --ink: #efe3c8;
-  --dim: #b9a887;
-  --paper: #221c16;
-  --panel: #2c241c;
-  --rule: #57452c;
-  --gold: #c9a227;
-  --bad: #b4543f;
-}
-* { box-sizing: border-box; }
-body {
-  margin: 0; padding: 28px 20px 64px;
-  background: radial-gradient(circle at 50% 0%, #2e2519 0%, #17120c 100%);
-  color: var(--ink);
-  font: 15px/1.6 ui-serif, Georgia, "Songti SC", serif;
-}
-.wrap { max-width: 860px; margin: 0 auto; }
-h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: .04em; }
-h2 { font-size: 15px; margin: 34px 0 10px; color: var(--gold); letter-spacing: .12em; text-transform: uppercase; }
-.sub { color: var(--dim); font-size: 13px; margin-bottom: 24px; }
-.panel { background: var(--panel); border: 1px solid var(--rule); padding: 16px 18px; }
-.row { display: grid; grid-template-columns: 118px 1fr; gap: 10px; align-items: start; padding: 7px 0; border-bottom: 1px dotted #3c3227; }
-.row:last-child { border-bottom: 0; }
-.lbl { color: var(--dim); font-size: 13px; padding-top: 6px; }
-input[type=text], input[type=number], textarea, select {
-  width: 100%; background: #1a1510; color: var(--ink);
-  border: 1px solid var(--rule); padding: 6px 8px; font: inherit; font-size: 14px;
-}
-textarea { min-height: 84px; resize: vertical; }
-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #362c21; }
-th { color: var(--dim); font-weight: normal; font-size: 12px; letter-spacing: .08em; }
-td.num { width: 92px; }
-.cardface {
-  width: 236px; aspect-ratio: 472 / 1028; border: 1px solid var(--rule);
-  background: repeating-linear-gradient(45deg, #3a2f22, #3a2f22 10px, #322819 10px, #322819 20px);
-  display: flex; align-items: center; justify-content: center; text-align: center;
-  color: var(--dim); font-size: 12px; padding: 14px;
-}
-.split { display: flex; gap: 22px; align-items: flex-start; flex-wrap: wrap; }
-.grow { flex: 1 1 380px; }
-.pill { display: inline-block; border: 1px solid var(--rule); padding: 1px 8px; margin: 0 6px 6px 0; font-size: 12px; color: var(--dim); }
-.bad { color: var(--bad); }
-.note { color: var(--dim); font-size: 12.5px; margin-top: 10px; }
-.branch { border-left: 2px solid var(--rule); padding: 8px 0 8px 14px; margin-bottom: 12px; }
-.branch .when { color: var(--gold); font-size: 12px; letter-spacing: .06em; }
-code { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; color: #d9c9a3; }
-.fb { min-height: 120px; }
-`;
 
 /**
  * The card name is set in HYJieLongTaoHuaYuanW-2, which is the font behind the game's
@@ -113,22 +56,17 @@ function fontFace() {
 
 function pageHtml({ title, sub, body }) {
   const ff = fontFace();
-  return `<!doctype html>
-<meta charset="utf-8">
-<title>${esc(title)}</title>
-<style>${CSS}
-${ff.css}</style>
-<div class="wrap">
-<h1>${esc(title)}</h1>
-<div class="sub">${sub}</div>
-${body}
+  return shellPage({
+    title,
+    sub,
+    font: ff.css ? ff : null,
+    body: `${body}
 <h2>你的意见</h2>
 <div class="panel">
 <div class="note">在下面写，或者直接改上面的输入框。改完保存后告诉我，我按你选的值落地。</div>
 <textarea class="fb" name="feedback" placeholder="哪一项要改、改成什么；哪一段剧情不对；卡面想要什么风格。"></textarea>
-</div>
-</div>
-`;
+</div>`,
+  });
 }
 
 /**
@@ -479,12 +417,61 @@ ${branches || '<div style="color:#8a7a60">还没有分支</div>'}
 </div>`;
 }
 
+/**
+ * An event page, in the shape the rite page already uses: the facts that matter, read-only
+ * branch list, then the feedback box the player writes into.
+ *
+ * An event is not a rite: it has no slots and its settlement is a sequence, not a choice.
+ * 1866 of 1867 events carry exactly one branch, and all matching branches run in order —
+ * branching happens inside `action` (option / case:opN / success / failed).
+ */
+function eventBody(record) {
+  const on = Object.entries(record.on || {})
+    .map(([k, v]) => `<span class="pill">${esc(k)} = ${esc(Array.isArray(v) ? v.join(", ") : v)}</span>`)
+    .join("") || '<span style="color:#8a7a60">没有触发</span>';
+  const cond = record.condition && Object.keys(record.condition).length ? JSON.stringify(record.condition) : "无条件";
+  const branches = (record.settlement || [])
+    .map((b, i) => {
+      const ops = Object.keys(b.result || {});
+      const act = Object.keys(b.action || {});
+      return `<div class="branch">
+  <div class="when">第 ${i + 1} 条${b.condition && Object.keys(b.condition).length ? " · 有条件" : " · 无条件"}</div>
+  <div><b>${esc(b.result_title || "（无标题）")}</b></div>
+  <div style="color:#cfc0a2">${esc(b.result_text || "")}</div>
+  <div class="note">结果：${ops.map((o) => `<code>${esc(o)}</code>`).join(" ") || "无"}</div>
+  <div class="note">动作：${act.map((o) => `<code>${esc(o)}</code>`).join(" ") || "无"}</div>
+</div>`;
+    })
+    .join("\n");
+
+  return `
+<h2>事件</h2>
+<div class="panel">
+  <div class="row"><div class="lbl">备注明</div><div><input type="text" name="text" value="${esc(record.text || "")}"></div></div>
+  <div class="row"><div class="lbl">触发</div><div>${on}</div></div>
+  <div class="row"><div class="lbl">条件</div><div><code>${esc(cond)}</code></div></div>
+  <div class="row"><div class="lbl">可重复</div><div><input type="checkbox" name="is_replay"${record.is_replay ? " checked" : ""}> 每回合可以再触发</div></div>
+  <div class="row"><div class="lbl">启动即检查</div><div><input type="checkbox" name="start_trigger"${record.start_trigger ? " checked" : ""}> 一开始就检查条件</div></div>
+</div>
+<div class="note">事件的结算分支是<b>顺序全部执行</b>，不是首条命中。分支选择发生在 <code>action</code> 里（option / case:opN / success / failed）。</div>
+
+<h2>结算分支</h2>
+<div class="panel">
+${branches || '<div style="color:#8a7a60">还没有分支</div>'}
+</div>
+
+<h2>当前记录</h2>
+<div class="panel">
+<div><span class="pill">id ${esc(record.id)}</span><span class="pill">${(record.settlement || []).length} 条分支</span><span class="pill">${Object.keys(record.on || {}).length} 个触发</span></div>
+</div>`;
+}
+
 function main() {
   const argv = process.argv.slice(2);
   const kind = argv[0];
   const args = parseArgs(argv.slice(1));
-  if (!["card", "rite"].includes(kind) || !args.mod || !args.id) {
-    process.stderr.write("usage: node tools/page.mjs <card|rite> --mod <dir> --id <id> [--out <file>]\n");
+  if (!["card", "rite", "event"].includes(kind) || !args.mod || !args.id) {
+    process.stderr.write("usage: node tools/page.mjs <card|rite|event> --mod <dir> --id <id> [--out <file>]\n");
     return 2;
   }
   // Opening the editor is the moment the art is first needed, so that is when it is built.
@@ -507,15 +494,18 @@ function main() {
     return 1;
   }
   const record = toPlain(got.doc, got.node);
-  const title = kind === "card" ? record.name || `卡 ${record.id}` : record.name || `仪式 ${record.id}`;
+  const title =
+    kind === "card" ? record.name || `卡 ${record.id}` : kind === "rite" ? record.name || `仪式 ${record.id}` : `事件 ${record.id}`;
   const sub =
     kind === "card"
       ? `卡牌 · id ${record.id} · ${record.type} · 稀有度 ${record.rare}`
-      : `仪式 · id ${record.id} · ${Object.keys(record.cards_slot || {}).length} 个槽 · ${(record.settlement || []).length} 条结果`;
+      : kind === "rite"
+        ? `仪式 · id ${record.id} · ${Object.keys(record.cards_slot || {}).length} 个槽 · ${(record.settlement || []).length} 条结果`
+        : `事件 · id ${record.id} · ${Object.keys(record.on || {}).length} 个触发 · ${(record.settlement || []).length} 条分支`;
   const html = pageHtml({
     title,
     sub,
-    body: kind === "card" ? cardBody(record, mod.dir) : riteBody(record),
+    body: kind === "card" ? cardBody(record, mod.dir) : kind === "rite" ? riteBody(record) : eventBody(record),
   });
   const out = args.out || path.join(mod.dir, ".preview", `${kind}-${args.id}.modpage.html`);
   mkdirSync(path.dirname(out), { recursive: true });

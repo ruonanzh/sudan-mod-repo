@@ -1,0 +1,28 @@
+{
+ "_note": "Produced by `node tools/graph.mjs --check` against the installed game. The tests pin these numbers and the invariants beside them; update this file on purpose when a rule changes, never to make a red test green.",
+ "counts": {
+  "event": 1867,
+  "rite": 1498,
+  "card": 1294,
+  "loot": 193,
+  "over": 159,
+  "quest": 161,
+  "afterStory": 66,
+  "riteTemplate": 252
+ },
+ "nodeTotal": 6599,
+ "edges": 14791,
+ "components": 180,
+ "largestComponent": 1965,
+ "categoryCounts": {
+  "periodic": 762,
+  "daily": 414,
+  "other": 266,
+  "ending": 165,
+  "unused": 14,
+  "guide": 45,
+  "achievement": 16,
+  "reputation": 185
+ },
+ "crossType": 4
+}
