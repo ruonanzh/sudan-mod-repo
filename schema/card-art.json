@@ -1,421 +1,441 @@
 {
-  "_note": "What a card's own texture looks like, measured from the extracted art. 'saturated' is the share of opaque pixels with any real colour; the rest is monochrome line work. The rule of thumb is by card type, not by the 纯色材质 tag: that tag separated the two on four samples and failed on 44.",
-  "measured": {
-    "item": {
-      "saturatedMean": 12,
-      "range": "0-68",
-      "tendency": "often near-monochrome ink drawing"
-    },
-    "char": {
-      "saturatedMean": 38,
-      "range": "9-65",
-      "tendency": "coloured portrait"
-    },
-    "sudan": {
-      "saturatedMean": 31,
-      "range": "26-37",
-      "tendency": "coloured ornament"
-    }
+ "_note": "What a card's own texture looks like, measured from the extracted art. 'saturated' is the share of opaque pixels with any real colour; the rest is monochrome line work. The rule of thumb is by card type, not by the 纯色材质 tag: that tag separated the two on four samples and failed on 44.",
+ "measured": {
+  "item": {
+   "saturatedMean": 12,
+   "range": "0-68",
+   "tendency": "often near-monochrome ink drawing"
   },
-  "referenceRule": "reference/cards/<type>-<rare>.png, one extracted vanilla card per combination. When present, art.mjs switches to image-to-image so the mode and palette follow a real card instead of a description.",
-  "cardFace": "472x1028 RGBA, about half transparent in the shipped cards. The frame, corner ornaments, help button and plate are NOT in this texture; they are drawn by the game.",
-  "headIcon": "A texture with the same name at 92x92 exists for some cards; extract-art writes it under head/.",
-  "plate": {
-    "_note": "Read out of the CardShowAssets asset in sharedassets0.assets: the reference order plus each material's _MainTex. Groups of four are the rarities in order stone, copper, silver, gold.",
-    "body": {
-      "texture": "card",
-      "tint": {
-        "stone": "#b09aeb",
-        "copper": "#b3d9ff",
-        "silver": "#f0d8cb",
-        "gold": "#ffd4a2"
-      },
-      "note": "chars[], items[] and sudans[] are different material objects but all point _MainTex at the same `card` texture, so the body is the same picture tinted per tier."
-    },
-    "foreground": {
-      "char": "<tier>_f materials (char_forgrounds[]), drawn over the art",
-      "sudan": "sudan_f, one material for every tier (sudan_forgrond)",
-      "item": "none: CardShowAssets has no item_forgrounds",
-      "_note": "This is the per-type difference: a char card has the bottom band and corner brackets, a sudan card has its own frame and its own title font (CardTitle SDF - SudanTitle), an item card has neither."
-    },
-    "cardTypeBadge": "card_type_char / card_type_item / card_type_sudan at 36x58, plus _required variants, held in the card_type_icons dictionaries",
-    "cardBack": {
-      "_note": "card.png plus card_d / card_e / card_mt / card_n at 472x1028 are card backs, not bodies. card.png is the back of a gold character card. One copper material uses card_e."
-    },
-    "open": "what card_d / card_mt / card_n are, and which field uses card_e"
-  },
-  "emptyAreas": {
-    "_note": "Measured on two real stone cards (快脚 2000370, 小圆 2000371), both 472x1028.",
-    "topEmpty": "19.1% and 21.0% of the height is fully transparent: the game writes the card name and a row of small diamonds there.",
-    "bottomEmpty": "2.0% and 2.6%: the art runs almost to the bottom edge, and the frame band is drawn over it.",
-    "rule": "Generated art must keep the top fifth blank and may use the bottom. A subject that fills the top hides the card's name."
-  },
-  "materialMaps": {
-    "_note": "card / card_n / card_d / card_e / card_mt are NOT five different card backs. They are the five texture channels of one PBR material, resolved from each material's texture slots.",
-    "slots": {
-      "_MainTex": "card (albedo)",
-      "_BumpMap": "card_n (normal)",
-      "_DetailAlbedoMap": "card_d",
-      "_EmissionMap": "card_e",
-      "_MetallicGlossMap": "card_mt (metallic + smoothness)"
-    },
-    "perTier": {
-      "stone": {
-        "color": "#b09aeb",
-        "metallic": 0.1,
-        "glossiness": 0.4,
-        "bumpScale": 0.903
-      },
-      "copper": {
-        "color": "#b3d9ff",
-        "metallic": 0.8,
-        "glossiness": 0.7,
-        "bumpScale": 0.382
-      },
-      "silver": {
-        "color": "#f0d8cb",
-        "metallic": 0.85,
-        "glossiness": 0.8,
-        "bumpScale": 0.285
-      },
-      "gold": {
-        "color": "#ffd4a2",
-        "metallic": 0.393,
-        "glossiness": 0.71,
-        "bumpScale": 0.368
-      }
-    },
-    "consequence": "The tiers differ in more than hue: stone is matte (metallic 0.10, gloss 0.40) and silver is shiny (0.85 / 0.80). A flat albedo preview cannot show that, so the page says the preview is albedo only."
+  "char": {
+   "saturatedMean": 38,
+   "range": "9-65",
+   "tendency": "coloured portrait"
   },
   "sudan": {
-    "fontColor": "rgba(0.00, 0.95, 0.91, 0.56)",
-    "fontMaterial": "CardTitle SDF - SudanTitle",
-    "_note": "Sudan cards use their own frame sudan_f and a cyan, semi-transparent title. Every other tier uses CardTitle SDF - Rare1..4."
-  },
-  "stonePlate": {
-    "answer": "stone has NO base-plate image of its own. The body is the one shared `card` paper texture, tinted by the tier material. stone's only per-tier file is stone_f, the frame.",
-    "body": "card.png — the same mottled paper every tier uses",
-    "frame": "stone_f.png",
-    "whyNoStonePng": "Because the body was never per-tier. Only the frame and the title font differ per tier.",
-    "tintIsNotAMultiply": "Multiplying the paper by stone's material _Color #b09aeb produces a purple card; multiplying by the warm #a88864 produces a dark olive one. Neither matches the pale warm grey in game. The face uses a custom shader (CardFaceUnlit, with CardFaceOutline for the rim), plus _DetailAlbedoMap card_d and _MetallicGlossMap card_mt, so the final colour cannot be reproduced with a channel multiply.",
-    "consequence": "Any offline preview of the tier colour is approximate. Say so, and do not claim the preview is what the game shows.",
-    "resolved": "The 196x424 textures named copper, silver and gold are NOT card bodies. They are the title font's face and outline textures. That family never had a stone member, and it never had anything to do with the body.",
-    "whoUses196x424": {
-      "copper.png": "CardTitle SDF - Rare2 . _FaceTex",
-      "silver.png": "CardTitle SDF - Rare3 . _FaceTex, and CardTitle SDF - Rare1 . _OutlineTex",
-      "gold.png": "CardTitle SDF - Rare1 . _FaceTex, and CardTitle SDF - Rare4 . _FaceTex",
-      "stone_f.png": "material stone_f . _MainTex",
-      "copper_f.png": "material copper_f . _MainTex",
-      "silver_f.png": "material silver_f . _MainTex",
-      "gold_f.png": "material gold_f . _MainTex"
-    },
-    "conclusion": "Rare1..4 are the four tiers in order. Rare1 (stone) draws its title with the gold face texture and the silver outline texture, so it needs no texture of its own. The body of every tier is the shared `card` texture through the tier material. stone is not missing anything: it was never supposed to have a body file."
-  },
-  "prefab": {
-    "_note": "Read from sharedassets0.assets: every Image component under the three card prefabs, and the Sprite each one references. CardShowAssets.prefabs holds CardShowItem[] — three prefabs, one per card type.",
-    "prefabs": {
-      "char": "CardShowChar",
-      "item": "CardShowItem",
-      "sudan": "CardShowSudan"
-    },
-    "wiring": [
-      {
-        "part": "body",
-        "evidence": "no Image in any card prefab carries a body sprite, so the body is a plain quad whose look comes entirely from the material",
-        "material": "CardShowAssets.chars/items/sudans[rarity-1], _MainTex = card"
-      },
-      {
-        "part": "art",
-        "evidence": "CardShowChar has an Image with sprite 2000596, a card id: the art is assigned per card at runtime",
-        "material": "CardFaceOutline / CardFaceUnlit"
-      },
-      {
-        "part": "icon",
-        "evidence": "Char -> 1_char_1, Item -> 1_item_10",
-        "material": "char_icons / item_icons[rarity-1]"
-      },
-      {
-        "part": "stackable",
-        "evidence": "Char and Sudan use number_bg, Item uses checkbox_bg",
-        "note": "item cards show a checkbox, not a number — a real behavioural difference between the types"
-      },
-      {
-        "part": "life",
-        "evidence": "LifeBg uses bg_green on all three",
-        "note": "same on every type"
-      },
-      {
-        "part": "frame",
-        "evidence": "char_forgrounds[rarity-1] for char, sudan_forgrond for sudan, nothing for item"
-      }
-    ],
-    "answer": "stone's base plate is the shared `card` texture seen through the stone material. There is no stone-specific body image, which is why only stone_f exists as a per-tier file.",
-    "open": "the exact colour: multiplying card by stone's _Color #b09aeb gives purple and #a88864 gives dark olive, while the game shows pale warm grey. The face is rendered by CardFaceUnlit with CardFaceOutline, blending card_d as detail albedo and card_mt as metallic/gloss, so a channel multiply is not the right model.",
-    "probeEvidence": {
-      "body": "CardShowChar body Image: m_Sprite -> (null), m_Material -> gold (pathID 11). The prefab ships with a default material; the rarity is swapped at runtime.",
-      "textureSet": "gold uses card, card_n, card_d, card_e, card_mt. stone uses card, card_n, card_e, card_mt and NO card_d, so the tiers differ in which maps are present, not only in colour.",
-      "shader": "both stone and gold use Shader pathID 187, m_Name CardShow/Default",
-      "limit": "the probe does not expand Shader m_ParsedForm here, so the shader's maths stays unreadable; a channel multiply does not reproduce the in-game colour."
-    },
-    "perType": {
-      "_note": "Read with the data probe: the CardRender* component fields, and the m_Material / m_Sprite of each body Image.",
-      "char": {
-        "class": "CardRenderChar",
-        "fields": [
-          "bg",
-          "image",
-          "text",
-          "stackable",
-          "life",
-          "stackCount",
-          "lifeCount",
-          "DotText",
-          "sFxHolders",
-          "waitingTime",
-          "forground"
-        ],
-        "bg": "Image pathID 822: m_Sprite null, m_Material -> gold (chars[3]); m_Color 1,1,1,1",
-        "forground": "Image pathID 882: m_Material null, m_Sprite null today. A placeholder the code fills with char_forgrounds[rarity-1], which is the <tier>_f frame.",
-        "stackable": "number_bg"
-      },
-      "item": {
-        "class": "CardRenderItem",
-        "fields": [
-          "bg",
-          "image",
-          "text",
-          "stackable",
-          "life",
-          "stackCount",
-          "lifeCount",
-          "DotText",
-          "sFxHolders",
-          "waitingTime"
-        ],
-        "bg": "Image pathID 845: m_Sprite null, m_Material -> gold (items[3]); m_Color 1,1,1,1",
-        "forground": "absent. The class has no forground field at all, so an item card has no frame layer.",
-        "stackable": "checkbox_bg"
-      },
-      "sudan": {
-        "class": "CardRenderSudan",
-        "fields": [
-          "bg",
-          "image",
-          "text",
-          "stackable",
-          "life",
-          "stackCount",
-          "lifeCount",
-          "DotText",
-          "sFxHolders",
-          "waitingTime"
-        ],
-        "bg": "Image pathID 857: m_Sprite null, m_Material -> gold (sudans[3]); m_Color 1,1,1,1",
-        "forground": "absent as a field. sudan_forgrond exists in CardShowAssets, so the frame is applied another way; unresolved.",
-        "stackable": "number_bg"
-      },
-      "common": "All three prefabs ship with the gold variant as their default material and swap it per rarity at runtime. Every body image is a sprite-less quad with white tint, so the material is the only thing that decides how it looks."
-    }
-  },
-  "howToInspect": {
-    "_note": "Use the data probe from the duckov repository rather than ad-hoc scripts. It reads Sultan's Game once it is pointed at the IL2CPP dummy assemblies.",
-    "command": "~/.dotnet/dotnet ~/Documents/Projects/escape-from-duckov-mod/tools/data-probe/bin/Release/net8.0/data-probe.dll --managed /tmp/il2cppdumper/DummyDll --data \"<Sultan's Game/Contents/Resources/Data>\" --action <dump|refs|search|export> [--class X --name Y --pathid N --file sharedassets0.assets --depth N --follow --out file]",
-    "prerequisite": "--managed needs DLLs; an IL2CPP build has none, so point it at Il2CppDumper's DummyDll output."
-  },
-  "bodyMaterial": {
-    "_note": "Read from material stone (pathID 15) in sharedassets0.assets. It is a standard URP Lit-style material: the shader is named CardShow/Default but carries the URP Lit property set.",
-    "keywords": [
-      "_ALPHABLEND_ON",
-      "_EMISSION",
-      "_METALLICGLOSSMAP",
-      "_NORMALMAP"
-    ],
-    "renderType": "Transparent, alpha blended",
-    "maps": {
-      "_MainTex": "card  (albedo) — the one paper picture shared by every tier",
-      "_BumpMap": "card_n",
-      "_DetailAlbedoMap": "card_d (stone does not set it)",
-      "_EmissionMap": "card_e",
-      "_MetallicGlossMap": "card_mt"
-    },
-    "perTierParameters": {
-      "stone": {
-        "color": "#b09aeb",
-        "metallic": 0.1,
-        "glossiness": 0.4,
-        "bumpScale": 0.903,
-        "detailMap": false
-      },
-      "copper": {
-        "color": "#b3d9ff",
-        "metallic": 0.8,
-        "glossiness": 0.7,
-        "bumpScale": 0.382,
-        "detailMap": true
-      },
-      "silver": {
-        "color": "#f0d8cb",
-        "metallic": 0.85,
-        "glossiness": 0.8,
-        "bumpScale": 0.285,
-        "detailMap": true
-      },
-      "gold": {
-        "color": "#ffd4a2",
-        "metallic": 0.393,
-        "glossiness": 0.71,
-        "bumpScale": 0.368,
-        "detailMap": true
-      }
-    },
-    "answer": "The base plate is not four images. It is one paper texture with four extra PBR maps, shared by all tiers, and the tiers differ only in material parameters. It renders as transparent, lit and alpha blended, which is why it reads as translucent paper and why a flat channel multiply never matched.",
-    "fullParameters": {
-      "_note": "Every colour and float on the four char body materials, read with UnityPy from sharedassets0.assets. _Color values are the shader's linear values.",
-      "stone": {
-        "colors": {
-          "_Color": [
-            0.6902,
-            0.6039,
-            0.9216,
-            1.0
-          ],
-          "_EmissionColor": [
-            0.1415,
-            0.1415,
-            0.1415,
-            1.0
-          ]
-        },
-        "floats": {
-          "_Metallic": 0.1,
-          "_Glossiness": 0.4,
-          "_GlossMapScale": 0.3021,
-          "_BumpScale": 0.9028,
-          "_Parallax": 0.02
-        },
-        "maps": {
-          "_MainTex": "card",
-          "_BumpMap": "card_n",
-          "_EmissionMap": "card_e",
-          "_MetallicGlossMap": "card_mt"
-        }
-      },
-      "copper": {
-        "colors": {
-          "_Color": [
-            0.7049,
-            0.8542,
-            1.0,
-            1.0
-          ],
-          "_EmissionColor": [
-            0.0,
-            0.0486,
-            0.1146,
-            1.0
-          ]
-        },
-        "floats": {
-          "_Metallic": 0.8,
-          "_Glossiness": 0.7,
-          "_GlossMapScale": 0.7847,
-          "_BumpScale": 0.3819,
-          "_Parallax": 0.02
-        },
-        "maps": {
-          "_MainTex": "card",
-          "_BumpMap": "card_n",
-          "_DetailAlbedoMap": "card_d",
-          "_EmissionMap": "card_e",
-          "_MetallicGlossMap": "card_mt"
-        }
-      },
-      "silver": {
-        "colors": {
-          "_Color": [
-            0.9444,
-            0.8507,
-            0.7986,
-            1.0
-          ],
-          "_EmissionColor": [
-            0.0,
-            0.0,
-            0.0,
-            1.0
-          ]
-        },
-        "floats": {
-          "_Metallic": 0.85,
-          "_Glossiness": 0.8,
-          "_GlossMapScale": 0.809,
-          "_BumpScale": 0.2847,
-          "_Parallax": 0.02
-        },
-        "maps": {
-          "_MainTex": "card",
-          "_BumpMap": "card_n",
-          "_DetailAlbedoMap": "card_e",
-          "_EmissionMap": "card_d",
-          "_MetallicGlossMap": "card_mt"
-        },
-        "quirk": "silver has _DetailAlbedoMap and _EmissionMap swapped compared with copper and gold. That is how the shipped material is, not a reading error."
-      },
-      "gold": {
-        "colors": {
-          "_Color": [
-            1.0,
-            0.8333,
-            0.6389,
-            1.0
-          ],
-          "_EmissionColor": [
-            0.0451,
-            0.0451,
-            0.0208,
-            1.0
-          ]
-        },
-        "floats": {
-          "_Metallic": 0.393,
-          "_Glossiness": 0.71,
-          "_GlossMapScale": 0.75,
-          "_BumpScale": 0.3681,
-          "_Parallax": 0.0393
-        },
-        "maps": {
-          "_MainTex": "card",
-          "_BumpMap": "card_n",
-          "_DetailAlbedoMap": "card_d",
-          "_EmissionMap": "card_e",
-          "_MetallicGlossMap": "card_mt"
-        }
-      }
-    },
-    "openIssue": {
-      "claim": "Applying these parameters to `card` reproduces the tier's look.",
-      "measurement": "Pixels sampled from the player's screenshot of two stone cards are warm tan, for example (136,125,98) and (172,157,138).",
-      "problem": "stone's _Color is (0.69,0.60,0.92), and `card` is blue-green, so any albedo multiply stays lavender or blue. It cannot produce warm tan.",
-      "so": "Either the shader does not use _Color as an albedo multiply, or the material is swapped at runtime, or the visible warm body comes from something other than the bg image. Not settled; do not claim the parameters are sufficient."
-    }
-  },
-  "fourTierPlates": {
-    "_note": "The player's four screenshots are one card at four rarities, which is a controlled experiment.",
-    "card": "秘密 exists four times in cards.json: 2000032 (rare1), 2000038 (rare2), 2000044 (rare3), 2000413 (rare4). All four are type item, all tagged 纯色材质, and all four point at the SAME art resource cards/2000032. So the drawing is shared across tiers and only the plate changes.",
-    "measuredScreenshots": {
-      "rare1": "#8d806b warm grey",
-      "rare2": "#94a56a olive",
-      "rare3": "#b0becc blue white",
-      "rare4": "#e9d678 gold"
-    },
-    "measuredPlates": {
-      "cardinfo_stone.png": "#756b5b warm grey",
-      "cardinfo_copper.png": "#697351 olive",
-      "cardinfo_silver.png": "#747e79 grey green",
-      "cardinfo_gold.png": "#8e7c41 olive gold"
-    },
-    "match": "The hue order of the screenshots matches cardinfo_<tier>, not the material _Color values (lavender, pale blue, warm white, pale gold). stone's warm grey appears in both. So the plate shown by this view is cardinfo_<tier>, and stone HAS one: cardinfo_stone.png.",
-    "difference": "The screenshots are brighter and, for rare3, far more specular than the raw plate. That is the lit, metallic, alpha blended render of the same plate, so the plate is the albedo and the material parameters plus scene lighting make the rest.",
-    "consequence": "For a generated card the drawing is tier independent: one black line-art asset serves rarity 1 through 4, which is exactly how the shipped 秘密 cards work."
+   "saturatedMean": 31,
+   "range": "26-37",
+   "tendency": "coloured ornament"
   }
+ },
+ "referenceRule": "reference/cards/<type>-<rare>.png, one extracted vanilla card per combination. When present, art.mjs switches to image-to-image so the mode and palette follow a real card instead of a description.",
+ "cardFace": "472x1028 RGBA, about half transparent in the shipped cards. The frame, corner ornaments, help button and plate are NOT in this texture; they are drawn by the game.",
+ "headIcon": "A texture with the same name at 92x92 exists for some cards; extract-art writes it under head/.",
+ "plate": {
+  "_note": "Read out of the CardShowAssets asset in sharedassets0.assets: the reference order plus each material's _MainTex. Groups of four are the rarities in order stone, copper, silver, gold.",
+  "body": {
+   "texture": "card",
+   "tint": {
+    "stone": "#b09aeb",
+    "copper": "#b3d9ff",
+    "silver": "#f0d8cb",
+    "gold": "#ffd4a2"
+   },
+   "note": "chars[], items[] and sudans[] are different material objects but all point _MainTex at the same `card` texture, so the body is the same picture tinted per tier."
+  },
+  "foreground": {
+   "char": "<tier>_f materials (char_forgrounds[]), drawn over the art",
+   "sudan": "sudan_f, one material for every tier (sudan_forgrond)",
+   "item": "none: CardShowAssets has no item_forgrounds",
+   "_note": "This is the per-type difference: a char card has the bottom band and corner brackets, a sudan card has its own frame and its own title font (CardTitle SDF - SudanTitle), an item card has neither."
+  },
+  "cardTypeBadge": "card_type_char / card_type_item / card_type_sudan at 36x58, plus _required variants, held in the card_type_icons dictionaries",
+  "cardBack": {
+   "_note": "card.png plus card_d / card_e / card_mt / card_n at 472x1028 are card backs, not bodies. card.png is the back of a gold character card. One copper material uses card_e."
+  },
+  "open": "what card_d / card_mt / card_n are, and which field uses card_e",
+  "keptLocally": {
+   "_note": "reference/plates holds only what the page draws with, because the other 31 extracted files were research material and extract-art.py can produce them again.",
+   "files": [
+    "card.png (the shipped paper, recoloured per tier)",
+    "card-stone.png",
+    "card-copper.png",
+    "card-silver.png",
+    "card-gold.png"
+   ],
+   "regenerate": "node tools/extract-art.py writes every plate name again; node tools/plates.mjs rebuilds the four recolours from card.png",
+   "deleted": [
+    "card_bg_*",
+    "cardinfo_*",
+    "card_type_*",
+    "rare_*",
+    "<tier>.png",
+    "<tier>_f.png",
+    "card_n/d/e/mt"
+   ]
+  }
+ },
+ "emptyAreas": {
+  "_note": "Measured on two real stone cards (快脚 2000370, 小圆 2000371), both 472x1028.",
+  "topEmpty": "19.1% and 21.0% of the height is fully transparent: the game writes the card name and a row of small diamonds there.",
+  "bottomEmpty": "2.0% and 2.6%: the art runs almost to the bottom edge, and the frame band is drawn over it.",
+  "rule": "Generated art must keep the top fifth blank and may use the bottom. A subject that fills the top hides the card's name."
+ },
+ "materialMaps": {
+  "_note": "card / card_n / card_d / card_e / card_mt are NOT five different card backs. They are the five texture channels of one PBR material, resolved from each material's texture slots.",
+  "slots": {
+   "_MainTex": "card (albedo)",
+   "_BumpMap": "card_n (normal)",
+   "_DetailAlbedoMap": "card_d",
+   "_EmissionMap": "card_e",
+   "_MetallicGlossMap": "card_mt (metallic + smoothness)"
+  },
+  "perTier": {
+   "stone": {
+    "color": "#b09aeb",
+    "metallic": 0.1,
+    "glossiness": 0.4,
+    "bumpScale": 0.903
+   },
+   "copper": {
+    "color": "#b3d9ff",
+    "metallic": 0.8,
+    "glossiness": 0.7,
+    "bumpScale": 0.382
+   },
+   "silver": {
+    "color": "#f0d8cb",
+    "metallic": 0.85,
+    "glossiness": 0.8,
+    "bumpScale": 0.285
+   },
+   "gold": {
+    "color": "#ffd4a2",
+    "metallic": 0.393,
+    "glossiness": 0.71,
+    "bumpScale": 0.368
+   }
+  },
+  "consequence": "The tiers differ in more than hue: stone is matte (metallic 0.10, gloss 0.40) and silver is shiny (0.85 / 0.80). A flat albedo preview cannot show that, so the page says the preview is albedo only."
+ },
+ "sudan": {
+  "fontColor": "rgba(0.00, 0.95, 0.91, 0.56)",
+  "fontMaterial": "CardTitle SDF - SudanTitle",
+  "_note": "Sudan cards use their own frame sudan_f and a cyan, semi-transparent title. Every other tier uses CardTitle SDF - Rare1..4."
+ },
+ "stonePlate": {
+  "answer": "stone has NO base-plate image of its own. The body is the one shared `card` paper texture, tinted by the tier material. stone's only per-tier file is stone_f, the frame.",
+  "body": "card.png — the same mottled paper every tier uses",
+  "frame": "stone_f.png",
+  "whyNoStonePng": "Because the body was never per-tier. Only the frame and the title font differ per tier.",
+  "tintIsNotAMultiply": "Multiplying the paper by stone's material _Color #b09aeb produces a purple card; multiplying by the warm #a88864 produces a dark olive one. Neither matches the pale warm grey in game. The face uses a custom shader (CardFaceUnlit, with CardFaceOutline for the rim), plus _DetailAlbedoMap card_d and _MetallicGlossMap card_mt, so the final colour cannot be reproduced with a channel multiply.",
+  "consequence": "Any offline preview of the tier colour is approximate. Say so, and do not claim the preview is what the game shows.",
+  "resolved": "The 196x424 textures named copper, silver and gold are NOT card bodies. They are the title font's face and outline textures. That family never had a stone member, and it never had anything to do with the body.",
+  "whoUses196x424": {
+   "copper.png": "CardTitle SDF - Rare2 . _FaceTex",
+   "silver.png": "CardTitle SDF - Rare3 . _FaceTex, and CardTitle SDF - Rare1 . _OutlineTex",
+   "gold.png": "CardTitle SDF - Rare1 . _FaceTex, and CardTitle SDF - Rare4 . _FaceTex",
+   "stone_f.png": "material stone_f . _MainTex",
+   "copper_f.png": "material copper_f . _MainTex",
+   "silver_f.png": "material silver_f . _MainTex",
+   "gold_f.png": "material gold_f . _MainTex"
+  },
+  "conclusion": "Rare1..4 are the four tiers in order. Rare1 (stone) draws its title with the gold face texture and the silver outline texture, so it needs no texture of its own. The body of every tier is the shared `card` texture through the tier material. stone is not missing anything: it was never supposed to have a body file."
+ },
+ "prefab": {
+  "_note": "Read from sharedassets0.assets: every Image component under the three card prefabs, and the Sprite each one references. CardShowAssets.prefabs holds CardShowItem[] — three prefabs, one per card type.",
+  "prefabs": {
+   "char": "CardShowChar",
+   "item": "CardShowItem",
+   "sudan": "CardShowSudan"
+  },
+  "wiring": [
+   {
+    "part": "body",
+    "evidence": "no Image in any card prefab carries a body sprite, so the body is a plain quad whose look comes entirely from the material",
+    "material": "CardShowAssets.chars/items/sudans[rarity-1], _MainTex = card"
+   },
+   {
+    "part": "art",
+    "evidence": "CardShowChar has an Image with sprite 2000596, a card id: the art is assigned per card at runtime",
+    "material": "CardFaceOutline / CardFaceUnlit"
+   },
+   {
+    "part": "icon",
+    "evidence": "Char -> 1_char_1, Item -> 1_item_10",
+    "material": "char_icons / item_icons[rarity-1]"
+   },
+   {
+    "part": "stackable",
+    "evidence": "Char and Sudan use number_bg, Item uses checkbox_bg",
+    "note": "item cards show a checkbox, not a number — a real behavioural difference between the types"
+   },
+   {
+    "part": "life",
+    "evidence": "LifeBg uses bg_green on all three",
+    "note": "same on every type"
+   },
+   {
+    "part": "frame",
+    "evidence": "char_forgrounds[rarity-1] for char, sudan_forgrond for sudan, nothing for item"
+   }
+  ],
+  "answer": "stone's base plate is the shared `card` texture seen through the stone material. There is no stone-specific body image, which is why only stone_f exists as a per-tier file.",
+  "open": "the exact colour: multiplying card by stone's _Color #b09aeb gives purple and #a88864 gives dark olive, while the game shows pale warm grey. The face is rendered by CardFaceUnlit with CardFaceOutline, blending card_d as detail albedo and card_mt as metallic/gloss, so a channel multiply is not the right model.",
+  "probeEvidence": {
+   "body": "CardShowChar body Image: m_Sprite -> (null), m_Material -> gold (pathID 11). The prefab ships with a default material; the rarity is swapped at runtime.",
+   "textureSet": "gold uses card, card_n, card_d, card_e, card_mt. stone uses card, card_n, card_e, card_mt and NO card_d, so the tiers differ in which maps are present, not only in colour.",
+   "shader": "both stone and gold use Shader pathID 187, m_Name CardShow/Default",
+   "limit": "the probe does not expand Shader m_ParsedForm here, so the shader's maths stays unreadable; a channel multiply does not reproduce the in-game colour."
+  },
+  "perType": {
+   "_note": "Read with the data probe: the CardRender* component fields, and the m_Material / m_Sprite of each body Image.",
+   "char": {
+    "class": "CardRenderChar",
+    "fields": [
+     "bg",
+     "image",
+     "text",
+     "stackable",
+     "life",
+     "stackCount",
+     "lifeCount",
+     "DotText",
+     "sFxHolders",
+     "waitingTime",
+     "forground"
+    ],
+    "bg": "Image pathID 822: m_Sprite null, m_Material -> gold (chars[3]); m_Color 1,1,1,1",
+    "forground": "Image pathID 882: m_Material null, m_Sprite null today. A placeholder the code fills with char_forgrounds[rarity-1], which is the <tier>_f frame.",
+    "stackable": "number_bg"
+   },
+   "item": {
+    "class": "CardRenderItem",
+    "fields": [
+     "bg",
+     "image",
+     "text",
+     "stackable",
+     "life",
+     "stackCount",
+     "lifeCount",
+     "DotText",
+     "sFxHolders",
+     "waitingTime"
+    ],
+    "bg": "Image pathID 845: m_Sprite null, m_Material -> gold (items[3]); m_Color 1,1,1,1",
+    "forground": "absent. The class has no forground field at all, so an item card has no frame layer.",
+    "stackable": "checkbox_bg"
+   },
+   "sudan": {
+    "class": "CardRenderSudan",
+    "fields": [
+     "bg",
+     "image",
+     "text",
+     "stackable",
+     "life",
+     "stackCount",
+     "lifeCount",
+     "DotText",
+     "sFxHolders",
+     "waitingTime"
+    ],
+    "bg": "Image pathID 857: m_Sprite null, m_Material -> gold (sudans[3]); m_Color 1,1,1,1",
+    "forground": "absent as a field. sudan_forgrond exists in CardShowAssets, so the frame is applied another way; unresolved.",
+    "stackable": "number_bg"
+   },
+   "common": "All three prefabs ship with the gold variant as their default material and swap it per rarity at runtime. Every body image is a sprite-less quad with white tint, so the material is the only thing that decides how it looks."
+  }
+ },
+ "howToInspect": {
+  "_note": "Use the data probe from the duckov repository rather than ad-hoc scripts. It reads Sultan's Game once it is pointed at the IL2CPP dummy assemblies.",
+  "command": "~/.dotnet/dotnet ~/Documents/Projects/escape-from-duckov-mod/tools/data-probe/bin/Release/net8.0/data-probe.dll --managed /tmp/il2cppdumper/DummyDll --data \"<Sultan's Game/Contents/Resources/Data>\" --action <dump|refs|search|export> [--class X --name Y --pathid N --file sharedassets0.assets --depth N --follow --out file]",
+  "prerequisite": "--managed needs DLLs; an IL2CPP build has none, so point it at Il2CppDumper's DummyDll output."
+ },
+ "bodyMaterial": {
+  "_note": "Read from material stone (pathID 15) in sharedassets0.assets. It is a standard URP Lit-style material: the shader is named CardShow/Default but carries the URP Lit property set.",
+  "keywords": [
+   "_ALPHABLEND_ON",
+   "_EMISSION",
+   "_METALLICGLOSSMAP",
+   "_NORMALMAP"
+  ],
+  "renderType": "Transparent, alpha blended",
+  "maps": {
+   "_MainTex": "card  (albedo) — the one paper picture shared by every tier",
+   "_BumpMap": "card_n",
+   "_DetailAlbedoMap": "card_d (stone does not set it)",
+   "_EmissionMap": "card_e",
+   "_MetallicGlossMap": "card_mt"
+  },
+  "perTierParameters": {
+   "stone": {
+    "color": "#b09aeb",
+    "metallic": 0.1,
+    "glossiness": 0.4,
+    "bumpScale": 0.903,
+    "detailMap": false
+   },
+   "copper": {
+    "color": "#b3d9ff",
+    "metallic": 0.8,
+    "glossiness": 0.7,
+    "bumpScale": 0.382,
+    "detailMap": true
+   },
+   "silver": {
+    "color": "#f0d8cb",
+    "metallic": 0.85,
+    "glossiness": 0.8,
+    "bumpScale": 0.285,
+    "detailMap": true
+   },
+   "gold": {
+    "color": "#ffd4a2",
+    "metallic": 0.393,
+    "glossiness": 0.71,
+    "bumpScale": 0.368,
+    "detailMap": true
+   }
+  },
+  "answer": "The base plate is not four images. It is one paper texture with four extra PBR maps, shared by all tiers, and the tiers differ only in material parameters. It renders as transparent, lit and alpha blended, which is why it reads as translucent paper and why a flat channel multiply never matched.",
+  "fullParameters": {
+   "_note": "Every colour and float on the four char body materials, read with UnityPy from sharedassets0.assets. _Color values are the shader's linear values.",
+   "stone": {
+    "colors": {
+     "_Color": [
+      0.6902,
+      0.6039,
+      0.9216,
+      1.0
+     ],
+     "_EmissionColor": [
+      0.1415,
+      0.1415,
+      0.1415,
+      1.0
+     ]
+    },
+    "floats": {
+     "_Metallic": 0.1,
+     "_Glossiness": 0.4,
+     "_GlossMapScale": 0.3021,
+     "_BumpScale": 0.9028,
+     "_Parallax": 0.02
+    },
+    "maps": {
+     "_MainTex": "card",
+     "_BumpMap": "card_n",
+     "_EmissionMap": "card_e",
+     "_MetallicGlossMap": "card_mt"
+    }
+   },
+   "copper": {
+    "colors": {
+     "_Color": [
+      0.7049,
+      0.8542,
+      1.0,
+      1.0
+     ],
+     "_EmissionColor": [
+      0.0,
+      0.0486,
+      0.1146,
+      1.0
+     ]
+    },
+    "floats": {
+     "_Metallic": 0.8,
+     "_Glossiness": 0.7,
+     "_GlossMapScale": 0.7847,
+     "_BumpScale": 0.3819,
+     "_Parallax": 0.02
+    },
+    "maps": {
+     "_MainTex": "card",
+     "_BumpMap": "card_n",
+     "_DetailAlbedoMap": "card_d",
+     "_EmissionMap": "card_e",
+     "_MetallicGlossMap": "card_mt"
+    }
+   },
+   "silver": {
+    "colors": {
+     "_Color": [
+      0.9444,
+      0.8507,
+      0.7986,
+      1.0
+     ],
+     "_EmissionColor": [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+     ]
+    },
+    "floats": {
+     "_Metallic": 0.85,
+     "_Glossiness": 0.8,
+     "_GlossMapScale": 0.809,
+     "_BumpScale": 0.2847,
+     "_Parallax": 0.02
+    },
+    "maps": {
+     "_MainTex": "card",
+     "_BumpMap": "card_n",
+     "_DetailAlbedoMap": "card_e",
+     "_EmissionMap": "card_d",
+     "_MetallicGlossMap": "card_mt"
+    },
+    "quirk": "silver has _DetailAlbedoMap and _EmissionMap swapped compared with copper and gold. That is how the shipped material is, not a reading error."
+   },
+   "gold": {
+    "colors": {
+     "_Color": [
+      1.0,
+      0.8333,
+      0.6389,
+      1.0
+     ],
+     "_EmissionColor": [
+      0.0451,
+      0.0451,
+      0.0208,
+      1.0
+     ]
+    },
+    "floats": {
+     "_Metallic": 0.393,
+     "_Glossiness": 0.71,
+     "_GlossMapScale": 0.75,
+     "_BumpScale": 0.3681,
+     "_Parallax": 0.0393
+    },
+    "maps": {
+     "_MainTex": "card",
+     "_BumpMap": "card_n",
+     "_DetailAlbedoMap": "card_d",
+     "_EmissionMap": "card_e",
+     "_MetallicGlossMap": "card_mt"
+    }
+   }
+  },
+  "openIssue": {
+   "claim": "Applying these parameters to `card` reproduces the tier's look.",
+   "measurement": "Pixels sampled from the player's screenshot of two stone cards are warm tan, for example (136,125,98) and (172,157,138).",
+   "problem": "stone's _Color is (0.69,0.60,0.92), and `card` is blue-green, so any albedo multiply stays lavender or blue. It cannot produce warm tan.",
+   "so": "Either the shader does not use _Color as an albedo multiply, or the material is swapped at runtime, or the visible warm body comes from something other than the bg image. Not settled; do not claim the parameters are sufficient."
+  }
+ },
+ "fourTierPlates": {
+  "_note": "The player's four screenshots are one card at four rarities, which is a controlled experiment.",
+  "card": "秘密 exists four times in cards.json: 2000032 (rare1), 2000038 (rare2), 2000044 (rare3), 2000413 (rare4). All four are type item, all tagged 纯色材质, and all four point at the SAME art resource cards/2000032. So the drawing is shared across tiers and only the plate changes.",
+  "measuredScreenshots": {
+   "rare1": "#8d806b warm grey",
+   "rare2": "#94a56a olive",
+   "rare3": "#b0becc blue white",
+   "rare4": "#e9d678 gold"
+  },
+  "measuredPlates": {
+   "cardinfo_stone.png": "#756b5b warm grey",
+   "cardinfo_copper.png": "#697351 olive",
+   "cardinfo_silver.png": "#747e79 grey green",
+   "cardinfo_gold.png": "#8e7c41 olive gold"
+  },
+  "match": "The hue order of the screenshots matches cardinfo_<tier>, not the material _Color values (lavender, pale blue, warm white, pale gold). stone's warm grey appears in both. So the plate shown by this view is cardinfo_<tier>, and stone HAS one: cardinfo_stone.png.",
+  "difference": "The screenshots are brighter and, for rare3, far more specular than the raw plate. That is the lit, metallic, alpha blended render of the same plate, so the plate is the albedo and the material parameters plus scene lighting make the rest.",
+  "consequence": "For a generated card the drawing is tier independent: one black line-art asset serves rarity 1 through 4, which is exactly how the shipped 秘密 cards work."
+ }
 }
