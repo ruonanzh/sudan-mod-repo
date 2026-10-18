@@ -145,10 +145,15 @@ function main() {
   if (!py) {
     const base = arg("--python") || (process.platform === "win32" ? "python" : "python3");
     if (spawnSync(base, ["--version"], { stdio: "ignore" }).status !== 0) {
+      const mirror = "https://mirrors.huaweicloud.com/python/";
       console.error(
         `Python 3 is required: the extraction step is tools/extract-art.py, which reads Unity asset bundles.\n` +
-          `  ${base} was not found. Install Python 3.9 or newer, then run this again.\n` +
-          `  https://www.python.org/downloads/   (on Windows, tick "Add python.exe to PATH")`
+          `  ${base} was not found. Install Python 3.9 or newer, then run this again.\n\n` +
+          `  The official installer is throttled to about 4 KB/s on this network; the Huawei\n` +
+          `  mirror of the same files measured 8-12 MB/s. Pick the one for this machine:\n` +
+          `    ${mirror}3.13.9/python-3.13.9-macos11.pkg     macOS\n` +
+          `    ${mirror}3.13.9/python-3.13.9-amd64.exe      Windows (tick "Add python.exe to PATH")\n` +
+          `  Any 3.9+ version works; browse ${mirror} for others.`
       );
       return 2;
     }
