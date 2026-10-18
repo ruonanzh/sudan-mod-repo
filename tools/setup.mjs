@@ -192,9 +192,9 @@ function main() {
     }
   }
 
-  // sharedassets0 holds the plates and the fonts; resources.assets holds the card art.
-  run(py, [path.join(ROOT, "tools/extract-art.py"), "--game", game, "--out", path.join(REF, "plates"), "--plates"], "extract the four base plates");
-  run(py, [path.join(ROOT, "tools/extract-art.py"), "--game", game, "--out", path.join(REF, "plates"), "--assets", "sharedassets0.assets", "--plates"], "extract the shared plates");
+  // One --plates call covers both bundles: resources.assets and sharedassets0 return the
+  // same 57 textures, `card` included, so a second pass would only rewrite them.
+  run(py, [path.join(ROOT, "tools/extract-art.py"), "--game", game, "--out", path.join(REF, "plates"), "--plates"], "extract the base plates");
   run(py, [path.join(ROOT, "tools/extract-art.py"), "--game", game, "--out", path.join(REF, "fonts"), "--assets", "sharedassets0.assets", "--fonts"], "extract the fonts");
   run(py, [path.join(ROOT, "tools/extract-art.py"), "--game", game, "--out", path.join(REF, "cards"), "--by-tier"], "extract one reference card per tier");
 
