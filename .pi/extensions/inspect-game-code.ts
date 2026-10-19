@@ -188,10 +188,23 @@ export default function (pi: ExtensionAPI) {
           ) {
             drift.push("Il2CppDumper changed since this dump");
           }
+          // When something is wrong, say what a rebuild would read. This is the
+          // question a reader asks first, and it replaces a separate dry run.
+          const resolved = freshness.state === "fresh"
+            ? []
+            : game
+              ? [
+                  `  game: ${game.gameDir}${game.universal ? " (universal binary; one slice is cut for Il2CppDumper)" : ""}`,
+                  `  binary: ${game.binary}`,
+                  `  metadata: ${game.metadata}`,
+                  `  tools: ${cpp2il ?? "cpp2il: none for this platform"} | ${dumper}`,
+                ]
+              : ["  game: not found (checked the recorded path, the mod-repo.json hint, and the Steam libraries)"];
           const lines = [
             head,
             `  build: ${manifest?.build?.label ?? "unknown"}, game binary ${identity}, metadata ${meta}`,
             `  coverage: ${coverage || "(nothing)"}`,
+            ...resolved,
             drift.length ? `  warnings: ${drift.join("; ")}` : "",
             freshness.state === "fresh"
               ? ""
