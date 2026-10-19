@@ -469,17 +469,14 @@ function condHtml(obj) {
   }).join("");
 }
 
-window.__openNode = (key) => {
-  const n = byKey.get(key);
-  if (!n) return;
-  const out = (OUT.get(key) || []).slice(0, 30);
-  const inc = (IN.get(key) || []).slice(0, 30);
-  const box = document.getElementById("modal-body");
+// Everything the panel says about a node, without the buttons. The read view and the left half
+// of the editor show the same text, so it is built once, here.
+function panelHtml(n) {
+  const out = (OUT.get(n.k) || []).slice(0, 30);
+  const inc = (IN.get(n.k) || []).slice(0, 30);
   const nb = descBlock(n);
-  // The node's own name, in the language on screen. An event has no name in any table, so
-  // its designer note is the name; what the panel then shows under it is the narration.
   const title = dispLabel(n);
-  const sec = (title, body) => "<h3>" + escHtml(title) + "</h3>" + body;
+  const sec = (t, body) => "<h3>" + escHtml(t) + "</h3>" + body;
   const hint = (text) => '<div class="cond muted">' + text + "</div>";
   const row = (k, r, dir) => {
     const label = (dir === "in" ? REL_IN[r] || REL_OUT[r] : REL_OUT[r]) || r;
@@ -502,7 +499,7 @@ window.__openNode = (key) => {
   const outRows = dedupe(out).map(([k, r]) => row(k, r, "out")).join("");
   const chainText = n.ch ? "在一条 " + (n.cs || 0) + " 个节点的长剧情里" : "不在长剧情线上";
   const emptyIn = n.on ? "没有。它按上面的时间自己出现。" : "没有。别的节点不会让它出现。";
-  box.innerHTML =
+  return (
     '<h2 style="margin-top:0">' + escHtml(KIND_NAME[n.t] || n.t) + " " + escHtml(n.id) + "</h2>" +
     (title ? '<div class="node-title">' + escHtml(title) + "</div>" : "") +
     '<div class="sub">' + escHtml(CAT_NAME[n.c] || n.c) + " · " + (n.o === "mod" ? "mod 改的" : "原版") +
@@ -512,13 +509,22 @@ window.__openNode = (key) => {
     (openTips ? sec("开启条件", openTips) : "") +
     sec("什么会让它出现", inRows || hint(emptyIn)) +
     nb +
-    sec("会发生什么", outRows || hint("没有。它不引发别的事。")) +
-    '<div class="note" id="editbox" style="margin-top:18px">' +
-    (location.protocol !== "http:"
-      ? "这个页面只能看。要改，用 node tools/editor.mjs 打开。"
-      : EDITABLE
-        ? '<button id="editbtn" class="pill">编辑这个节点</button>'
-        : "只读：启动时没带 --mod。要改，先建 your_mods/&lt;ModName&gt;/，再用 node tools/editor.mjs --mod your_mods/&lt;ModName&gt; 打开。") + "</div>";
+    sec("会发生什么", outRows || hint("没有。它不引发别的事。"))
+  );
+}
+
+function editHint() {
+  if (location.protocol !== "http:") return "这个页面只能看。要改，用 node tools/editor.mjs 打开。";
+  if (!EDITABLE) return "只读：启动时没带 --mod。要改，先建 your_mods/&lt;ModName&gt;/，再用 node tools/editor.mjs --mod your_mods/&lt;ModName&gt; 打开。";
+  return '<button id="editbtn" class="pill">编辑这个节点</button>';
+}
+
+window.__openNode = (key) => {
+  const n = byKey.get(key);
+  if (!n) return;
+  const box = document.getElementById("modal-body");
+  if (box.classList) box.classList.remove("wide");
+  box.innerHTML = panelHtml(n) + '<div class="note" id="editbox" style="margin-top:18px">' + editHint() + "</div>";
   const modal = document.getElementById("modal");
   modal.hidden = false;
   modal.onclick = (e) => { if (e.target === modal) modal.hidden = true; };
@@ -530,16 +536,24 @@ window.__openNode = (key) => {
 };
 
 async function openEditor(key) {
+  const n = byKey.get(key);
   const box = document.getElementById("modal-body");
   box.innerHTML = '<div class="note">读取中…</div>';
   const res = await fetch("/api/node/" + encodeURIComponent(key));
   const node = await res.json();
   if (!node.ok) { box.innerHTML = '<div class="note bad">' + escHtml(node.error) + "</div>"; return; }
+  // Left: what the node says now. Right: the file it says it in. A card is easier to change
+  // when its current values are on screen beside the JSON that holds them, and the panel is
+  // the same reading the graph gives, so nothing has to be remembered from the previous view.
+  if (box.classList) box.classList.add("wide");
   box.innerHTML =
-    '<h2 style="margin-top:0">编辑 ' + escHtml(node.key) + "</h2>" +
-    '<div class="note">' + escHtml(node.path) + "</div>" +
-    '<textarea id="ed" style="min-height:420px;font-family:ui-monospace,Menlo,monospace">' + escHtml(node.source) + "</textarea>" +
-    '<div class="note"><button id="save" class="pill">保存</button> <span id="saveMsg"></span></div>';
+    '<div class="editsplit">' +
+    '<div class="editview">' + (n ? panelHtml(n) : "") + "</div>" +
+    '<div class="editsrc">' +
+    '<div class="note" style="margin-top:0">' + escHtml(node.path) + "</div>" +
+    '<textarea id="ed" spellcheck="false">' + escHtml(node.source) + "</textarea>" +
+    '<div class="note"><button id="save" class="pill">保存</button> <span id="saveMsg"></span></div>' +
+    "</div></div>";
   document.getElementById("save").onclick = async () => {
     const msg = document.getElementById("saveMsg");
     msg.textContent = "保存中…";
@@ -554,9 +568,7 @@ async function openEditor(key) {
       ? "失败：" + out.error
       : out.unchanged
         ? "没有改动，未写入（不会生成 mod 副本）"
-        : out.backup
-          ? "已保存（备份 " + out.backup + "）"
-          : "已保存";
+        : (out.backup ? "已保存（备份 " + out.backup + "）" : "已保存") + " · 左边和图上还是旧值，刷新页面后才更新";
   };
 }
 
@@ -583,6 +595,7 @@ cv.onclick = (e) => {
 };
 cats(); listRows(); relayout();
 window.__draw = draw;
+window.__openEditor = openEditor;
 `;
 
 export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable = true, modNote = "" } = {}) {
@@ -652,6 +665,12 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
 .modal { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: flex; align-items: center; justify-content: center; z-index: 20; }
 .modal[hidden] { display: none; }
 .modal-body { background: var(--panel); border: 1px solid var(--rule); width: min(880px, 92vw); max-height: 86vh; overflow: auto; padding: 18px 20px; }
+.modal-body.wide { width: min(1400px, 96vw); }
+.editsplit { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 18px; align-items: start; }
+.editview { padding-right: 6px; border-right: 1px solid #2f2a24; }
+.editsrc { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.editsrc textarea { min-height: 64vh; font-family: ui-monospace, Menlo, monospace; font-size: 12px; line-height: 1.55; tab-size: 4; }
+@media (max-width: 900px) { .editsplit { grid-template-columns: 1fr; } .editview { border-right: 0; padding-right: 0; } }
 `;
   // The script goes after the shell: it reads DOM ids that only exist once the body is parsed.
   return (
