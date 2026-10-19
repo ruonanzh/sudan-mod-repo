@@ -237,6 +237,10 @@ function riteInfoOf(rec) {
     k,
     text: (s && s.text) || "",
     cond: (s && s.condition) || null,
+    // Two slot flags have a meaning a player can act on (see plans/story-graph.md §六);
+    // is_empty only switches the empty-slot hint text and is_key is unused in vanilla.
+    adsorb: s && s.open_adsorb ? 1 : 0,
+    enemy: s && s.is_enemy ? 1 : 0,
   }));
   const branches = (arr) =>
     (Array.isArray(arr) ? arr : [])

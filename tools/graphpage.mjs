@@ -537,6 +537,8 @@ function switchText(kind, key, value) {
   const pick = (slot) => (slot ? slot[lang] || slot.zh || "" : "");
   if (spec.yes) return pick(value ? spec.yes : spec.no);
   const v = Array.isArray(value) ? value.join(", ") : String(value);
+  // A switch whose values are a small enum says one sentence per value instead of a yes/no.
+  if (spec.values) return pick(spec.values[v]);
   const slot = v === "1" && spec.one ? spec.one : v === "0" && spec.zero ? spec.zero : spec.num;
   return pick(slot).replace("{v}", v);
 }
@@ -567,7 +569,8 @@ function slotBlock(ri) {
   const rows = ri.slots
     .map((sl) => {
       const cond = sl.cond ? condHtml(sl.cond, "slot") : "";
-      return '<div class="slot"><div class="slotname">' + escHtml(sl.k) + (sl.text ? " · " + escHtml(sl.text) : "") + "</div>" + cond + "</div>";
+      const marks = (sl.adsorb ? '<span class="mark">吸附槽</span>' : "") + (sl.enemy ? '<span class="mark">敌方槽</span>' : "");
+      return '<div class="slot"><div class="slotname">' + escHtml(sl.k) + (sl.text ? " · " + escHtml(sl.text) : "") + marks + "</div>" + cond + "</div>";
     })
     .join("");
   return "<h3>放什么卡</h3>" + sublabel(ri.slots.length + " 个槽位") + rows;
@@ -876,6 +879,7 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
 #modal-body .slotname { color: #d8b877; font-size: 13px; margin-bottom: 2px; }
 #modal-body .branch { margin: 8px 0; padding: 6px 0 4px; border-top: 1px solid #241d15; }
 #modal-body .branchhead { color: #9a8d78; font-size: 12px; }
+#modal-body .mark { margin-left: 8px; color: #8a8070; font-size: 11px; border: 1px solid #3a3128; border-radius: 3px; padding: 0 5px; }
 #modal-body .swrow { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; }
 #modal-body .sw { font-size: 12px; color: #d8c9ab; background: #241d15; border: 1px solid #3a3128; border-radius: 3px; padding: 2px 8px; }
 .badge { font-size: 10px; padding: 0 4px; border-radius: 2px; }

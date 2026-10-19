@@ -181,12 +181,17 @@ test("every switch names a real field and reads in all four languages", () => {
       assert.ok(declared.has(key), `${kind}.${key} is not a field of ${kind}`);
       const names = Object.keys(slots).filter((x) => x !== "note");
       assert.ok(names.length, `${kind}.${key} says nothing`);
+      const LANG = ["zh", "en", "ja", "zhTW"];
       for (const slot of names) {
-        for (const l of ["zh", "en", "ja", "zhTW"]) {
-          const text = slots[slot][l];
-          assert.ok(text && text.trim(), `${kind}.${key}.${slot} has no ${l}`);
+        // `values` holds one sentence per value, each in four languages.
+        const bodies = slot === "values" ? Object.entries(slots.values) : [[slot, slots[slot]]];
+        assert.ok(bodies.length, `${kind}.${key}.values is empty`);
+        for (const [label, body] of bodies) {
+          for (const l of LANG) {
+            assert.ok(body[l] && body[l].trim(), `${kind}.${key}.${slot}.${label} has no ${l}`);
+          }
+          if (slot === "num") assert.match(body.zh, /\{v\}/, `${kind}.${key} fills no value`);
         }
-        if (slot === "num") assert.match(slots[slot].zh, /\{v\}/, `${kind}.${key} fills no value`);
       }
     }
   }

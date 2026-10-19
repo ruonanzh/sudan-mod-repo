@@ -219,6 +219,9 @@ test("a rite shows its place, its slots and its settlement branches", { skip }, 
   assert.match(p, /先结算（按顺序，第一条条件成立的生效）/, "prior stops at the first match");
   assert.match(p, /正常结算|附加结算/, "the other two lists are labelled separately");
   assert.match(p, /槽位 s13 里没有卡/, "a slot condition reads as a sentence");
+  assert.match(p, /<span class="mark">吸附槽<\/span>/, "a slot the game auto-pulls cards into says so");
+  // once_new is an enum, not a flag: 1 = only the first appearance counts as new.
+  assert.match(p, /只有第一次算新的|每次出现都算新的/);
 });
 
 test("a dead key is marked in the file, and not in the editor", { skip }, async () => {

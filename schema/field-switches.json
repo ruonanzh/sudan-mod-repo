@@ -100,6 +100,28 @@
         "ja": "最大 {v} ターン待つ",
         "zhTW": "最多等 {v} 回合"
       }
+    },
+    "once_new": {
+      "values": {
+        "0": {
+          "zh": "每次出现都算新的",
+          "en": "counts as new every time it appears",
+          "ja": "現れるたびに「新」になる",
+          "zhTW": "每次出現都算新的"
+        },
+        "1": {
+          "zh": "只有第一次算新的",
+          "en": "counts as new the first time only",
+          "ja": "最初の一度だけ「新」になる",
+          "zhTW": "只有第一次算新的"
+        },
+        "-1": {
+          "zh": "从不标成新的",
+          "en": "never counts as new",
+          "ja": "「新」にはならない",
+          "zhTW": "從不標成新的"
+        }
+      }
     }
   }
 }
