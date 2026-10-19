@@ -86,6 +86,7 @@ export function payload(g) {
       tr: n.tr || { en: false, ja: false, zhTW: false },
       nr: n.nr || null,
       nt: n.note || "",
+      dl: n.dl || null,
       on: n.on || null,
       cond: n.cond || null,
       oc: n.oc || null,
@@ -356,46 +357,44 @@ function chip(key) {
   return '<a href="#" data-go="' + key + '">' + n.id + " " + escHtml((n.l[lang] || n.l.zh || "").slice(0, 26)) + "</a>";
 }
 
-function labelRow(code, text, fallback) {
-  return '<tr><th style="width:72px">' + code + "</th><td>" + escHtml(text || "—") +
-    (fallback ? ' <span class="toless">无此语言，回退简中</span>' : "") + "</td></tr>";
-}
-
-// An event's title is never translated; what the tables do translate is the narration lines.
-function narrationBlock(n) {
-  var nr = n.nr;
-  if (!nr) return "";
-  var lang = document.getElementById("lang").value;
-  var cur = nr[lang === "zh" ? "zh" : lang === "zhTW" ? "zhTW" : lang];
-  var rec = cur || nr.zh || nr.en || nr.ja || nr.zhTW;
-  var used = cur ? lang : nr.zh ? "zh" : nr.en ? "en" : nr.ja ? "ja" : "zhTW";
-  if (!rec) return "";
-  if (!rec) return "";
-  var html = "<h3>剧情文字</h3>";
-  var any = false;
-  if ((rec.opt || []).length) {
-    any = true;
-    html += '<div class="note">开场</div>';
-    for (var i = 0; i < rec.opt.length; i++) {
-      var o = rec.opt[i];
-      html += '<div class="story">' + escHtml(o.text || "（无）") + "</div>";
-      if (o.items.length) {
-        html += '<div class="note">选项 ' + escHtml(o.n) + "：" +
-          o.items.map(function (it) { return escHtml(it.text); }).join(" / ") + "</div>";
+// What the node says, in the language on screen, and nothing else: the other languages are a
+// click away in the switcher, and a four-row table buries the one the reader picked.
+// An event's description is narration, delivered in lines; every other kind has one paragraph.
+function descBlock(n) {
+  const pick = (rec) => {
+    if (!rec) return { rec: null, fellBack: false };
+    const cur = rec[lang];
+    return { rec: cur || rec.zh || null, fellBack: !cur && lang !== "zh" };
+  };
+  let body = "";
+  let fellBack = false;
+  if (n.t === "event") {
+    const got = pick(n.nr);
+    const rec = got.rec;
+    fellBack = got.fellBack;
+    if (!rec) return "";
+    if ((rec.opt || []).length) {
+      body += '<div class="note">开场</div>';
+      for (const o of rec.opt) {
+        body += '<div class="story">' + escHtml(o.text || "（无）") + "</div>";
+        if (o.items.length) {
+          body += '<div class="note">选项 ' + escHtml(o.n) + "：" + o.items.map((it) => escHtml(it.text)).join(" / ") + "</div>";
+        }
       }
     }
-  }
-  if ((rec.prompt || []).length) {
-    any = true;
-    html += '<div class="note">结算之后</div>';
-    for (var j = 0; j < rec.prompt.length; j++) {
-      html += '<div class="story">' + escHtml(rec.prompt[j].text) + "</div>";
+    if ((rec.prompt || []).length) {
+      body += '<div class="note">结算之后</div>';
+      for (const p of rec.prompt) body += '<div class="story">' + escHtml(p.text) + "</div>";
     }
+    if (!body) return "";
+  } else {
+    const got = pick(n.dl);
+    fellBack = got.fellBack;
+    if (!got.rec) return "";
+    body = '<div class="story">' + escHtml(got.rec) + "</div>";
   }
-  if (!any) return "";
-  return html;
+  return '<h3>描述</h3>' + (fellBack ? '<div class="note">无' + escHtml(lang) + "，回退简中</div>" : "") + body;
 }
-
 
 // Conditions use game keys such as have.2000080.激情 or counter.7000025<. Read them
 // as sentences, and keep the nesting: any means one of them, all means every one.
@@ -462,7 +461,10 @@ window.__openNode = (key) => {
   const out = (OUT.get(key) || []).slice(0, 30);
   const inc = (IN.get(key) || []).slice(0, 30);
   const box = document.getElementById("modal-body");
-  const nb = narrationBlock(n);
+  const nb = descBlock(n);
+  // The node's own name, in the language on screen. An event has no name in any table, so
+  // its designer note is the name; what the panel then shows under it is the narration.
+  const title = n.t === "event" ? n.nt || n.l[lang] || "" : n.l[lang] || n.l.zh || "";
   const sec = (title, body) => "<h3>" + escHtml(title) + "</h3>" + body;
   const hint = (text) => '<div class="cond muted">' + text + "</div>";
   const row = (k, r, dir) => {
@@ -488,16 +490,9 @@ window.__openNode = (key) => {
   const emptyIn = n.on ? "没有。它按上面的时间自己出现。" : "没有。别的节点不会让它出现。";
   box.innerHTML =
     '<h2 style="margin-top:0">' + escHtml(KIND_NAME[n.t] || n.t) + " " + escHtml(n.id) + "</h2>" +
+    (title ? '<div class="node-title">' + escHtml(title) + "</div>" : "") +
     '<div class="sub">' + escHtml(CAT_NAME[n.c] || n.c) + " · " + (n.o === "mod" ? "mod 改的" : "原版") +
     " · " + chainText + (n.b ? " · " + n.b + "：" + escHtml((n.bm || []).join(", ")) : "") + "</div>" +
-    '<table class="names">' +
-    labelRow("简中", n.l.zh, false) +
-    labelRow("en", n.l.en, n.fb && n.fb.en) +
-    labelRow("ja", n.l.ja, n.fb && n.fb.ja) +
-    labelRow("zhTW", n.l.zhTW, n.fb && n.fb.zhTW) +
-    "</table>" +
-    (n.nt && nb ? '<div class="cond">策划备注：' + escHtml(n.nt) + "</div>" : "") +
-    (n.t === "event" && !nb ? '<div class="note">没有剧情文字，标题取自策划备注。</div>' : "") +
     (n.on ? sec("什么时候发生", '<div class="cond">' + escHtml(timingText(n.on)) + "</div>") : "") +
     (conds ? sec("需要满足的条件", conds) : "") +
     (openTips ? sec("开启条件", openTips) : "") +
@@ -615,12 +610,10 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图" } = {}) {
 .toless { color: #7a6f5e; font-size: 10px; border: 1px solid #4a4238; border-radius: 2px; padding: 0 3px; margin-left: 4px; }
 .story { background: #1d1710; border-left: 2px solid #4a3c28; padding: 8px 10px; margin: 6px 0; line-height: 1.65; font-size: 13px; color: #cfc0a4; }
 #modal-body h2 { margin: 0 0 4px; font-size: 19px; letter-spacing: .04em; }
+#modal-body .node-title { font-size: 22px; color: #f2e5c8; line-height: 1.4; margin: 4px 0 2px; letter-spacing: .03em; }
 #modal-body h3 { font-size: 13px; color: var(--gold); letter-spacing: .06em; margin: 20px 0 6px; }
 #modal-body .sub { color: #8a8070; font-size: 12px; line-height: 1.6; }
 #modal-body .note { color: #8a8070; font-size: 12px; margin: 6px 0; }
-#modal-body table.names { margin: 10px 0 6px; }
-#modal-body table.names th { color: #8a8070; font-weight: 400; font-size: 12px; text-align: left; padding: 2px 10px 2px 0; vertical-align: top; }
-#modal-body table.names td { color: #d8c9ab; padding: 2px 0; }
 #modal-body .relrow { display: grid; grid-template-columns: 8.5em 1fr; gap: 2px 12px; align-items: baseline; padding: 6px 0; border-top: 1px solid #241d15; }
 #modal-body .relrow:first-of-type { border-top: 0; }
 #modal-body .reltag { color: #9a8d78; font-size: 12px; text-align: right; }

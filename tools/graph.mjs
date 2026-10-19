@@ -512,6 +512,7 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
       n.narrZh = firstNarration(rec || {});
     }
     n.l = labels(n, vanilla, i18n, lang);
+    n.dl = descriptions(n, vanilla, i18n);
   }
 
   // ---------------------------------------------------------------- lint badges
@@ -660,8 +661,9 @@ function components(edges, nodes) {
  */
 function indexI18n(table) {
   const byKey = new Map(); // "card:2000001" -> { text, pref }
+  const desc = new Map(); // "rite:5008014" -> the paragraph under the name
   const narr = new Map(); // "5300176" -> { opt: [...], prompt: [...] }
-  if (!table) return { byKey, narr };
+  if (!table) return { byKey, narr, desc };
   const PREF = { name: 0, title: 1, text: 2 };
   const slot = (id) => {
     let rec = narr.get(id);
@@ -678,6 +680,9 @@ function indexI18n(table) {
       const pref = PREF[named[3]] ?? 3;
       const prev = byKey.get(key);
       if (!prev || pref < prev.pref) byKey.set(key, { text: v, pref });
+      // The paragraph sits beside the name in the same record but answers a different
+      // question, so it gets its own table instead of being ranked against the name.
+      if (named[3] === "text" && !desc.has(key)) desc.set(key, v);
       continue;
     }
     let m = k.match(/^OPTION_(\d+)_option_(\d+)_ITEM_(\d+)_TEXT$/);
@@ -704,7 +709,25 @@ function indexI18n(table) {
     rec.prompt.sort((a, b) => a.n - b.n);
     for (const o of rec.opt) o.items.sort((a, b) => a.n - b.n);
   }
-  return { byKey, narr };
+  return { byKey, narr, desc };
+}
+
+/**
+ * The paragraph a node shows under its name, per language. A rite's `text` is the sentence
+ * the panel opens with; a card's `text` is the card's own paragraph. An event is left empty
+ * on purpose: what it shows is narration, delivered line by line in `nr`, never this field.
+ */
+function descriptions(node, vanilla, i18n) {
+  const prefix = { rite: "rite", card: "card", quest: "quest", afterStory: "after_story" }[node.t];
+  const out = { zh: "", en: "", ja: "", zhTW: "" };
+  if (!prefix) return out;
+  const rec = vanilla[node.t] ? vanilla[node.t][node.id] : null;
+  if (rec && typeof rec.text === "string") out.zh = rec.text;
+  for (const l of ["en", "ja", "zhTW"]) {
+    const v = i18n[l] && i18n[l].desc.get(`${prefix}:${node.id}`);
+    if (v) out[l] = v;
+  }
+  return out;
 }
 
 function labels(node, vanilla, i18n, lang) {

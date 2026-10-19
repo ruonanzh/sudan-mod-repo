@@ -150,6 +150,25 @@ test("an event label comes from narration, not the designer note", { skip }, () 
   assert.ok(silent.l.zh.includes("善名"), "the note itself is the label");
 });
 
+test("a node's description is its own paragraph, in every language", { skip }, () => {
+  const g = graph();
+  const rite = g.nodes.find((n) => n.k === "rite:5008014");
+  assert.equal(rite.l.zh, "荣耀回归", "the name is the label");
+  assert.ok(rite.dl.zh.startsWith("你已经拿到了盖斯家的世袭头衔"), "the paragraph sits beside the name, not in place of it");
+  assert.match(rite.dl.en, /hereditary title/, "the paragraph is translated per language");
+  const card = g.nodes.find((n) => n.k === "card:2000001");
+  assert.ok(card.dl.zh.length > 5 && card.dl.ja.length > 5, "a card carries its own paragraph too");
+  // An event never borrows its designer note as a description: what it shows is narration.
+  const ev = g.nodes.find((n) => n.k === "event:5300090");
+  assert.equal(ev.note, "浴场移除提示");
+  assert.equal(ev.dl.zh, "", "the note is the heading, never the description");
+  assert.ok(ev.nr.zh.prompt.some((p) => p.text.includes("浴场暂时关闭")), "the narration is what the panel describes");
+  // A rite with no paragraph in any table reports none, instead of repeating its name.
+  const bare = g.nodes.find((n) => n.k === "rite:5000062");
+  assert.equal(bare.dl.zh, "");
+  assert.equal(bare.dl.en, "");
+});
+
 test("the baseline file still describes a full build", { skip }, () => {
   const base = JSON.parse(readFileSync(new URL("../schema/graph-baseline.json", import.meta.url), "utf8"));
   const g = graph();
