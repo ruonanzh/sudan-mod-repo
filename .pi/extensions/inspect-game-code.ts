@@ -17,6 +17,7 @@ import {
   resolveIsilFile,
   searchDump,
   searchStrings,
+  setupCpp2il,
   sha256File,
   toolsDir,
   truncate,
@@ -31,7 +32,7 @@ export default function (pi: ExtensionAPI) {
     name: "inspect_game_code",
     label: "Inspect Game Code",
     description:
-      "Read the game's code from the local decompiled dump. Actions: status, search, type, body, strings, dump. The dump is rebuilt automatically when the installed game, the config, or the tool version changed. The tool only writes inside the product data root; it never changes the game or the mod.",
+      "Read the game's code from the local decompiled dump. Actions: status, search, type, body, strings, dump, setup. The dump is rebuilt automatically when the installed game, the config, or the tool version changed. setup fetches the tool that produces method bodies. The tool only writes inside the product data root and its own tools folder; it never changes the game or the mod.",
     promptSnippet: "Read game code from the local dump (types, bodies, strings), and dump more assemblies",
     promptGuidelines: [
       "Use inspect_game_code to read game code from the dump, and to dump more assemblies.",
@@ -48,10 +49,11 @@ export default function (pi: ExtensionAPI) {
           Type.Literal("body"),
           Type.Literal("strings"),
           Type.Literal("dump"),
+          Type.Literal("setup"),
         ],
         {
           description:
-            "status: is the dump current, and what does it cover. search: find type or member names. type: one type's fields, properties and method signatures. body: a method's ISIL and disassembly. strings: string literals. dump: rebuild the dump, adding assemblies.",
+            "status: is the dump current, and what does it cover. search: find type or member names. type: one type's fields, properties and method signatures. body: a method's ISIL and disassembly. strings: string literals. dump: rebuild the dump, adding assemblies. setup: download and verify Cpp2IL for this machine.",
         },
       ),
       target: Type.Optional(
@@ -121,15 +123,6 @@ export default function (pi: ExtensionAPI) {
       };
 
       const freshness = checkFreshness(cwd, cfg, game);
-      const refreshNote = async (): Promise<string> => {
-        if (freshness.state === "fresh") return "";
-        try {
-          const built = await rebuild([]);
-          return `# refreshed the dump in ${built.seconds.toFixed(1)}s (${freshness.reasons.join("; ")})\n`;
-        } catch (error) {
-          throw new Error(`DUMP_REBUILD_FAILED: ${(error as Error).message}`);
-        }
-      };
 
       const dir = dumpDir(cwd);
       const wrap = (text: string, details: Record<string, unknown> = {}) => ({
@@ -141,6 +134,49 @@ export default function (pi: ExtensionAPI) {
         content: [{ type: "text", text: asciiSafe(text) }],
         details: { ok: false, ...details },
       });
+
+      if (params.action === "setup") {
+        const started = Date.now();
+        let stage = "Fetching the dump tool";
+        const report = (text: string) => {
+          stage = text;
+          onUpdate?.({ content: [{ type: "text", text: asciiSafe(text) }], details: {} });
+        };
+        const beat = setInterval(() => {
+          report(`${stage} (${Math.round((Date.now() - started) / 1000)}s)`);
+        }, 10_000);
+        try {
+          const done = await serialize(`setup:${cwd}`, () => setupCpp2il(cwd, report));
+          return wrap(
+            [
+              `${
+                done.status === "installed" ? `PASS: Cpp2IL installed in ${done.seconds.toFixed(1)}s.` : `SKIP: Cpp2IL is already installed and runs (${done.seconds.toFixed(1)}s).`
+              }`,
+              `  ${done.path}`,
+              `  sha256 ${done.sha256.slice(0, 16)}${done.signed ? " (signed locally, so it differs from the published digest)" : ""}`,
+              ...done.attempts.map((a) => `  source: ${a}`),
+            ].join("\n"),
+            { status: done.status, path: done.path },
+          );
+        } catch (error) {
+          return {
+            content: [{ type: "text", text: `FAIL: ${(error as Error).message}` }],
+            details: { ok: false, reason: "SETUP" },
+          };
+        } finally {
+          clearInterval(beat);
+        }
+      }
+      const refreshNote = async (): Promise<string> => {
+        if (freshness.state === "fresh") return "";
+        try {
+          const built = await rebuild([]);
+          return `# refreshed the dump in ${built.seconds.toFixed(1)}s (${freshness.reasons.join("; ")})\n`;
+        } catch (error) {
+          throw new Error(`DUMP_REBUILD_FAILED: ${(error as Error).message}`);
+        }
+      };
+
 
       try {
         if (params.action === "status") {

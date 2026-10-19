@@ -11,7 +11,7 @@
  * Nothing here trusts a name or a path from a previous run: the game files, the
  * tools, and the platform are resolved on every call.
  */
-import { closeSync, createReadStream, createWriteStream, existsSync, mkdirSync, openSync, readFileSync, readdirSync, readSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { closeSync, createReadStream, createWriteStream, existsSync, chmodSync, mkdirSync, openSync, readFileSync, readdirSync, readSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { createGzip } from "node:zlib";
 import { pipeline } from "node:stream/promises";
@@ -159,27 +159,168 @@ export async function findCpp2il(): Promise<ToolRef> {
     throw new Error(`CPP2IL_UNSUPPORTED_PLATFORM: no Cpp2IL build for ${process.platform} ${process.arch}.`);
   }
   if (!existsSync(path)) {
-    throw new Error(`CPP2IL_MISSING: expected ${path}. This is the tool that produces method bodies.`);
+    throw new Error(
+      `CPP2IL_MISSING: expected ${path}. This is the tool that produces method bodies.\nNEXT: run action=setup, which downloads and verifies it.`,
+    );
   }
   let version = "";
   try {
     const out = await runAsync(path, ["--version"], { timeoutMs: 20_000 });
     version = (out.stdout.match(/Version\s+(\S+)/) ?? [])[1] ?? "";
   } catch {
-    throw new Error(`CPP2IL_NOT_RUNNABLE: ${path} failed to run on ${process.platform} ${process.arch}.`);
+    throw new Error(
+      `CPP2IL_NOT_RUNNABLE: ${path} failed to run on ${process.platform} ${process.arch}.\nNEXT: run action=setup to fetch a working copy.`,
+    );
   }
   return { path, sha256: sha256File(path), version };
 }
 
-export function findIl2CppDumper(): ToolRef {
-  const dir = join(toolsDir(), "il2cppdumper");
-  const dll = join(dir, "Il2CppDumper.dll");
+/**
+ * The tools that produce the dump. `decompile.json` says what to dump; this says
+ * which binary does it. Both live in the repository, so the player can change a
+ * download location without touching code.
+ */
+export interface Toolchain {
+  version: number;
+  download?: { mirrors?: string[] };
+  tools?: Record<
+    string,
+    {
+      version?: string;
+      release?: string;
+      assets?: Record<string, { file: string; bytes: number; sha256: string; sign?: boolean }>;
+    }
+  >;
+}
+
+const toolchainPath = (cwd: string): string => join(cwd, "tools/toolchain.json");
+
+export function loadToolchain(cwd: string): Toolchain {
+  const file = toolchainPath(cwd);
+  if (!existsSync(file)) {
+    throw new Error(`TOOLCHAIN_MISSING: ${file} does not exist. It says where Cpp2IL comes from.`);
+  }
+  return JSON.parse(readFileSync(file, "utf8")) as Toolchain;
+}
+
+/** Il2CppDumper is bundled (736 KB, platform-neutral); Cpp2IL is not. */
+export function findIl2CppDumper(cwd: string): ToolRef {
+  const bundled = join(cwd, "tools/il2cppdumper/Il2CppDumper.dll");
+  const dll = existsSync(bundled) ? bundled : join(toolsDir(), "il2cppdumper/Il2CppDumper.dll");
   if (!existsSync(dll)) {
-    throw new Error(`IL2CPPDUMPER_MISSING: expected ${dll}. This is the tool that produces signatures.`);
+    throw new Error(`IL2CPPDUMPER_MISSING: expected ${bundled}. This is the tool that produces signatures.`);
   }
   // No version probe: the tool targets net7 and its only self-report needs a
   // console. The sha256 below is the identity that matters.
   return { path: dll, sha256: sha256File(dll), version: "" };
+}
+
+export interface SetupResult {
+  status: "installed" | "skipped";
+  path: string;
+  sha256: string;
+  signed: boolean;
+  seconds: number;
+  attempts: string[];
+}
+
+/**
+ * Fetch Cpp2IL for this platform. The digest in toolchain.json is the only thing
+ * trusted: mirrors may serve the bytes, but they may not change them. On Apple
+ * Silicon the release binary is unsigned and is killed on launch, so it is
+ * signed here; that changes its digest, which is why the recorded identity is
+ * the local one.
+ */
+export async function setupCpp2il(
+  cwd: string,
+  onProgress: (message: string) => void = () => undefined,
+): Promise<SetupResult> {
+  const started = Date.now();
+  const attempts: string[] = [];
+  const key = `${process.platform}:${process.arch}`;
+  const chain = loadToolchain(cwd).tools?.cpp2il;
+  const asset = chain?.assets?.[key];
+  const target = cpp2ilPath();
+  if (!chain?.release || !asset || !target) {
+    throw new Error(
+      `TOOLCHAIN_UNSUPPORTED_PLATFORM: tools/toolchain.json has no Cpp2IL asset for ${key}. Add one, or install the binary at ${target ?? "the cpp2il folder"}.`,
+    );
+  }
+
+  if (existsSync(target)) {
+    try {
+      await runAsync(target, ["--version"], { timeoutMs: 20_000 });
+      return {
+        status: "skipped",
+        path: target,
+        sha256: sha256File(target),
+        signed: process.platform === "darwin",
+        seconds: (Date.now() - started) / 1000,
+        attempts: [],
+      };
+    } catch {
+      attempts.push(`${target} exists but does not run; replacing it`);
+    }
+  }
+
+  const mirrors = loadToolchain(cwd).download?.mirrors ?? [""];
+  const encoded = `${chain.release}${asset.file}`;
+  let bytes: Buffer | null = null;
+  for (const mirror of mirrors) {
+    const label = mirror ? mirror.replace(/^https?:\/\//, "").replace(/\/$/, "") : "github.com (direct)";
+    onProgress(`Downloading Cpp2IL from ${label} (${Math.round(asset.bytes / 1048576)} MB)`);
+    try {
+      const res = await fetch(`${mirror}${encoded}`, {
+        redirect: "follow",
+        signal: AbortSignal.timeout(300_000),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const buf = Buffer.from(await res.arrayBuffer());
+      if (buf.length !== asset.bytes) throw new Error(`size ${buf.length}, expected ${asset.bytes}`);
+      const digest = createHash("sha256").update(buf).digest("hex");
+      if (digest !== asset.sha256) throw new Error(`sha256 ${digest.slice(0, 16)} does not match`);
+      bytes = buf;
+      attempts.push(`${label}: ${(buf.length / 1048576).toFixed(1)} MB, digest ok`);
+      break;
+    } catch (error) {
+      attempts.push(`${label}: ${(error as Error).message}`);
+    }
+  }
+  if (!bytes) {
+    throw new Error(
+      `CPP2IL_DOWNLOAD_FAILED: no source delivered the expected file.\n  ${attempts.join("\n  ")}\n` +
+        `NEXT: download ${encoded} yourself and put it at ${target}, then run action=setup again to verify it.`,
+    );
+  }
+
+  mkdirSync(join(target, ".."), { recursive: true });
+  const tmp = `${target}.part-${process.pid}`;
+  writeFileSync(tmp, bytes);
+  chmodSync(tmp, 0o755);
+  let signed = false;
+  if (asset.sign && process.platform === "darwin") {
+    onProgress("Signing the binary (Apple Silicon refuses unsigned code)");
+    await runAsync("codesign", ["--force", "--sign", "-", "--identifier", target.split("/").pop() as string, tmp], {
+      timeoutMs: 60_000,
+    });
+    signed = true;
+  }
+  renameSync(tmp, target);
+  try {
+    await runAsync(target, ["--version"], { timeoutMs: 20_000 });
+  } catch {
+    throw new Error(
+      `CPP2IL_NOT_RUNNABLE: ${target} was written but does not run (signed: ${signed}). On macOS an unsigned or wrongly signed arm64 binary is killed on launch.`,
+    );
+  }
+  return {
+    status: "installed",
+    path: target,
+    sha256: sha256File(target),
+    signed,
+    seconds: (Date.now() - started) / 1000,
+    attempts,
+  };
 }
 
 // ── the game ────────────────────────────────────────────────────────────────
@@ -413,7 +554,7 @@ export async function buildDump(
     );
   }
   const cpp2il = await findCpp2il();
-  const dumper = findIl2CppDumper();
+  const dumper = findIl2CppDumper(cwd);
 
   const keep = [...new Set([...cfg.dump.assemblies, ...extraAssemblies])];
   const budget = cfg.dump.budgetBytes ?? 0;
