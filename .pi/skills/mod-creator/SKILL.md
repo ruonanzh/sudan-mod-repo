@@ -322,22 +322,24 @@ usable as a rule:
 So: put the unconditional branch **last** in `settlement_prior` and `settlement`, and anywhere in
 `settlement_extre`. `node tools/lint.mjs` reports `DEAD_BRANCH` when you get this wrong.
 
-`is_empty` chooses the hint text. It is not a rule:
+`is_empty` picks a hint, and it is not a rule:
 
 | value | meaning |
 |---|---|
 | `0` | the empty slot shows the "cannot be empty" hint |
 | `1` | the empty slot shows the "may stay empty" hint |
 
-`CardSlotController.Init` uses the value only to pick which string to show, and `CheckConfirm()`
-walks the placed cards with `CanPutCard` without reading it. The engine does not refuse to start a
-rite because a slot marked `0` is empty. To require a card, write the requirement in the settlement
-condition instead: `"s3": 1` requires it, `"!s3": 1` requires it to be empty.
+`CardSlotController.Init` reads it at `slot+0x28`, and all it does is choose **which sprite set** the
+slot's `tips_icon` names are looked up in — one set for each value, nothing else. `CheckConfirm()`
+walks the placed cards with `CanPutCard` without reading it, so the engine does not refuse to start
+a rite because a slot marked `0` is empty. To require a card, write the requirement in the
+settlement condition instead: `"s3": 1` requires it, `"!s3": 1` requires it to be empty.
 
-Vanilla's comments still tell you the intent: `"is_empty":0, // 不能为空` appears 53 times and
-`"is_empty":1, //可以为空` / `// 可以为空` 10 times. The polarity is right; the enforcement is not
-there. One more trap: `is_empty` is a line inside a bigger object, so a search for `is_empty:1`
-tells you nothing about whether that *rite* is optional. Read the whole slot.
+The 0/1 polarity in that table comes from **vanilla's own comments**, not from code: `"is_empty":0,
+// 不能为空` appears 53 times and `"is_empty":1, //可以为空` / `// 可以为空` 10 times. The icons
+themselves are in the game's assets, so nothing in the config or the code names them. One more trap:
+`is_empty` is a line inside a bigger object, so a search for `is_empty:1` tells you nothing about
+whether that *rite* is optional. Read the whole slot.
 
 ### The rest of a rite's fields
 
@@ -347,6 +349,24 @@ tells you nothing about whether that *rite* is optional. Read the whole slot.
 | `location` | a map pin label, `place:number` or `place:[a,b]`. Only the text before the colon is read, as a name — **nothing parses the number**, so it is not a round. Vanilla has 89 distinct values for 1498 rites; 590 of them share `自宅:[2,12]` |
 | `open_conditions` | **all of them must hold.** Each entry is `{condition, tips}`, and the rite title bar prints the `tips` of every unmet entry, so write the tip as the reason it cannot open ("匪帮调动中，无法进行训练") — that is the sentence the player reads |
 | `is_enemy` (slot) | `1` = the slot counts for the enemy side; dice and battle rites split their cards by it |
+
+**Reuse a vanilla `location` string; do not invent one.** `GetLocationName` splits on `:` and looks
+only the part before it up as a translation key, then the map looks the whole string up in a
+`SerializableDictionary<string, Vector2>` for the pin position. A made-up name misses both. The ten
+groups vanilla uses, with every number each one carries:
+
+| group | values seen |
+|---|---|
+| 自宅 | `1` `2` `10` `14` `[1,12]` `[2,6]` `[2,10]` `[2,12]` `[2,14]` `[3,12]` `[4,12]` |
+| 上城区 | `3` `[1,6]` `[1,12]` `[2,10]` `[3,12]` `[7,12]` |
+| 商业区 | `1` `2` `3` `6` `7` `8` `9` `20` `[4,5]` `[7,10]` `[10,19]` |
+| 宫廷 | `1` `2` `7` `[2,6]` `[2,10]` `[7,10]` |
+| 神殿区 | `11` `[2,10]` |
+| 野外 | `8` `9` `[1,6]` `[1,14]` `[2,14]` `[9,10]` `[9,14]` `[12,14]` |
+| 黑街 | `1` `10` `[1,5]` `[1,9]` `[2,5]` `[2,9]` |
+| 奇珍 | `1` through `15`, one at a time |
+| 结局 | `1` through `20`, one at a time |
+| 大敌 | `1` `2` `3` `6` |
 
 Dead fields — the game never reads them, so do not copy them into a new rite:
 `is_key` (0 in all 5406 vanilla slots) and `final_pin` (12 rites, only the serializer touches it).
