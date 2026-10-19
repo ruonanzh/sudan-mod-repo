@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "runtime": "il2cpp",
+  "dump": {
+    "assemblies": [
+      "Assembly-CSharp",
+      "Base",
+      "Common",
+      "Core",
+      "DataNode.Core",
+      "DataNode.UnityExtensions",
+      "Game",
+      "__Generated"
+    ],
+    "dropIl2cppHeader": true,
+    "gzipScriptJson": true,
+    "budgetBytes": 120000000
+  }
+}
