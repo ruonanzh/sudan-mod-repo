@@ -24,7 +24,7 @@ Class column and absent from the data is a key the game reads and vanilla never 
 | `event` | 7 | A journal/story card whose outcome is a list of settlement branches. | `config/event/<id>.json` | filename = id |
 | `rite` | 26 | The multi-round board puzzle: slots, open conditions, waiting period, then three settlement lists. | `config/rite/<id>.json` | filename = id |
 | `slot` | 9 | One slot on a rite board. | `rite.cards_slot.<sN>` | key = s1..sN |
-| `settlement` | 12 | One outcome branch of a rite or event. | `rite/event settlement arrays` | - |
+| `settlement` | 12 | One outcome branch of a rite or event. Every branch of an event runs in order; a rite takes the first match. | `rite/event settlement arrays` | - |
 | `loot` | 5 | A weighted random table yielding cards, events, rites or other tables. | `config/loot/<id>.json` | filename = id |
 | `lootItem` | 6 | One weighted entry in a loot table. | `loot.item[]` | - |
 | `upgrade` | 10 | One entry in the destiny shop: pay cost, run effect, gated by condition. | `config/upgrade.json` | dictionary key = id |
@@ -161,7 +161,7 @@ File: `rite.cards_slot.<sN>`
 
 ### settlement
 
-One outcome branch of a rite or event.  
+One outcome branch of a rite or event. Every branch of an event runs in order; a rite takes the first match.  
 File: `rite/event settlement arrays`
 
 | key |
@@ -953,7 +953,7 @@ fewer of them.
 
 ## How the story graph is derived
 
-`schema/edges.json` is the only place that says what points at what. `tools/graph.mjs`
+`schema/edges.json` declares the id spaces, the timings and the edge rules. `tools/graph.mjs`
 executes it; no edge rule lives in code. Counts are deliberately absent: they depend on
 whether you follow descendant keys (`case:opN`, `delay`) and whether duplicates count, so
 `node tools/graph.mjs --check` prints them instead.
@@ -976,37 +976,36 @@ A reference outside its kind's range is not an edge: it is a cross-type pointer,
 
 ### Timings that carry an id
 
-| timing | points at |
-|---|---|
-| `rite_end` | rite |
-| `rite_start` | rite |
-| `rite_cancel` | rite |
-| `open_rite_end` | rite |
-| `card_clean` | card |
-| `card_born` | card |
-| `card_dead` | card |
-| `counter` | counter |
-| `global_counter` | counter |
-| `game_end` | over |
+| timing | points at | route |
+|---|---|---|
+| `rite_end` | rite | trigger, edge runs into the event |
+| `rite_start` | rite | trigger, edge runs into the event |
+| `rite_cancel` | rite | trigger, edge runs into the event |
+| `open_rite_end` | rite | trigger, edge runs into the event |
+| `card_clean` | card | trigger, edge runs into the event |
+| `card_born` | card | trigger, edge runs into the event |
+| `card_dead` | card | trigger, edge runs into the event |
+| `counter` | counter | annotation, no edge |
+| `global_counter` | counter | annotation, no edge |
+| `game_end` | over | trigger, edge runs into the event |
 
 Everything else in `event.on` carries a round number, a period, or nothing at all.
 
-The literal `1` on an id-valued timing means **any**, not card/rite id 1; `game_end` also
-accepts the sentinels `-1` and `-3`. Both are excluded from the graph.
+The literal `1` on a rite, card or counter timing means **any**, and only when it is the sole
+element: `[1, 5004832]` is a normal set. `round_begin_ba: 1` is not a wildcard, it is one round.
+`game_end` accepts the sentinels `-1` and `-3`; neither becomes an edge.
 
 ### Edge rules
 
 | id | from | match | to | note |
 |---|---|---|---|---|
-| `event.on` | event | timing | see timings | event.on.<timing>; value is a single id or an array. Sentinel 1 is dropped. |
+| `trigger.on` | rite, card, over | timing | event | event.on.<timing>; value is a single id or an array. The referenced node fires the event, so the edge runs from that node to the event. Literal 1 on rite/card timings means any, and game_end -1/-3 are sentinels; neither becomes an edge. |
 | `action.rite` | event, rite | nestedKey | rite | Recurses into the whole settlement object, so case:opN.rite, delay.rite, success.rite and failed.rite are all covered. Every occurrence is an edge: vanilla appends operations. |
 | `action.loot` | event, rite | nestedKey | loot | Events keep loot under settlement[].action; rites keep it under settlement[].result. Both are reached here, and a tag-qualified key such as loot.已拥有+1 keeps its base id. |
 | `action.event` | event, rite, card | nestedKey | event |  |
 | `action.over` | event, rite, card | nestedKey | over |  |
 | `condition.have` | event, rite, card, loot, quest, afterStory | condition | card | have.<cardId>[.<tag>], table_have.<cardId>, hand_have.<cardId>; a non-numeric second segment is a tag and yields no edge. |
 | `condition.rite` | event, rite, card | condition | rite | is_rite / rite / !rite. 165 branches on 174 cards use is_rite. |
-| `condition.counter` | event, rite, card, quest, afterStory, loot | condition | counter |  |
-| `slot.card` | rite | condition | card | Which cards a slot accepts: is:<cardId>, sN.type, sN.<tag>. 667 distinct cards. |
 | `loot.item` | loot | lootItem | see item.type | item[].type is card \| event \| rite \| loot; 24 entries chain to another table. |
 | `rite.template` | rite | mapping | rite_template |  |
 
@@ -1044,7 +1043,6 @@ positives, and they are why a vanilla run is not expected to exit 0.
 
 | where | what |
 |---|---|
-| `event/5320301.json` | three settlement branches, all with a null condition. Only the first can ever run |
 | `event/5320511.json` | fires `rite: 5320511`, which is its own event id; no such rite exists |
 | `rite/5008112.json` | fires `rite: 5321118` with the comment 合伙生意, an event id in the 532xxxx range |
 | `loot/6001103.json` | declares `id: 6001102`, so filename and id disagree |

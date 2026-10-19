@@ -197,7 +197,7 @@ must hold, `settlement` is an array of branches with an `action`.
     "text": "书店营业",
     "is_replay": 1,                 // may it trigger more than once
     "auto_start_init": [1],         // already enabled when init config 1 starts
-    "start_trigger": true,          // check conditions as soon as the run begins
+    "start_trigger": true,          // event_on checks the condition at once
     "on": { "round_begin_ba": 1 },  // timing; 1 means every round start
     "condition": {
         "!rite": 5002006,            // ! negates
@@ -297,15 +297,17 @@ Facts that decide whether the file works:
 }
 ```
 
-Three settlement arrays exist. What each does with multiple matching branches:
+Three settlement arrays exist. What each does with multiple branches:
 
 | array | behaviour |
 |---|---|
-| `settlement_prior` | first branch whose condition holds, then the rite ends immediately |
-| `settlement` | first branch whose condition holds, then `settlement_extre` runs |
-| `settlement_extre` | every branch whose condition holds, in order |
+| `settlement_prior` | first branch whose condition holds; the whole `settlement` array is then skipped |
+| `settlement` | first branch whose condition holds |
+| `settlement_extre` | every element, in order; it does not test conditions |
 
-**Confirmed twice, from two independent directions.**
+The shipped data agrees, and the decompiled loop settles it: `GetPriorSettlement` and
+`GetNormalSettlement` each return one element, and `DoExtraSettlement` copies every element into
+the queue without calling its condition.
 
 The wiki documents it field by field. The shipped data agrees, and it is the data that makes this
 usable as a rule:
@@ -319,30 +321,39 @@ usable as a rule:
 So: put the unconditional branch **last** in `settlement_prior` and `settlement`, and anywhere in
 `settlement_extre`. `node tools/lint.mjs` reports `DEAD_BRANCH` when you get this wrong.
 
-`is_empty` is settled, and the community guide that says otherwise is wrong:
+`is_empty` chooses the hint text. It is not a rule:
 
 | value | meaning |
 |---|---|
-| `0` | the slot must hold a card |
-| `1` | the slot may stay empty |
+| `0` | the empty slot shows the "cannot be empty" hint |
+| `1` | the empty slot shows the "may stay empty" hint |
 
-The evidence is vanilla's own comments, not a story: `"is_empty":0, // 不能为空` appears 53 times and
-`"is_empty":1, //可以为空` / `// 可以为空` 10 times. The shipped data never contradicts itself on this.
+`CardSlotController.Init` uses the value only to pick which string to show, and `CheckConfirm()`
+walks the placed cards with `CanPutCard` without reading it. The engine does not refuse to start a
+rite because a slot marked `0` is empty. To require a card, write the requirement in the settlement
+condition instead: `"s3": 1` requires it, `"!s3": 1` requires it to be empty.
 
-One trap remains: `is_empty` is a line inside a bigger object, so a search for `is_empty:1` tells you
-nothing about whether that *rite* is optional. Read the whole slot.
+Vanilla's comments still tell you the intent: `"is_empty":0, // 不能为空` appears 53 times and
+`"is_empty":1, //可以为空` / `// 可以为空` 10 times. The polarity is right; the enforcement is not
+there. One more trap: `is_empty` is a line inside a bigger object, so a search for `is_empty:1`
+tells you nothing about whether that *rite* is optional. Read the whole slot.
 
 ## Triggers, timeouts and the order things settle
 
-`on` and `start_trigger` interact, and the interaction decides whether your event fires at once or
-after a delay:
+`start_trigger` is about registration, not about `round_begin_ba`:
 
-| `start_trigger` | `"round_begin_ba": x` means |
-|---|---|
-| `true` | fire now; `x` is ignored |
-| `false` | fire `x` rounds later |
+- `event_on` calls `Add(id, true)`. If the event's `start_trigger` is also true, the condition is
+  evaluated immediately against `player.round`, and a passing condition runs the settlement at once.
+- Loading a save calls `Add(e, false)`. `start_trigger: true` therefore does nothing at load: the
+  event waits for its next timing. A probe confirmed this. An event with `start_trigger: true` and
+  `round_begin_ba: 1` opened nothing until the next round began.
+- `auto_start_init: [1]` is what registers an event at all. It is a set of `init/<n>.json` ids,
+  compared with `player.configId`, not a delay. `[1]` is the normal run; `[0]` is the guided prologue.
+- `round_begin_ba: x` is a period measured from activation. The game stores
+  `timing_rounds[eventId*100+index] = round + x` and re-arms after each fire. `[min,max]` is
+  max-exclusive (`Random.Range`), so `[3,5]` means 3 or 4.
 
-`delay` follows the same idea: `"delay": {"round": 5, ...}` fires the next thing after 5 rounds, and
+`delay` is separate: `"delay": {"round": 5, ...}` fires the next thing after 5 rounds, and
 `round: 1` means the next round. A round is one in-game day.
 
 Rite timing fields:

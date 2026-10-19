@@ -23,8 +23,6 @@ const EDGES = JSON.parse(readFileSync(path.join(ROOT, "schema/edges.json"), "utf
 const CATEGORIES = JSON.parse(readFileSync(path.join(ROOT, "schema/categories.json"), "utf8"));
 
 const LANGS = ["zh", "en", "ja", "zhTW"];
-const KINDS = ["event", "rite", "card", "loot", "over", "ounter", "quest", "afterStory", "riteTemplate"];
-// "ounter" above is deliberately absent: counters are terminal nodes with no config file.
 
 // ---------------------------------------------------------------- loading
 
@@ -175,6 +173,41 @@ function* conditionLeaves(cond) {
   }
 }
 
+/** Every key reachable from a record, for operation keys such as `counter+7000350`. */
+function* walkKeys(node) {
+  if (Array.isArray(node)) {
+    for (const item of node) yield* walkKeys(item);
+    return;
+  }
+  if (!node || typeof node !== "object") return;
+  for (const [k, v] of Object.entries(node)) {
+    yield k;
+    yield* walkKeys(v);
+  }
+}
+
+/** The first player-facing line an event writes: option, then prompt, then slide. */
+function eventNarration(rec) {
+  let found = "";
+  const visit = (node) => {
+    if (found || !node || typeof node !== "object") return;
+    if (Array.isArray(node)) {
+      for (const item of node) visit(item);
+      return;
+    }
+    for (const [k, v] of Object.entries(node)) {
+      if (found) return;
+      if ((k === "option" || k === "prompt" || k === "slide") && v && typeof v === "object" && typeof v.text === "string" && v.text.trim()) {
+        found = v.text;
+        return;
+      }
+      visit(v);
+    }
+  };
+  visit(rec);
+  return found;
+}
+
 // ---------------------------------------------------------------- build
 
 export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = "zh", edgeMode = "nested" } = {}) {
@@ -202,19 +235,32 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
   for (const [kind, recs] of Object.entries(vanilla)) {
     for (const [id, rec] of Object.entries(recs)) {
       counts[kind] = (counts[kind] || 0) + 1;
-      const node = add(kind, id, { labelSource: rec.name || rec.text || "" });
+      // An event has no title. `text` is a designer note (median 7 characters); the label
+      // comes from the narration it writes, or falls back to the id.
+      const label = kind === "event" ? "" : rec.name || rec.text || "";
+      const node = add(kind, id, { labelSource: label });
       // The node may already exist from the directory listing, which has no label.
-      node.labelSource = rec.name || rec.text || node.labelSource || "";
+      node.labelSource = label || node.labelSource || "";
+      if (kind === "event") node.note = rec.text || "";
     }
   }
-
-  // Counters have no config file: they are engine state, and their ids are the only
-  // definition that exists. Create them on first reference.
-  const ensureCounter = (id) => add("counter", id, { labelSource: `counter ${id}` });
 
   const edges = [];
   const crossNotes = [];
   const seen = new Set();
+  // A counter has no config record and no player-facing identity: it is an int in the save.
+  // Keep references as annotations on the nodes that use them; never make counters nodes.
+  const counters = new Map();
+  const noteCounter = (nodeKey, id, kind) => {
+    const n = Number(id);
+    if (!Number.isInteger(n)) return;
+    let rec = counters.get(String(n));
+    if (!rec) {
+      rec = { reads: [], timing: [], writes: [] };
+      counters.set(String(n), rec);
+    }
+    if (!rec[kind].includes(nodeKey)) rec[kind].push(nodeKey);
+  };
   const kindContaining = (id) => {
     const n = Number(id);
     for (const [kind, space] of Object.entries(EDGES.idSpaces)) {
@@ -226,14 +272,8 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
   const emit = (from, toKind, value, rule) => {
     const n = Number(value);
     if (!Number.isInteger(n)) return;
-    if (toKind === "counter") {
-      if (!inSpace("counter", n)) {
-        const looks = kindContaining(n);
-        if (looks) crossNotes.push({ from, to: `counter:${n}`, rule, looksLike: looks });
-        return;
-      }
-      ensureCounter(n);
-    } else if (!inSpace(toKind, n)) {
+    if (toKind === "counter") return; // annotations only, see noteCounter
+    if (!inSpace(toKind, n)) {
       const looks = kindContaining(n);
       if (looks) crossNotes.push({ from, to: `${toKind}:${n}`, rule, looksLike: looks });
       return;
@@ -241,8 +281,7 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
     edge(from, toKind, n, rule);
   };
 
-  const edge = (from, toKind, toId, rule) => {
-    const target = `${toKind}:${toId}`;
+  const edgeRaw = (from, target, rule) => {
     if (!nodes.has(target)) {
       // keep it: dangling edges are a finding, not something to hide
     }
@@ -251,6 +290,8 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
     seen.add(sig);
     edges.push({ f: from, t: target, r: rule });
   };
+
+  const edge = (from, toKind, toId, rule) => edgeRaw(from, `${toKind}:${toId}`, rule);
 
   // ---------------------------------------------------------------- mod overlay
   // Merged before edges are built: a mod that adds an event must get its own edges.
@@ -266,9 +307,11 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
         modSummary.nodes++;
         vanilla[kind] = vanilla[kind] || {};
         vanilla[kind][id] = rec;
-        const node = add(kind, id, { labelSource: rec.name || rec.text || "" });
+        const label = kind === "event" ? "" : rec.name || rec.text || "";
+        const node = add(kind, id, { labelSource: label });
         node.o = "mod";
-        node.labelSource = rec.name || rec.text || node.labelSource;
+        node.labelSource = label || node.labelSource;
+        if (kind === "event") node.note = rec.text || "";
       }
     }
     // counters referenced only by the mod
@@ -279,16 +322,27 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
   // "categories partition the events" and the corpus counts disagree.
   for (const kind of Object.keys(counts)) counts[kind] = Object.keys(vanilla[kind] || {}).length;
 
-  // rule: event.on.<timing>
+  // rule: event.on.<timing>. Causality runs into the event: rite 5000563 ending is what
+  // fires event 5300064, so the edge starts at the rite. Counter timings are annotations.
   for (const [id, ev] of Object.entries(vanilla.event)) {
     const on = ev.on || {};
     for (const [timing, value] of Object.entries(on)) {
-      const toKind = EDGES.timings[timing];
-      if (!toKind) continue;
+      const spec = EDGES.timings[timing];
+      if (!spec) continue;
+      const { kind: toKind, route } = spec;
+      if (route === "annotate") {
+        for (const v of asIds(value)) noteCounter(`event:${id}`, v, "timing");
+        continue;
+      }
       for (const v of asIds(value)) {
-        if (v === 1 && (toKind === "card" || toKind === "rite")) continue; // sentinel: any
+        if (v === 1 && (toKind === "card" || toKind === "rite")) continue; // wildcard: any
         if (toKind === "over" && (v === -1 || v === -3)) continue; // sentinels
-        emit(`event:${id}`, toKind, v, `on.${timing}`);
+        if (!inSpace(toKind, v)) {
+          const looks = kindContaining(v);
+          if (looks) crossNotes.push({ from: `event:${id}`, to: `${toKind}:${v}`, rule: `on.${timing}`, looksLike: looks });
+          continue;
+        }
+        edgeRaw(`${toKind}:${v}`, `event:${id}`, `trigger.${timing}`);
       }
     }
   }
@@ -334,15 +388,25 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
           } else if (key === "is_rite" || key === "rite") {
             target = "rite";
           } else if (/^(counter|global_counter)\./.test(key)) {
-            target = "counter";
-            value = Number(key.split(".")[1].replace(/[<>=].*$/, ""));
+            const counterId = Number(key.split(".")[1].replace(/[<>=].*$/, ""));
+            noteCounter(`${kind}:${id}`, counterId, "reads");
+            continue;
           }
 
           if (!target) continue;
           if (Array.isArray(value)) continue; // ranges, not ids
-          if (Array.isArray(value)) continue;
           emit(`${kind}:${id}`, target, value, `condition.${target}`);
         }
+      }
+    }
+  }
+
+  // counters are read by conditions and the counter timing, and written by operation keys
+  for (const kind of ["event", "rite", "card", "loot", "quest", "afterStory"]) {
+    for (const [id, rec] of Object.entries(vanilla[kind] || {})) {
+      for (const k of walkKeys(rec)) {
+        const m = /^(global_)?counter([+\-=])(\d{7})$/.exec(k);
+        if (m) noteCounter(`${kind}:${id}`, m[3], "writes");
       }
     }
   }
@@ -403,12 +467,19 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
 
   // ---------------------------------------------------------------- labels
   for (const n of nodes.values()) {
-    n.l = labels(n, vanilla, i18n, lang);
-    // Event narration is translated per line, not per record, so it rides alongside the label.
     if (n.t === "event") {
-      const nr = { en: i18n.en?.narr.get(n.id) || null, ja: i18n.ja?.narr.get(n.id) || null, zhTW: i18n.zhTW?.narr.get(n.id) || null };
-      if (nr.en || nr.ja || nr.zhTW) n.nr = nr;
+      const rec = vanilla.event?.[n.id];
+      const zh = rec ? eventNarration(rec) : "";
+      // Event narration is translated per line, not per record, so it rides alongside the label.
+      n.nr = {
+        zh,
+        en: i18n.en?.narr.get(n.id) || null,
+        ja: i18n.ja?.narr.get(n.id) || null,
+        zhTW: i18n.zhTW?.narr.get(n.id) || null,
+      };
+      n.narrZh = zh;
     }
+    n.l = labels(n, vanilla, i18n, lang);
   }
 
   // ---------------------------------------------------------------- lint badges
@@ -448,6 +519,7 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
     counts,
     nodes: [...nodes.values()],
     edges,
+    counters: Object.fromEntries([...counters.entries()].sort(([a], [b]) => Number(a) - Number(b))),
     dangling,
     crossType,
     components: comp,
@@ -612,19 +684,38 @@ function labels(node, vanilla, i18n, lang) {
   const clean = (s) => String(s).replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().slice(0, 60);
   const out = {};
   const tr = { en: false, ja: false, zhTW: false };
+  // An event has no title in any language. What it has is narration: the opening paragraph,
+  // the prompt, or a slide. Use its first line as the label so the graph shows something a
+  // player would recognize instead of the designer's 7-character note.
+  const narrOf = (l) => {
+    if (node.t !== "event") return "";
+    if (l === "zh") return node.narrZh || "";
+    const rec = i18n[l]?.narr.get(node.id);
+    if (!rec) return "";
+    for (const o of rec.opt || []) {
+      const t = o.text || (o.items && o.items[0] && o.items[0].text);
+      if (t) return t;
+    }
+    for (const p of rec.prompt || []) if (p.text) return p.text;
+    return "";
+  };
   for (const l of LANGS) {
     const idx = l === "zh" ? null : i18n[l];
     // Only an exact `<prefix>:<id>` hit counts. Falling back to "any key that carries this id"
     // used to put an option button's text where the event's title belongs.
     const v = idx && prefix ? (idx.byKey.get(`${prefix}:${node.id}`) || {}).text : null;
+    const nv = narrOf(l);
     if (v) {
       if (l !== "zh") tr[l] = true;
       out[l] = clean(v);
+    } else if (nv) {
+      if (l !== "zh") tr[l] = true;
+      out[l] = clean(nv);
     } else {
-      out[l] = clean(node.labelSource || node.id);
+      out[l] = clean(node.labelSource || (node.t === "event" ? `规则 ${node.id}` : node.id));
     }
   }
-  out.zh = clean(node.labelSource || node.id);
+  out.zh = clean(narrOf("zh") || node.labelSource || (node.t === "event" ? `规则 ${node.id}` : node.id));
   node.tr = tr;
   return out;
 }

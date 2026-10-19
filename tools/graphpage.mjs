@@ -25,7 +25,7 @@ export function layout(g) {
   const order = ["unused", "reputation", "ending", "guide", "achievement", "daily", "periodic", "other"];
   const groups = new Map();
   for (const n of g.nodes) {
-    const cat = n.cat || (n.t === "card" ? "card" : n.t === "counter" ? "counter" : "other");
+    const cat = n.cat || (n.t === "card" ? "card" : "other");
     if (!groups.has(cat)) groups.set(cat, []);
     groups.get(cat).push(n);
   }
@@ -85,6 +85,7 @@ export function payload(g) {
       cs: n.compSize || 0,
       tr: n.tr || { en: false, ja: false, zhTW: false },
       nr: n.nr || null,
+      nt: n.note || "",
       b: (() => {
         const levels = (n.badges || []).map((x) => x.level);
         return levels.includes("FAIL") ? "FAIL" : levels.includes("WARN") ? "WARN" : levels.includes("INFO") ? "INFO" : null;
@@ -113,9 +114,9 @@ let nodes = [], cols = 0, per = 30;
 const CAT_COLOR = {
   unused: "#6b6257", reputation: "#b07a4a", ending: "#c96f5a", guide: "#7f9e8a",
   achievement: "#8d84b8", daily: "#7d8fa8", periodic: "#6f7f96", other: "#8a7a60",
-  card: "#b9a887", counter: "#5e5a52",
+  card: "#b9a887",
 };
-const CAT_NAME = { unused: "废弃", reputation: "声望", ending: "结局", guide: "引导", achievement: "成就", daily: "日常", periodic: "周期", other: "其他", card: "卡牌", counter: "计数器" };
+const CAT_NAME = { unused: "废弃", reputation: "声望", ending: "结局", guide: "引导", achievement: "成就", daily: "日常", periodic: "周期", other: "其他", card: "卡牌" };
 
 function escHtml(s) {
   return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -322,9 +323,9 @@ function narrationBlock(n) {
   var nr = n.nr;
   if (!nr) return "";
   var lang = document.getElementById("lang").value;
-  var cur = lang === "zh" ? null : nr[lang === "zhTW" ? "zhTW" : lang];
-  var rec = cur || nr.en || nr.ja || nr.zhTW;
-  var used = cur ? lang : nr.en ? "en" : nr.ja ? "ja" : "zhTW";
+  var cur = nr[lang === "zh" ? "zh" : lang === "zhTW" ? "zhTW" : lang];
+  var rec = cur || nr.zh || nr.en || nr.ja || nr.zhTW;
+  var used = cur ? lang : nr.zh ? "zh" : nr.en ? "en" : nr.ja ? "ja" : "zhTW";
   if (!rec) return "";
   var html = '<h3>叙事 · ' + escHtml(used) + "</h3>";
   if (rec.opt.length) {
@@ -365,8 +366,9 @@ window.__openNode = (key) => {
     labelRow("ja", n.l.ja, n.fb && n.fb.ja) +
     labelRow("zhTW", n.l.zhTW, n.fb && n.fb.zhTW) +
     "</table>" +
+    (n.t === "event" && n.nt ? '<div class="note">策划备注：' + escHtml(n.nt) + "</div>" : "") +
     (n.t === "event"
-      ? '<div class="note">标题只有中文。i18n 表里没有 event_ 前缀，游戏翻译的是叙述而不是标题，见下方「叙事」。</div>'
+      ? '<div class="note">事件没有标题。标签取它的第一句叙事；没有叙事的留作「规则 #id」。见下方「叙事」。</div>'
       : "") +
     narrationBlock(n) +
     "<h3>出边 " + out.length + "</h3><div class=\\"note\\">" +

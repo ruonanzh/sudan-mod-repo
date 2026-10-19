@@ -21,7 +21,7 @@ import { buildGraph } from "./graph.mjs";
 import { renderPage, payload } from "./graphpage.mjs";
 import { DEFAULT_VANILLA } from "./model.mjs";
 
-const KIND_OF = { event: "event", rite: "rite", card: "card", loot: "loot", quest: "quest", afterStory: "afterStory", riteTemplate: "riteTemplate", over: "over", counter: "counter" };
+const KIND_OF = { event: "event", rite: "rite", card: "card", loot: "loot", quest: "quest", afterStory: "afterStory", riteTemplate: "riteTemplate", over: "over" };
 
 function parseArgs(argv) {
   const out = { modDir: null, vanilla: DEFAULT_VANILLA, port: 7801, static: null };

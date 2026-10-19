@@ -25,7 +25,7 @@ const ABOUT = {
   rite: ["The multi-round board puzzle: slots, open conditions, waiting period, then three settlement lists.", "config/rite/<id>.json", "filename = id"],
   slot: ["One slot on a rite board.", "rite.cards_slot.<sN>", "key = s1..sN"],
   riteSlotPop: ["A conditional line shown when a card sits in a slot.", "rite.cards_slot.<sN>.pops[]", "-"],
-  settlement: ["One outcome branch of a rite or event.", "rite/event settlement arrays", "-"],
+  settlement: ["One outcome branch of a rite or event. Every branch of an event runs in order; a rite takes the first match.", "rite/event settlement arrays", "-"],
   riteTagTipsUp: ["Tag-driven tooltip override on a rite.", "rite.tag_tips_up", "-"],
   riteRandomTextUp: ["Copy for one dice check result.", "rite.random_text_up.<rN>", "-"],
   riteOpenCondition: ["One reason the rite cannot open yet.", "rite.open_conditions[]", "-"],
@@ -192,7 +192,7 @@ w();
 
 w("## How the story graph is derived");
 w();
-w("`schema/edges.json` is the only place that says what points at what. `tools/graph.mjs`");
+w("`schema/edges.json` declares the id spaces, the timings and the edge rules. `tools/graph.mjs`");
 w("executes it; no edge rule lives in code. Counts are deliberately absent: they depend on");
 w("whether you follow descendant keys (`case:opN`, `delay`) and whether duplicates count, so");
 w("`node tools/graph.mjs --check` prints them instead.");
@@ -211,17 +211,19 @@ w("`--check` lists those separately.");
 w();
 w("### Timings that carry an id");
 w();
-w("| timing | points at |");
-w("|---|---|");
-for (const [timing, target] of Object.entries(EDGES.timings)) {
+w("| timing | points at | route |");
+w("|---|---|---|");
+for (const [timing, spec] of Object.entries(EDGES.timings)) {
   if (timing.startsWith("_")) continue;
-  w(`| \`${timing}\` | ${target} |`);
+  const route = spec.route === "annotate" ? "annotation, no edge" : "trigger, edge runs into the event";
+  w(`| \`${timing}\` | ${spec.kind} | ${route} |`);
 }
 w();
 w("Everything else in `event.on` carries a round number, a period, or nothing at all.");
 w();
-w("The literal `1` on an id-valued timing means **any**, not card/rite id 1; `game_end` also");
-w("accepts the sentinels `-1` and `-3`. Both are excluded from the graph.");
+w("The literal `1` on a rite, card or counter timing means **any**, and only when it is the sole");
+w("element: `[1, 5004832]` is a normal set. `round_begin_ba: 1` is not a wildcard, it is one round.");
+w("`game_end` accepts the sentinels `-1` and `-3`; neither becomes an edge.");
 w();
 w("### Edge rules");
 w();
@@ -262,7 +264,6 @@ w("positives, and they are why a vanilla run is not expected to exit 0.");
 w();
 w("| where | what |");
 w("|---|---|");
-w("| `event/5320301.json` | three settlement branches, all with a null condition. Only the first can ever run |");
 w("| `event/5320511.json` | fires `rite: 5320511`, which is its own event id; no such rite exists |");
 w("| `rite/5008112.json` | fires `rite: 5321118` with the comment 合伙生意, an event id in the 532xxxx range |");
 w("| `loot/6001103.json` | declares `id: 6001102`, so filename and id disagree |");

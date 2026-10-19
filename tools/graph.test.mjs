@@ -13,6 +13,7 @@ import { DEFAULT_VANILLA } from "./model.mjs";
 import os from "node:os";
 
 const VANILLA = String(DEFAULT_VANILLA).replace(/^~/, os.homedir());
+const CATEGORIES = JSON.parse(readFileSync(new URL("../schema/categories.json", import.meta.url), "utf8"));
 const hasGame = existsSync(VANILLA);
 const skip = hasGame ? false : "the game's config is not installed on this machine";
 
@@ -32,17 +33,38 @@ test("classify gives exactly one bucket, and the last rule absorbs the rest", ()
   for (const id of rules) assert.equal(typeof id, "string");
 });
 
-test("a sentinel is never an edge", { skip }, () => {
+test("a literal 1 is a wildcard, not an id", { skip }, () => {
   const g = graph();
-  // `rite_end: 1` and `card_clean: 1` mean "any"; no node has id 1 in those kinds.
+  // `rite_end: 1` means "any rite". If the wildcard handling broke, this would become `rite:1`.
   assert.equal(g.edges.filter((e) => e.t === "rite:1" || e.t === "card:1").length, 0);
+  // event 5300239 fires on `rite_end: 1`; it must not claim a real triggering rite.
+  assert.equal(g.edges.filter((e) => e.t === "event:5300239" && e.r === "trigger.rite_end").length, 0);
 });
 
-test("descendant keys add edges without adding nodes", { skip }, () => {
-  const nested = buildGraph({ configDir: VANILLA, edgeMode: "nested" });
-  const direct = buildGraph({ configDir: VANILLA, edgeMode: "direct" });
-  assert.equal(nested.nodes.length, direct.nodes.length);
-  assert.ok(nested.edges.length > direct.edges.length, "case:opN / delay / success keys must contribute edges");
+test("a rite nested under case:opN still makes an edge", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "graphnested-"));
+  mkdirSync(path.join(dir, "config/event"), { recursive: true });
+  writeFileSync(
+    path.join(dir, "config/event/9000002.json"),
+    JSON.stringify({
+      id: 9000002,
+      text: "嵌套",
+      is_replay: 0,
+      on: { round_begin_ba: 1 },
+      condition: {},
+      settlement: [{ action: { "case:op1": { rite: 5000002 } } }],
+    })
+  );
+  const nested = buildGraph({ configDir: VANILLA, modDir: dir, edgeMode: "nested" });
+  const direct = buildGraph({ configDir: VANILLA, modDir: dir, edgeMode: "direct" });
+  assert.ok(
+    nested.edges.some((e) => e.f === "event:9000002" && e.t === "rite:5000002" && e.r === "action.rite"),
+    "a rite inside case:op1 is a real edge in nested mode"
+  );
+  assert.ok(
+    !direct.edges.some((e) => e.f === "event:9000002" && e.t === "rite:5000002"),
+    "direct mode reads only action.rite, not its descendants"
+  );
 });
 
 test("every edge points at a node, and every rejected id is reported", { skip }, () => {
@@ -55,12 +77,10 @@ test("every edge points at a node, and every rejected id is reported", { skip },
   assert.ok(g.crossType.some((c) => c.from === "rite:5008112" && c.to === "rite:5321118"));
 });
 
-test("edges may be reordered and deduped without changing the counts", { skip }, () => {
+test("edge keys are unique", { skip }, () => {
   const g = graph();
-  const shuffled = [...g.edges].sort((a, b) => (a.t < b.t ? 1 : -1));
   const key = (e) => `${e.f}|${e.t}|${e.r}`;
-  assert.equal(new Set(g.edges.map(key)).size, g.edges.length, "edges must already be unique");
-  assert.equal(shuffled.length, g.edges.length);
+  assert.equal(new Set(g.edges.map(key)).size, g.edges.length, "the same edge must not be emitted twice");
 });
 
 test("vanilla node counts match the corpus", { skip }, () => {
@@ -75,11 +95,14 @@ test("vanilla node counts match the corpus", { skip }, () => {
   assert.equal(g.counts.riteTemplate, 252);
 });
 
-test("categories partition the events", { skip }, () => {
+test("every event lands in a declared category", { skip }, () => {
   const g = graph();
-  const sum = Object.values(g.categoryCounts).reduce((a, b) => a + b, 0);
-  assert.equal(sum, g.counts.event, "first-match classification must cover every event exactly once");
-  assert.ok((g.categoryCounts.other || 0) > 0);
+  const ids = new Set(CATEGORIES.rules.map((r) => r.id));
+  for (const n of g.nodes) {
+    if (n.t !== "event") continue;
+    assert.ok(ids.has(n.cat), `event ${n.id} has category ${n.cat}, which no rule declares`);
+  }
+  assert.equal(Object.values(g.categoryCounts).reduce((a, b) => a + b, 0), g.counts.event);
 });
 
 test("a mod override reuses the node and marks its origin", () => {
@@ -94,7 +117,36 @@ test("a mod override reuses the node and marks its origin", () => {
   assert.ok(node, "the mod event must appear as a node");
   assert.equal(node.o, "mod");
   assert.equal(g.modSummary.additions, 1);
-  assert.ok(g.edges.some((e) => e.f === "event:9000001" && e.t === "rite:5000002"), "the mod event's own edge must be built");
+  assert.ok(
+    g.edges.some((e) => e.f === "rite:5000002" && e.t === "event:9000001" && e.r === "trigger.rite_end"),
+    "on.rite_end is a trigger: the rite fires the event, so the edge runs into the event"
+  );
+});
+
+test("counters are annotations, not nodes", { skip }, () => {
+  const g = graph();
+  assert.equal(g.nodes.filter((n) => n.t === "counter").length, 0, "a counter has no record and must not be a node");
+  assert.ok(Object.keys(g.counters).length > 1000, "counter references must still be indexed");
+  assert.ok(g.counters["7000350"].writes.includes("rite:5002018"), "rite 5002018 writes the 爽约 counter");
+  assert.equal(g.edges.filter((e) => e.t.startsWith("counter:")).length, 0, "a counter must not be an edge target");
+});
+
+test("on.rite_end runs into the event", { skip }, () => {
+  const g = graph();
+  assert.ok(
+    g.edges.some((e) => e.f === "rite:5000563" && e.t === "event:5300064" && e.r === "trigger.rite_end"),
+    "rite 5000563 ending fires event 5300064"
+  );
+  assert.equal(g.edges.filter((e) => e.r.startsWith("on.")).length, 0, "no edge may use the old reference direction");
+});
+
+test("an event label comes from narration, not the designer note", { skip }, () => {
+  const g = graph();
+  const narrated = g.nodes.find((n) => n.k === "event:5300064");
+  assert.notEqual(narrated.l.zh, narrated.note, "the note is not a player-facing label");
+  assert.ok(narrated.l.zh.length > 10);
+  const silent = g.nodes.find((n) => n.k === "event:5360014");
+  assert.ok(silent.l.zh.startsWith("规则 "), "an event with no narration is labelled as a rule");
 });
 
 test("the baseline file still describes a full build", { skip }, () => {

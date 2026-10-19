@@ -1,5 +1,5 @@
 {
- "_note": "How every edge in the story graph is derived. graph.mjs executes this file; it does not hardcode any rule. `from` lists the source node kinds, `match` names the extractor, and `to` is the target node kind. Counts are NOT stored here: `graph.mjs --check` prints them, because the number depends on the counting method.",
+ "_note": "How every edge in the story graph is derived. graph.mjs executes this file. The condition-key grammar lives in graph.mjs, so the two must agree. `from` lists the source node kinds, `match` names the extractor, and `to` is the target node kind. Counts are NOT stored here: `graph.mjs --check` prints them, because the number depends on the counting method.",
  "idSpaces": {
   "_note": "Used to decide whether a number is a plausible id of a given kind before it becomes an edge.",
   "event": [5300000, 5399999],
@@ -31,25 +31,28 @@
   ]
  },
  "timings": {
-  "_note": "What each timing in event.on points at. Anything absent here (round_begin_ba, round_begin_fr, round_end, and every flag timing) carries no node id and produces no edge.",
-  "rite_end": "rite",
-  "rite_start": "rite",
-  "rite_cancel": "rite",
-  "open_rite_end": "rite",
-  "card_clean": "card",
-  "card_born": "card",
-  "card_dead": "card",
-  "counter": "counter",
-  "global_counter": "counter",
-  "game_end": "over"
+  "_note": "What each timing in event.on points at, and which way the edge runs. route 'trigger' means the referenced node fires the event, so the edge goes from that node to the event. Anything absent here (round_begin_ba, round_begin_fr, round_end, and every flag timing) carries no node id and produces no edge.",
+  "rite_end": { "kind": "rite", "route": "trigger" },
+  "rite_start": { "kind": "rite", "route": "trigger" },
+  "rite_cancel": { "kind": "rite", "route": "trigger" },
+  "open_rite_end": { "kind": "rite", "route": "trigger" },
+  "card_clean": { "kind": "card", "route": "trigger" },
+  "card_born": { "kind": "card", "route": "trigger" },
+  "card_dead": { "kind": "card", "route": "trigger" },
+  "counter": { "kind": "counter", "route": "annotate" },
+  "global_counter": { "kind": "counter", "route": "annotate" },
+  "game_end": { "kind": "over", "route": "trigger" }
+ },
+ "counters": {
+  "_note": "Counters are ints in the player save, with no config record and no player-facing identity. They are not nodes: a condition or the counter timing references one, and an operation writes one. graph.mjs records every reference in g.counters as {reads, timing, writes}."
  },
  "rules": [
   {
-   "id": "event.on",
-   "from": ["event"],
+   "id": "trigger.on",
+   "from": ["rite", "card", "over"],
    "match": "timing",
-   "to": "see timings",
-   "note": "event.on.<timing>; value is a single id or an array. Sentinel 1 is dropped."
+   "to": "event",
+   "note": "event.on.<timing>; value is a single id or an array. The referenced node fires the event, so the edge runs from that node to the event. Literal 1 on rite/card timings means any, and game_end -1/-3 are sentinels; neither becomes an edge."
   },
   {
    "id": "action.rite",
@@ -98,20 +101,6 @@
    "match": "condition",
    "to": "rite",
    "note": "is_rite / rite / !rite. 165 branches on 174 cards use is_rite."
-  },
-  {
-   "id": "condition.counter",
-   "from": ["event", "rite", "card", "quest", "afterStory", "loot"],
-   "match": "condition",
-   "to": "counter"
-  },
-  {
-   "id": "slot.card",
-   "from": ["rite"],
-   "match": "condition",
-   "within": ["cards_slot"],
-   "to": "card",
-   "note": "Which cards a slot accepts: is:<cardId>, sN.type, sN.<tag>. 667 distinct cards."
   },
   {
    "id": "loot.item",

@@ -10,8 +10,8 @@
   "afterStory": 66,
   "riteTemplate": 252
  },
- "nodeTotal": 6599,
- "edges": 14791,
+ "nodeTotal": 5490,
+ "edges": 12148,
  "components": 180,
  "largestComponent": 1965,
  "categoryCounts": {
@@ -24,5 +24,5 @@
   "achievement": 16,
   "reputation": 185
  },
- "crossType": 4
+ "crossType": 2
 }
