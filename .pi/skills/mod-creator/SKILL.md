@@ -219,6 +219,7 @@ Facts that decide whether the file works:
   decompiled types and checked against every shipped file: zero keys in the game's own 3365 event and
   rite files are missing from it. A key that is not listed for that node is never read, so
   `node tools/lint.mjs` reports it as `UNKNOWN_FIELD`. Trust that over any prose, including this file.
+- **Where those field lists come from.** `inspect_game_code` reads the dump: `action=search` finds a type or member in `dump.cs`, `action=type` prints its fields with offsets, properties and signatures, `action=body member=<name>` prints that method's ISIL and disassembly, and `action=strings` searches string literals. The dump is `~/.gamer-agent-pi/decompiled/sudan-mod-repo/` and covers the game's eight assemblies; add one in `decompile.json`, then run `action=dump assembly=<name>`. Field offsets are decimal (`[r14+40]` is `0x28`); disassembly offsets are hex (`+58h` is `88`). This repository ships data only, so read the dump to confirm a key or a type, not to write code.
 - `EventNode` has no `auto_start`, even though 1520 vanilla event files carry one. It does nothing.
   `auto_start_init` is the real field.
 - `auto_start_init` is a list of `init` config ids. `config/init/1.json` is the normal run, so

@@ -38,7 +38,7 @@ export default function (pi: ExtensionAPI) {
       "Use inspect_game_code to read game code from the dump, and to dump more assemblies.",
       "inspect_game_code reads signature data with search and type. For IL2CPP games, body returns ISIL pseudo-code, not C#: it has no field or local names, and its field offsets are decimal (40 is 0x28). Do not treat ISIL as source.",
       "inspect_game_code rebuilds the dump by itself when the installed game or the config changed, and says in the result when it ran and how long it took. Do not rebuild the dump some other way.",
-      "inspect_game_code dump writes one assembly unless you ask for more. A glob dump is capped by the config's budgetBytes and needs all=true.",
+      "inspect_game_code dump writes the assemblies in decompile.json. Pass assemblies= to add one for this dump; a wider set costs disk and time.",
     ],
     parameters: Type.Object({
       action: Type.Union(
