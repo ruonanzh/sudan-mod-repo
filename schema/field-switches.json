@@ -68,6 +68,12 @@
       }
     },
     "round_number": {
+      "zero": {
+        "zh": "立即结算",
+        "en": "settles at once",
+        "ja": "すぐに終わる",
+        "zhTW": "立即結算"
+      },
       "one": {
         "zh": "立即结算",
         "en": "settles at once",
