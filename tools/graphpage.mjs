@@ -376,9 +376,11 @@ function cats() {
   // holds the events that classify into it plus the rites those events open. The event-only
   // counts that graph.mjs --check prints are a different question and stay there.
   const countOf = (fn) => DATA.nodes.filter(fn).length;
+  // The two type pills sit right after 全部: they are the coarse cut, the categories are the
+  // fine one, so a reader meets the wide views first.
   const all = [["", "全部", DATA.nodes.length]]
-    .concat(Object.keys(DATA.categoryCounts).map((c) => [c, CAT_NAME[c] || c, countOf((n) => n.c === c)]))
-    .concat([["仪式", "仪式", countOf((n) => n.t === "rite")], ["事件", "事件", countOf((n) => n.t === "event")]]);
+    .concat([["仪式", "仪式", countOf((n) => n.t === "rite")], ["事件", "事件", countOf((n) => n.t === "event")]])
+    .concat(Object.keys(DATA.categoryCounts).map((c) => [c, CAT_NAME[c] || c, countOf((n) => n.c === c)]));
   box.innerHTML = all.map(([v, label, n]) =>
     '<button class="pill' + (v === cat ? " on" : "") + '" data-c="' + v + '">' + label +
     " <b>" + n + "</b></button>"
