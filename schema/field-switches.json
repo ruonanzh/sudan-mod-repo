@@ -17,10 +17,10 @@
     },
     "auto_start_init": {
       "num": {
-        "zh": "本局开始时自动启动（开局 {v}）",
-        "en": "starts by itself when the run begins (opening {v})",
-        "ja": "本局開始時に自動で始まる（開始設定 {v}）",
-        "zhTW": "本局開始時自動啟動（開局 {v}）"
+        "zh": "本局开始时自动启用（只在开局 {v}）",
+        "en": "switched on when the run starts (only in opening {v})",
+        "ja": "本局開始時に有効になる（開始設定 {v} のみ）",
+        "zhTW": "本局開始時自動啟用（只在開局 {v}）"
       }
     },
     "start_trigger": {

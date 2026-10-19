@@ -522,20 +522,25 @@ function panelHtml(n) {
     }
     return [...best.entries()];
   };
+  // A condition that names another node is still a condition: it belongs beside the node's own
+  // condition lines, not under "what it causes".
+  const outEdges = dedupe(out);
   const inRows = dedupe(inc).map(([k, r]) => row(k, r, "in")).join("");
-  const outRows = dedupe(out).map(([k, r]) => row(k, r, "out")).join("");
+  const condOutRows = outEdges.filter(([, r]) => r.indexOf("condition.") === 0).map(([k, r]) => row(k, r, "out")).join("");
+  const outRows = outEdges.filter(([, r]) => r.indexOf("condition.") !== 0).map(([k, r]) => row(k, r, "out")).join("");
   const chainText = n.ch ? "在一条 " + (n.cs || 0) + " 个节点的长剧情里" : "不在长剧情线上";
-  const emptyIn = n.on ? "没有。它按上面的时间自己出现。" : "没有。别的节点不会让它出现。";
+  const emptyIn = n.on ? "没有条件。它按上面的时机自己出现。" : "没有条件，也没有别的节点触发它。";
   return (
     '<h2 style="margin-top:0">' + escHtml(KIND_NAME[n.t] || n.t) + " " + escHtml(n.id) + "</h2>" +
     (title ? '<div class="node-title">' + escHtml(title) + "</div>" : "") +
     '<div class="sub">' + escHtml(CAT_NAME[n.c] || n.c) + " · " + (n.o === "mod" ? "mod 改的" : "原版") +
     " · " + chainText + (n.b ? " · " + n.b + "：" + escHtml((n.bm || []).join(", ")) : "") + "</div>" +
     flagBlock(n) +
-    (n.on ? sec("什么时候发生", '<div class="cond">' + escHtml(timingText(n.on)) + "</div>") : "") +
-    (conds ? sec("需要满足的条件", conds) : "") +
-    (openTips ? sec("开启条件", openTips) : "") +
-    sec("什么会让它出现", inRows || hint(emptyIn)) +
+    (n.on ? sec("时机", '<div class="cond">' + escHtml(timingText(n.on)) + "</div>") : "") +
+    // Everything that has to hold for this node to show up, in one place: its own condition,
+    // the tips on a rite's open conditions, and the nodes that trigger it. A reader asking
+    // "when does this happen" does not care which of the three it came from.
+    sec("条件", conds + condOutRows + openTips + inRows || hint(emptyIn)) +
     nb +
     sec("会发生什么", outRows || hint("没有。它不引发别的事。"))
   );

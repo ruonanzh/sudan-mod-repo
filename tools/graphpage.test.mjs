@@ -110,13 +110,32 @@ test("the panel names a node, then says what it says, beside the file it lives i
   assert.doesNotMatch(html, /table class="names"/);
 });
 
+test("时机 is the timing, and everything else that gates a node is 条件", { skip }, async () => {
+  const { win, els } = mount(graph());
+  win.__openNode("event:5300090");
+  await tick();
+  const h = els.get("modal-body").innerHTML;
+  assert.match(h, /<h3>时机<\/h3>/, "the `on` field is the timing");
+  assert.match(h, /<h3>条件<\/h3>/);
+  assert.doesNotMatch(h, /什么会让它出现|需要满足的条件/, "the three old headings are gone");
+  const cond = h.split("<h3>条件</h3>")[1].split("<h3>")[0];
+  assert.match(cond, /计数器 7000056 不小于 1/, "the node's own condition");
+  assert.match(cond, /条件涉及仪式/, "a condition that names another node");
+
+  win.__openNode("rite:5008014");
+  await tick();
+  const rite = els.get("modal-body").innerHTML.split("<h3>条件</h3>")[1].split("<h3>")[0];
+  assert.match(rite, /由它开启/, "what triggers it is also part of 条件");
+  assert.match(rite, /条件涉及卡/, "as is a condition that names a card");
+});
+
 test("a switch reads as the sentence its value earns", { skip }, async () => {
   const { win, els, document } = mount(graph());
   win.__openNode("event:5300090");
   await tick();
   const zh = els.get("modal-body").innerHTML;
   assert.match(zh, /class="sw" title="is_replay">可以重复触发</, "true says so, and the field name is the tooltip");
-  assert.match(zh, /本局开始时自动启动（开局 1）/, "a list value fills the slot");
+  assert.match(zh, /本局开始时自动启用（只在开局 1）/, "a list value fills the slot");
   assert.match(zh, /等它的时机到了再检查条件/, "false picks the other sentence");
 
   // A false flag must not print the true sentence.
