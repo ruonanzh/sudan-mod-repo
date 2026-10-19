@@ -507,8 +507,10 @@ The loader registers all twelve fields, so nothing here is dead: `id`, `name`, `
   `DeadTitle`, anything else shows `SuccessTitle`, and `2` additionally switches `VictoryIcon` on.
   So write `0` for a failure ending, `1` for a win, `2` for a win with the victory icon.
   Vanilla: 63 are `1`, 46 are `2`, 4 are `0`, 46 leave it out.
-- `text_extra` is a `RiteNode.Settlement[]` — the same branch struct a rite uses, so it is
-  first-match with a `condition`, not a list of paragraphs.
+- `text_extra` is a `RiteNode.Settlement[]` and it is **read**: `OverNewStep2StoryController` prints
+  the ending's own `text`, then walks `text_extra` (length at `+0x18`, each entry's `condition` at
+  `+0x18` of the entry) and appends the passage of every branch whose condition holds. So write one
+  branch per extra paragraph you want to be able to appear, each with its own condition.
 
 ### After-story — `config/after_story/<characterCardId>.json`
 
