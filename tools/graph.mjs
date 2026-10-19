@@ -262,6 +262,10 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
       if (kind === "event") {
         node.note = rec.text || "";
         node.on = rec.on || null;
+        node.cond = rec.condition || null;
+      }
+      if (kind === "rite" && Array.isArray(rec.open_conditions)) {
+        node.oc = rec.open_conditions.map((x) => x && x.tips).filter(Boolean);
       }
     }
   }
@@ -335,6 +339,10 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
         if (kind === "event") {
           node.note = rec.text || "";
           node.on = rec.on || null;
+          node.cond = rec.condition || null;
+        }
+        if (kind === "rite" && Array.isArray(rec.open_conditions)) {
+          node.oc = rec.open_conditions.map((x) => x && x.tips).filter(Boolean);
         }
       }
     }

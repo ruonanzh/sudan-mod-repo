@@ -168,3 +168,14 @@ test("the baseline is internally consistent", { skip }, () => {
   assert.ok(base.largestComponent <= base.counts.event + base.counts.rite);
   assert.ok(base.components <= base.counts.event + base.counts.rite);
 });
+
+test("the panel can read a node's own conditions", { skip }, () => {
+  const g = graph();
+  const ev = g.nodes.find((n) => n.k === "event:5300040");
+  assert.equal(ev.cond["!rite"], 5002018);
+  assert.equal(ev.cond["have.2000080.激情"], 1);
+  assert.equal(ev.on.round_begin_ba, 1);
+  const rite = g.nodes.find((n) => n.k === "rite:5000104");
+  assert.ok(Array.isArray(rite.oc) && rite.oc.length > 0, "a rite carries the tips of its open conditions");
+  assert.ok(rite.oc[0].includes("权势"), "the tip is the designer's own sentence");
+});

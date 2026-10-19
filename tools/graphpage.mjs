@@ -87,6 +87,8 @@ export function payload(g) {
       nr: n.nr || null,
       nt: n.note || "",
       on: n.on || null,
+      cond: n.cond || null,
+      oc: n.oc || null,
       b: (() => {
         const levels = (n.badges || []).map((x) => x.level);
         return levels.includes("FAIL") ? "FAIL" : levels.includes("WARN") ? "WARN" : levels.includes("INFO") ? "INFO" : null;
@@ -369,11 +371,11 @@ function narrationBlock(n) {
   var used = cur ? lang : nr.zh ? "zh" : nr.en ? "en" : nr.ja ? "ja" : "zhTW";
   if (!rec) return "";
   if (!rec) return "";
-  var html = '<h3>叙事 · ' + escHtml(used) + "</h3>";
+  var html = "<h3>剧情文字</h3>";
   var any = false;
   if ((rec.opt || []).length) {
     any = true;
-    html += '<div class="note">开场（选卡前的叙述）</div>';
+    html += '<div class="note">开场</div>';
     for (var i = 0; i < rec.opt.length; i++) {
       var o = rec.opt[i];
       html += '<div class="story">' + escHtml(o.text || "（无）") + "</div>";
@@ -385,13 +387,73 @@ function narrationBlock(n) {
   }
   if ((rec.prompt || []).length) {
     any = true;
-    html += '<div class="note">结算后</div>';
+    html += '<div class="note">结算之后</div>';
     for (var j = 0; j < rec.prompt.length; j++) {
       html += '<div class="story">' + escHtml(rec.prompt[j].text) + "</div>";
     }
   }
   if (!any) return "";
   return html;
+}
+
+
+// Conditions use game keys such as have.2000080.激情 or counter.7000025<. Read them
+// as sentences, and keep the nesting: any means one of them, all means every one.
+function condLeaf(k, v) {
+  var neg = false;
+  if (k.charAt(0) === "!") { neg = true; k = k.slice(1); }
+  var op = "";
+  var m = k.match(/^(.*?)(<=|>=|<|>|==|=)$/);
+  if (m) { k = m[1]; op = m[2]; }
+  var p = k.split(/[:.]/);
+  var head = p[0], rest = p.slice(1);
+  var what;
+  if (head === "rite") what = "仪式 " + rest.join(" ");
+  else if (head === "event") what = "事件 " + rest.join(" ");
+  else if (head === "card") what = "卡 " + rest.join(" ");
+  else if (head === "have") what = "拥有 " + (rest.length > 1 ? rest[1] : rest[0] || "") + (rest.length > 1 ? "（卡 " + rest[0] + "）" : "");
+  else if (head === "table_have") what = "桌上放着 " + rest.join(" ");
+  else if (head === "hand_have") what = "手上拿着 " + rest.join(" ");
+  else if (head === "rite_have") what = "有仪式 " + rest.join(" ");
+  else if (head === "sudan_pool_have") what = "苏丹池里有 " + rest.join(" ");
+  else if (head === "counter") what = "计数器 " + rest.join(" ");
+  else if (head === "global_counter") what = "全局计数器 " + rest.join(" ");
+  else if (head === "round") what = "回合数";
+  else if (head === "difficulty") what = "难度";
+  else if (head === "type") what = "局类型";
+  else what = k;
+  var val = v && typeof v === "object" ? JSON.stringify(v) : String(v);
+  what = what.replace(/\s+$/, "");
+  if (neg) return "没有" + what + (rest.length ? "" : " " + val);
+  var ops = { "<": " 小于 ", "<=": " 不大于 ", ">": " 大于 ", ">=": " 不小于 ", "=": " 等于 ", "==": " 等于 " };
+  if (op) return what + ops[op] + val;
+  if (head === "have" || head === "table_have" || head === "hand_have" || head === "rite_have") {
+    return what + "，数量 " + val;
+  }
+  return what + "：" + val;
+}
+
+function condTree(obj, depth) {
+  var out = [];
+  if (!obj || typeof obj !== "object") return out;
+  Object.keys(obj).forEach(function (k) {
+    var v = obj[k];
+    if (k === "any" || k === "all") {
+      out.push({ t: k === "any" ? "满足任一项" : "全部满足", d: depth });
+      out = out.concat(condTree(v, depth + 1));
+    } else if (v && typeof v === "object") {
+      out.push({ t: condLeaf(k, "") + " " + JSON.stringify(v), d: depth });
+    } else {
+      out.push({ t: condLeaf(k, v), d: depth });
+    }
+  });
+  return out;
+}
+
+function condHtml(obj) {
+  return condTree(obj, 0).map(function (x) {
+    return '<div class="cond" style="padding-left:' + x.d * 14 + 'px">' + escHtml(x.t) + "</div>";
+  }).join("");
 }
 
 window.__openNode = (key) => {
@@ -401,40 +463,51 @@ window.__openNode = (key) => {
   const inc = (IN.get(key) || []).slice(0, 30);
   const box = document.getElementById("modal-body");
   const nb = narrationBlock(n);
+  const sec = (title, body) => "<h3>" + escHtml(title) + "</h3>" + body;
+  const hint = (text) => '<div class="cond muted">' + text + "</div>";
   const row = (k, r, dir) => {
     const label = (dir === "in" ? REL_IN[r] || REL_OUT[r] : REL_OUT[r]) || r;
-    return '<div class="rel">' + escHtml(label) + '</div><div>' + chip(k) + '</div>';
+    return '<div class="relrow"><div class="reltag">' + escHtml(label) + '</div><div class="relval">' + chip(k) + "</div></div>";
   };
+  const conds = n.cond ? condHtml(n.cond) : "";
+  const openTips = (n.oc || []).map((t) => '<div class="cond">' + escHtml(t) + "</div>").join("");
+  // One line per node. A rite that both fires an event and opens it should not
+  // print the same target twice; the trigger says more than the action.
+  const rank = (r) => (r.indexOf("trigger.") === 0 ? 0 : r.indexOf("action.") === 0 ? 1 : r.indexOf("condition.") === 0 ? 2 : 3);
+  const dedupe = (list) => {
+    const best = new Map();
+    for (const [k, r] of list) {
+      const cur = best.get(k);
+      if (!cur || rank(r) < rank(cur)) best.set(k, r);
+    }
+    return [...best.entries()];
+  };
+  const inRows = dedupe(inc).map(([k, r]) => row(k, r, "in")).join("");
+  const outRows = dedupe(out).map(([k, r]) => row(k, r, "out")).join("");
+  const chainText = n.ch ? "在一条 " + (n.cs || 0) + " 个节点的长剧情里" : "不在长剧情线上";
+  const emptyIn = n.on ? "没有。它按上面的时间自己出现。" : "没有。别的节点不会让它出现。";
   box.innerHTML =
     '<h2 style="margin-top:0">' + escHtml(KIND_NAME[n.t] || n.t) + " " + escHtml(n.id) + "</h2>" +
-    '<div class="note" style="margin-top:0">' + escHtml(CAT_NAME[n.c] || n.c) + " · " +
-    (n.o === "mod" ? "mod 覆盖/新增" : "原版") + " · " +
-    (n.ch ? "属于最大的一条剧情链（" + (n.cs || 0) + " 个节点）" : "不在剧情链上") +
-    (n.b ? " · " + n.b + "：" + escHtml((n.bm || []).join(", ")) : "") + "</div>" +
-    "<table>" +
+    '<div class="sub">' + escHtml(CAT_NAME[n.c] || n.c) + " · " + (n.o === "mod" ? "mod 改的" : "原版") +
+    " · " + chainText + (n.b ? " · " + n.b + "：" + escHtml((n.bm || []).join(", ")) : "") + "</div>" +
+    '<table class="names">' +
     labelRow("简中", n.l.zh, false) +
     labelRow("en", n.l.en, n.fb && n.fb.en) +
     labelRow("ja", n.l.ja, n.fb && n.fb.ja) +
     labelRow("zhTW", n.l.zhTW, n.fb && n.fb.zhTW) +
     "</table>" +
-    (n.t === "event" && n.nt ? '<div class="note">策划备注：' + escHtml(n.nt) + "</div>" : "") +
-    (n.t === "event"
-      ? (nb
-        ? '<div class="note">事件没有标题。标题取渲染后的第一句。见下方「叙事」。</div>'
-        : '<div class="note">事件没有标题，也没有叙事。标题取策划备注，并标〔备注〕。</div>')
-      : "") +
+    (n.nt && nb ? '<div class="cond">策划备注：' + escHtml(n.nt) + "</div>" : "") +
+    (n.t === "event" && !nb ? '<div class="note">没有剧情文字，标题取自策划备注。</div>' : "") +
+    (n.on ? sec("什么时候发生", '<div class="cond">' + escHtml(timingText(n.on)) + "</div>") : "") +
+    (conds ? sec("需要满足的条件", conds) : "") +
+    (openTips ? sec("开启条件", openTips) : "") +
+    sec("什么会让它出现", inRows || hint(emptyIn)) +
     nb +
-    (n.on ? "<h3>触发时机</h3><div class=\\"note\\">" + escHtml(timingText(n.on)) + "</div>" : "") +
-    "<h3>它会带来什么（" + out.length + "）</h3>" +
-    '<div class="note">它会开启、触发或引用的节点。</div>' +
-    (out.map(([k, r]) => row(k, r, "out")).join("") || '<div class="note">没有。它不开启或触发别的节点。</div>') +
-    "<h3>什么会带来它（" + inc.length + "）</h3>" +
-    '<div class="note">会让它出现或生效的节点。</div>' +
-    (inc.map(([k, r]) => row(k, r, "in")).join("") || '<div class="note">没有。它不靠别的节点触发，看上面的触发时机。</div>') +
-    '<div class="note" id="editbox">' +
+    sec("会发生什么", outRows || hint("没有。它不引发别的事。")) +
+    '<div class="note" id="editbox" style="margin-top:18px">' +
     (location.protocol === "http:"
       ? '<button id="editbtn" class="pill">编辑这个节点</button>'
-      : "静态页面只读：用 node tools/editor.mjs 打开才能编辑") + "</div>";
+      : "这个页面只能看。要改，用 node tools/editor.mjs 打开。") + "</div>";
   const modal = document.getElementById("modal");
   modal.hidden = false;
   modal.onclick = (e) => { if (e.target === modal) modal.hidden = true; };
@@ -541,7 +614,21 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图" } = {}) {
 .row.sel .id { color: var(--gold); }
 .toless { color: #7a6f5e; font-size: 10px; border: 1px solid #4a4238; border-radius: 2px; padding: 0 3px; margin-left: 4px; }
 .story { background: #1d1710; border-left: 2px solid #4a3c28; padding: 8px 10px; margin: 6px 0; line-height: 1.65; font-size: 13px; color: #cfc0a4; }
-#modal-body h3 { font-size: 13px; color: var(--gold); letter-spacing: .08em; margin: 18px 0 6px; }
+#modal-body h2 { margin: 0 0 4px; font-size: 19px; letter-spacing: .04em; }
+#modal-body h3 { font-size: 13px; color: var(--gold); letter-spacing: .06em; margin: 20px 0 6px; }
+#modal-body .sub { color: #8a8070; font-size: 12px; line-height: 1.6; }
+#modal-body .note { color: #8a8070; font-size: 12px; margin: 6px 0; }
+#modal-body table.names { margin: 10px 0 6px; }
+#modal-body table.names th { color: #8a8070; font-weight: 400; font-size: 12px; text-align: left; padding: 2px 10px 2px 0; vertical-align: top; }
+#modal-body table.names td { color: #d8c9ab; padding: 2px 0; }
+#modal-body .relrow { display: grid; grid-template-columns: 8.5em 1fr; gap: 2px 12px; align-items: baseline; padding: 6px 0; border-top: 1px solid #241d15; }
+#modal-body .relrow:first-of-type { border-top: 0; }
+#modal-body .reltag { color: #9a8d78; font-size: 12px; text-align: right; }
+#modal-body .relval { min-width: 0; }
+#modal-body .relval a { color: #d8b877; text-decoration: none; }
+#modal-body .relval a:hover { text-decoration: underline; }
+#modal-body .cond { color: #cfc0a4; font-size: 13px; line-height: 1.75; margin: 3px 0; }
+#modal-body .cond.muted { color: #7a6f5e; }
 .badge { font-size: 10px; padding: 0 4px; border-radius: 2px; }
 .badge.FAIL { background: var(--bad); color: #fff; }
 .badge.WARN { background: var(--gold); color: #1a1510; }
