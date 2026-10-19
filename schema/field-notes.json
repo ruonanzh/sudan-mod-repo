@@ -1,0 +1,55 @@
+{
+  "note": "What the flags on an event or rite mean, in the player's language. The Chinese text is the developers' own wording from the // comments in vanilla config; en/ja/zhTW are ours, kept short so they fit beside a value. A field whose meaning the game never states is left out rather than guessed.",
+  "event": {
+    "is_replay": {
+      "zh": "1 = 可以重复触发，同一局会不止一次；0 = 只发生一次。",
+      "en": "1 = repeatable, it can fire more than once in one run; 0 = it fires once.",
+      "ja": "1 = 繰り返し発生する（1回のプレイで複数回）；0 = 1回だけ。",
+      "zhTW": "1 = 可以重複觸發，同一局會不止一次；0 = 只發生一次。"
+    },
+    "auto_start": {
+      "zh": "旧写法：当前版本不读这一项。要让事件在本局开始时自己启动，用 auto_start_init。",
+      "en": "Legacy: this build does not read it. To start an event by itself when a run begins, use auto_start_init.",
+      "ja": "旧形式。現行ビルドは読まない。開始時に自動で始めるなら auto_start_init を使う。",
+      "zhTW": "舊寫法：目前版本不讀這一項。要讓事件在本局開始時自己啟動，用 auto_start_init。"
+    },
+    "auto_start_init": {
+      "zh": "只在列出的开局（init 的 id）里，本局一开始就自动启动；没列到的开局等时机触发。",
+      "en": "It starts by itself only in the listed opening setups (init ids); other setups wait for its timing.",
+      "ja": "リストされた開始設定（init の id）でのみ、本局開始時に自動で始まる。それ以外はタイミングを待つ。",
+      "zhTW": "只在列出的開局（init 的 id）裡，本局一開始就自動啟動；沒列到的開局等時機觸發。"
+    },
+    "start_trigger": {
+      "zh": "1 = 事件一启动就马上检查条件；0 = 等它自己的时机到了再检查。",
+      "en": "1 = the condition is checked as soon as the event starts; 0 = only when its own timing comes.",
+      "ja": "1 = イベント開始と同時に条件を確認する；0 = 自身のタイミングが来てから確認する。",
+      "zhTW": "1 = 事件一啟動就馬上檢查條件；0 = 等它自己的時機到了再檢查。"
+    }
+  },
+  "rite": {
+    "auto_begin": {
+      "zh": "1 = 仪式开始后自动进入，不用玩家再点一次开始。",
+      "en": "1 = the rite starts on its own; the player does not press start.",
+      "ja": "1 = 儀式が自動で始まる（プレイヤーが開始を押さない）。",
+      "zhTW": "1 = 儀式開始後自動進入，不用玩家再點一次開始。"
+    },
+    "auto_result": {
+      "zh": "1 = 结算面板默认自动确认，跳过逐步确认。",
+      "en": "1 = the settlement is confirmed automatically; the player skips the step-by-step confirm.",
+      "ja": "1 = 結果画面が自動確認になる（段階ごとの確認を飛ばす）。",
+      "zhTW": "1 = 結算面板預設自動確認，跳過逐步確認。"
+    },
+    "round_number": {
+      "zh": "仪式要几个回合才结算；1 = 立即结算。",
+      "en": "How many turns the rite runs before it settles; 1 = right away.",
+      "ja": "儀式が終わるまでのターン数；1 = すぐに終わる。",
+      "zhTW": "儀式要幾個回合才結算；1 = 立即結算。"
+    },
+    "waiting_round": {
+      "zh": "最多等几个回合；到点还没完成就自动结算。",
+      "en": "The most turns you may wait; at the end it settles by itself.",
+      "ja": "待てるターン数の上限。そこまでに終わらないと自動で終わる。",
+      "zhTW": "最多等幾個回合；到點還沒完成就自動結算。"
+    }
+  }
+}

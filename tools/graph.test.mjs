@@ -170,6 +170,34 @@ test("a node's description is its own paragraph, in every language", { skip }, (
   assert.equal(bare.dl.en, "");
 });
 
+test("every field note names a real field, in all four languages", () => {
+  const notes = JSON.parse(readFileSync(new URL("../schema/field-notes.json", import.meta.url), "utf8"));
+  const fields = JSON.parse(readFileSync(new URL("../schema/fields.json", import.meta.url), "utf8"));
+  for (const kind of ["event", "rite"]) {
+    // A note may describe a legacy switch on purpose: `auto_start` is still in 1522 vanilla
+    // event files and the current build has no such field, which is exactly worth saying.
+    const declared = new Set([...(fields[kind].fields || []), ...(fields[kind].handler || []), ...(fields[kind].legacy || [])]);
+    for (const [key, byLang] of Object.entries(notes[kind])) {
+      assert.ok(declared.has(key), `${kind}.${key} is not a field of ${kind}`);
+      for (const l of ["zh", "en", "ja", "zhTW"]) {
+        assert.ok(byLang[l] && byLang[l].trim(), `${kind}.${key} has no ${l}`);
+      }
+    }
+  }
+});
+
+test("a node carries the switches it sets, and only the ones we can explain", { skip }, () => {
+  const g = graph();
+  const ev = g.nodes.find((n) => n.k === "event:5300090");
+  assert.deepEqual(ev.fl, { is_replay: 1, auto_start_init: [1], start_trigger: false });
+  const rite = g.nodes.find((n) => n.k === "rite:5008014");
+  assert.equal(rite.fl.auto_begin, 0);
+  assert.equal(rite.fl.round_number, 1);
+  // A switch with no note is not reported, so the panel never prints a bare field name.
+  assert.equal(g.nodes.find((n) => n.k === "card:2000001").fl, null);
+  assert.deepEqual(Object.keys(g.fieldNotes).sort(), ["event", "rite"]);
+});
+
 test("the baseline file still describes a full build", { skip }, () => {
   const base = JSON.parse(readFileSync(new URL("../schema/graph-baseline.json", import.meta.url), "utf8"));
   const g = graph();

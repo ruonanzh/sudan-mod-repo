@@ -86,6 +86,7 @@ export function payload(g) {
       tr: n.tr || { en: false, ja: false, zhTW: false },
       nr: n.nr || null,
       nt: n.note || "",
+      fl: n.fl || null,
       dl: n.dl || null,
       on: n.on || null,
       cond: n.cond || null,
@@ -100,6 +101,7 @@ export function payload(g) {
     edges: g.edges.filter((e) => index.has(e.f) && index.has(e.t)).map((e) => [index.get(e.f), index.get(e.t), e.r]),
     counts: g.counts,
     categoryCounts: g.categoryCounts,
+    fieldNotes: g.fieldNotes || null,
     components: { count: g.components.count, largest: g.components.largest },
   };
 }
@@ -471,6 +473,21 @@ function condHtml(obj) {
 
 // Everything the panel says about a node, without the buttons. The read view and the left half
 // of the editor show the same text, so it is built once, here.
+// The switches a node sets, said in the language on screen. The Chinese comes from the
+// developers' own // comments; the other three are ours (schema/field-notes.json).
+function flagBlock(n) {
+  const notes = (DATA.fieldNotes || {})[n.t];
+  if (!notes || !n.fl) return "";
+  const rows = Object.keys(n.fl)
+    .map((k) => {
+      const raw = Array.isArray(n.fl[k]) ? "[" + n.fl[k].join(", ") + "]" : String(n.fl[k]);
+      const note = notes[k] ? notes[k][lang] || notes[k].zh : "";
+      return '<div class="cond"><code>' + escHtml(k + " = " + raw) + "</code>" + (note ? "　" + escHtml(note) : "") + "</div>";
+    })
+    .join("");
+  return "<h3>这些开关是什么</h3>" + rows;
+}
+
 function panelHtml(n) {
   const out = (OUT.get(n.k) || []).slice(0, 30);
   const inc = (IN.get(n.k) || []).slice(0, 30);
@@ -504,6 +521,7 @@ function panelHtml(n) {
     (title ? '<div class="node-title">' + escHtml(title) + "</div>" : "") +
     '<div class="sub">' + escHtml(CAT_NAME[n.c] || n.c) + " · " + (n.o === "mod" ? "mod 改的" : "原版") +
     " · " + chainText + (n.b ? " · " + n.b + "：" + escHtml((n.bm || []).join(", ")) : "") + "</div>" +
+    flagBlock(n) +
     (n.on ? sec("什么时候发生", '<div class="cond">' + escHtml(timingText(n.on)) + "</div>") : "") +
     (conds ? sec("需要满足的条件", conds) : "") +
     (openTips ? sec("开启条件", openTips) : "") +
@@ -697,6 +715,7 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
 #modal-body .relval a:hover { text-decoration: underline; }
 #modal-body .cond { color: #cfc0a4; font-size: 13px; line-height: 1.75; margin: 3px 0; }
 #modal-body .cond.muted { color: #7a6f5e; }
+#modal-body .cond code { color: #d8b877; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
 .badge { font-size: 10px; padding: 0 4px; border-radius: 2px; }
 .badge.FAIL { background: var(--bad); color: #fff; }
 .badge.WARN { background: var(--gold); color: #1a1510; }

@@ -110,6 +110,24 @@ test("the panel names a node, then says what it says, beside the file it lives i
   assert.doesNotMatch(html, /table class="names"/);
 });
 
+test("the switches are said in the language on screen", { skip }, async () => {
+  const { win, els, document } = mount(graph());
+  win.__openNode("event:5300090");
+  await tick();
+  const zh = els.get("modal-body").innerHTML;
+  assert.match(zh, /这些开关是什么/);
+  assert.match(zh, /<code>is_replay = 1<\/code>/, "the field and its value");
+  assert.match(zh, /可以重复触发/, "and what that means, in Chinese");
+  assert.match(zh, /<code>auto_start_init = \[1\]<\/code>/, "a list value reads as a list");
+
+  document.getElementById("lang").onchange({ target: { value: "en" } });
+  win.__openNode("event:5300090");
+  await tick();
+  const en = els.get("modal-body").innerHTML;
+  assert.match(en, /repeatable/, "the same switch, explained in English");
+  assert.doesNotMatch(en, /可以重复触发/, "and not in Chinese");
+});
+
 test("编辑 turns the right column into an editor, 取消 turns it back", { skip }, async () => {
   const { win, els, posts } = mount(graph());
   win.__openNode("card:2000001");

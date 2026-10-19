@@ -21,6 +21,7 @@ const HERE = path.dirname(new URL(import.meta.url).pathname);
 const ROOT = path.join(HERE, "..");
 const EDGES = JSON.parse(readFileSync(path.join(ROOT, "schema/edges.json"), "utf8"));
 const CATEGORIES = JSON.parse(readFileSync(path.join(ROOT, "schema/categories.json"), "utf8"));
+const FIELD_NOTES = JSON.parse(readFileSync(path.join(ROOT, "schema/field-notes.json"), "utf8"));
 
 const LANGS = ["zh", "en", "ja", "zhTW"];
 
@@ -225,6 +226,22 @@ function firstNarration(rec) {
   return (o && (o.text || (o.items[0] && o.items[0].text))) || (nr.prompt[0] && nr.prompt[0].text) || "";
 }
 
+/**
+ * The switch-like fields a node sets that a player can be told about, in the record's own
+ * order. Only fields with an entry in schema/field-notes.json are listed: the rest are
+ * either unreadable without the decompiled code or mean nothing to a player.
+ */
+function flagsOf(kind, rec) {
+  const notes = FIELD_NOTES[kind];
+  if (!notes) return null;
+  const out = {};
+  for (const key of Object.keys(notes)) {
+    if (rec[key] === undefined) continue;
+    out[key] = rec[key];
+  }
+  return Object.keys(out).length ? out : null;
+}
+
 // ---------------------------------------------------------------- build
 
 export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = "zh", edgeMode = "nested" } = {}) {
@@ -264,6 +281,7 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
         node.on = rec.on || null;
         node.cond = rec.condition || null;
       }
+      node.fl = flagsOf(kind, rec);
       if (kind === "rite" && Array.isArray(rec.open_conditions)) {
         node.oc = rec.open_conditions.map((x) => x && x.tips).filter(Boolean);
       }
@@ -341,6 +359,7 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
           node.on = rec.on || null;
           node.cond = rec.condition || null;
         }
+        node.fl = flagsOf(kind, rec);
         if (kind === "rite" && Array.isArray(rec.open_conditions)) {
           node.oc = rec.open_conditions.map((x) => x && x.tips).filter(Boolean);
         }
@@ -558,6 +577,7 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
     components: comp,
     modSummary,
     categoryCounts: countBy([...nodes.values()].filter((n) => n.t === "event"), (n) => n.cat),
+    fieldNotes: { event: FIELD_NOTES.event, rite: FIELD_NOTES.rite },
     lint: { FAIL: lintSummary.FAIL, WARN: lintSummary.WARN, INFO: lintSummary.INFO },
   };
 }
