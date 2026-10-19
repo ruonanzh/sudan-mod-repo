@@ -159,6 +159,20 @@ test("a switch reads as the sentence its value earns", { skip }, async () => {
   assert.match(rite, /没有等待期限/, "waiting_round 0 has its own wording");
 });
 
+test("a dead key is marked in the file, and not in the editor", { skip }, async () => {
+  const { win, els } = mount(graph());
+  win.__openNode("event:5300085"); // this event still carries "auto_start": false
+  await tick();
+  const pre = els.get("srcpane").innerHTML;
+  assert.match(pre, /class="dead"/, "the line is marked");
+  assert.match(pre, /← 当前版本不读它/);
+  assert.match(pre, /auto_start/, "and the text itself is untouched");
+  els.get("editbtn").onclick();
+  const text = els.get("ed").value;
+  assert.doesNotMatch(text, /当前版本不读它/, "the editor gets the file, not the annotation");
+  assert.match(text, /"auto_start":\s*false/, "including the dead key, so a save keeps it");
+});
+
 test("编辑 turns the right column into an editor, 取消 turns it back", { skip }, async () => {
   const { win, els, posts } = mount(graph());
   win.__openNode("card:2000001");

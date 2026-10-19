@@ -585,6 +585,21 @@ async function saveSource(key, text, msg) {
   return Boolean(out.ok);
 }
 
+// A key the current build does not read is worth marking in the file itself: 1520 vanilla
+// events still carry auto_start, every one of them false, and a copy of one inherits it.
+const DEAD_KEY = new RegExp('(^|[^_"])"auto_start"\\s*:');
+
+function annotate(source) {
+  return source
+    .split("\\n")
+    .map((line) =>
+      DEAD_KEY.test(line)
+        ? '<span class="dead" title="当前版本不读这个键，写了也不生效">' + escHtml(line) + ' <i>← 当前版本不读它</i></span>'
+        : escHtml(line)
+    )
+    .join("\\n");
+}
+
 /** The right half: the file the node lives in. Read-only until 编辑 is pressed. */
 async function fillSource(key) {
   const pane = document.getElementById("srcpane");
@@ -599,7 +614,7 @@ async function fillSource(key) {
   const source = node.source;
   pane.innerHTML =
     '<div class="note" style="margin-top:0">' + escHtml(node.path) + "</div>" +
-    '<pre id="srcpre" class="src">' + escHtml(source) + "</pre>" +
+    '<pre id="srcpre" class="src">' + annotate(source) + "</pre>" +
     '<div class="note" id="srcbar">' +
     (EDITABLE && location.protocol === "http:" ? '<button id="editbtn" class="pill">编辑</button>' : whyNotEditable()) +
     "</div>";
@@ -745,6 +760,8 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
 .editsrc { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .editsrc textarea { min-height: 64vh; font-family: ui-monospace, Menlo, monospace; font-size: 12px; line-height: 1.55; tab-size: 4; }
 .editsrc .src { background: #1d1710; border-left: 2px solid #4a3c28; margin: 6px 0; padding: 8px 10px; max-height: 64vh; overflow: auto; font-family: ui-monospace, Menlo, monospace; font-size: 12px; line-height: 1.55; white-space: pre; color: #cfc0a4; }
+.editsrc .src .dead { color: #7a6f5e; }
+.editsrc .src .dead i { color: #b4543f; font-style: normal; }
 @media (max-width: 900px) { .editsplit { grid-template-columns: 1fr; } .editview { border-right: 0; padding-right: 0; } }
 `;
   // The script goes after the shell: it reads DOM ids that only exist once the body is parsed.
