@@ -368,8 +368,13 @@ groups vanilla uses, with every number each one carries:
 | 结局 | `1` through `20`, one at a time |
 | 大敌 | `1` `2` `3` `6` |
 
-Dead fields — the game never reads them, so do not copy them into a new rite:
-`is_key` (0 in all 5406 vanilla slots) and `final_pin` (12 rites, only the serializer touches it).
+`final_pin: 1` is read, and it does one thing: when the rite settles, the game removes the rite and
+then calls `PlayerExtensions.AddRitePin(player, rite.uid)` — so the rite leaves a pin behind on the
+player. `RiteResultPanelController.<Settlement>b__8` skips that when the value is not 1. Twelve
+vanilla rites set it.
+
+Dead field: `is_key` — `0` in all 5406 vanilla slots, and none of the twelve `+0x24` comparisons in
+the whole build sits on a slot.
 
 `restore_fill_times` is **not** dead, just unused in vanilla: `RitePanelShowController.OnLastState`
 reads it (`+0x4C`), clamps it to `1..10`, and uses the result to refill slots when a rite panel
@@ -449,7 +454,8 @@ Four more things a mod can ship. Only the fields below are read; anything else i
 `repeat` is how many draws happen. In vanilla, 188 tables use `1`; the rest use 3, 6 or 13.
 
 Each `item` is `{type, id, num, weight, condition}`. `type` is `card`, `event`, `rite` or `loot`
-(a table inside a table). `weight` is relative — only the ratios matter. `num` is how many are
+(a table inside a table). `weight` is relative — only the ratios matter, and `SimpleWeightLoot` really does draw with
+`Random.Range` after summing them. `num` is how many are
 granted, and writes as a string in vanilla (`"1"`). `condition` filters the item the same way every
 other condition does.
 
@@ -478,9 +484,11 @@ What the loader actually registers: `id`, `name`, `text`, `icon`, `favour_text`,
   to print beside it — empty means none, decided by `String.IsNullOrEmpty` in
   `StoryTargetItemController.Init`. All 193 vanilla targets carry a condition.
 - `isComplete` (on both the quest and the target) is save-side state, and drives the tick sprite.
-  Do not write it. `target.value` is registered too but no vanilla target sets it.
+  Do not write it.
 - `upgrade_point` is what the quest is worth; the completion notification prints it (1 each across
   the 161 vanilla quests).
+- `target.value` is a number **printed into the target line** (`StoryTargetItemController.Init` boxes
+  it and appends it), never compared. No vanilla target sets it.
 - **`pre` does nothing.** It is all over `quest.json` (161 values, each another quest id), but the
   string `pre` does not exist in `global-metadata.dat` at all, so the loader has no key to match —
   the same dead-key situation as `auto_start` on events. Do not build a quest chain on it.
@@ -507,10 +515,17 @@ The loader registers all twelve fields, so nothing here is dead: `id`, `name`, `
 One file per character card; the id is the **card** id, not a new id range (66 in vanilla: 61
 characters + 5 items).
 
-- `pic` is the picture shown, `close_condition` decides when the panel closes.
+- `pic` is the picture shown. `close_condition` and `prior` are declared in the schema but no vanilla
+  file uses either (0 of 66), and nothing in the build evaluates `close_condition`; leave both out.
 - `prior` and `extra` are **`RiteNode.Settlement[]`**, exactly the shape a rite's branches use:
-  `{condition, result_text, pic, result, action, sort}`. Nothing new to learn, and the same rule
-  applies — `sort` decides the order, and a missing `sort` counts as `10`.
+  `{condition, result_text, pic, result, action, key, sort}`. `sort` decides the order and a missing
+  `sort` counts as `10`.
+- A branch is chosen by **`key` first**: if the branch has a `key`, the game compares it with the
+  save's `after_story_key` and takes it on a match; if there is no `key` (or it does not match) the
+  branch's `condition` is evaluated, and a branch with no condition is taken unconditionally. First
+  match wins. Every one of the 7750 vanilla branches carries a string key such as
+  `2000001_extra_1`, so write one. `OverNewAfterStoryItemController.Show` then runs the chosen
+  branch's `result` and then its `action`, and `key` also feeds `Datapool.SetOverId`.
 - The save keeps `prior` as a string key and `extra` as a set, so the same config can be reused by
   several runs.
 
