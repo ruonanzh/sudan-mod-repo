@@ -369,7 +369,7 @@ window.__openNode = (key) => {
     "</table>" +
     (n.t === "event" && n.nt ? '<div class="note">策划备注：' + escHtml(n.nt) + "</div>" : "") +
     (n.t === "event"
-      ? '<div class="note">事件没有标题。标签取它的第一句叙事；没有叙事的留作「规则 #id」。见下方「叙事」。</div>'
+      ? '<div class="note">事件没有标题。有叙事的取第一句；没有叙事的取策划备注，并标〔备注〕。见下方「叙事」。</div>'
       : "") +
     narrationBlock(n) +
     "<h3>出边 " + out.length + "</h3><div class=\\"note\\">" +

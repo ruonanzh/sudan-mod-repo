@@ -146,7 +146,8 @@ test("an event label comes from narration, not the designer note", { skip }, () 
   assert.notEqual(narrated.l.zh, narrated.note, "the note is not a player-facing label");
   assert.ok(narrated.l.zh.length > 10);
   const silent = g.nodes.find((n) => n.k === "event:5360014");
-  assert.ok(silent.l.zh.startsWith("规则 "), "an event with no narration is labelled as a rule");
+  assert.ok(silent.l.zh.startsWith("〔备注〕"), "an event with no narration shows its designer note instead of a bare id");
+  assert.ok(silent.l.zh.includes("善名"), "the note itself is the label");
 });
 
 test("the baseline file still describes a full build", { skip }, () => {

@@ -252,9 +252,10 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
   for (const [kind, recs] of Object.entries(vanilla)) {
     for (const [id, rec] of Object.entries(recs)) {
       counts[kind] = (counts[kind] || 0) + 1;
-      // An event has no title. `text` is a designer note (median 7 characters); the label
-      // comes from the narration it writes, or falls back to the id.
-      const label = kind === "event" ? "" : rec.name || rec.text || "";
+      // An event has no title. `text` is a designer note (median 7 characters). When the
+      // event writes narration, that becomes the label; when it does not, the note is the
+      // only human-readable identity it has, so show it and mark it as a note.
+      const label = kind === "event" ? (rec.text ? `〔备注〕${rec.text}` : "") : rec.name || rec.text || "";
       const node = add(kind, id, { labelSource: label });
       // The node may already exist from the directory listing, which has no label.
       node.labelSource = label || node.labelSource || "";
@@ -324,7 +325,7 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
         modSummary.nodes++;
         vanilla[kind] = vanilla[kind] || {};
         vanilla[kind][id] = rec;
-        const label = kind === "event" ? "" : rec.name || rec.text || "";
+        const label = kind === "event" ? (rec.text ? `〔备注〕${rec.text}` : "") : rec.name || rec.text || "";
         const node = add(kind, id, { labelSource: label });
         node.o = "mod";
         node.labelSource = label || node.labelSource;
