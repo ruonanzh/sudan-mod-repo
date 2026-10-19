@@ -205,6 +205,22 @@ test("a have condition names the card and says which container counts it", { ski
   assert.match(await condOf("event:5300090"), /没有仪式 5001501 浴场里的消息/);
 });
 
+test("a rite shows its place, its slots and its settlement branches", { skip }, async () => {
+  const { win, els } = mount(graph());
+  win.__openNode("rite:5000812");
+  await tick();
+  const p = els.get("modal-body").innerHTML;
+  assert.match(p, /类型 宝藏/);
+  assert.match(p, /地点 奇珍:11/);
+  assert.match(p, /<h3>放什么卡<\/h3>/);
+  assert.match(p, /s1 · 芮尔手下/, "the slot's own sentence names what it wants");
+  assert.match(p, /是卡 2000965 烂泥众/, "and the condition names the card");
+  assert.match(p, /<h3>结算分支<\/h3>/);
+  assert.match(p, /先结算（按顺序，第一条条件成立的生效）/, "prior stops at the first match");
+  assert.match(p, /正常结算|附加结算/, "the other two lists are labelled separately");
+  assert.match(p, /槽位 s13 里没有卡/, "a slot condition reads as a sentence");
+});
+
 test("a dead key is marked in the file, and not in the editor", { skip }, async () => {
   const { win, els } = mount(graph());
   win.__openNode("event:5300085"); // this event still carries "auto_start": false

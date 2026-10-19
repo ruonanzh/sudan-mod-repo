@@ -94,6 +94,7 @@ export function payload(g) {
       nr: n.nr || null,
       nt: n.note || "",
       fl: n.fl || null,
+      ri: n.ri || null,
       dl: n.dl || null,
       on: n.on || null,
       cond: n.cond || null,
@@ -462,7 +463,7 @@ function haveLeaf(head, rest, neg, op, val) {
   return op ? phrase + OPS[op] + val : phrase + "，" + val + " 张";
 }
 
-function condLeaf(k, v) {
+function condLeaf(k, v, ctx) {
   var neg = false;
   if (k.charAt(0) === "!") { neg = true; k = k.slice(1); }
   var op = "";
@@ -472,6 +473,16 @@ function condLeaf(k, v) {
   var head = p[0], rest = p.slice(1);
   var val = v && typeof v === "object" ? JSON.stringify(v) : String(v);
   if (HAVE_VERB[head]) return haveLeaf(head, rest, neg, op, val);
+  // is: 2000056 names the card itself, so the value is not a number to print.
+  if (head === "is") return (neg ? "不是" : "是") + "卡 " + idWithName("card", rest[0] || val);
+  // A slot index: s2: 1 means slot s2 holds a card, !s13 that it is empty, s2.is which card.
+  if (/^s\\d+$/.test(head)) {
+    if (rest[0] === "is") return (neg ? "槽位 " + head + " 里不是卡 " : "槽位 " + head + " 里是卡 ") + idWithName("card", val);
+    if (rest.length) return "槽位 " + head + " 的 " + rest.join(" ") + (op ? OPS[op] + val : "：" + val);
+    if (neg) return "槽位 " + head + " 里没有卡";
+    if (val === "1" && !op) return "槽位 " + head + " 里有卡";
+    return "槽位 " + head + " 里的卡数" + (op ? OPS[op] : "：") + val;
+  }
   var what;
   if (head === "rite") what = "仪式 " + (rest.length === 1 && /^\\d+$/.test(rest[0]) ? idWithName("rite", rest[0]) : rest.join(" "));
   else if (head === "event") what = "事件 " + (rest.length === 1 && /^\\d+$/.test(rest[0]) ? idWithName("event", rest[0]) : rest.join(" "));
@@ -481,7 +492,7 @@ function condLeaf(k, v) {
   else if (head === "global_counter") what = "全局计数器 " + rest.join(" ");
   else if (head === "round") what = "回合数";
   else if (head === "difficulty") what = "难度";
-  else if (head === "type") what = "局类型";
+  else if (head === "type") what = ctx === "slot" ? "卡的类型" : "局类型";
   else what = k;
   // A negated rite such as !rite: 5001501 carries the id in the value, not in the key.
   const idFromValue = !rest.length && /^\\d+$/.test(val) && (head === "rite" || head === "event" || head === "card");
@@ -492,25 +503,25 @@ function condLeaf(k, v) {
   return what + "：" + val;
 }
 
-function condTree(obj, depth) {
+function condTree(obj, depth, ctx) {
   var out = [];
   if (!obj || typeof obj !== "object") return out;
   Object.keys(obj).forEach(function (k) {
     var v = obj[k];
     if (k === "any" || k === "all") {
       out.push({ t: k === "any" ? "满足任一项" : "全部满足", d: depth });
-      out = out.concat(condTree(v, depth + 1));
+      out = out.concat(condTree(v, depth + 1, ctx));
     } else if (v && typeof v === "object") {
-      out.push({ t: condLeaf(k, "") + " " + JSON.stringify(v), d: depth });
+      out.push({ t: condLeaf(k, "", ctx) + " " + JSON.stringify(v), d: depth });
     } else {
-      out.push({ t: condLeaf(k, v), d: depth });
+      out.push({ t: condLeaf(k, v, ctx), d: depth });
     }
   });
   return out;
 }
 
-function condHtml(obj) {
-  return condTree(obj, 0).map(function (x) {
+function condHtml(obj, ctx) {
+  return condTree(obj, 0, ctx).map(function (x) {
     return '<div class="cond" style="padding-left:' + x.d * 14 + 'px">' + escHtml(x.t) + "</div>";
   }).join("");
 }
@@ -542,6 +553,63 @@ function flagBlock(n) {
   return chips ? '<div class="swrow">' + chips + "</div>" : "";
 }
 
+function sublabel(text) {
+  return '<div class="sublabel">' + escHtml(text) + "</div>";
+}
+
+// What a rite asks for, and what it can turn into. Every line comes from the record: the slots
+// name the cards the board wants, and the three settlement lists are separate lists. Prior and
+// normal stop at the first branch whose condition holds, so they are alternatives, not steps.
+const RITE_TYPE = { NORMAL: "普通", END: "结局", ENEMY: "敌人", TREASURE: "宝藏" };
+
+function slotBlock(ri) {
+  if (!ri.slots || !ri.slots.length) return "";
+  const rows = ri.slots
+    .map((sl) => {
+      const cond = sl.cond ? condHtml(sl.cond, "slot") : "";
+      return '<div class="slot"><div class="slotname">' + escHtml(sl.k) + (sl.text ? " · " + escHtml(sl.text) : "") + "</div>" + cond + "</div>";
+    })
+    .join("");
+  return "<h3>放什么卡</h3>" + sublabel(ri.slots.length + " 个槽位") + rows;
+}
+
+function branchGroup(name, list, note) {
+  if (!list || !list.length) return "";
+  const rows = list
+    .map((b, i) => {
+      const cond = b.cond && Object.keys(b.cond).length ? condHtml(b.cond) : '<div class="cond muted">没有条件</div>';
+      const out = [b.title, b.text].filter(Boolean).map((t) => '<div class="story">' + escHtml(t) + "</div>").join("");
+      return '<div class="branch"><div class="branchhead">第 ' + (i + 1) + " 条</div>" + cond + out + "</div>";
+    })
+    .join("");
+  return sublabel(name + "（" + note + "）") + rows;
+}
+
+function riteBlock(n) {
+  const ri = n.ri;
+  if (!ri) return "";
+  const groups =
+    branchGroup("先结算", ri.prior, "按顺序，第一条条件成立的生效") +
+    branchGroup("正常结算", ri.normal, "按顺序，第一条条件成立的生效") +
+    branchGroup("附加结算", ri.extre, "逐条各自判断");
+  const tips = (ri.tips || []).map((t) => '<div class="cond">' + escHtml(t) + "</div>").join("");
+  return (
+    slotBlock(ri) +
+    (groups ? "<h3>结算分支</h3>" + groups : "") +
+    (tips ? "<h3>规则提示</h3>" + tips : "")
+  );
+}
+
+// Type and place, when the record says them. Most rites are NORMAL and carry no type at all.
+function riteFacts(n) {
+  const ri = n.ri;
+  if (!ri) return "";
+  const bits = [];
+  if (ri.type && ri.type !== "NORMAL") bits.push("类型 " + (RITE_TYPE[ri.type] || ri.type));
+  if (ri.location) bits.push("地点 " + ri.location);
+  return bits.map((t) => " · " + escHtml(t)).join("");
+}
+
 function panelHtml(n) {
   const out = (OUT.get(n.k) || []).slice(0, 30);
   const inc = (IN.get(n.k) || []).slice(0, 30);
@@ -551,7 +619,6 @@ function panelHtml(n) {
   const hint = (text) => '<div class="cond muted">' + text + "</div>";
   // Three different logics used to read as one flat list. Say which is which: a condition is
   // all-of, a trigger is any-of, and a rite's open tips are what the game says when unmet.
-  const sub = (text) => '<div class="sublabel">' + escHtml(text) + "</div>";
   const row = (k, r, dir) => {
     const label = (dir === "in" ? REL_IN[r] || REL_OUT[r] : REL_OUT[r]) || r;
     return '<div class="relrow"><div class="reltag">' + escHtml(label) + '</div><div class="relval">' + chip(k) + "</div></div>";
@@ -581,7 +648,9 @@ function panelHtml(n) {
     '<h2 style="margin-top:0">' + escHtml(KIND_NAME[n.t] || n.t) + " " + escHtml(n.id) + "</h2>" +
     (title ? '<div class="node-title">' + escHtml(title) + "</div>" : "") +
     '<div class="sub">' + escHtml(CAT_NAME[n.c] || n.c) + " · " + (n.o === "mod" ? "mod 改的" : "原版") +
-    " · " + chainText + (n.b ? " · " + n.b + "：" + escHtml((n.bm || []).join(", ")) : "") + "</div>" +
+    " · " + chainText +
+    (n.b ? " · " + n.b + "：" + escHtml((n.bm || []).join(", ")) : "") +
+    riteFacts(n) + "</div>" +
     flagBlock(n) +
     (n.on ? sec("时机", '<div class="cond">' + escHtml(timingText(n.on)) + "</div>") : "") +
     // Everything that has to hold for this node to show up, in one place: its own condition,
@@ -589,12 +658,13 @@ function panelHtml(n) {
     // "when does this happen" does not care which of the three it came from.
     sec(
       "条件",
-      (conds || condOutRows ? sub("全部满足") + conds + condOutRows : "") +
-        (inRows ? sub("任一发生就会触发") + inRows : "") +
-        (openTips ? sub("开启条件：不满足时游戏会这样提示") + openTips : "") ||
+      (conds || condOutRows ? sublabel("全部满足") + conds + condOutRows : "") +
+        (inRows ? sublabel("任一发生就会触发") + inRows : "") +
+        (openTips ? sublabel("开启条件：不满足时游戏会这样提示") + openTips : "") ||
         hint(emptyIn)
     ) +
     nb +
+    (n.t === "rite" ? riteBlock(n) : "") +
     sec("结果", outRows || hint("没有结果。它不引发别的事。"))
   );
 }
@@ -802,6 +872,10 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
 #modal-body .cond { color: #cfc0a4; font-size: 13px; line-height: 1.75; margin: 3px 0; }
 #modal-body .cond.muted { color: #7a6f5e; }
 #modal-body .sublabel { color: #9a8d78; font-size: 12px; letter-spacing: .04em; margin: 12px 0 2px; }
+#modal-body .slot { margin: 8px 0; padding: 6px 0 4px; border-top: 1px solid #241d15; }
+#modal-body .slotname { color: #d8b877; font-size: 13px; margin-bottom: 2px; }
+#modal-body .branch { margin: 8px 0; padding: 6px 0 4px; border-top: 1px solid #241d15; }
+#modal-body .branchhead { color: #9a8d78; font-size: 12px; }
 #modal-body .swrow { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; }
 #modal-body .sw { font-size: 12px; color: #d8c9ab; background: #241d15; border: 1px solid #3a3128; border-radius: 3px; padding: 2px 8px; }
 .badge { font-size: 10px; padding: 0 4px; border-radius: 2px; }

@@ -227,6 +227,35 @@ function firstNarration(rec) {
 }
 
 /**
+ * What a rite asks for and what it can turn into. Slots list the cards the board wants, each
+ * with the condition that decides what may be dropped there; the three settlement arrays are
+ * separate lists, not one (see plans/story-graph.md §六): prior and normal stop at the first
+ * branch whose condition holds, extre runs all of them.
+ */
+function riteInfoOf(rec) {
+  const slots = Object.entries(rec.cards_slot || {}).map(([k, s]) => ({
+    k,
+    text: (s && s.text) || "",
+    cond: (s && s.condition) || null,
+  }));
+  const branches = (arr) =>
+    (Array.isArray(arr) ? arr : [])
+      .filter((b) => b && typeof b === "object")
+      .map((b) => ({ cond: b.condition || null, title: b.result_title || "", text: b.result_text || "" }));
+  const info = {
+    type: rec.type || "",
+    location: rec.location || "",
+    tips: (rec.tips_text || []).filter((t) => t && String(t).trim()),
+    slots,
+    prior: branches(rec.settlement_prior),
+    normal: branches(rec.settlement),
+    extre: branches(rec.settlement_extre),
+  };
+  const empty = Object.values(info).every((v) => (Array.isArray(v) ? !v.length : !v));
+  return empty ? null : info;
+}
+
+/**
  * The switch-like fields a node sets that a player can be told about, in the record's own
  * order. Only fields with an entry in schema/field-switches.json are listed: the rest are
  * either unreadable without the decompiled code or mean nothing to a player.
@@ -285,6 +314,7 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
       if (kind === "rite" && Array.isArray(rec.open_conditions)) {
         node.oc = rec.open_conditions.map((x) => x && x.tips).filter(Boolean);
       }
+      if (kind === "rite") node.ri = riteInfoOf(rec);
     }
   }
 
@@ -363,6 +393,7 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
         if (kind === "rite" && Array.isArray(rec.open_conditions)) {
           node.oc = rec.open_conditions.map((x) => x && x.tips).filter(Boolean);
         }
+        if (kind === "rite") node.ri = riteInfoOf(rec);
       }
     }
     // counters referenced only by the mod
