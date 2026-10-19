@@ -349,8 +349,11 @@ tells you nothing about whether that *rite* is optional. Read the whole slot.
 | `is_enemy` (slot) | `1` = the slot counts for the enemy side; dice and battle rites split their cards by it |
 
 Dead fields — the game never reads them, so do not copy them into a new rite:
-`is_key` (0 in all 5406 vanilla slots), `final_pin` (12 rites, only the serializer touches it),
-`restore_fill_times` (no vanilla rite sets it).
+`is_key` (0 in all 5406 vanilla slots) and `final_pin` (12 rites, only the serializer touches it).
+
+`restore_fill_times` is **not** dead, just unused in vanilla: `RitePanelShowController.OnLastState`
+reads it (`+0x4C`), clamps it to `1..10`, and uses the result to refill slots when a rite panel
+closes. No vanilla rite sets it, so every one of them gets the clamp floor of 1.
 
 ## Triggers, timeouts and the order things settle
 
@@ -430,8 +433,13 @@ Each `item` is `{type, id, num, weight, condition}`. `type` is `card`, `event`, 
 granted, and writes as a string in vanilla (`"1"`). `condition` filters the item the same way every
 other condition does.
 
-Vanilla counts: 193 tables, 1280 items (870 card, 215 event, 171 rite, 24 loot). `refLoot` exists in
-the schema but no vanilla item uses it; nest with `"type": "loot"` instead.
+Vanilla counts: 193 tables, 1280 items (870 card, 215 event, 171 rite, 24 loot).
+
+Two warnings on the item object. `refLoot` is an **ignored key** — the loader registers only
+`type`, `id`, `num`, `weight` and `condition`, and no vanilla item carries it; nest a table with
+`"type": "loot"` instead. And `condition` is parsed but never evaluated: `SimpleWeightLoot`,
+`WeightedNChooseM`, `RealGenCard` and `Generate` build a `ConditionContext` and none of them calls
+`IsSatisfied`. Do not try to gate a drop with it — split the table or gate the settlement instead.
 
 ### Quests — `config/quest.json`, one table keyed by id
 
