@@ -32,7 +32,7 @@ export default function (pi: ExtensionAPI) {
       "Read the game's code from the local decompiled dump. Actions: status, search, type, body, strings, dump. The dump is rebuilt automatically when the installed game, the config, or the tool version changed. The tool only writes inside the product data root; it never changes the game or the mod.",
     promptSnippet: "Read game code from the local dump (types, bodies, strings), and dump more assemblies",
     promptGuidelines: [
-      "Use inspect_game_code to read game code from the dump, and to dump more assemblies. Use inspect_game_api to ask about one type without writing a dump.",
+      "Use inspect_game_code to read game code from the dump, and to dump more assemblies.",
       "inspect_game_code reads signature data with search and type. For IL2CPP games, body returns ISIL pseudo-code, not C#: it has no field or local names, and its field offsets are decimal (40 is 0x28). Do not treat ISIL as source.",
       "inspect_game_code rebuilds the dump by itself when the installed game or the config changed, and says in the result when it ran and how long it took. Do not rebuild the dump some other way.",
       "inspect_game_code dump writes one assembly unless you ask for more. A glob dump is capped by the config's budgetBytes and needs all=true.",
@@ -77,7 +77,7 @@ export default function (pi: ExtensionAPI) {
         Type.Boolean({ description: "Rebuild even when the dump looks current (action=dump)." }),
       ),
     }),
-    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+    async execute(_toolCallId, params, _signal, onUpdate, ctx) {
       const cwd = ctx.cwd;
       let cfg;
       try {
@@ -101,7 +101,21 @@ export default function (pi: ExtensionAPI) {
             "GAME_NOT_FOUND: the installed game was not found, so the dump cannot be rebuilt or compared.\nNEXT: pass game=<path to the install> with action=status to record it. On this machine the install is not in a Steam library this tool knows.",
           );
         }
-        return serialize(`dump:${dumpDir(cwd)}`, () => buildDump(cwd, cfg, game, extra));
+        const started = Date.now();
+        let stage = "Rebuilding the dump";
+        const report = (text: string) => {
+          stage = text;
+          onUpdate?.({ content: [{ type: "text", text: asciiSafe(text) }], details: {} });
+        };
+        // A dump takes minutes. Without a heartbeat the caller sees one frozen call.
+        const beat = setInterval(() => {
+          report(`${stage} (${Math.round((Date.now() - started) / 1000)}s)`);
+        }, 10_000);
+        try {
+          return await serialize(`dump:${dumpDir(cwd)}`, () => buildDump(cwd, cfg, game, extra, report));
+        } finally {
+          clearInterval(beat);
+        }
       };
 
       const freshness = checkFreshness(cwd, cfg, game);

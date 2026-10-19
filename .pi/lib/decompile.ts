@@ -394,8 +394,10 @@ export async function buildDump(
   cfg: DecompileConfig,
   game: GameFiles,
   extraAssemblies: string[] = [],
+  onProgress: (message: string) => void = () => undefined,
 ): Promise<BuildResult> {
   const started = Date.now();
+  onProgress("Checking the .NET SDK and the dump tools");
   const dotnet = (await import("./dotnet")).probeDotnet();
   if (!dotnet.found || (dotnet.major ?? 0) < 8) {
     throw new Error(
@@ -430,6 +432,7 @@ export async function buildDump(
       binary = join(os.tmpdir(), `decompiled-slice-${process.pid}`);
       await runAsync("lipo", ["-thin", arch, game.binary, "-output", binary], { timeoutMs: 120_000 });
     }
+    onProgress("Reading type signatures with Il2CppDumper (about a minute)");
     // exit code is not trustworthy: after writing its output Il2CppDumper waits
     // for a key press and dies without a console. The files are the proof.
     await runAsync(dotnet.path as string, [dumper.path, binary, game.metadata, join(tmp, "il2cppdumper")], {
@@ -441,6 +444,7 @@ export async function buildDump(
       throw new Error("IL2CPPDUMPER_FAILED: dump.cs was not produced. Check the tool version and the game build.");
     }
 
+    onProgress("Signatures done. Reading method bodies with Cpp2IL (several minutes)");
     // 2. Method bodies. No separate rebuilt-assembly output: Il2CppDumper's
     //    DummyDll already serves ILSpy, and a second copy costs tens of MB.
     const cpp2ilArgs = ["--game-path", game.gamePath];
@@ -454,6 +458,7 @@ export async function buildDump(
     ]);
     const unityVersion = (isilLog.match(/unity version to be (\S+)/i) ?? [])[1] ?? null;
 
+    onProgress("Method bodies done. Pruning to the configured assemblies");
     // 3. Prune to the configured assemblies.
     const isilRoot = join(tmp, "cpp2il/IsilDump");
     const removed: string[] = [];
@@ -510,6 +515,7 @@ export async function buildDump(
     };
     writeFileSync(manifestPath(tmp), `${JSON.stringify(manifest, null, 2)}\n`);
 
+    onProgress("Dump complete. Swapping it in");
     // 6. Swap: the old dump only disappears after the new one is complete.
     const old = join(parent, `.old-${repoName(cwd)}-${process.pid}`);
     rmSync(old, { recursive: true, force: true });
