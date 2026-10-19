@@ -166,6 +166,10 @@ test("a dead key is marked in the file, and not in the editor", { skip }, async 
   const pre = els.get("srcpane").innerHTML;
   assert.match(pre, /class="dead"/, "the line is marked");
   assert.match(pre, /← 当前版本不读它/);
+  // The file is CRLF: a stray carriage return renders as a break and pushed the note onto
+  // its own line. The display is normalised, so the note stays at the end of the line.
+  assert.doesNotMatch(pre, /\r/);
+  assert.match(pre, /false, <span class="dead"|<\/span>$/m);
   assert.match(pre, /auto_start/, "and the text itself is untouched");
   els.get("editbtn").onclick();
   const text = els.get("ed").value;

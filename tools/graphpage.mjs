@@ -589,9 +589,12 @@ async function saveSource(key, text, msg) {
 // events still carry auto_start, every one of them false, and a copy of one inherits it.
 const DEAD_KEY = new RegExp('(^|[^_"])"auto_start"\\s*:');
 
+// The vanilla files are CRLF, and a stray carriage return in front of the note is a line
+// break to the browser, so the note dropped onto its own line. Only the display is
+// normalised; the file and the editor keep their bytes.
 function annotate(source) {
   return source
-    .split("\\n")
+    .split(/\\r\\n|\\n|\\r/)
     .map((line) =>
       DEAD_KEY.test(line)
         ? '<span class="dead" title="当前版本不读这个键，写了也不生效">' + escHtml(line) + ' <i>← 当前版本不读它</i></span>'
