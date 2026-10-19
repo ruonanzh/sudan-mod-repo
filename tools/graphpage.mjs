@@ -513,64 +513,104 @@ function panelHtml(n) {
   );
 }
 
-function editHint() {
+// The file that holds a node, as the server reads it. Reading is allowed on a read-only
+// page: only a write needs a mod to land in.
+async function nodeSource(key) {
+  try {
+    const res = await fetch("/api/node/" + encodeURIComponent(key));
+    return await res.json();
+  } catch (e) {
+    return { ok: false, error: String((e && e.message) || e) };
+  }
+}
+
+function whyNotEditable() {
   if (location.protocol !== "http:") return "这个页面只能看。要改，用 node tools/editor.mjs 打开。";
-  if (!EDITABLE) return "只读：启动时没带 --mod。要改，先建 your_mods/&lt;ModName&gt;/，再用 node tools/editor.mjs --mod your_mods/&lt;ModName&gt; 打开。";
-  return '<button id="editbtn" class="pill">编辑这个节点</button>';
+  return "只读：启动时没带 --mod。要改，先建 your_mods/&lt;ModName&gt;/，再用 node tools/editor.mjs --mod your_mods/&lt;ModName&gt; 打开。";
+}
+
+async function saveSource(key, text, msg) {
+  msg.textContent = "保存中…";
+  let out;
+  try {
+    const r = await fetch("/api/save", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ key, source: text }),
+    });
+    out = await r.json();
+  } catch (e) {
+    msg.textContent = "失败：" + String((e && e.message) || e);
+    return false;
+  }
+  // "unchanged" is a result, not a failure: no mod copy was made, so the node stays vanilla.
+  msg.textContent = !out.ok
+    ? "失败：" + out.error
+    : out.unchanged
+      ? "没有改动，未写入（不会生成 mod 副本）"
+      : (out.backup ? "已保存（备份 " + out.backup + "）" : "已保存") + " · 左边和图上还是旧值，刷新页面后才更新";
+  return Boolean(out.ok);
+}
+
+/** The right half: the file the node lives in. Read-only until 编辑 is pressed. */
+async function fillSource(key) {
+  const pane = document.getElementById("srcpane");
+  if (!pane) return;
+  pane.innerHTML = '<div class="note" style="margin-top:0">读取中…</div>';
+  const node = await nodeSource(key);
+  if (!document.getElementById("srcpane")) return; // the reader moved on while this was in flight
+  if (!node.ok) {
+    pane.innerHTML = '<div class="note bad">' + escHtml(node.error) + "</div>";
+    return;
+  }
+  const source = node.source;
+  pane.innerHTML =
+    '<div class="note" style="margin-top:0">' + escHtml(node.path) + "</div>" +
+    '<pre id="srcpre" class="src">' + escHtml(source) + "</pre>" +
+    '<div class="note" id="srcbar">' +
+    (EDITABLE && location.protocol === "http:" ? '<button id="editbtn" class="pill">编辑</button>' : whyNotEditable()) +
+    "</div>";
+  const btn = document.getElementById("editbtn");
+  if (!btn) return;
+  btn.onclick = () => {
+    pane.innerHTML =
+      '<div class="note" style="margin-top:0">' + escHtml(node.path) + "</div>" +
+      '<textarea id="ed" spellcheck="false">' + escHtml(source) + "</textarea>" +
+      '<div class="note" id="srcbar"><button id="save" class="pill">保存</button> ' +
+      '<button id="cancel" class="pill">取消</button> <span id="saveMsg"></span></div>';
+    const ed = document.getElementById("ed");
+    ed.dataset.original = source;
+    document.getElementById("save").onclick = () => saveSource(key, ed.value, document.getElementById("saveMsg"));
+    document.getElementById("cancel").onclick = () => fillSource(key);
+  };
 }
 
 window.__openNode = (key) => {
   const n = byKey.get(key);
   if (!n) return;
   const box = document.getElementById("modal-body");
-  if (box.classList) box.classList.remove("wide");
-  box.innerHTML = panelHtml(n) + '<div class="note" id="editbox" style="margin-top:18px">' + editHint() + "</div>";
+  // Left: what the node says now. Right: the file it says it in, so a change can be read
+  // beside the current values instead of across two views.
+  if (box.classList) box.classList.add("wide");
+  box.innerHTML =
+    '<div class="editsplit">' +
+    '<div class="editview" id="panelview">' + panelHtml(n) + "</div>" +
+    '<div class="editsrc" id="srcpane"></div>' +
+    "</div>";
   const modal = document.getElementById("modal");
   modal.hidden = false;
   modal.onclick = (e) => { if (e.target === modal) modal.hidden = true; };
   box.querySelectorAll("[data-go]").forEach((a) => {
-    a.onclick = (e) => { e.preventDefault(); focusNode(a.dataset.go); };
+    a.onclick = (e) => {
+      e.preventDefault();
+      // Leaving the node throws away an unsaved edit, so ask first.
+      const ed = document.getElementById("ed");
+      if (ed && ed.value !== ed.dataset.original && !confirm("右边有没保存的改动，仍要离开？")) return;
+      focusNode(a.dataset.go);
+    };
   });
-  const edit = document.getElementById("editbtn");
-  if (edit) edit.onclick = () => openEditor(key);
+  fillSource(key);
 };
-
-async function openEditor(key) {
-  const n = byKey.get(key);
-  const box = document.getElementById("modal-body");
-  box.innerHTML = '<div class="note">读取中…</div>';
-  const res = await fetch("/api/node/" + encodeURIComponent(key));
-  const node = await res.json();
-  if (!node.ok) { box.innerHTML = '<div class="note bad">' + escHtml(node.error) + "</div>"; return; }
-  // Left: what the node says now. Right: the file it says it in. A card is easier to change
-  // when its current values are on screen beside the JSON that holds them, and the panel is
-  // the same reading the graph gives, so nothing has to be remembered from the previous view.
-  if (box.classList) box.classList.add("wide");
-  box.innerHTML =
-    '<div class="editsplit">' +
-    '<div class="editview">' + (n ? panelHtml(n) : "") + "</div>" +
-    '<div class="editsrc">' +
-    '<div class="note" style="margin-top:0">' + escHtml(node.path) + "</div>" +
-    '<textarea id="ed" spellcheck="false">' + escHtml(node.source) + "</textarea>" +
-    '<div class="note"><button id="save" class="pill">保存</button> <span id="saveMsg"></span></div>' +
-    "</div></div>";
-  document.getElementById("save").onclick = async () => {
-    const msg = document.getElementById("saveMsg");
-    msg.textContent = "保存中…";
-    const r = await fetch("/api/save", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ key, source: document.getElementById("ed").value }),
-    });
-    const out = await r.json();
-    // "unchanged" is a result, not a failure: no mod copy was made, so the node stays vanilla.
-    msg.textContent = !out.ok
-      ? "失败：" + out.error
-      : out.unchanged
-        ? "没有改动，未写入（不会生成 mod 副本）"
-        : (out.backup ? "已保存（备份 " + out.backup + "）" : "已保存") + " · 左边和图上还是旧值，刷新页面后才更新";
-  };
-}
 
 // ---------------------------------------------------------------- wiring
 document.onkeydown = (e) => { if (e.key === "Escape") document.getElementById("modal").hidden = true; };
@@ -595,7 +635,6 @@ cv.onclick = (e) => {
 };
 cats(); listRows(); relayout();
 window.__draw = draw;
-window.__openEditor = openEditor;
 `;
 
 export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable = true, modNote = "" } = {}) {
@@ -670,6 +709,7 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
 .editview { padding-right: 6px; border-right: 1px solid #2f2a24; }
 .editsrc { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .editsrc textarea { min-height: 64vh; font-family: ui-monospace, Menlo, monospace; font-size: 12px; line-height: 1.55; tab-size: 4; }
+.editsrc .src { background: #1d1710; border-left: 2px solid #4a3c28; margin: 6px 0; padding: 8px 10px; max-height: 64vh; overflow: auto; font-family: ui-monospace, Menlo, monospace; font-size: 12px; line-height: 1.55; white-space: pre; color: #cfc0a4; }
 @media (max-width: 900px) { .editsplit { grid-template-columns: 1fr; } .editview { border-right: 0; padding-right: 0; } }
 `;
   // The script goes after the shell: it reads DOM ids that only exist once the body is parsed.

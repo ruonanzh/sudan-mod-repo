@@ -48,21 +48,17 @@ function el(id, onHtml) {
 /** Run the page script and hand back the window plus the elements it wrote to. */
 function mount(g, { editable = true } = {}) {
   const els = new Map();
+  // A textarea read back through `.value` is how the save button gets its text, so the shim
+  // turns the markup the page wrote into that value, the way a browser does.
+  const syncText = (html) => {
+    const m = html.match(/<textarea id="ed"[^>]*>([\s\S]*?)<\/textarea>/);
+    if (!m) return;
+    if (!els.has("ed")) els.set("ed", el("ed"));
+    els.get("ed").value = decode(m[1]);
+  };
   const document = {
     getElementById: (id) => {
-      // A textarea read back through `.value` is how the save button gets its text, so the
-      // shim has to turn the markup the page wrote into that value, the way a browser does.
-      if (!els.has(id)) {
-        els.set(
-          id,
-          el(id, (html) => {
-            const m = html.match(/<textarea id="ed"[^>]*>([\s\S]*?)<\/textarea>/);
-            if (!m) return;
-            if (!els.has("ed")) els.set("ed", el("ed"));
-            els.get("ed").value = decode(m[1]);
-          })
-        );
-      }
+      if (!els.has(id)) els.set(id, el(id, syncText));
       return els.get(id);
     },
     onkeydown: null,
@@ -96,37 +92,52 @@ function mount(g, { editable = true } = {}) {
 
 const graph = () => buildGraph({});
 
-test("the panel names a node, then says what it says", { skip }, () => {
+const tick = () => new Promise((r) => setTimeout(r, 0));
+
+test("the panel names a node, then says what it says, beside the file it lives in", { skip }, async () => {
   const { win, els } = mount(graph());
   win.__openNode("event:5300090");
+  await tick();
   const html = els.get("modal-body").innerHTML;
+  assert.match(html, /class="editsplit"/, "the panel is two columns from the start");
   assert.match(html, /<div class="node-title">浴场移除提示<\/div>/, "an event's name is its note");
   assert.match(html, /<h3>描述<\/h3>/, "the narration follows, under its own heading");
   assert.match(html, /浴场暂时关闭/, "and the narration itself is there");
+  const right = els.get("srcpane").innerHTML;
+  assert.match(right, /<pre id="srcpre" class="src">/, "the right column shows the file, read-only");
+  assert.match(right, /&quot;id&quot;: 5300090/, "the file itself, not a re-typed copy");
   // The four-language table is gone: one language is on screen at a time.
   assert.doesNotMatch(html, /table class="names"/);
 });
 
-test("the editor splits: what it says now beside the file it says it in", { skip }, async () => {
+test("编辑 turns the right column into an editor, 取消 turns it back", { skip }, async () => {
   const { win, els, posts } = mount(graph());
-  await win.__openEditor("card:2000001");
-  const html = els.get("modal-body").innerHTML;
-  assert.match(html, /class="editsplit"/, "two columns");
-  assert.match(html, /<div class="node-title">阿尔图<\/div>/, "left is the read view");
-  assert.match(html, /<h3>描述<\/h3>/, "including the description");
-  assert.match(html, /<textarea id="ed"/, "right is the source");
-  assert.match(html, /&quot;id&quot;: 2000001/, "the record itself, not a re-typed copy");
+  win.__openNode("card:2000001");
+  await tick();
+  els.get("editbtn").onclick();
+  const editing = els.get("srcpane").innerHTML;
+  assert.match(editing, /<textarea id="ed"/, "the source becomes editable in place");
+  assert.match(editing, /<button id="cancel"/, "and there is a way back");
+  assert.match(els.get("modal-body").innerHTML, /<div class="node-title">阿尔图<\/div>/, "the left column stays");
+
   els.get("save").onclick();
-  await new Promise((r) => setTimeout(r, 0));
+  await tick();
   assert.equal(posts.length, 1, "one click, one save");
   assert.equal(posts[0].key, "card:2000001");
   assert.match(posts[0].source, /2000001/, "the save carries the textarea's text");
+  assert.match(els.get("saveMsg").textContent, /没有改动/, "an unchanged save says so");
+
+  els.get("cancel").onclick();
+  await tick();
+  assert.match(els.get("srcpane").innerHTML, /<pre id="srcpre"/, "取消 restores the read-only column");
 });
 
-test("a read-only page offers no edit button", { skip }, () => {
+test("a read-only page still shows the source, without 编辑", { skip }, async () => {
   const { win, els } = mount(graph(), { editable: false });
   win.__openNode("rite:5008014");
-  const html = els.get("modal-body").innerHTML;
-  assert.doesNotMatch(html, /id="editbtn"/);
-  assert.match(html, /只读：启动时没带 --mod/);
+  await tick();
+  const right = els.get("srcpane").innerHTML;
+  assert.match(right, /<pre id="srcpre"/, "reading needs no mod");
+  assert.doesNotMatch(right, /id="editbtn"/);
+  assert.match(right, /只读：启动时没带 --mod/);
 });

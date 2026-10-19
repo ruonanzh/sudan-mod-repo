@@ -46,24 +46,21 @@ const expand = (p) => String(p || "").replace(/^~/, os.homedir());
  * `locate()` returns paths relative to the assets root ("config/rite"), while vanilladir
  * already points at `.../config`, so the prefix is stripped exactly the way model.mjs does.
  */
-function sourcePath(mod, kind, id) {
+function sourcePath(mod, kind, id, vanillaDir) {
   const where = locate(kind);
   const strip = (p) => String(p).replace(/^config\//, "");
-  if (where.style === "table" || where.style === "single") {
-    const inMod = path.join(mod.dir, where.file);
-    return existsSync(inMod) ? inMod : mod.vanillaPathFor(kind, id);
-  }
-  if (where.style === "dir") {
-    const inMod = path.join(mod.dir, where.dir, `${id}.json`);
-    if (existsSync(inMod)) return inMod;
-    return path.join(mod.vanillaDir, strip(where.dir), `${id}.json`);
-  }
-  throw new Error(`unsupported kind ${kind}`);
+  const isTable = where.style === "table" || where.style === "single";
+  const modFile = mod ? path.join(mod.dir, isTable ? where.file : path.join(where.dir, `${id}.json`)) : null;
+  if (modFile && existsSync(modFile)) return modFile;
+  if (mod) return mod.vanillaPathFor(kind, id) || path.join(mod.vanillaDir, isTable ? strip(where.file) : path.join(strip(where.dir), `${id}.json`));
+  // No mod: this is a read-only page, and the game's own file is what it shows.
+  const base = expand(vanillaDir || DEFAULT_VANILLA);
+  return isTable ? path.join(base, strip(where.file)) : path.join(base, strip(where.dir), `${id}.json`);
 }
 
 /** For a table-style file the record lives under a key; the page edits the whole record. */
-export function readNodeSource(mod, kind, id) {
-  const file = sourcePath(mod, kind, id);
+export function readNodeSource(mod, kind, id, { vanilla } = {}) {
+  const file = sourcePath(mod, kind, id, vanilla);
   if (!existsSync(file)) return null;
   const text = readFileSync(file, "utf8");
   const doc = parseJsonc(text).value;
@@ -201,12 +198,12 @@ function main() {
         return json(res, 200, payload(graph()));
       }
       if (req.method === "GET" && url.pathname.startsWith("/api/node/")) {
+        // Reading is not writing: a read-only page still shows the file a node lives in.
         const key = decodeURIComponent(url.pathname.slice("/api/node/".length));
-        if (!mod) return json(res, 200, { ok: false, error: readOnlyHint });
         const [t, id] = key.split(":");
         const kind = KIND_OF[t];
         if (!kind) return json(res, 200, { ok: false, error: `未知类型 ${t}` });
-        const got = readNodeSource(mod, kind, id);
+        const got = readNodeSource(mod, kind, id, { vanilla });
         if (!got) return json(res, 200, { ok: false, error: `${key} 没有可编辑的源文件` });
         return json(res, 200, { ok: true, key, path: got.file, source: got.text, whole: got.whole });
       }
