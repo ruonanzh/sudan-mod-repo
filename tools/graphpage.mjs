@@ -436,6 +436,30 @@ function descBlock(n) {
 
 // Conditions use game keys such as have.2000080.激情 or counter.7000025<. Read them
 // as sentences, and keep the nesting: any means one of them, all means every one.
+// A key carries ids; a reader wants names. Every card, rite and event is already a node.
+function idWithName(kind, id) {
+  const n = byKey.get(kind + ":" + id);
+  return n ? id + " " + dispLabel(n) : id;
+}
+
+// The have family counts cards. "have" = on the desk plus inside rites, "table_have" = on the
+// desk, "hand_have" = only hand cards (a tag test in the game), "rite_have" = inside a rite,
+// "sudan_pool_have" = the Sudan card pool. In the key, the id and the tag both narrow which
+// cards count, and either may be missing.
+const HAVE_VERB = { have: "拥有", table_have: "桌上放着", hand_have: "手牌里有", rite_have: "仪式里有", sudan_pool_have: "苏丹卡池里有" };
+const HAVE_NOT = { have: "没有", table_have: "桌上没有", hand_have: "手牌里没有", rite_have: "仪式里没有", sudan_pool_have: "苏丹卡池里没有" };
+const OPS = { "<": " 小于 ", "<=": " 不大于 ", ">": " 大于 ", ">=": " 不小于 ", "=": " 等于 ", "==": " 等于 " };
+
+function haveLeaf(head, rest, neg, op, val) {
+  const id = rest[0] && /^\\d+$/.test(rest[0]) ? rest[0] : "";
+  const tag = rest.filter((x) => x && !/^\\d+$/.test(x)).join(" ");
+  const bits = [];
+  if (tag) bits.push(tag === "sudan" ? "苏丹卡" : tag);
+  if (id) bits.push(idWithName(head === "rite_have" ? "rite" : "card", id));
+  const phrase = (neg ? HAVE_NOT : HAVE_VERB)[head] + (bits.length ? " " + bits.join(" · ") : "");
+  return op ? phrase + OPS[op] + val : phrase + "，" + val + " 张";
+}
+
 function condLeaf(k, v) {
   var neg = false;
   if (k.charAt(0) === "!") { neg = true; k = k.slice(1); }
@@ -444,29 +468,25 @@ function condLeaf(k, v) {
   if (m) { k = m[1]; op = m[2]; }
   var p = k.split(/[:.]/);
   var head = p[0], rest = p.slice(1);
+  var val = v && typeof v === "object" ? JSON.stringify(v) : String(v);
+  if (HAVE_VERB[head]) return haveLeaf(head, rest, neg, op, val);
   var what;
-  if (head === "rite") what = "仪式 " + rest.join(" ");
-  else if (head === "event") what = "事件 " + rest.join(" ");
-  else if (head === "card") what = "卡 " + rest.join(" ");
-  else if (head === "have") what = "拥有 " + (rest.length > 1 ? rest[1] : rest[0] || "") + (rest.length > 1 ? "（卡 " + rest[0] + "）" : "");
-  else if (head === "table_have") what = "桌上放着 " + rest.join(" ");
-  else if (head === "hand_have") what = "手上拿着 " + rest.join(" ");
-  else if (head === "rite_have") what = "有仪式 " + rest.join(" ");
-  else if (head === "sudan_pool_have") what = "苏丹池里有 " + rest.join(" ");
+  if (head === "rite") what = "仪式 " + (rest.length === 1 && /^\\d+$/.test(rest[0]) ? idWithName("rite", rest[0]) : rest.join(" "));
+  else if (head === "event") what = "事件 " + (rest.length === 1 && /^\\d+$/.test(rest[0]) ? idWithName("event", rest[0]) : rest.join(" "));
+  else if (head === "card") what = "卡 " + (rest.length === 1 && /^\\d+$/.test(rest[0]) ? idWithName("card", rest[0]) : rest.join(" "));
+  else if (head === "rite_end") what = "仪式 " + idWithName("rite", rest.join("")) + " 结束时";
   else if (head === "counter") what = "计数器 " + rest.join(" ");
   else if (head === "global_counter") what = "全局计数器 " + rest.join(" ");
   else if (head === "round") what = "回合数";
   else if (head === "difficulty") what = "难度";
   else if (head === "type") what = "局类型";
   else what = k;
-  var val = v && typeof v === "object" ? JSON.stringify(v) : String(v);
-  what = what.replace(/\s+$/, "");
-  if (neg) return "没有" + what + (rest.length ? "" : " " + val);
-  var ops = { "<": " 小于 ", "<=": " 不大于 ", ">": " 大于 ", ">=": " 不小于 ", "=": " 等于 ", "==": " 等于 " };
-  if (op) return what + ops[op] + val;
-  if (head === "have" || head === "table_have" || head === "hand_have" || head === "rite_have") {
-    return what + "，数量 " + val;
-  }
+  // A negated rite such as !rite: 5001501 carries the id in the value, not in the key.
+  const idFromValue = !rest.length && /^\\d+$/.test(val) && (head === "rite" || head === "event" || head === "card");
+  if (idFromValue) what = what.replace(/\\s+$/, "") + " " + idWithName(head, val);
+  what = what.replace(/\\s+$/, "");
+  if (neg) return "没有" + what + (rest.length || idFromValue ? "" : " " + val);
+  if (op) return what + OPS[op] + val;
   return what + "：" + val;
 }
 

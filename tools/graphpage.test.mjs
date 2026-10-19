@@ -188,6 +188,23 @@ test("every kind gets its own group, and the pills count what they show", { skip
   assert.match(pills, new RegExp("其他 <b>" + other + "<\\/b>"), "the badge is the canvas count");
 });
 
+test("a have condition names the card and says which container counts it", { skip }, async () => {
+  const { win, els } = mount(graph());
+  const condOf = async (key) => {
+    win.__openNode(key);
+    await tick();
+    return els.get("modal-body").innerHTML.split("<h3>条件</h3>")[1].split("<h3>")[0];
+  };
+  // table_have.2000366.目的地 — the id and the tag both narrow which cards count.
+  assert.match(await condOf("event:5310411"), /桌上放着 目的地 · 2000366 中国/);
+  // The five variants differ only in where they look, and the wording says where.
+  const hand = await condOf("event:5320545");
+  assert.match(hand, /桌上放着 2000061 阿迪莱/);
+  assert.match(hand, /手牌里有 妻子，1 张/);
+  // A negated rite carries its id in the value, not the key.
+  assert.match(await condOf("event:5300090"), /没有仪式 5001501 浴场里的消息/);
+});
+
 test("a dead key is marked in the file, and not in the editor", { skip }, async () => {
   const { win, els } = mount(graph());
   win.__openNode("event:5300085"); // this event still carries "auto_start": false
