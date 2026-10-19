@@ -117,6 +117,20 @@ const CAT_COLOR = {
   card: "#b9a887",
 };
 const CAT_NAME = { unused: "废弃", reputation: "声望", ending: "结局", guide: "引导", achievement: "成就", daily: "日常", periodic: "周期", other: "其他", card: "卡牌" };
+const KIND_NAME = { event: "事件", rite: "仪式", card: "卡牌", loot: "掉落表", over: "结局", quest: "任务", afterStory: "后日谈", riteTemplate: "棋盘布局" };
+// A rule id is for the builder, not for the reader. These are the same relations in game words.
+const REL_OUT = {
+  "action.rite": "开启仪式", "action.event": "激活事件", "action.loot": "抽掉落表", "action.over": "进入结局",
+  "condition.card": "条件涉及卡", "condition.rite": "条件涉及仪式", "rite.template": "棋盘布局", "loot.item": "掉落",
+  "trigger.rite_end": "仪式结束时触发", "trigger.rite_start": "仪式开始时触发",
+  "trigger.rite_cancel": "仪式取消时触发", "trigger.open_rite_end": "仪式界面关闭时触发",
+  "trigger.card_clean": "卡被清理时触发", "trigger.card_born": "卡生成时触发",
+  "trigger.card_dead": "卡死亡时触发", "trigger.game_end": "游戏结束时触发",
+};
+const REL_IN = {
+  "action.rite": "由它开启", "action.event": "由它激活", "action.loot": "由它掉落", "action.over": "由它结束",
+  "condition.card": "条件里提到", "condition.rite": "条件里提到", "rite.template": "布局来自", "loot.item": "由它掉落",
+};
 
 function escHtml(s) {
   return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -355,11 +369,15 @@ window.__openNode = (key) => {
   const out = (OUT.get(key) || []).slice(0, 30);
   const inc = (IN.get(key) || []).slice(0, 30);
   const box = document.getElementById("modal-body");
+  const row = (k, r, dir) => {
+    const label = (dir === "in" ? REL_IN[r] || REL_OUT[r] : REL_OUT[r]) || r;
+    return '<div class="rel">' + escHtml(label) + '</div><div>' + chip(k) + '</div>';
+  };
   box.innerHTML =
-    '<h2 style="margin-top:0">' + escHtml(n.id) + " · " + escHtml(n.t) + "</h2>" +
+    '<h2 style="margin-top:0">' + escHtml(KIND_NAME[n.t] || n.t) + " " + escHtml(n.id) + "</h2>" +
     '<div class="note" style="margin-top:0">' + escHtml(CAT_NAME[n.c] || n.c) + " · " +
-    (n.o === "mod" ? "mod 覆盖/新增" : "vanilla") + " · " +
-    (n.ch ? "在剧情链上（分量 " + (n.cs || 0) + "）" : "不在链上") +
+    (n.o === "mod" ? "mod 覆盖/新增" : "原版") + " · " +
+    (n.ch ? "属于最大的一条剧情链（" + (n.cs || 0) + " 个节点）" : "不在剧情链上") +
     (n.b ? " · " + n.b + "：" + escHtml((n.bm || []).join(", ")) : "") + "</div>" +
     "<table>" +
     labelRow("简中", n.l.zh, false) +
@@ -372,10 +390,12 @@ window.__openNode = (key) => {
       ? '<div class="note">事件没有标题。有叙事的取第一句；没有叙事的取策划备注，并标〔备注〕。见下方「叙事」。</div>'
       : "") +
     narrationBlock(n) +
-    "<h3>出边 " + out.length + "</h3><div class=\\"note\\">" +
-    (out.map(([k, r]) => chip(k) + ' <code>' + escHtml(r) + "</code>").join("<br>") || "无") + "</div>" +
-    "<h3>入边 " + inc.length + "</h3><div class=\\"note\\">" +
-    (inc.map(([k, r]) => chip(k) + ' <code>' + escHtml(r) + "</code>").join("<br>") || "无") + "</div>" +
+    "<h3>它会带来什么（" + out.length + "）</h3>" +
+    '<div class="note">它会开启、触发或引用的节点。</div>' +
+    (out.map(([k, r]) => row(k, r, "out")).join("") || '<div class="note">没有。</div>') +
+    "<h3>什么会带来它（" + inc.length + "）</h3>" +
+    '<div class="note">会让它出现或生效的节点。</div>' +
+    (inc.map(([k, r]) => row(k, r, "in")).join("") || '<div class="note">没有。</div>') +
     '<div class="note" id="editbox">' +
     (location.protocol === "http:"
       ? '<button id="editbtn" class="pill">编辑这个节点</button>'
