@@ -327,8 +327,9 @@ function narrationBlock(n) {
   var rec = cur || nr.zh || nr.en || nr.ja || nr.zhTW;
   var used = cur ? lang : nr.zh ? "zh" : nr.en ? "en" : nr.ja ? "ja" : "zhTW";
   if (!rec) return "";
+  if (!rec) return "";
   var html = '<h3>叙事 · ' + escHtml(used) + "</h3>";
-  if (rec.opt.length) {
+  if ((rec.opt || []).length) {
     html += '<div class="note">开场（选卡前的叙述）</div>';
     for (var i = 0; i < rec.opt.length; i++) {
       var o = rec.opt[i];
@@ -339,7 +340,7 @@ function narrationBlock(n) {
       }
     }
   }
-  if (rec.prompt.length) {
+  if ((rec.prompt || []).length) {
     html += '<div class="note">结算后</div>';
     for (var j = 0; j < rec.prompt.length; j++) {
       html += '<div class="story">' + escHtml(rec.prompt[j].text) + "</div>";

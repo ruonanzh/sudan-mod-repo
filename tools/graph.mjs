@@ -186,26 +186,43 @@ function* walkKeys(node) {
   }
 }
 
-/** The first player-facing line an event writes: option, then prompt, then slide. */
-function eventNarration(rec) {
-  let found = "";
+/**
+ * The narration an event writes, in the same shape as an i18n narration record:
+ * { opt: [{n, text, items}], prompt: [{n, text}] }. Chinese lives in the event file, not
+ * in an i18n table, so this is the only source for it.
+ */
+function eventNarrationZh(rec) {
+  const out = { opt: [], prompt: [] };
   const visit = (node) => {
-    if (found || !node || typeof node !== "object") return;
+    if (!node || typeof node !== "object") return;
     if (Array.isArray(node)) {
       for (const item of node) visit(item);
       return;
     }
     for (const [k, v] of Object.entries(node)) {
-      if (found) return;
       if ((k === "option" || k === "prompt" || k === "slide") && v && typeof v === "object" && typeof v.text === "string" && v.text.trim()) {
-        found = v.text;
-        return;
+        if (k === "option") {
+          const entry = { n: String(out.opt.length), text: v.text, items: [] };
+          for (const it of v.items || []) {
+            if (it && typeof it.text === "string" && it.text.trim()) entry.items.push({ n: String(entry.items.length), text: it.text });
+          }
+          out.opt.push(entry);
+        } else {
+          out.prompt.push({ n: String(out.prompt.length), text: v.text });
+        }
       }
       visit(v);
     }
   };
   visit(rec);
-  return found;
+  return out;
+}
+
+/** The first narration line, used as the node label. */
+function firstNarration(rec) {
+  const nr = eventNarrationZh(rec);
+  const o = nr.opt[0];
+  return (o && (o.text || (o.items[0] && o.items[0].text))) || (nr.prompt[0] && nr.prompt[0].text) || "";
 }
 
 // ---------------------------------------------------------------- build
@@ -469,7 +486,7 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
   for (const n of nodes.values()) {
     if (n.t === "event") {
       const rec = vanilla.event?.[n.id];
-      const zh = rec ? eventNarration(rec) : "";
+      const zh = rec ? eventNarrationZh(rec) : { opt: [], prompt: [] };
       // Event narration is translated per line, not per record, so it rides alongside the label.
       n.nr = {
         zh,
@@ -477,7 +494,7 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
         ja: i18n.ja?.narr.get(n.id) || null,
         zhTW: i18n.zhTW?.narr.get(n.id) || null,
       };
-      n.narrZh = zh;
+      n.narrZh = firstNarration(rec || {});
     }
     n.l = labels(n, vanilla, i18n, lang);
   }
