@@ -450,7 +450,7 @@ What the loader actually registers: `id`, `name`, `text`, `icon`, `favour_text`,
   to print beside it — empty means none, decided by `String.IsNullOrEmpty` in
   `StoryTargetItemController.Init`. All 193 vanilla targets carry a condition.
 - `isComplete` (on both the quest and the target) is save-side state, and drives the tick sprite.
-  Do not write it.
+  Do not write it. `target.value` is registered too but no vanilla target sets it.
 - `upgrade_point` is what the quest is worth; the completion notification prints it (1 each across
   the 161 vanilla quests).
 - **`pre` does nothing.** It is all over `quest.json` (161 values, each another quest id), but the
@@ -464,6 +464,7 @@ The loader registers all twelve fields, so nothing here is dead: `id`, `name`, `
 `title`.
 
 - `name`, `sub_name`, `text`, `bg`, `icon`, `title`, `manual_prompt`, `comment` are display.
+  `comment` is registered but no vanilla ending uses it.
 - `open_after_story: 1` makes the ending continue into the after-story. `OverNewStep2StoryController`
   takes it as `Action<bool> hasAfterStory`, so it decides that jump (108 of 159 in vanilla).
 - `success` decides which title the record screen uses (`OverNodeController`): `0` shows
