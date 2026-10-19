@@ -275,13 +275,13 @@ export default function (pi: ExtensionAPI) {
             details: { ok: false, reason: "TYPE_NOT_FOUND" },
           };
         }
-        const isil = resolveIsilFile(dir, block.namespace, params.target);
+        const isil = resolveIsilFile(dir, block.namespace, block.name);
 
         if (params.action === "type") {
           const methods = isil ? extractMethods(readFileSync(isil, "utf8"), undefined, 1_000).length : 0;
           const where = isil ? `  ISIL: ${isil.slice(dir.length + 1)} (${methods} method(s))` : "  ISIL: none for this type";
           return wrap(
-            `${note}# ${block.declaration}${block.namespace ? ` (namespace ${block.namespace})` : ""}, dump.cs line ${block.line}\n${where}\n\n${truncate(block.text)}`,
+            `${note}# ${block.display} - ${block.declaration}, dump.cs line ${block.line}\n${where}\n\n${truncate(block.text)}`,
           );
         }
 
@@ -311,8 +311,9 @@ export default function (pi: ExtensionAPI) {
           };
         }
         const text = methods.map((m) => m.text).join("\n\n");
+        const member = params.member ? `.${params.member.replace(/^\./, "")}` : "";
         return wrap(
-          `${note}# ${params.target}${params.member ? `.${params.member}` : ""}: ${methods.length} method(s)\n` +
+          `${note}# ${block.display}${member}: ${methods.length} method(s)\n` +
             `# ISIL: field offsets are decimal, disassembly offsets are hex\n\n${truncate(text)}`,
           { methods: methods.length },
         );

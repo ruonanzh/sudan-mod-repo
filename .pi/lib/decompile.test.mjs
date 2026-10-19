@@ -73,6 +73,27 @@ test("extractTypeBlock cuts one type and keeps its fields", () => {
   expect(block.text).not.toContain("EventNode_JsonHandler");
 });
 
+test("isilRelPath writes a generic as its arity", () => {
+  // dump.cs says PropertyReader<T>; Cpp2IL names the file PropertyReader`1.
+  expect(isilRelPath("DataNode.Json", "JsonSerializerHandler.PropertyReader<T>")).toBe(
+    "DataNode/Json/JsonSerializerHandler_NestedType_PropertyReader`1.txt",
+  );
+  expect(isilRelPath("", "Foo<TKey, TValue>")).toBe("Foo`2.txt");
+});
+
+test("extractTypeBlock finds a generic type by every name a reader may type", () => {
+  const generic = [
+    "// Namespace: DataNode.Json",
+    "public sealed class PropertyReader<T> // TypeDefIndex: 8196",
+    "{",
+    "\tprivate bool ok; // 0x10",
+    "}",
+  ].join("\n");
+  for (const name of ["PropertyReader", "PropertyReader<T>", "DataNode.Json.PropertyReader"]) {
+    expect(extractTypeBlock(generic, name)?.display).toBe("DataNode.Json.PropertyReader");
+  }
+});
+
 test("extractTypeBlock accepts a namespace and a short name", () => {
   const byShort = extractTypeBlock(FIXTURE, "EventNode_JsonHandler");
   expect(byShort.namespace).toBe("DataNode.Json");

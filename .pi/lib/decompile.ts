@@ -622,21 +622,29 @@ export function searchDump(dumpCs: string, query: string, limit = 50): SearchHit
 }
 
 export interface TypeBlock {
+  /** The name as dump.cs writes it: nested with dots, generic with `<T>`. */
+  name: string;
+  /** `Namespace.Name`, ready to show to a reader. */
+  display: string;
   namespace: string;
   declaration: string;
   text: string;
   line: number;
 }
 
+/** `PropertyReader<T>` -> `PropertyReader`; anything else is left alone. */
+export const withoutGenerics = (name: string): string => name.replace(/<[^<>]*>$/, "");
+
 /** Cut one type out of dump.cs: header line through its closing brace at column 0. */
 export function extractTypeBlock(dumpCs: string, typeName: string): TypeBlock | null {
-  const wanted = typeName.toLowerCase();
+  const wanted = withoutGenerics(typeName.trim()).toLowerCase();
   const shortName = (name: string): string => name.split(".").pop() ?? name;
   let declLine = 0;
   let startLine = 0;
   let endLine = 0;
   let namespace = "";
   let declaration = "";
+  let name = "";
   // A declaration line is preceded by its namespace comment, at most a few
   // attribute lines earlier; a 40 line window covers it without a second scan.
   const header: { no: number; line: string }[] = [];
@@ -651,13 +659,22 @@ export function extractTypeBlock(dumpCs: string, typeName: string): TypeBlock | 
     }
     if (line.includes("TypeDefIndex:")) {
       const m = line.match(DECL);
-      if (m && (m[2].toLowerCase() === wanted || shortName(m[2]).toLowerCase() === wanted)) {
-        declLine = no;
-        declaration = `${m[1]} ${m[2]}`;
-        const ns = header.reverse().find((h) => h.line.startsWith("// Namespace:"));
-        startLine = ns ? ns.no : no;
-        namespace = ns ? ((ns.line.match(/^\/\/ Namespace:\s*(.*)$/) ?? [])[1] ?? "") : "";
-        return;
+      if (m) {
+        const raw = withoutGenerics(m[2]);
+        const ns = header.findLast((h) => h.line.startsWith("// Namespace:"));
+        const space = ns ? ((ns.line.match(/^\/\/ Namespace:\s*(.*)$/) ?? [])[1] ?? "") : "";
+        // Accept a short name, the name dump.cs writes, or a qualified name.
+        const forms = [raw, shortName(raw)].flatMap((n) =>
+          space ? [n.toLowerCase(), `${space}.${n}`.toLowerCase()] : [n.toLowerCase()],
+        );
+        if (forms.includes(wanted)) {
+          declLine = no;
+          declaration = `${m[1]} ${m[2]}`;
+          startLine = ns ? ns.no : no;
+          namespace = space;
+          name = m[2];
+          return;
+        }
       }
     }
     header.push({ no, line });
@@ -671,19 +688,31 @@ export function extractTypeBlock(dumpCs: string, typeName: string): TypeBlock | 
     if (no > endLine) return false;
     parts.push(line);
   });
-  return { namespace, declaration, text: parts.join("\n"), line: declLine };
+  const plain = withoutGenerics(name);
+  return {
+    name,
+    display: namespace ? `${namespace}.${plain}` : plain,
+    namespace,
+    declaration,
+    text: parts.join("\n"),
+    line: declLine,
+  };
 }
 
 /**
  * The path of a type inside IsilDump. Cpp2IL flattens nesting with
- * `_NestedType_` and turns `<` and `>` into `_`, which is what makes
- * `EventNode_JsonHandler.<>c` become `EventNode_JsonHandler_NestedType___c`.
+ * `_NestedType_`, writes a generic as its arity (`PropertyReader`1`), and
+ * turns the `<` and `>` of a compiler-generated name into `_`, which is what
+ * makes `EventNode_JsonHandler.<>c` become `EventNode_JsonHandler_NestedType___c`.
  */
 export function isilRelPath(namespace: string, fullTypeName: string): string {
-  const parts = fullTypeName.split(".");
-  const top = parts[0];
-  const nested = parts.slice(1);
-  const file = [top, ...nested].join("_NestedType_").replace(/[<>]/g, "_") + ".txt";
+  const segment = (part: string): string => {
+    const generic = part.match(/^(.*)<([^<>]*)>$/);
+    if (generic) return `${generic[1]}\`${generic[2].split(",").length}`;
+    return part.replace(/[<>]/g, "_");
+  };
+  const parts = fullTypeName.split(".").map(segment);
+  const file = parts.join("_NestedType_") + ".txt";
   const ns = namespace.trim();
   return ns ? join(ns.split(".").join("/"), file) : file;
 }
