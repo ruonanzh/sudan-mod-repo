@@ -437,24 +437,39 @@ the schema but no vanilla item uses it; nest with `"type": "loot"` instead.
 
 ```jsonc
 "3300001": { "id": 3300001, "name": "坠落的初端", "text": "...", "favour_text": "...",
-             "upgrade_point": 1, "pre": 0, "icon": "cards/2000001",
+             "upgrade_point": 1, "icon": "cards/2000001",
              "target": [ { "text": "完成1局苏丹的游戏", "show_counter": "",
                            "condition": { "global_counter.7220001>=": 1 } } ] }
 ```
 
+What the loader actually registers: `id`, `name`, `text`, `icon`, `favour_text`, `upgrade_point`,
+`target`. Anything else in the object is dropped.
+
 - `target[]` is what must hold. `condition` is a normal condition, `text` is the line the player
-  reads, `show_counter` names a counter to show beside it. All 193 vanilla targets carry a condition.
-- `upgrade_point` is the destiny points granted on completion (161 in total across 161 quests).
-- `pre` is another quest id, `0` for none — vanilla chains its 161 quests that way. This one comes
-  from the data, not from a reader in the code; treat the chain as display order.
-- `isComplete` and `isReceived` are save-side state. Do not write them.
+  reads (it goes through `FormatStringVariable`, so `{变量}` works), `show_counter` names a counter
+  to print beside it — empty means none, decided by `String.IsNullOrEmpty` in
+  `StoryTargetItemController.Init`. All 193 vanilla targets carry a condition.
+- `isComplete` (on both the quest and the target) is save-side state, and drives the tick sprite.
+  Do not write it.
+- `upgrade_point` is what the quest is worth; the completion notification prints it (1 each across
+  the 161 vanilla quests).
+- **`pre` does nothing.** It is all over `quest.json` (161 values, each another quest id), but the
+  string `pre` does not exist in `global-metadata.dat` at all, so the loader has no key to match —
+  the same dead-key situation as `auto_start` on events. Do not build a quest chain on it.
 
 ### Endings — `config/over.json`, one table keyed by id
 
+The loader registers all twelve fields, so nothing here is dead: `id`, `name`, `sub_name`,
+`text_extra`, `open_after_story`, `text`, `manual_prompt`, `success`, `comment`, `bg`, `icon`,
+`title`.
+
 - `name`, `sub_name`, `text`, `bg`, `icon`, `title`, `manual_prompt`, `comment` are display.
-- `open_after_story: 1` makes the ending continue into the after-story (108 of 159 in vanilla).
-- `success`: `0` = a failure ending, `1` = a success, `2` = the better success (an extra icon is
-  switched on only for `2`). Vanilla: 63 are `1`, 46 are `2`, 4 are `0`, 46 leave it out.
+- `open_after_story: 1` makes the ending continue into the after-story. `OverNewStep2StoryController`
+  takes it as `Action<bool> hasAfterStory`, so it decides that jump (108 of 159 in vanilla).
+- `success` decides which title the record screen uses (`OverNodeController`): `0` shows
+  `DeadTitle`, anything else shows `SuccessTitle`, and `2` additionally switches `VictoryIcon` on.
+  So write `0` for a failure ending, `1` for a win, `2` for a win with the victory icon.
+  Vanilla: 63 are `1`, 46 are `2`, 4 are `0`, 46 leave it out.
 - `text_extra` is a `RiteNode.Settlement[]` — the same branch struct a rite uses, so it is
   first-match with a `condition`, not a list of paragraphs.
 
