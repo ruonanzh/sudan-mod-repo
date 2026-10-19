@@ -692,11 +692,6 @@ export async function buildDump(
 
 // ── reading the dump ────────────────────────────────────────────────────────
 
-/** Replace non-ASCII with escapes: tool output must survive a GBK console. */
-export function asciiSafe(text: string): string {
-  return text.replace(/[^\x09\x0a\x0d\x20-\x7e]/g, (ch) => `\\u${ch.charCodeAt(0).toString(16).padStart(4, "0")}`);
-}
-
 export function truncate(text: string, maxLines = 200, maxBytes = 48 * 1024): string {
   let out = text;
   const lines = out.split("\n");

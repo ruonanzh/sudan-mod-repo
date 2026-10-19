@@ -9,7 +9,6 @@ import { test, expect } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  asciiSafe,
   checkFreshness,
   configSignature,
   dumpDir,
@@ -133,10 +132,6 @@ test("extractMethods splits blocks and filters by member", () => {
   const only = extractMethods(isil, "set_is_replay");
   expect(only.length).toBe(1);
   expect(only[0].text).toContain("set_is_replay");
-});
-
-test("asciiSafe keeps a GBK console usable", () => {
-  expect(asciiSafe("a苏b")).toBe("a\\u82cfb");
 });
 
 test("truncate caps lines and bytes", () => {

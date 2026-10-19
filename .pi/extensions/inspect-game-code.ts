@@ -3,7 +3,6 @@ import { Type } from "typebox";
 import { serialize } from "../lib/proc";
 import { readModRepoConfig, writeState, expandHome, platformKey } from "../lib/state";
 import {
-  asciiSafe,
   buildDump,
   checkFreshness,
   cpp2ilPath,
@@ -109,7 +108,7 @@ export default function (pi: ExtensionAPI) {
         let stage = "Rebuilding the dump";
         const report = (text: string) => {
           stage = text;
-          onUpdate?.({ content: [{ type: "text", text: asciiSafe(text) }], details: {} });
+          onUpdate?.({ content: [{ type: "text", text }], details: {} });
         };
         // A dump takes minutes. Without a heartbeat the caller sees one frozen call.
         const beat = setInterval(() => {
@@ -126,12 +125,12 @@ export default function (pi: ExtensionAPI) {
 
       const dir = dumpDir(cwd);
       const wrap = (text: string, details: Record<string, unknown> = {}) => ({
-        content: [{ type: "text", text: asciiSafe(text) }],
+        content: [{ type: "text", text }],
         details: { ok: true, ...details },
       });
       /** A business result that did not pass is still a result, not an error. */
       const failed = (text: string, details: Record<string, unknown> = {}) => ({
-        content: [{ type: "text", text: asciiSafe(text) }],
+        content: [{ type: "text", text }],
         details: { ok: false, ...details },
       });
 
@@ -140,7 +139,7 @@ export default function (pi: ExtensionAPI) {
         let stage = "Fetching the dump tool";
         const report = (text: string) => {
           stage = text;
-          onUpdate?.({ content: [{ type: "text", text: asciiSafe(text) }], details: {} });
+          onUpdate?.({ content: [{ type: "text", text }], details: {} });
         };
         const beat = setInterval(() => {
           report(`${stage} (${Math.round((Date.now() - started) / 1000)}s)`);
