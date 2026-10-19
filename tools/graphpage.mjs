@@ -101,7 +101,7 @@ export function payload(g) {
     edges: g.edges.filter((e) => index.has(e.f) && index.has(e.t)).map((e) => [index.get(e.f), index.get(e.t), e.r]),
     counts: g.counts,
     categoryCounts: g.categoryCounts,
-    fieldNotes: g.fieldNotes || null,
+    fieldSwitches: g.fieldSwitches || null,
     components: { count: g.components.count, largest: g.components.largest },
   };
 }
@@ -473,19 +473,30 @@ function condHtml(obj) {
 
 // Everything the panel says about a node, without the buttons. The read view and the left half
 // of the editor show the same text, so it is built once, here.
-// The switches a node sets, said in the language on screen. The Chinese comes from the
-// developers' own // comments; the other three are ours (schema/field-notes.json).
+// The switches a node sets, each said as one short sentence picked by its value: a flag reads
+// as yes/no, a number or a list fills {v}. The sentence is what the reader wants; the field
+// name stays in the tooltip for whoever has to go and edit it.
+function switchText(kind, key, value) {
+  const spec = ((DATA.fieldSwitches || {})[kind] || {})[key];
+  if (!spec) return "";
+  const pick = (slot) => (slot ? slot[lang] || slot.zh || "" : "");
+  if (spec.yes) return pick(value ? spec.yes : spec.no);
+  if (spec.skip) return pick(spec.skip);
+  const v = Array.isArray(value) ? value.join(", ") : String(value);
+  const slot = v === "1" && spec.one ? spec.one : v === "0" && spec.zero ? spec.zero : spec.num;
+  return pick(slot).replace("{v}", v);
+}
+
 function flagBlock(n) {
-  const notes = (DATA.fieldNotes || {})[n.t];
-  if (!notes || !n.fl) return "";
-  const rows = Object.keys(n.fl)
+  if (!n.fl) return "";
+  const chips = Object.keys(n.fl)
     .map((k) => {
-      const raw = Array.isArray(n.fl[k]) ? "[" + n.fl[k].join(", ") + "]" : String(n.fl[k]);
-      const note = notes[k] ? notes[k][lang] || notes[k].zh : "";
-      return '<div class="cond"><code>' + escHtml(k + " = " + raw) + "</code>" + (note ? "　" + escHtml(note) : "") + "</div>";
+      const text = switchText(n.t, k, n.fl[k]);
+      return text ? '<span class="sw" title="' + escHtml(k) + '">' + escHtml(text) + "</span>" : "";
     })
+    .filter(Boolean)
     .join("");
-  return "<h3>这些开关是什么</h3>" + rows;
+  return chips ? '<div class="swrow">' + chips + "</div>" : "";
 }
 
 function panelHtml(n) {
@@ -715,7 +726,8 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
 #modal-body .relval a:hover { text-decoration: underline; }
 #modal-body .cond { color: #cfc0a4; font-size: 13px; line-height: 1.75; margin: 3px 0; }
 #modal-body .cond.muted { color: #7a6f5e; }
-#modal-body .cond code { color: #d8b877; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+#modal-body .swrow { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; }
+#modal-body .sw { font-size: 12px; color: #d8c9ab; background: #241d15; border: 1px solid #3a3128; border-radius: 3px; padding: 2px 8px; }
 .badge { font-size: 10px; padding: 0 4px; border-radius: 2px; }
 .badge.FAIL { background: var(--bad); color: #fff; }
 .badge.WARN { background: var(--gold); color: #1a1510; }

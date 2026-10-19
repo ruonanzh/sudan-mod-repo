@@ -21,7 +21,7 @@ const HERE = path.dirname(new URL(import.meta.url).pathname);
 const ROOT = path.join(HERE, "..");
 const EDGES = JSON.parse(readFileSync(path.join(ROOT, "schema/edges.json"), "utf8"));
 const CATEGORIES = JSON.parse(readFileSync(path.join(ROOT, "schema/categories.json"), "utf8"));
-const FIELD_NOTES = JSON.parse(readFileSync(path.join(ROOT, "schema/field-notes.json"), "utf8"));
+const FIELD_SWITCHES = JSON.parse(readFileSync(path.join(ROOT, "schema/field-switches.json"), "utf8"));
 
 const LANGS = ["zh", "en", "ja", "zhTW"];
 
@@ -228,14 +228,14 @@ function firstNarration(rec) {
 
 /**
  * The switch-like fields a node sets that a player can be told about, in the record's own
- * order. Only fields with an entry in schema/field-notes.json are listed: the rest are
+ * order. Only fields with an entry in schema/field-switches.json are listed: the rest are
  * either unreadable without the decompiled code or mean nothing to a player.
  */
 function flagsOf(kind, rec) {
-  const notes = FIELD_NOTES[kind];
-  if (!notes) return null;
+  const switches = FIELD_SWITCHES[kind];
+  if (!switches) return null;
   const out = {};
-  for (const key of Object.keys(notes)) {
+  for (const key of Object.keys(switches)) {
     if (rec[key] === undefined) continue;
     out[key] = rec[key];
   }
@@ -577,7 +577,7 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
     components: comp,
     modSummary,
     categoryCounts: countBy([...nodes.values()].filter((n) => n.t === "event"), (n) => n.cat),
-    fieldNotes: { event: FIELD_NOTES.event, rite: FIELD_NOTES.rite },
+    fieldSwitches: { event: FIELD_SWITCHES.event, rite: FIELD_SWITCHES.rite },
     lint: { FAIL: lintSummary.FAIL, WARN: lintSummary.WARN, INFO: lintSummary.INFO },
   };
 }

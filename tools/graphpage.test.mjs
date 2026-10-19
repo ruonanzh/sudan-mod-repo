@@ -110,22 +110,34 @@ test("the panel names a node, then says what it says, beside the file it lives i
   assert.doesNotMatch(html, /table class="names"/);
 });
 
-test("the switches are said in the language on screen", { skip }, async () => {
+test("a switch reads as the sentence its value earns", { skip }, async () => {
   const { win, els, document } = mount(graph());
   win.__openNode("event:5300090");
   await tick();
   const zh = els.get("modal-body").innerHTML;
-  assert.match(zh, /这些开关是什么/);
-  assert.match(zh, /<code>is_replay = 1<\/code>/, "the field and its value");
-  assert.match(zh, /可以重复触发/, "and what that means, in Chinese");
-  assert.match(zh, /<code>auto_start_init = \[1\]<\/code>/, "a list value reads as a list");
+  assert.match(zh, /class="sw" title="is_replay">可以重复触发</, "true says so, and the field name is the tooltip");
+  assert.match(zh, /本局开始时自动启动（开局 1）/, "a list value fills the slot");
+  assert.match(zh, /等它的时机到了再检查条件/, "false picks the other sentence");
+
+  // A false flag must not print the true sentence.
+  win.__openNode("event:5300311");
+  await tick();
+  assert.match(els.get("modal-body").innerHTML, /不可重复触发/);
 
   document.getElementById("lang").onchange({ target: { value: "en" } });
   win.__openNode("event:5300090");
   await tick();
   const en = els.get("modal-body").innerHTML;
-  assert.match(en, /repeatable/, "the same switch, explained in English");
-  assert.doesNotMatch(en, /可以重复触发/, "and not in Chinese");
+  assert.match(en, />repeatable</);
+  assert.doesNotMatch(en, /可以重复触发/);
+
+  document.getElementById("lang").onchange({ target: { value: "zh" } });
+  win.__openNode("rite:5008014");
+  await tick();
+  const rite = els.get("modal-body").innerHTML;
+  assert.match(rite, /要玩家点开始/);
+  assert.match(rite, /立即结算/, "round_number 1 has its own wording");
+  assert.match(rite, /没有等待期限/, "waiting_round 0 has its own wording");
 });
 
 test("编辑 turns the right column into an editor, 取消 turns it back", { skip }, async () => {

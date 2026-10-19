@@ -170,17 +170,23 @@ test("a node's description is its own paragraph, in every language", { skip }, (
   assert.equal(bare.dl.en, "");
 });
 
-test("every field note names a real field, in all four languages", () => {
-  const notes = JSON.parse(readFileSync(new URL("../schema/field-notes.json", import.meta.url), "utf8"));
+test("every switch names a real field and reads in all four languages", () => {
+  const spec = JSON.parse(readFileSync(new URL("../schema/field-switches.json", import.meta.url), "utf8"));
   const fields = JSON.parse(readFileSync(new URL("../schema/fields.json", import.meta.url), "utf8"));
   for (const kind of ["event", "rite"]) {
-    // A note may describe a legacy switch on purpose: `auto_start` is still in 1522 vanilla
+    // A switch may describe a legacy field on purpose: `auto_start` is still in 1522 vanilla
     // event files and the current build has no such field, which is exactly worth saying.
     const declared = new Set([...(fields[kind].fields || []), ...(fields[kind].handler || []), ...(fields[kind].legacy || [])]);
-    for (const [key, byLang] of Object.entries(notes[kind])) {
+    for (const [key, slots] of Object.entries(spec[kind])) {
       assert.ok(declared.has(key), `${kind}.${key} is not a field of ${kind}`);
-      for (const l of ["zh", "en", "ja", "zhTW"]) {
-        assert.ok(byLang[l] && byLang[l].trim(), `${kind}.${key} has no ${l}`);
+      const names = Object.keys(slots).filter((x) => x !== "note");
+      assert.ok(names.length, `${kind}.${key} says nothing`);
+      for (const slot of names) {
+        for (const l of ["zh", "en", "ja", "zhTW"]) {
+          const text = slots[slot][l];
+          assert.ok(text && text.trim(), `${kind}.${key}.${slot} has no ${l}`);
+        }
+        if (slot === "num") assert.match(slots[slot].zh, /\{v\}/, `${kind}.${key} fills no value`);
       }
     }
   }
@@ -195,7 +201,7 @@ test("a node carries the switches it sets, and only the ones we can explain", { 
   assert.equal(rite.fl.round_number, 1);
   // A switch with no note is not reported, so the panel never prints a bare field name.
   assert.equal(g.nodes.find((n) => n.k === "card:2000001").fl, null);
-  assert.deepEqual(Object.keys(g.fieldNotes).sort(), ["event", "rite"]);
+  assert.deepEqual(Object.keys(g.fieldSwitches).sort(), ["event", "rite"]);
 });
 
 test("the baseline file still describes a full build", { skip }, () => {

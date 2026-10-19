@@ -1,0 +1,113 @@
+{
+  "note": "One short sentence per switch, chosen by the value the node sets: `yes`/`no` for a flag, `num` for a number or a list ({v} is the value), `one`/`zero` for the special cases. The panel prints the sentence, not the field name, and the field name goes in the tooltip. The Chinese is the developers' own wording from the // comments in vanilla config.",
+  "event": {
+    "is_replay": {
+      "yes": {
+        "zh": "可以重复触发",
+        "en": "repeatable",
+        "ja": "繰り返し発生する",
+        "zhTW": "可以重複觸發"
+      },
+      "no": {
+        "zh": "不可重复触发",
+        "en": "not repeatable",
+        "ja": "繰り返さない",
+        "zhTW": "不可重複觸發"
+      }
+    },
+    "auto_start_init": {
+      "num": {
+        "zh": "本局开始时自动启动（开局 {v}）",
+        "en": "starts by itself when the run begins (opening {v})",
+        "ja": "本局開始時に自動で始まる（開始設定 {v}）",
+        "zhTW": "本局開始時自動啟動（開局 {v}）"
+      }
+    },
+    "start_trigger": {
+      "yes": {
+        "zh": "启动时立刻检查条件",
+        "en": "checks its condition at once",
+        "ja": "開始と同時に条件を確認する",
+        "zhTW": "啟動時立刻檢查條件"
+      },
+      "no": {
+        "zh": "等它的时机到了再检查条件",
+        "en": "waits for its timing to check",
+        "ja": "タイミングが来てから条件を確認する",
+        "zhTW": "等它的時機到了再檢查條件"
+      }
+    },
+    "auto_start": {
+      "skip": {
+        "zh": "旧写法，当前版本不读它",
+        "en": "legacy field, this build does not read it",
+        "ja": "旧形式、現行ビルドは読まない",
+        "zhTW": "舊寫法，目前版本不讀它"
+      }
+    }
+  },
+  "rite": {
+    "auto_begin": {
+      "yes": {
+        "zh": "自动进入仪式",
+        "en": "the rite starts on its own",
+        "ja": "儀式が自動で始まる",
+        "zhTW": "自動進入儀式"
+      },
+      "no": {
+        "zh": "要玩家点开始",
+        "en": "the player presses start",
+        "ja": "プレイヤーが開始を押す",
+        "zhTW": "要玩家點開始"
+      }
+    },
+    "auto_result": {
+      "yes": {
+        "zh": "结算自动确认",
+        "en": "the settlement confirms itself",
+        "ja": "結果は自動確認",
+        "zhTW": "結算自動確認"
+      },
+      "no": {
+        "zh": "结算要逐步确认",
+        "en": "the settlement asks step by step",
+        "ja": "結果を段階ごとに確認する",
+        "zhTW": "結算要逐步確認"
+      }
+    },
+    "round_number": {
+      "one": {
+        "zh": "立即结算",
+        "en": "settles at once",
+        "ja": "すぐに終わる",
+        "zhTW": "立即結算"
+      },
+      "num": {
+        "zh": "{v} 回合后结算",
+        "en": "settles after {v} turns",
+        "ja": "{v} ターン後に終わる",
+        "zhTW": "{v} 回合後結算"
+      }
+    },
+    "waiting_round": {
+      "zero": {
+        "zh": "没有等待期限",
+        "en": "no waiting limit",
+        "ja": "待ち時間の上限なし",
+        "zhTW": "沒有等待期限"
+      },
+      "one": {
+        "zh": "最多等 1 回合",
+        "en": "waits at most 1 turn",
+        "ja": "最大 1 ターン待つ",
+        "zhTW": "最多等 1 回合"
+      },
+      "num": {
+        "zh": "最多等 {v} 回合",
+        "en": "waits at most {v} turns",
+        "ja": "最大 {v} ターン待つ",
+        "zhTW": "最多等 {v} 回合"
+      }
+    }
+  }
+}
