@@ -25,15 +25,15 @@
     },
     "start_trigger": {
       "yes": {
-        "zh": "启动时立刻检查条件",
-        "en": "checks its condition at once",
-        "ja": "開始と同時に条件を確認する",
-        "zhTW": "啟動時立刻檢查條件"
+        "zh": "开局或读档时立刻检查条件",
+        "en": "checks its condition when the run starts",
+        "ja": "開始時に条件を確認する",
+        "zhTW": "開局或讀檔時立刻檢查條件"
       },
       "no": {
         "zh": "等它的时机到了再检查条件",
         "en": "waits for its timing to check",
-        "ja": "タイミングが来てから条件を確認する",
+        "ja": "タイミングが来てから確認する",
         "zhTW": "等它的時機到了再檢查條件"
       }
     }
