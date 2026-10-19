@@ -341,7 +341,7 @@ export function checkFreshness(cwd: string, cfg: DecompileConfig, game: GameFile
     reasons.push(`decompile.json changed (dump covers [${(manifest.pruning?.keptAssemblies ?? []).join(", ")}])`);
   }
   if (!manifest.config?.signature) {
-    warnings.push("the dump predates config tracking: coverage cannot be compared with decompile.json");
+    reasons.push("the dump does not record the decompile.json it was built from");
   }
   if (manifest.pruning?.mode !== "game-only") {
     reasons.push(`the dump was built with pruning mode "${String(manifest.pruning?.mode)}"`);
