@@ -551,7 +551,7 @@ function panelHtml(n) {
         hint(emptyIn)
     ) +
     nb +
-    sec("会发生什么", outRows || hint("没有。它不引发别的事。"))
+    sec("结果", outRows || hint("没有结果。它不引发别的事。"))
   );
 }
 
