@@ -11,7 +11,7 @@
  * Nothing here trusts a name or a path from a previous run: the game files, the
  * tools, and the platform are resolved on every call.
  */
-import { createReadStream, createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { closeSync, createReadStream, createWriteStream, existsSync, mkdirSync, openSync, readFileSync, readdirSync, readSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { createGzip } from "node:zlib";
 import { pipeline } from "node:stream/promises";
@@ -112,8 +112,14 @@ const countFiles = (dir: string, ext: string): number => {
 
 /** True when the file starts with a Mach-O universal (fat) header. */
 function isUniversalMachO(path: string): boolean {
-  const head = readFileSync(path).subarray(0, 4);
-  return head[0] === 0xca && head[1] === 0xfe && head[2] === 0xba && (head[3] === 0xbe || head[3] === 0xbf);
+  const fd = openSync(path, "r");
+  try {
+    const head = Buffer.alloc(4);
+    readSync(fd, head, 0, 4, 0);
+    return head[0] === 0xca && head[1] === 0xfe && head[2] === 0xba && (head[3] === 0xbe || head[3] === 0xbf);
+  } finally {
+    closeSync(fd);
+  }
 }
 
 // ── tools ───────────────────────────────────────────────────────────────────
@@ -204,6 +210,7 @@ function macExeName(app: string): string | null {
 }
 
 function windowsDataDir(gameDir: string): string | null {
+  if (!existsSync(gameDir)) return null;
   const data = readdirSync(gameDir).find((n) => n.endsWith("_Data"));
   return data ? join(gameDir, data) : null;
 }
@@ -322,10 +329,12 @@ export function checkFreshness(cwd: string, cfg: DecompileConfig, game: GameFile
 
   const reasons: string[] = [];
   if (!game) reasons.push("the installed game was not found, so the dump cannot be compared with it");
-  if (game && manifest.build?.binary?.sha256 && manifest.build.binary.sha256 !== sha256File(game.binary)) {
-    reasons.push(`the game binary changed (dump ${manifest.build.binary.sha256.slice(0, 8)}, installed ${sha256File(game.binary).slice(0, 8)})`);
+  const binarySha = game ? sha256File(game.binary) : "";
+  const metadataSha = game ? sha256File(game.metadata) : "";
+  if (game && manifest.build?.binary?.sha256 && manifest.build.binary.sha256 !== binarySha) {
+    reasons.push(`the game binary changed (dump ${manifest.build.binary.sha256.slice(0, 8)}, installed ${binarySha.slice(0, 8)})`);
   }
-  if (game && manifest.build?.metadata?.sha256 && manifest.build.metadata.sha256 !== sha256File(game.metadata)) {
+  if (game && manifest.build?.metadata?.sha256 && manifest.build.metadata.sha256 !== metadataSha) {
     reasons.push("the game's metadata (types and fields) changed");
   }
   if (manifest.config?.signature && manifest.config.signature !== configSignature(cfg)) {

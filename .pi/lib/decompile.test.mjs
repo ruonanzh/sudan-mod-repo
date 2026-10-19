@@ -1,5 +1,5 @@
 /**
- * Tests for the dump reader. Run with: `bun test .pi/lib`
+ * Tests for the dump reader. Run with: `cd .pi/lib && bun test`（Bun 会跳过以点开头的目录）
  *
  * The pure functions are checked against small fixtures. The four integration
  * cases read the dump that is actually on this machine and skip when it is
