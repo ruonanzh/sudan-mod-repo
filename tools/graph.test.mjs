@@ -140,14 +140,15 @@ test("on.rite_end runs into the event", { skip }, () => {
   assert.equal(g.edges.filter((e) => e.r.startsWith("on.")).length, 0, "no edge may use the old reference direction");
 });
 
-test("an event label comes from narration, not the designer note", { skip }, () => {
+test("an event carries a note for its row and narration for search", { skip }, () => {
   const g = graph();
   const narrated = g.nodes.find((n) => n.k === "event:5300064");
-  assert.notEqual(narrated.l.zh, narrated.note, "the note is not a player-facing label");
-  assert.ok(narrated.l.zh.length > 10);
+  assert.equal(narrated.note, "选择如何处理禁卫队长", "the note is the name the page prints");
+  assert.notEqual(narrated.l.zh, narrated.note, "the note is not what a search matches on");
+  assert.ok(narrated.l.zh.length > 10, "the narration stays searchable in its own language");
   const silent = g.nodes.find((n) => n.k === "event:5360014");
-  assert.ok(silent.l.zh.startsWith("〔备注〕"), "an event with no narration shows its designer note instead of a bare id");
-  assert.ok(silent.l.zh.includes("善名"), "the note itself is the label");
+  assert.ok(silent.note.includes("善名"), "a silent event still has its note");
+  assert.ok(silent.l.zh.startsWith("〔备注〕"), "with no narration, the note stands in and says so");
 });
 
 test("a node's description is its own paragraph, in every language", { skip }, () => {

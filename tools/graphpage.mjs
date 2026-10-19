@@ -289,9 +289,10 @@ function draw() {
     ctx.fillStyle = hot ? "#fff4d0" : n.o === "mod" ? "#ffd9a0" : "#d7c9ab";
     // Trim to the column, by measured width: a fixed character count still overflows
     // because a Chinese glyph is twice as wide as a digit.
-    let label = n.id + "  " + (n.l[lang] || n.l.zh || "");
+    const text = dispLabel(n);
+    let label = n.id + "  " + text;
     while (label.length > 4 && ctx.measureText(label).width > maxW) label = label.slice(0, -2);
-    if (label !== n.id + "  " + (n.l[lang] || n.l.zh || "")) label += "…";
+    if (label !== n.id + "  " + text) label += "…";
     ctx.fillText(label, n.vx + 10, n.vy + ROW_H / 2);
     if (n.o === "mod") { ctx.fillStyle = "#c9a227"; ctx.fillText("mod", n.vx + 214, n.vy + ROW_H / 2); }
     if (n.b) {
@@ -305,19 +306,30 @@ function draw() {
 
 function lastColOfCat() { return -1; }
 
+// What a node is called on the canvas, in the list and in a link. An event's designer note is
+// the name the panel prints, so the same string is used here: a row must read like the page it
+// opens. Every other kind has a real name, already in the language on screen.
+function dispLabel(n) {
+  if (n.t === "event" && n.nt) return n.nt;
+  return n.l[lang] || n.l.zh || "";
+}
+
 // ---------------------------------------------------------------- list
 function listRows() {
   const q = qEl.value.trim().toLowerCase();
   const rows = visible().filter((n) => {
     if (!q) return true;
-    return ["zh", "en", "ja", "zhTW"].some((l) => (n.l[l] || "").toLowerCase().includes(q)) || n.id.includes(q);
+    // The note is searched too: it is what the row shows, and it is Chinese only, so it would
+    // otherwise vanish from search whenever another language is on screen.
+    return ["zh", "en", "ja", "zhTW"].some((l) => (n.l[l] || "").toLowerCase().includes(q)) ||
+      (n.nt || "").toLowerCase().includes(q) || n.id.includes(q);
   });
   listEl.innerHTML = rows.slice(0, 500).map((n) =>
     '<div class="row' + (selected === n.k ? " sel" : "") + '" data-k="' + n.k + '">' +
     '<span class="id">' + n.id + "</span>" +
     '<span class="nm">' + (n.b ? '<span class="badge ' + n.b + '">' + n.b + "</span> " : "") +
-    escHtml((n.l[lang] || n.l.zh || "").slice(0, 40)) +
-    (lang !== "zh" && n.tr && !n.tr[lang] ? ' <span class="toless">无' + lang + "</span>" : "") + "</span></div>"
+    escHtml(dispLabel(n).slice(0, 40)) +
+    (n.t !== "event" && lang !== "zh" && n.tr && !n.tr[lang] ? ' <span class="toless">无' + lang + "</span>" : "") + "</span></div>"
   ).join("") || '<div class="note">没有匹配</div>';
   listEl.querySelectorAll(".row").forEach((el) => { el.onclick = () => focusNode(el.dataset.k); });
   document.getElementById("count").textContent = rows.length + " / " + DATA.nodes.length;
@@ -354,7 +366,7 @@ function cats() {
 function chip(key) {
   const n = byKey.get(key);
   if (!n) return escHtml(key);
-  return '<a href="#" data-go="' + key + '">' + n.id + " " + escHtml((n.l[lang] || n.l.zh || "").slice(0, 26)) + "</a>";
+  return '<a href="#" data-go="' + key + '">' + n.id + " " + escHtml(dispLabel(n).slice(0, 26)) + "</a>";
 }
 
 // What the node says, in the language on screen, and nothing else: the other languages are a
@@ -464,7 +476,7 @@ window.__openNode = (key) => {
   const nb = descBlock(n);
   // The node's own name, in the language on screen. An event has no name in any table, so
   // its designer note is the name; what the panel then shows under it is the narration.
-  const title = n.t === "event" ? n.nt || n.l[lang] || "" : n.l[lang] || n.l.zh || "";
+  const title = dispLabel(n);
   const sec = (title, body) => "<h3>" + escHtml(title) + "</h3>" + body;
   const hint = (text) => '<div class="cond muted">' + text + "</div>";
   const row = (k, r, dir) => {
