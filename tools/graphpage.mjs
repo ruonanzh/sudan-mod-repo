@@ -20,12 +20,19 @@ const COL_W = 268;
 const VIEW_H = 880; // one screenful: the plan's "column height = one screen"
 const PER_COL = Math.floor(VIEW_H / ROW_H);
 
+/**
+ * The group a node falls into on the canvas. Categories are for events (and, by majority vote,
+ * the rites they open); every other kind is grouped by what it is, so a column of 掉落表 is not
+ * mixed into 其他 — otherwise the 其他 pill would show far more than its own count.
+ */
+const groupOf = (n) => (n.t === "card" ? "card" : n.t === "rite" ? "rite" : n.t === "event" ? "other" : n.t);
+
 /** Assign a column and a y for every node, per category, in a stable order. */
 export function layout(g) {
-  const order = ["unused", "reputation", "ending", "guide", "achievement", "daily", "periodic", "other"];
+  const order = ["unused", "reputation", "ending", "guide", "achievement", "daily", "periodic", "other", "rite", "card", "loot", "quest", "over", "afterStory", "riteTemplate"];
   const groups = new Map();
   for (const n of g.nodes) {
-    const cat = n.cat || (n.t === "card" ? "card" : "other");
+    const cat = n.cat || groupOf(n);
     if (!groups.has(cat)) groups.set(cat, []);
     groups.get(cat).push(n);
   }
@@ -76,7 +83,7 @@ export function payload(g) {
       k: n.k,
       t: n.t,
       id: n.id,
-      c: n.cat || "other",
+      c: n.cat || groupOf(n),
       o: n.o,
       l: n.l,
       x: (n.col || 0) * COL_W,
@@ -124,7 +131,7 @@ const CAT_COLOR = {
   achievement: "#8d84b8", daily: "#7d8fa8", periodic: "#6f7f96", other: "#8a7a60",
   card: "#b9a887",
 };
-const CAT_NAME = { unused: "废弃", reputation: "声望", ending: "结局", guide: "引导", achievement: "成就", daily: "日常", periodic: "周期", other: "其他", card: "卡牌" };
+const CAT_NAME = { unused: "废弃", reputation: "声望", ending: "结局", guide: "引导", achievement: "成就", daily: "日常", periodic: "周期", other: "其他", card: "卡牌", rite: "仪式" };
 const KIND_NAME = { event: "事件", rite: "仪式", card: "卡牌", loot: "掉落表", over: "结局", quest: "任务", afterStory: "后日谈", riteTemplate: "棋盘布局" };
 // A rule id is for the builder, not for the reader. These are the same relations in game words.
 const REL_OUT = {
@@ -174,8 +181,17 @@ function escHtml(s) {
 // One column is one screenful. The page keeps a real scrollbar by sizing a spacer to the
 // whole content and drawing only the visible slice onto a viewport-sized canvas: a 53 000 px
 // wide canvas was the reason the first version crawled.
+// 仪式 and 事件 are not event categories: they cut the graph by node type, so a reader can
+// take all of one kind. Everything else compares against the category the layout used.
+function inCat(n) {
+  if (!cat) return true;
+  if (cat === "事件") return n.t === "event";
+  if (cat === "仪式") return n.t === "rite";
+  return n.c === cat;
+}
+
 function visible() {
-  return DATA.nodes.filter((n) => (!cat || n.c === cat) && (!chainOnly || n.ch));
+  return DATA.nodes.filter((n) => inCat(n) && (!chainOnly || n.ch));
 }
 
 function relayout() {
@@ -278,7 +294,7 @@ function draw() {
   for (const n of shown) {
     if (n.vy !== 0) continue;
     ctx.fillStyle = "#8a7a60";
-    ctx.fillText((CAT_NAME[n.c] || n.c) + " · " + n.id, n.vx, n.vy - 12);
+    ctx.fillText((CAT_NAME[n.c] || KIND_NAME[n.c] || n.c) + " · " + n.id, n.vx, n.vy - 12);
   }
 
   const maxW = COL_W - 46;
@@ -356,10 +372,16 @@ function focusNode(key) {
 
 function cats() {
   const box = document.getElementById("cats");
-  const all = [["", "全部"]].concat(Object.keys(DATA.categoryCounts).map((c) => [c, CAT_NAME[c] || c]));
-  box.innerHTML = all.map(([v, label]) =>
+  // A pill's number is what clicking it shows, so it counts nodes on the canvas — a category
+  // holds the events that classify into it plus the rites those events open. The event-only
+  // counts that graph.mjs --check prints are a different question and stay there.
+  const countOf = (fn) => DATA.nodes.filter(fn).length;
+  const all = [["", "全部", DATA.nodes.length]]
+    .concat(Object.keys(DATA.categoryCounts).map((c) => [c, CAT_NAME[c] || c, countOf((n) => n.c === c)]))
+    .concat([["仪式", "仪式", countOf((n) => n.t === "rite")], ["事件", "事件", countOf((n) => n.t === "event")]]);
+  box.innerHTML = all.map(([v, label, n]) =>
     '<button class="pill' + (v === cat ? " on" : "") + '" data-c="' + v + '">' + label +
-    " <b>" + (v ? (DATA.categoryCounts[v] || 0) : DATA.nodes.length) + "</b></button>"
+    " <b>" + n + "</b></button>"
   ).join("");
   box.querySelectorAll("button").forEach((b) => {
     b.onclick = () => { cat = b.dataset.c || null; cats(); listRows(); relayout(); };

@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import os from "node:os";
 import { buildGraph } from "./graph.mjs";
-import { renderPage } from "./graphpage.mjs";
+import { renderPage, payload } from "./graphpage.mjs";
 import { openMod, DEFAULT_VANILLA } from "./model.mjs";
 import { readNodeSource } from "./editor.mjs";
 
@@ -166,6 +166,26 @@ test("a switch reads as the sentence its value earns", { skip }, async () => {
   assert.match(rite, /要玩家点开始/);
   assert.match(rite, /立即结算/, "round_number 1 has its own wording");
   assert.match(rite, /没有等待期限/, "waiting_round 0 has its own wording");
+});
+
+test("every kind gets its own group, and the pills count what they show", { skip }, async () => {
+  const p = payload(graph());
+  const at = (k) => p.nodes.find((n) => n.k === k);
+  assert.equal(at("event:5300090").c, "daily", "an event keeps its category");
+  assert.equal(at("rite:5008014").c, "reputation", "a rite inherits the category of the events that open it");
+  assert.equal(at("card:2000001").c, "card");
+  assert.equal(at("loot:6000004").c, "loot", "a loot table is its own column, not 其他");
+  assert.equal(at("quest:3300001").c, "quest");
+  assert.equal(at("riteTemplate:8000009").c, "riteTemplate");
+  // 其他 must mean the residual events only, or its badge lies about what clicking it shows.
+  assert.equal(p.nodes.filter((n) => n.c === "other").length, p.nodes.filter((n) => n.c === "other" && n.t === "event").length + p.nodes.filter((n) => n.c === "other" && n.t === "rite").length);
+
+  const { els } = mount(graph());
+  const pills = els.get("cats").innerHTML;
+  assert.match(pills, /仪式 <b>1498<\/b>/, "all rites, whatever category they landed in");
+  assert.match(pills, /事件 <b>1867<\/b>/);
+  const other = p.nodes.filter((n) => n.c === "other").length;
+  assert.match(pills, new RegExp("其他 <b>" + other + "<\\/b>"), "the badge is the canvas count");
 });
 
 test("a dead key is marked in the file, and not in the editor", { skip }, async () => {
