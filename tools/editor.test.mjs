@@ -8,7 +8,7 @@ import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { openMod } from "./model.mjs";
-import { saveNode, readNodeSource } from "./editor.mjs";
+import { saveNode, readNodeSource, openModDir } from "./editor.mjs";
 import { DEFAULT_VANILLA } from "./model.mjs";
 import os from "node:os";
 
@@ -23,6 +23,15 @@ const fresh = () => {
 
 const RECORD = (extra = {}) =>
   JSON.stringify({ id: 9000001, text: "新事件", is_replay: 0, start_trigger: true, on: { rite_end: 5000002 }, condition: {}, settlement: [], ...extra }, null, 1);
+
+test("a directory without info.json is not a mod", () => {
+  // The rest of the repo takes `--mod <dir>` and never guesses. `your_mods` is the parent of
+  // mods: writing there produces files the game never loads, and the page calls it read-only.
+  const dir = mkdtempSync(path.join(tmpdir(), "notamod-"));
+  assert.throws(() => openModDir(dir, { vanilla: VANILLA }), /info\.json/, "a bare directory is refused");
+  writeFileSync(path.join(dir, "info.json"), JSON.stringify({ name: "t", version: "1.0.0" }));
+  assert.equal(openModDir(dir, { vanilla: VANILLA }).dir, dir, "info.json is what makes it a mod");
+});
 
 test("a new record lands in the mod and the second save keeps a backup", () => {
   const mod = fresh();

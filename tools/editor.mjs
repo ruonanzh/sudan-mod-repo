@@ -2,7 +2,11 @@
 /**
  * editor.mjs — a local process that serves the story graph and writes edits back.
  *
- *   node tools/editor.mjs --mod your_mods/<name> [--port 7801] [--static out.html]
+ *   node tools/editor.mjs [--mod your_mods/<name>] [--port 7801] [--static out.html]
+ *
+ * Without `--mod` the page is read-only: it still shows the whole graph, and every write is
+ * refused. A save must land in a mod, and a mod is a directory with an `info.json` inside it
+ * — the rest of the repo takes `--mod <dir>` the same way (story, page, art).
  *
  * Why a process and not a file: `file://` cannot write. The page is the same one
  * graphpage.mjs renders, so there is a single implementation of the view.
@@ -15,7 +19,7 @@ import { createServer } from "node:http";
 import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { openMod, locate, validateRecord } from "./model.mjs";
+import { openMod, locate, validateRecord, ModelError } from "./model.mjs";
 import { parseJsonc } from "./lint.mjs";
 import { buildGraph } from "./graph.mjs";
 import { renderPage, payload } from "./graphpage.mjs";
@@ -127,19 +131,43 @@ export function saveNode(mod, kind, id, source) {
   return { ok: true, path: target, backup, warnings };
 }
 
+/**
+ * A save goes into a mod, and a mod is `your_mods/<ModName>/` with an `info.json`. Every other
+ * writer here takes `--mod <dir>` and refuses without it; `your_mods` is the parent of mods, not a
+ * mod, and treating it as one writes files the game never loads. So this one refuses too, and the
+ * page it serves without a mod is read-only.
+ */
+export function openModDir(dir, { vanilla } = {}) {
+  if (!existsSync(dir)) throw new ModelError(`no such directory: ${dir}`);
+  if (!existsSync(path.join(dir, "info.json")))
+    throw new ModelError(`${dir} has no info.json, so it is not a mod. A mod is your_mods/<ModName>/ (see .pi/skills/mod-creator).`);
+  return openMod(dir, { vanilla });
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const vanilla = expand(args.vanilla);
-  const modDir = expand(args.modDir || "your_mods");
   if (!existsSync(vanilla)) {
     process.stderr.write(`no config at ${vanilla}\n`);
     return 2;
   }
-  const mod = openMod(modDir, { vanilla });
+  let mod = null;
+  if (args.modDir) {
+    try {
+      mod = openModDir(expand(args.modDir), { vanilla });
+    } catch (e) {
+      if (e instanceof ModelError) {
+        process.stdout.write(`FAIL  ${e.message}\n`);
+        return 1;
+      }
+      throw e;
+    }
+  }
+  const readOnlyHint = `read-only: no --mod. To edit, pass --mod your_mods/<ModName>`;
 
   if (args.static) {
-    const g = buildGraph({ configDir: vanilla, modDir: mod.dir });
-    const html = renderPage(g);
+    const g = buildGraph({ configDir: vanilla, modDir: mod ? mod.dir : null });
+    const html = renderPage(g, { editable: false, modNote: mod ? `mod ${path.relative(process.cwd(), mod.dir)}` : "只读（未指定 --mod）" });
     mkdirSync(path.dirname(path.resolve(args.static)), { recursive: true });
     writeFileSync(path.resolve(args.static), html);
     process.stdout.write(`PASS  wrote ${args.static} (${g.nodes.length} nodes, read-only)\n`);
@@ -148,9 +176,14 @@ function main() {
 
   let cache = null;
   const graph = () => {
-    cache ??= buildGraph({ configDir: vanilla, modDir: mod.dir });
+    cache ??= buildGraph({ configDir: vanilla, modDir: mod ? mod.dir : null });
     return cache;
   };
+  const page = () =>
+    renderPage(graph(), {
+      editable: Boolean(mod),
+      modNote: mod ? `mod ${path.relative(process.cwd(), mod.dir)}` : "只读（未指定 --mod）",
+    });
 
   const send = (res, code, type, body) => {
     res.writeHead(code, { "content-type": type, "cache-control": "no-store" });
@@ -162,13 +195,14 @@ function main() {
     const url = new URL(req.url, "http://127.0.0.1");
     try {
       if (req.method === "GET" && url.pathname === "/") {
-        return send(res, 200, "text/html; charset=utf-8", renderPage(graph()));
+        return send(res, 200, "text/html; charset=utf-8", page());
       }
       if (req.method === "GET" && url.pathname === "/api/index") {
         return json(res, 200, payload(graph()));
       }
       if (req.method === "GET" && url.pathname.startsWith("/api/node/")) {
         const key = decodeURIComponent(url.pathname.slice("/api/node/".length));
+        if (!mod) return json(res, 200, { ok: false, error: readOnlyHint });
         const [t, id] = key.split(":");
         const kind = KIND_OF[t];
         if (!kind) return json(res, 200, { ok: false, error: `未知类型 ${t}` });
@@ -177,6 +211,7 @@ function main() {
         return json(res, 200, { ok: true, key, path: got.file, source: got.text, whole: got.whole });
       }
       if (req.method === "POST" && url.pathname === "/api/save") {
+        if (!mod) return json(res, 200, { ok: false, error: readOnlyHint });
         let body = "";
         req.on("data", (c) => (body += c));
         req.on("end", () => {
@@ -202,7 +237,8 @@ function main() {
 
   server.listen(args.port, "127.0.0.1", () => {
     const g = graph();
-    process.stdout.write(`PASS  http://127.0.0.1:${args.port}/  (${g.nodes.length} nodes, mod ${mod.dir})\n`);
+    process.stdout.write(`PASS  http://127.0.0.1:${args.port}/  (${g.nodes.length} nodes)\n`);
+    process.stdout.write(`      ${mod ? `mod ${mod.dir}` : readOnlyHint}\n`);
     process.stdout.write(`      Ctrl+C 停止\n`);
   });
   return null; // keep the process alive: the server owns it now

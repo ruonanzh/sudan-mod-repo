@@ -106,8 +106,10 @@ export function payload(g) {
 
 
 
-const SCRIPT = (payloadJson) => `
+const SCRIPT = (payloadJson, editable) => `
 const DATA = ${payloadJson};
+// A save must land in a mod, so the page needs to know whether one was named at startup.
+const EDITABLE = ${editable ? "true" : "false"};
 const ROW_H = ${ROW_H}, COL_W = ${COL_W}, EDGE_CAP = ${EDGE_CAP};
 const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
 const listEl = document.getElementById("list"), qEl = document.getElementById("q");
@@ -512,9 +514,11 @@ window.__openNode = (key) => {
     nb +
     sec("会发生什么", outRows || hint("没有。它不引发别的事。")) +
     '<div class="note" id="editbox" style="margin-top:18px">' +
-    (location.protocol === "http:"
-      ? '<button id="editbtn" class="pill">编辑这个节点</button>'
-      : "这个页面只能看。要改，用 node tools/editor.mjs 打开。") + "</div>";
+    (location.protocol !== "http:"
+      ? "这个页面只能看。要改，用 node tools/editor.mjs 打开。"
+      : EDITABLE
+        ? '<button id="editbtn" class="pill">编辑这个节点</button>'
+        : "只读：启动时没带 --mod。要改，先建 your_mods/&lt;ModName&gt;/，再用 node tools/editor.mjs --mod your_mods/&lt;ModName&gt; 打开。") + "</div>";
   const modal = document.getElementById("modal");
   modal.hidden = false;
   modal.onclick = (e) => { if (e.target === modal) modal.hidden = true; };
@@ -581,12 +585,12 @@ cats(); listRows(); relayout();
 window.__draw = draw;
 `;
 
-export function renderPage(g, { title = "苏丹的游戏 · 剧情图" } = {}) {
+export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable = true, modNote = "" } = {}) {
   const body = `
 <div class="gwrap">
   <div class="gtop">
     <div class="grow-row">
-      <span class="note" style="margin:0">节点 ${g.nodes.length} · 边 ${g.edges.length} · 剧情链 ${g.components.count} 条（最大 ${g.components.largest}）</span>
+      <span class="note" style="margin:0">节点 ${g.nodes.length} · 边 ${g.edges.length} · 剧情链 ${g.components.count} 条（最大 ${g.components.largest}）${modNote ? ` · ${esc(modNote)}` : ""}</span>
       <span class="ctl">
         <input id="q" type="text" placeholder="搜索 ID / 名字 / 任意语言">
         <label><input id="chain" type="checkbox"> 只看剧情链</label>
@@ -657,7 +661,7 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图" } = {}) {
       body,
       wide: true,
       extraCss: css,
-    }) + `<script>${SCRIPT(JSON.stringify(payload(g)))}</script>\n`
+    }) + `<script>${SCRIPT(JSON.stringify(payload(g)), editable)}</script>\n`
   );
 }
 
