@@ -1,11 +1,12 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { serialize } from "../lib/proc";
-import { readModRepoConfig, readState, writeState, expandHome, platformKey } from "../lib/state";
+import { readModRepoConfig, writeState, expandHome, platformKey } from "../lib/state";
 import {
   asciiSafe,
   buildDump,
   checkFreshness,
+  cpp2ilPath,
   dumpDir,
   extractMethods,
   extractTypeBlock,
@@ -17,6 +18,7 @@ import {
   searchDump,
   searchStrings,
   sha256File,
+  toolsDir,
   truncate,
 } from "../lib/decompile";
 import { existsSync, readFileSync } from "node:fs";
@@ -134,6 +136,11 @@ export default function (pi: ExtensionAPI) {
         content: [{ type: "text", text: asciiSafe(text) }],
         details: { ok: true, ...details },
       });
+      /** A business result that did not pass is still a result, not an error. */
+      const failed = (text: string, details: Record<string, unknown> = {}) => ({
+        content: [{ type: "text", text: asciiSafe(text) }],
+        details: { ok: false, ...details },
+      });
 
       try {
         if (params.action === "status") {
@@ -161,16 +168,38 @@ export default function (pi: ExtensionAPI) {
                   (manifest?.contents?.["cpp2il/IsilDump"] as { typeFiles?: number } | undefined)?.typeFiles ?? "?",
                 )} type files)`
               : `PARTIAL: the dump is stale.\n  - ${freshness.reasons.join("\n  - ")}`;
+          // The dump records the tools that produced it. A newer tool does not
+          // invalidate the artifacts, but the next rebuild will differ.
+          const drift: string[] = [];
+          const cpp2il = cpp2ilPath();
+          const dumper = join(toolsDir(), "il2cppdumper/Il2CppDumper.dll");
+          if (
+            cpp2il &&
+            existsSync(cpp2il) &&
+            manifest?.tools?.cpp2il?.sha256 &&
+            manifest.tools.cpp2il.sha256 !== sha256File(cpp2il)
+          ) {
+            drift.push("Cpp2IL changed since this dump");
+          }
+          if (
+            existsSync(dumper) &&
+            manifest?.tools?.il2cppdumper?.sha256 &&
+            manifest.tools.il2cppdumper.sha256 !== sha256File(dumper)
+          ) {
+            drift.push("Il2CppDumper changed since this dump");
+          }
           const lines = [
             head,
             `  build: ${manifest?.build?.label ?? "unknown"}, game binary ${identity}, metadata ${meta}`,
             `  coverage: ${coverage || "(nothing)"}`,
-            freshness.warnings.length ? `  warnings: ${freshness.warnings.join("; ")}` : "",
+            drift.length ? `  warnings: ${drift.join("; ")}` : "",
             freshness.state === "fresh"
               ? ""
               : "NEXT: action=search/type/body rebuild it by themselves; action=dump rebuilds now.",
           ];
-          return wrap(lines.filter(Boolean).join("\n"), { dir, freshness: freshness.state });
+          return freshness.state === "fresh"
+            ? wrap(lines.filter(Boolean).join("\n"), { dir, freshness: freshness.state })
+            : failed(lines.filter(Boolean).join("\n"), { dir, freshness: freshness.state });
         }
 
         if (params.action === "dump") {

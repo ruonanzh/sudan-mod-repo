@@ -83,11 +83,16 @@ export const toolsDir = (): string => join(decompileRoot(), "tools");
 
 // ── hashing and small fs helpers ────────────────────────────────────────────
 
+const hashCache = new Map<string, { key: string; value: string }>();
+
 export function sha256File(path: string): string {
-  const h = createHash("sha256");
-  // Stream-friendly enough at these sizes: 107 MB hashes in about 0.2 s.
-  h.update(readFileSync(path));
-  return h.digest("hex");
+  const st = statSync(path);
+  const key = `${st.size}:${st.mtimeMs}`;
+  const hit = hashCache.get(path);
+  if (hit && hit.key === key) return hit.value;
+  const value = createHash("sha256").update(readFileSync(path)).digest("hex");
+  hashCache.set(path, { key, value });
+  return value;
 }
 
 const dirBytes = (dir: string): number => {
@@ -143,13 +148,16 @@ const CPP2IL_NAMES: Record<string, string> = {
  * The Cpp2IL release ships one native binary per OS and CPU, so pick by platform
  * and then prove it runs: a misnamed copy from another system fails to exec.
  */
-export async function findCpp2il(): Promise<ToolRef> {
-  const dir = join(toolsDir(), "cpp2il");
+export function cpp2ilPath(): string | null {
   const name = CPP2IL_NAMES[`${process.platform}:${process.arch}`];
-  if (!name) {
+  return name ? join(toolsDir(), "cpp2il", name) : null;
+}
+
+export async function findCpp2il(): Promise<ToolRef> {
+  const path = cpp2ilPath();
+  if (!path) {
     throw new Error(`CPP2IL_UNSUPPORTED_PLATFORM: no Cpp2IL build for ${process.platform} ${process.arch}.`);
   }
-  const path = join(dir, name);
   if (!existsSync(path)) {
     throw new Error(`CPP2IL_MISSING: expected ${path}. This is the tool that produces method bodies.`);
   }
@@ -310,7 +318,6 @@ export interface Freshness {
   state: FreshState;
   dir: string;
   reasons: string[];
-  warnings: string[];
   manifest: Manifest | null;
 }
 
@@ -322,9 +329,8 @@ export interface Freshness {
 export function checkFreshness(cwd: string, cfg: DecompileConfig, game: GameFiles | null): Freshness {
   const dir = dumpDir(cwd);
   const manifest = readManifest(dir);
-  const warnings: string[] = [];
   if (!manifest) {
-    return { state: "missing", dir, reasons: ["no MANIFEST.json in the dump folder"], warnings, manifest: null };
+    return { state: "missing", dir, reasons: ["no MANIFEST.json in the dump folder"], manifest: null };
   }
 
   const reasons: string[] = [];
@@ -346,7 +352,7 @@ export function checkFreshness(cwd: string, cfg: DecompileConfig, game: GameFile
   if (manifest.pruning?.mode !== "game-only") {
     reasons.push(`the dump was built with pruning mode "${String(manifest.pruning?.mode)}"`);
   }
-  return { state: reasons.length ? "stale" : "fresh", dir, reasons, warnings, manifest };
+  return { state: reasons.length ? "stale" : "fresh", dir, reasons, manifest };
 }
 
 // ── building the dump ───────────────────────────────────────────────────────
@@ -412,6 +418,8 @@ export async function buildDump(
   const keep = [...new Set([...cfg.dump.assemblies, ...extraAssemblies])];
   const budget = cfg.dump.budgetBytes ?? 0;
   const dir = dumpDir(cwd);
+  const binarySha = sha256File(game.binary);
+  const sameGameBuild = readManifest(dir)?.build?.binary?.sha256 === binarySha;
   const parent = join(dir, "..");
   mkdirSync(parent, { recursive: true });
   const tmp = join(parent, `.tmp-${repoName(cwd)}-${process.pid}`);
@@ -432,19 +440,23 @@ export async function buildDump(
       binary = join(os.tmpdir(), `decompiled-slice-${process.pid}`);
       await runAsync("lipo", ["-thin", arch, game.binary, "-output", binary], { timeoutMs: 120_000 });
     }
-    onProgress("Reading type signatures with Il2CppDumper (about a minute)");
+    onProgress("Reading type signatures with Il2CppDumper");
     // exit code is not trustworthy: after writing its output Il2CppDumper waits
     // for a key press and dies without a console. The files are the proof.
-    await runAsync(dotnet.path as string, [dumper.path, binary, game.metadata, join(tmp, "il2cppdumper")], {
+    const dumperLog = await runAsync(dotnet.path as string, [dumper.path, binary, game.metadata, join(tmp, "il2cppdumper")], {
       timeoutMs: 300_000,
       env: { ...process.env, DOTNET_ROLL_FORWARD: "LatestMajor" },
-    }).catch(() => undefined);
+    })
+      .then((out) => `${out.stdout}\n${out.stderr}`)
+      .catch((error: { stdout?: string; stderr?: string; message?: string }) =>
+        `${error?.stdout ?? ""}\n${error?.stderr ?? ""}\n${String(error?.message ?? "")}`,
+      );
     const dumpCs = join(tmp, "il2cppdumper/dump.cs");
     if (!existsSync(dumpCs) || statSync(dumpCs).size < 1024) {
       throw new Error("IL2CPPDUMPER_FAILED: dump.cs was not produced. Check the tool version and the game build.");
     }
 
-    onProgress("Signatures done. Reading method bodies with Cpp2IL (several minutes)");
+    onProgress("Signatures done. Reading method bodies with Cpp2IL");
     // 2. Method bodies. No separate rebuilt-assembly output: Il2CppDumper's
     //    DummyDll already serves ILSpy, and a second copy costs tens of MB.
     const cpp2ilArgs = ["--game-path", game.gamePath];
@@ -484,6 +496,11 @@ export async function buildDump(
       await gzipFile(join(tmp, "il2cppdumper/script.json"));
     }
 
+    // Keep what the tools said: when a later dump fails, this is the only record.
+    mkdirSync(join(tmp, "logs"), { recursive: true });
+    writeFileSync(join(tmp, "logs/il2cppdumper.log"), dumperLog);
+    writeFileSync(join(tmp, "logs/cpp2il-isil.log"), isilLog);
+
     const bytes = dirBytes(tmp);
     if (budget > 0 && bytes > budget) {
       throw new Error(
@@ -499,9 +516,11 @@ export async function buildDump(
         unityVersion: unityVersion ?? undefined,
       },
       build: {
-        label: readManifest(dir)?.build?.label ?? today(),
+        // The label describes the game build, so it may only survive a rebuild
+        // of the same build. A new game version gets today's date.
+        label: sameGameBuild ? (readManifest(dir)?.build?.label ?? today()) : today(),
         createdAt: new Date().toISOString(),
-        binary: { path: game.binary, bytes: statSync(game.binary).size, sha256: sha256File(game.binary) },
+        binary: { path: game.binary, bytes: statSync(game.binary).size, sha256: binarySha },
         metadata: { path: game.metadata, bytes: statSync(game.metadata).size, sha256: sha256File(game.metadata) },
       },
       tools: { il2cppdumper: dumper, cpp2il },
@@ -612,47 +631,47 @@ export interface TypeBlock {
 /** Cut one type out of dump.cs: header line through its closing brace at column 0. */
 export function extractTypeBlock(dumpCs: string, typeName: string): TypeBlock | null {
   const wanted = typeName.toLowerCase();
-  const lines: string[] = [];
-  forEachLine(dumpCs, (line) => {
-    lines.push(line);
-  });
   const shortName = (name: string): string => name.split(".").pop() ?? name;
+  let declLine = 0;
+  let startLine = 0;
+  let endLine = 0;
+  let namespace = "";
+  let declaration = "";
+  // A declaration line is preceded by its namespace comment, at most a few
+  // attribute lines earlier; a 40 line window covers it without a second scan.
+  const header: { no: number; line: string }[] = [];
 
-  let decl = -1;
-  for (let i = 0; i < lines.length; i++) {
-    if (!lines[i].includes("TypeDefIndex:")) continue;
-    const m = lines[i].match(DECL);
-    if (!m) continue;
-    const name = m[2];
-    if (name.toLowerCase() === wanted || shortName(name).toLowerCase() === wanted) {
-      decl = i;
-      break;
+  forEachLine(dumpCs, (line, no) => {
+    if (declLine) {
+      if (line === "}") {
+        endLine = no;
+        return false;
+      }
+      return;
     }
-  }
-  if (decl === -1) return null;
+    if (line.includes("TypeDefIndex:")) {
+      const m = line.match(DECL);
+      if (m && (m[2].toLowerCase() === wanted || shortName(m[2]).toLowerCase() === wanted)) {
+        declLine = no;
+        declaration = `${m[1]} ${m[2]}`;
+        const ns = header.reverse().find((h) => h.line.startsWith("// Namespace:"));
+        startLine = ns ? ns.no : no;
+        namespace = ns ? ((ns.line.match(/^\/\/ Namespace:\s*(.*)$/) ?? [])[1] ?? "") : "";
+        return;
+      }
+    }
+    header.push({ no, line });
+    if (header.length > 40) header.shift();
+  });
+  if (!declLine || !endLine) return null;
 
-  let start = decl;
-  for (let i = decl; i >= 0 && decl - i < 40; i--) {
-    if (lines[i].startsWith("// Namespace:")) {
-      start = i;
-      break;
-    }
-  }
-  let end = decl;
-  for (let i = decl + 1; i < lines.length; i++) {
-    if (lines[i] === "}") {
-      end = i;
-      break;
-    }
-  }
-  const namespace = (lines[start].match(/^\/\/ Namespace:\s*(.*)$/) ?? [])[1] ?? "";
-  const m = lines[decl].match(DECL);
-  return {
-    namespace,
-    declaration: m ? `${m[1]} ${m[2]}` : lines[decl].trim(),
-    text: lines.slice(start, end + 1).join("\n"),
-    line: decl + 1,
-  };
+  const parts: string[] = [];
+  forEachLine(dumpCs, (line, no) => {
+    if (no < startLine) return;
+    if (no > endLine) return false;
+    parts.push(line);
+  });
+  return { namespace, declaration, text: parts.join("\n"), line: declLine };
 }
 
 /**
