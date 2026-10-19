@@ -23,6 +23,7 @@ Class column and absent from the data is a key the game reads and vanilla never 
 | `card` | 16 | One card in the deck: a character, an item, or a Sultan card. | `config/cards.json` | dictionary key = id |
 | `event` | 7 | A journal/story card whose outcome is a list of settlement branches. | `config/event/<id>.json` | filename = id |
 | `rite` | 26 | The multi-round board puzzle: slots, open conditions, waiting period, then three settlement lists. | `config/rite/<id>.json` | filename = id |
+| `riteFromPin` | 10 | Map-pin geometry for reaching a rite. | `rite.from_pins[]` | - |
 | `slot` | 9 | One slot on a rite board. | `rite.cards_slot.<sN>` | key = s1..sN |
 | `settlement` | 12 | One outcome branch of a rite or event. Every branch of an event runs in order; a rite takes the first match. | `rite/event settlement arrays` | - |
 | `loot` | 5 | A weighted random table yielding cards, events, rites or other tables. | `config/loot/<id>.json` | filename = id |
@@ -40,7 +41,6 @@ Class column and absent from the data is a key the game reads and vanilla never 
 | `sfxTop` | 5 | Loop-group music config. | `config/sfx_config.json` | - |
 | `sfxLoop` | 4 | One looping clip definition. | `sfx_config.<group>.<n>` | - |
 | `game` | 6 | Presentation overrides. Mod-only: vanilla ships no game.json. | `config/game.json` | - |
-| `questTarget` | 5 | - | `-` | - |
 | `wizard` | 6 | The character-creation guide: prompts and options. | `config/wizard/<name>.json` | filename = name |
 | `afterStory` | 6 | Epilogue text shown after an ending. | `config/after_story/<id>.json` | filename = id |
 | `gameMap` | 4 | World-map override. | `game.json.map` | - |
@@ -56,6 +56,213 @@ Class column and absent from the data is a key the game reads and vanilla never 
 | `riteRandomTextUp` | 5 | Copy for one dice check result. | `rite.random_text_up.<rN>` | - |
 | `riteOpenCondition` | 2 | One reason the rite cannot open yet. | `rite.open_conditions[]` | - |
 | `riteSlotPop` | 2 | A conditional line shown when a card sits in a slot. | `rite.cards_slot.<sN>.pops[]` | - |
+
+## Fields by level
+
+Level 2 is one entry of a shipped config file. Level 3 only exists inside such an entry. A
+row marked `handler` is read by a custom reader rather than a declared field; `legacy` is a key
+the current build no longer reads.
+
+### Level 2 — one per config entry
+
+| kind | keys | what it is | file |
+|---|---|---|---|
+| `card` | 18 (+2 handler) | One card in the deck: a character, an item, or a Sultan card. | `config/cards.json` |
+| `event` | 10 (+2 handler, ~1 legacy) | A journal/story card whose outcome is a list of settlement branches. | `config/event/<id>.json` |
+| `rite` | 30 (+3 handler, ~1 legacy) | The multi-round board puzzle: slots, open conditions, waiting period, then three settlement lists. | `config/rite/<id>.json` |
+| `loot` | 5 | A weighted random table yielding cards, events, rites or other tables. | `config/loot/<id>.json` |
+| `upgrade` | 10 | One entry in the destiny shop: pay cost, run effect, gated by condition. | `config/upgrade.json` |
+| `tag` | 17 (+3 handler) | One tag definition. Cards carry tags as name -> integer. | `config/tag.json` |
+| `init` | 29 (+1 handler) | A starting scenario: what the run begins with. | `config/init/<id>.json` |
+| `quest` | 10 (+1 handler) | A destiny quest shown in the objective list. | `config/quest.json` |
+| `over` | 12 | One ending screen. | `config/over.json` |
+| `riteTemplate` | 14 | Board layout: background, foreground, per-slot position/scale/rotation. | `config/rite_template/<id>.json` |
+| `riteMapping` | 4 | Binds a mapping id to a template and lists which slots it exposes. | `config/rite_template_mappings.json` |
+| `dtRoot` | 5 (~1 legacy) | A dialogue tree. | `config/dt/DT<n>.json` |
+| `sfxTop` | 5 | Loop-group music config. | `config/sfx_config.json` |
+| `game` | 6 | Presentation overrides. Mod-only: vanilla ships no game.json. | `config/game.json` |
+| `wizard` | 9 (+3 handler) | The character-creation guide: prompts and options. | `config/wizard/<name>.json` |
+| `afterStory` | 6 | Epilogue text shown after an ending. | `config/after_story/<id>.json` |
+
+### Level 3 — nested inside another entry
+
+| kind | keys | lives in |
+|---|---|---|
+| `riteFromPin` | 10 | `rite.from_pins[]` (inside rite) |
+| `slot` | 9 | `rite.cards_slot.<sN>` (inside rite) |
+| `settlement` | 14 (+2 handler) | `rite/event settlement arrays` (inside event, rite) |
+| `lootItem` | 6 | `loot.item[]` (inside loot) |
+| `dtWord` | 6 | `dt.Item[]` (inside dtRoot) |
+| `dtOption` | 4 | `dt.Item[].Option[]` (inside dtRoot) |
+| `sfxLoop` | 4 | `sfx_config.<group>.<n>` (inside sfxTop) |
+| `gameMap` | 4 | `game.json.map` (inside game) |
+| `gameMapLocation` | 5 | `game.json.map.locations.<name>` (inside gameMap) |
+| `gameEquipIcon` | 3 | `game.json.equip_icon.<name>` (inside game) |
+| `gameCardMaterial` | 8 | `game.json.card_materials.<group>[]` (inside game) |
+| `gameCardMaterialGroup` | 4 | `game.json.card_materials` (inside game) |
+| `gamePoint` | 2 | `various` (inside game) |
+| `questTargetItem` | 5 | `quest.<id>.target[]` (inside quest) |
+| `wizardOption` | 7 | `wizard.options[]` (inside wizard) |
+| `afterStoryExtra` | 5 | `after_story.prior/extra[]` (inside afterStory) |
+| `riteTagTipsUp` | 2 | `rite.tag_tips_up` (inside rite) |
+| `riteRandomTextUp` | 5 | `rite.random_text_up.<rN>` (inside rite) |
+| `riteOpenCondition` | 2 | `rite.open_conditions[]` (inside rite) |
+| `riteSlotPop` | 2 | `rite.cards_slot.<sN>.pops[]` (inside slot) |
+
+**`card`** — One card in the deck: a character, an item, or a Sultan card.
+
+Keys: `id`, `name`, `title`, `text`, `pops`, `type`, `rare`, `resource`, `destroy_resources`, `tag`, `card_vanishing`, `vanish`, `equips`, `is_only`, `sfx`, `post_rite`.
+Handler-read: `tips`, `card_favour`.
+
+**`event`** — A journal/story card whose outcome is a list of settlement branches.
+
+Keys: `id`, `is_replay`, `auto_start_init`, `on`, `start_trigger`, `condition`, `settlement`.
+Handler-read: `text`, `cached_settlement`.
+Legacy (no longer read): `auto_start`.
+
+**`rite`** — The multi-round board puzzle: slots, open conditions, waiting period, then three settlement lists.
+
+Keys: `id`, `name`, `text`, `tips`, `type`, `final_pin`, `from_pins`, `mapping_id`, `round_number`, `auto_begin`, `auto_result`, `restore_fill_times`, `once_new`, `waiting_round`, `waiting_round_end_action`, `icon`, `location`, `tag_tips_up`, `tips_text`, `random_text`, `random_text_up`, `open_conditions`, `settlement_prior`, `settlement`, `settlement_extre`, `cards_slot`.
+Handler-read: `tag_tips`, `method_settlement`, `random_effect`.
+Legacy (no longer read): `mapping`.
+
+**`riteFromPin`** — Map-pin geometry for reaching a rite.
+
+Keys: `rite_id`, `controls`, `resolution`, `width`, `start_reserve`, `end_reserve`, `arrow_length`, `arrow_angle`, `color`, `dashed`.
+
+**`slot`** — One slot on a rite board.
+
+Keys: `guid`, `condition`, `open_adsorb`, `is_key`, `is_empty`, `is_enemy`, `text`, `tips_icon`, `pops`.
+
+**`settlement`** — One outcome branch of a rite or event. Every branch of an event runs in order; a rite takes the first match.
+
+Keys: `guid`, `condition`, `result_title`, `result_text`, `result`, `action`, `id`, `type`, `index`, `key`, `sort`, `pic`.
+Handler-read: `tips_resource`, `tips_text`.
+
+**`loot`** — A weighted random table yielding cards, events, rites or other tables.
+
+Keys: `id`, `name`, `repeat`, `type`, `item`.
+
+**`lootItem`** — One weighted entry in a loot table.
+
+Keys: `refLoot`, `type`, `id`, `num`, `weight`, `condition`.
+
+**`upgrade`** — One entry in the destiny shop: pay cost, run effect, gated by condition.
+
+Keys: `link_card_inst`, `id`, `name`, `text`, `cost`, `condition`, `icon`, `link_card`, `effect`, `incompatible`.
+
+**`tag`** — One tag definition. Cards carry tags as name -> integer.
+
+Keys: `is_composite`, `id`, `name`, `code`, `type`, `text`, `resource`, `can_add`, `can_visible`, `can_inherit`, `can_nagative_and_zero`, `tag_sfx`, `tag_rank`, `attributes`.
+Handler-read: `tips`, `fail_tag`, `tag_vanishing`.
+
+**`init`** — A starting scenario: what the run begins with.
+
+Keys: `id`, `name`, `wizard`, `show_deadline`, `show_story`, `show_ithink`, `show_prestige`, `show_helpbtn`, `sudan_box_show_after_wizard`, `disable_auto_gen_sudan_card`, `sudan_pool`, `sudan_card_desc`, `sudan_pool_desc`, `sudan_shuffle`, `sudan_redraw_count`, `sudan_redraw_times_per_round`, `sudan_redraw_times_recovery_round`, `default_cards`, `card_equips`, `default_rite`, `default_event`, `single_dice_face_weight`, `think_id`, `think_show_settlement`, `gold_dice_count`, `back_to_prev_round_count`, `sudan_life_time`, `difficulty`.
+Handler-read: `cards`.
+
+**`quest`** — A destiny quest shown in the objective list.
+
+Keys: `isComplete`, `isReceived`, `id`, `name`, `text`, `icon`, `favour_text`, `upgrade_point`, `target`.
+Handler-read: `pre`.
+
+**`over`** — One ending screen.
+
+Keys: `id`, `name`, `sub_name`, `text_extra`, `open_after_story`, `text`, `manual_prompt`, `success`, `comment`, `bg`, `icon`, `title`.
+
+**`riteTemplate`** — Board layout: background, foreground, per-slot position/scale/rotation.
+
+Keys: `id`, `name`, `tips`, `bg`, `fg`, `fg_in_slot_index`, `nomal_slot_bg`, `bg_pos`, `mobile_bg_pos`, `mobile_scale`, `title_pos`, `title_bg_hide`, `title_help_btn_hide`, `slots`.
+
+**`riteMapping`** — Binds a mapping id to a template and lists which slots it exposes.
+
+Keys: `id`, `tips`, `template_id`, `slot_open`.
+
+**`dtRoot`** — A dialogue tree.
+
+Keys: `dialog_tree_id`, `first_word_id`, `description`, `Item`.
+Legacy (no longer read): `words`.
+
+**`dtWord`** — One line in a dialogue tree.
+
+Keys: `word_id`, `word`, `jump_type`, `direct_id`, `Option`, `action`.
+
+**`dtOption`** — One choice on a dialogue line.
+
+Keys: `option_Jump_condition`, `option_Jump_word`, `option_Jump_id`, `action`.
+
+**`sfxTop`** — Loop-group music config.
+
+Keys: `main_game_loop`, `main_game_loop_difficulty`, `settle_loop`, `settle_loop_difficulty`, `armageddon_music_loop`.
+
+**`sfxLoop`** — One looping clip definition.
+
+Keys: `clip`, `start`, `loop_start`, `loop_end`.
+
+**`game`** — Presentation overrides. Mod-only: vanilla ships no game.json.
+
+Keys: `init`, `map`, `rite_icon`, `rite_outline_icon`, `equip_icon`, `card_materials`.
+
+**`wizard`** — The character-creation guide: prompts and options.
+
+Keys: `id`, `init`, `prompt_draw_sudan_start`, `prompt_draw_sudan_start_first`, `prompt_draw_sudan_end_with_times`, `prompt_draw_sudan_end_without_times`.
+Handler-read: `name`, `options`, `text`.
+
+**`afterStory`** — Epilogue text shown after an ending.
+
+Keys: `id`, `name`, `pic`, `close_condition`, `prior`, `extra`.
+
+**`gameMap`** — World-map override.
+
+Keys: `overwrite`, `desktop`, `map`, `locations`.
+
+**`gameMapLocation`** — One pin on the map.
+
+Keys: `name`, `icon`, `x`, `y`, `sub_locations`.
+
+**`gameEquipIcon`** — Icons for one equipment slot.
+
+Keys: `name`, `equip`, `unequip`.
+
+**`gameCardMaterial`** — Unity material override for a card category.
+
+Keys: `main`, `color`, `metallic`, `metallic_smooth`, `bump`, `bump_scale`, `emission`, `emission_color`.
+
+**`gameCardMaterialGroup`** — Material arrays per card category.
+
+Keys: `chars`, `char_forgrounds`, `items`, `sudans`.
+
+**`gamePoint`** — An x/y pair.
+
+Keys: `x`, `y`.
+
+**`questTargetItem`** — One completion target of a quest.
+
+Keys: `isComplete`, `value`, `text`, `show_counter`, `condition`.
+
+**`wizardOption`** — One choice in the creation guide.
+
+Keys: `condition`, `name`, `text`, `op`, `dt`, `action`, `options`.
+
+**`afterStoryExtra`** — One epilogue paragraph.
+
+Keys: `condition`, `key`, `pic`, `result_text`, `sort`.
+
+**`riteTagTipsUp`** — Tag-driven tooltip override on a rite.
+
+Keys: `tips`, `type`.
+
+**`riteRandomTextUp`** — Copy for one dice check result.
+
+Keys: `text`, `type`, `type_tips`, `low_target`, `low_target_tips`.
+
+**`riteOpenCondition`** — One reason the rite cannot open yet.
+
+Keys: `condition`, `tips`.
+
+**`riteSlotPop`** — A conditional line shown when a card sits in a slot.
+
+Keys: `condition`, `action`.
 
 ## Field tables
 
@@ -141,6 +348,24 @@ File: `config/rite/<id>.json`
 Handler keys (read from the JSON without a property of their own): `tag_tips`, `method_settlement`, `random_effect`
 
 Legacy or derived keys (read by nothing, or filled from another key): `mapping`
+
+### riteFromPin
+
+Map-pin geometry for reaching a rite.  
+File: `rite.from_pins[]`
+
+| key |
+|---|
+| `rite_id` |
+| `controls` |
+| `resolution` |
+| `width` |
+| `start_reserve` |
+| `end_reserve` |
+| `arrow_length` |
+| `arrow_angle` |
+| `color` |
+| `dashed` |
 
 ### slot
 
@@ -439,19 +664,6 @@ File: `config/game.json`
 | `rite_outline_icon` |
 | `equip_icon` |
 | `card_materials` |
-
-### questTarget
-
--  
-File: `-`
-
-| key |
-|---|
-| `isComplete` |
-| `value` |
-| `text` |
-| `show_counter` |
-| `condition` |
 
 ### wizard
 

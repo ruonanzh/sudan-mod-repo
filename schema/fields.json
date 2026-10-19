@@ -80,6 +80,22 @@
       "mapping"
     ]
   },
+  "riteFromPin": {
+    "fields": [
+      "rite_id",
+      "controls",
+      "resolution",
+      "width",
+      "start_reserve",
+      "end_reserve",
+      "arrow_length",
+      "arrow_angle",
+      "color",
+      "dashed"
+    ],
+    "handler": [],
+    "legacy": []
+  },
   "slot": {
     "fields": [
       "guid",
@@ -343,17 +359,6 @@
       "rite_outline_icon",
       "equip_icon",
       "card_materials"
-    ],
-    "handler": [],
-    "legacy": []
-  },
-  "questTarget": {
-    "fields": [
-      "isComplete",
-      "value",
-      "text",
-      "show_counter",
-      "condition"
     ],
     "handler": [],
     "legacy": []

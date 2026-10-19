@@ -87,6 +87,77 @@ for (const [kind, spec] of Object.entries(FIELDS)) {
 }
 w();
 
+// Kind -> the kind it is nested in, so the reference can be read level by level.
+const PARENT = {
+  slot: "rite",
+  riteSlotPop: "slot",
+  riteOpenCondition: "rite",
+  riteTagTipsUp: "rite",
+  riteRandomTextUp: "rite",
+  riteFromPin: "rite",
+  settlement: "event, rite",
+  lootItem: "loot",
+  questTargetItem: "quest",
+  afterStoryExtra: "afterStory",
+  wizardOption: "wizard",
+  dtWord: "dtRoot",
+  dtOption: "dtRoot",
+  sfxLoop: "sfxTop",
+  gameMap: "game",
+  gameMapLocation: "gameMap",
+  gameEquipIcon: "game",
+  gameCardMaterial: "game",
+  gameCardMaterialGroup: "game",
+  gamePoint: "game",
+};
+
+/** `keys` counts every key a row can carry: declared, handler-read, and legacy-only. */
+const keysOf = (spec) => {
+  const own = spec.fields.length;
+  const handler = (spec.handler || []).length;
+  const legacy = (spec.legacy || []).length;
+  const marks = [];
+  if (handler) marks.push(`+${handler} handler`);
+  if (legacy) marks.push(`~${legacy} legacy`);
+  return `${own + handler + legacy}${marks.length ? " (" + marks.join(", ") + ")" : ""}`;
+};
+
+w("## Fields by level");
+w();
+w("Level 2 is one entry of a shipped config file. Level 3 only exists inside such an entry. A");
+w("row marked `handler` is read by a custom reader rather than a declared field; `legacy` is a key");
+w("the current build no longer reads.");
+w();
+w("### Level 2 — one per config entry");
+w();
+w("| kind | keys | what it is | file |");
+w("|---|---|---|---|");
+for (const [kind, spec] of Object.entries(FIELDS)) {
+  if (PARENT[kind]) continue;
+  const [what, where] = ABOUT[kind] || ["-", "-"];
+  w(`| \`${kind}\` | ${keysOf(spec)} | ${what} | \`${where}\` |`);
+}
+w();
+w("### Level 3 — nested inside another entry");
+w();
+w("| kind | keys | lives in |");
+w("|---|---|---|");
+for (const [kind, spec] of Object.entries(FIELDS)) {
+  if (!PARENT[kind]) continue;
+  const [, where] = ABOUT[kind] || ["-", "-"];
+  w(`| \`${kind}\` | ${keysOf(spec)} | \`${where}\` (inside ${PARENT[kind]}) |`);
+}
+w();
+for (const [kind, spec] of Object.entries(FIELDS)) {
+  const [what] = ABOUT[kind] || ["-"];
+  w(`**\`${kind}\`** — ${what}`);
+  w();
+  w("Keys: " + spec.fields.map((f) => `\`${f}\``).join(", ") + ".");
+  if ((spec.handler || []).length) w("Handler-read: " + spec.handler.map((f) => `\`${f}\``).join(", ") + ".");
+  if ((spec.legacy || []).length) w("Legacy (no longer read): " + spec.legacy.map((f) => `\`${f}\``).join(", ") + ".");
+  w();
+}
+
 w("## Field tables");
 w();
 for (const [kind, spec] of Object.entries(FIELDS)) {
