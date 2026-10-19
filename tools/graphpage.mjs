@@ -545,7 +545,14 @@ async function openEditor(key) {
       body: JSON.stringify({ key, source: document.getElementById("ed").value }),
     });
     const out = await r.json();
-    msg.textContent = out.ok ? "已保存（备份 " + out.backup + "）" : "失败：" + out.error;
+    // "unchanged" is a result, not a failure: no mod copy was made, so the node stays vanilla.
+    msg.textContent = !out.ok
+      ? "失败：" + out.error
+      : out.unchanged
+        ? "没有改动，未写入（不会生成 mod 副本）"
+        : out.backup
+          ? "已保存（备份 " + out.backup + "）"
+          : "已保存";
   };
 }
 

@@ -97,6 +97,17 @@ export function saveNode(mod, kind, id, source) {
 
   const where = locate(kind);
   const target = where.style === "table" || where.style === "single" ? path.join(mod.dir, where.file) : path.join(mod.dir, where.dir, `${id}.json`);
+  // A save that changes nothing must not create a mod copy of a vanilla file. That copy is
+  // an override the player would then ship, and it shows up in the graph as "mod 改的".
+  // Values are compared, not text: a table record is re-serialised on its way to the
+  // textarea, and the browser hands a CRLF file back with LF endings.
+  const currentFile = sourcePath(mod, kind, id);
+  if (existsSync(currentFile)) {
+    const before = parseJsonc(readFileSync(currentFile, "utf8")).value;
+    const isTable = where.style === "table" || where.style === "single";
+    const same = JSON.stringify(isTable ? (before && before[id]) : before) === JSON.stringify(record);
+    if (same) return { ok: true, unchanged: true, path: currentFile, backup: null, warnings };
+  }
   const previous = existsSync(target) ? target : null;
   mkdirSync(path.dirname(target), { recursive: true });
   let backup = null;
