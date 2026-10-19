@@ -1,0 +1,34 @@
+{
+  "_note": "Where the tools that build the dump come from. decompile.json says WHAT to dump; this file says WHICH binary produces it. Digests are the trust anchor: any host may serve the file, but a byte must not differ. Verified on this machine: darwin:arm64 (downloaded, signed, ran). The other entries carry the digest published in the release metadata but have not been run here.",
+  "version": 1,
+  "download": {
+    "_note": "Tried in order. Each entry is a prefix put in front of the full release URL; the empty string means direct. Add your own mirror here; no code change is needed.",
+    "mirrors": ["https://ghfast.top/", "https://gh-proxy.com/", ""]
+  },
+  "tools": {
+    "cpp2il": {
+      "version": "2022.1.0-pre-release.21",
+      "release": "https://github.com/SamboyCoding/Cpp2IL/releases/download/2022.1.0-pre-release.21/",
+      "assets": {
+        "darwin:arm64": {
+          "file": "Cpp2IL-2022.1.0-pre-release.21-OSX-ARM64",
+          "bytes": 15719263,
+          "sha256": "6670ddb93f28d4e7f329251d2597d2abbc6ba23e46382f7ca7b5e437ec93606a",
+          "sign": true
+        },
+        "darwin:x64": {
+          "file": "Cpp2IL-2022.1.0-pre-release.21-OSX",
+          "bytes": 16522622,
+          "sha256": "15faab020698512807f792aef32a89fe529d41d2cc03955dd3516f0519fe8f72",
+          "sign": true
+        },
+        "win32:x64": {
+          "file": "Cpp2IL-2022.1.0-pre-release.21-Windows.exe",
+          "bytes": 15137811,
+          "sha256": "663fb432433b4371fd1ee0ebc321a8fff2a9aac5ac4230c843f9e03ddee4e04c",
+          "sign": false
+        }
+      }
+    }
+  }
+}

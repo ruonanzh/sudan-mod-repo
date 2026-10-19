@@ -174,8 +174,8 @@ test("every switch names a real field and reads in all four languages", () => {
   const spec = JSON.parse(readFileSync(new URL("../schema/field-switches.json", import.meta.url), "utf8"));
   const fields = JSON.parse(readFileSync(new URL("../schema/fields.json", import.meta.url), "utf8"));
   for (const kind of ["event", "rite"]) {
-    // A switch may describe a legacy field on purpose: `auto_start` is still in 1522 vanilla
-    // event files and the current build has no such field, which is exactly worth saying.
+    // A switch may name a legacy field: some of them are still in vanilla data and worth saying
+    // something about, so the guard accepts every field the schema knows, not just the live ones.
     const declared = new Set([...(fields[kind].fields || []), ...(fields[kind].handler || []), ...(fields[kind].legacy || [])]);
     for (const [key, slots] of Object.entries(spec[kind])) {
       assert.ok(declared.has(key), `${kind}.${key} is not a field of ${kind}`);

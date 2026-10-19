@@ -36,14 +36,6 @@
         "ja": "タイミングが来てから条件を確認する",
         "zhTW": "等它的時機到了再檢查條件"
       }
-    },
-    "auto_start": {
-      "skip": {
-        "zh": "旧写法，当前版本不读它",
-        "en": "legacy field, this build does not read it",
-        "ja": "旧形式、現行ビルドは読まない",
-        "zhTW": "舊寫法，目前版本不讀它"
-      }
     }
   },
   "rite": {

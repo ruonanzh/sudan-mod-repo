@@ -481,7 +481,6 @@ function switchText(kind, key, value) {
   if (!spec) return "";
   const pick = (slot) => (slot ? slot[lang] || slot.zh || "" : "");
   if (spec.yes) return pick(value ? spec.yes : spec.no);
-  if (spec.skip) return pick(spec.skip);
   const v = Array.isArray(value) ? value.join(", ") : String(value);
   const slot = v === "1" && spec.one ? spec.one : v === "0" && spec.zero ? spec.zero : spec.num;
   return pick(slot).replace("{v}", v);
