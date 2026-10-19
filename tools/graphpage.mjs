@@ -86,6 +86,7 @@ export function payload(g) {
       tr: n.tr || { en: false, ja: false, zhTW: false },
       nr: n.nr || null,
       nt: n.note || "",
+      on: n.on || null,
       b: (() => {
         const levels = (n.badges || []).map((x) => x.level);
         return levels.includes("FAIL") ? "FAIL" : levels.includes("WARN") ? "WARN" : levels.includes("INFO") ? "INFO" : null;
@@ -131,6 +132,32 @@ const REL_IN = {
   "action.rite": "由它开启", "action.event": "由它激活", "action.loot": "由它掉落", "action.over": "由它结束",
   "condition.card": "条件里提到", "condition.rite": "条件里提到", "rite.template": "布局来自", "loot.item": "由它掉落",
 };
+
+// Turn an event's on object into one line a player can read.
+function timingText(on) {
+  const one = (k, v) => {
+    const anyId = v === 1 || (Array.isArray(v) && v.length === 1 && v[0] === 1);
+    const ids = Array.isArray(v) ? v.join(", ") : String(v);
+    if (k === "round_begin_ba" || k === "round_begin_fr" || k === "round_end") {
+      const when = k === "round_begin_ba" ? "回合开始结算后" : k === "round_begin_fr" ? "回合开始结算前" : "回合结束时";
+      if (Array.isArray(v) && v.length === 2) return when + "，每 " + v[0] + " 到 " + v[1] + " 回合";
+      return when + "，每 " + v + " 回合";
+    }
+    if (k === "rite_end" || k === "rite_start" || k === "rite_cancel" || k === "open_rite_end") {
+      const what = k === "rite_end" ? "结束时" : k === "rite_start" ? "开始时" : k === "rite_cancel" ? "被取消时" : "界面关闭时";
+      return anyId ? "任意仪式" + what : "仪式 " + ids + " " + what;
+    }
+    if (k === "card_clean" || k === "card_born" || k === "card_dead") {
+      const what = k === "card_clean" ? "被清理时" : k === "card_born" ? "生成时" : "死亡时";
+      return anyId ? "任意卡" + what : "卡 " + ids + " " + what;
+    }
+    if (k === "counter" || k === "global_counter") return "计数器 " + ids + " 变化时";
+    if (k === "game_end") return "游戏结束时（原因 " + ids + "）";
+    return k + " " + ids;
+  };
+  return Object.entries(on || {}).map(([k, v]) => one(k, v)).join("；");
+}
+
 
 function escHtml(s) {
   return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -343,7 +370,9 @@ function narrationBlock(n) {
   if (!rec) return "";
   if (!rec) return "";
   var html = '<h3>叙事 · ' + escHtml(used) + "</h3>";
+  var any = false;
   if ((rec.opt || []).length) {
+    any = true;
     html += '<div class="note">开场（选卡前的叙述）</div>';
     for (var i = 0; i < rec.opt.length; i++) {
       var o = rec.opt[i];
@@ -355,11 +384,13 @@ function narrationBlock(n) {
     }
   }
   if ((rec.prompt || []).length) {
+    any = true;
     html += '<div class="note">结算后</div>';
     for (var j = 0; j < rec.prompt.length; j++) {
       html += '<div class="story">' + escHtml(rec.prompt[j].text) + "</div>";
     }
   }
+  if (!any) return "";
   return html;
 }
 
@@ -369,6 +400,7 @@ window.__openNode = (key) => {
   const out = (OUT.get(key) || []).slice(0, 30);
   const inc = (IN.get(key) || []).slice(0, 30);
   const box = document.getElementById("modal-body");
+  const nb = narrationBlock(n);
   const row = (k, r, dir) => {
     const label = (dir === "in" ? REL_IN[r] || REL_OUT[r] : REL_OUT[r]) || r;
     return '<div class="rel">' + escHtml(label) + '</div><div>' + chip(k) + '</div>';
@@ -387,15 +419,18 @@ window.__openNode = (key) => {
     "</table>" +
     (n.t === "event" && n.nt ? '<div class="note">策划备注：' + escHtml(n.nt) + "</div>" : "") +
     (n.t === "event"
-      ? '<div class="note">事件没有标题。有叙事的取第一句；没有叙事的取策划备注，并标〔备注〕。见下方「叙事」。</div>'
+      ? (nb
+        ? '<div class="note">事件没有标题。标题取渲染后的第一句。见下方「叙事」。</div>'
+        : '<div class="note">事件没有标题，也没有叙事。标题取策划备注，并标〔备注〕。</div>')
       : "") +
-    narrationBlock(n) +
+    nb +
+    (n.on ? "<h3>触发时机</h3><div class=\\"note\\">" + escHtml(timingText(n.on)) + "</div>" : "") +
     "<h3>它会带来什么（" + out.length + "）</h3>" +
     '<div class="note">它会开启、触发或引用的节点。</div>' +
-    (out.map(([k, r]) => row(k, r, "out")).join("") || '<div class="note">没有。</div>') +
+    (out.map(([k, r]) => row(k, r, "out")).join("") || '<div class="note">没有。它不开启或触发别的节点。</div>') +
     "<h3>什么会带来它（" + inc.length + "）</h3>" +
     '<div class="note">会让它出现或生效的节点。</div>' +
-    (inc.map(([k, r]) => row(k, r, "in")).join("") || '<div class="note">没有。</div>') +
+    (inc.map(([k, r]) => row(k, r, "in")).join("") || '<div class="note">没有。它不靠别的节点触发，看上面的触发时机。</div>') +
     '<div class="note" id="editbox">' +
     (location.protocol === "http:"
       ? '<button id="editbtn" class="pill">编辑这个节点</button>'

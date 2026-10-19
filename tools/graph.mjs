@@ -259,7 +259,10 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
       const node = add(kind, id, { labelSource: label });
       // The node may already exist from the directory listing, which has no label.
       node.labelSource = label || node.labelSource || "";
-      if (kind === "event") node.note = rec.text || "";
+      if (kind === "event") {
+        node.note = rec.text || "";
+        node.on = rec.on || null;
+      }
     }
   }
 
@@ -329,7 +332,10 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
         const node = add(kind, id, { labelSource: label });
         node.o = "mod";
         node.labelSource = label || node.labelSource;
-        if (kind === "event") node.note = rec.text || "";
+        if (kind === "event") {
+          node.note = rec.text || "";
+          node.on = rec.on || null;
+        }
       }
     }
     // counters referenced only by the mod
