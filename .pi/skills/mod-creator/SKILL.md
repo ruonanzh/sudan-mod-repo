@@ -339,6 +339,19 @@ Vanilla's comments still tell you the intent: `"is_empty":0, // 不能为空` ap
 there. One more trap: `is_empty` is a line inside a bigger object, so a search for `is_empty:1`
 tells you nothing about whether that *rite* is optional. Read the whole slot.
 
+### The rest of a rite's fields
+
+| field | meaning |
+|---|---|
+| `once_new` | the "new" badge: `1` = new only the first time it appears (`player.only_rites` remembers it), `0` = every time, `-1` = never |
+| `location` | a map pin label, `place:number` or `place:[a,b]`. Only the text before the colon is read, as a name — **nothing parses the number**, so it is not a round. Vanilla has 89 distinct values for 1498 rites; 590 of them share `自宅:[2,12]` |
+| `open_conditions` | **all of them must hold.** Each entry is `{condition, tips}`, and the rite title bar prints the `tips` of every unmet entry, so write the tip as the reason it cannot open ("匪帮调动中，无法进行训练") — that is the sentence the player reads |
+| `is_enemy` (slot) | `1` = the slot counts for the enemy side; dice and battle rites split their cards by it |
+
+Dead fields — the game never reads them, so do not copy them into a new rite:
+`is_key` (0 in all 5406 vanilla slots), `final_pin` (12 rites, only the serializer touches it),
+`restore_fill_times` (no vanilla rite sets it).
+
 ## Triggers, timeouts and the order things settle
 
 `start_trigger` is about registration, not about `round_begin_ba`:
@@ -384,6 +397,78 @@ reach a later one.
 them, the game falls back to a normal template and logs
 `load rite panel {0} failed, rite_template invalid`. That is a Warning, not a failure, so a rite works
 without them and just looks generic.
+
+## Loot tables, quests, endings and after-story
+
+Four more things a mod can ship. Only the fields below are read; anything else is ignored.
+
+### Loot tables — `config/loot/<id>.json`, one file per table
+
+```jsonc
+{
+    "id": 6000004,
+    "name": "情报掉落",
+    "repeat": 1,
+    "type": 2,
+    "item": [ { "type": "card", "id": 2000032, "num": "1", "weight": 60 } ]
+}
+```
+
+`type` is a constant, not free text — the engine compares it to four values:
+
+| `type` | what it draws |
+|---|---|
+| `2` | normal: one weighted pick per draw |
+| `3` | only-new: one pick per draw, and each draw re-excludes what you already got |
+| `4` | choose M of N: `repeat` entries are picked from the table |
+| `99` | package: the whole table is granted, `repeat` times |
+
+`repeat` is how many draws happen. In vanilla, 188 tables use `1`; the rest use 3, 6 or 13.
+
+Each `item` is `{type, id, num, weight, condition}`. `type` is `card`, `event`, `rite` or `loot`
+(a table inside a table). `weight` is relative — only the ratios matter. `num` is how many are
+granted, and writes as a string in vanilla (`"1"`). `condition` filters the item the same way every
+other condition does.
+
+Vanilla counts: 193 tables, 1280 items (870 card, 215 event, 171 rite, 24 loot). `refLoot` exists in
+the schema but no vanilla item uses it; nest with `"type": "loot"` instead.
+
+### Quests — `config/quest.json`, one table keyed by id
+
+```jsonc
+"3300001": { "id": 3300001, "name": "坠落的初端", "text": "...", "favour_text": "...",
+             "upgrade_point": 1, "pre": 0, "icon": "cards/2000001",
+             "target": [ { "text": "完成1局苏丹的游戏", "show_counter": "",
+                           "condition": { "global_counter.7220001>=": 1 } } ] }
+```
+
+- `target[]` is what must hold. `condition` is a normal condition, `text` is the line the player
+  reads, `show_counter` names a counter to show beside it. All 193 vanilla targets carry a condition.
+- `upgrade_point` is the destiny points granted on completion (161 in total across 161 quests).
+- `pre` is another quest id, `0` for none — vanilla chains its 161 quests that way. This one comes
+  from the data, not from a reader in the code; treat the chain as display order.
+- `isComplete` and `isReceived` are save-side state. Do not write them.
+
+### Endings — `config/over.json`, one table keyed by id
+
+- `name`, `sub_name`, `text`, `bg`, `icon`, `title`, `manual_prompt`, `comment` are display.
+- `open_after_story: 1` makes the ending continue into the after-story (108 of 159 in vanilla).
+- `success`: `0` = a failure ending, `1` = a success, `2` = the better success (an extra icon is
+  switched on only for `2`). Vanilla: 63 are `1`, 46 are `2`, 4 are `0`, 46 leave it out.
+- `text_extra` is a `RiteNode.Settlement[]` — the same branch struct a rite uses, so it is
+  first-match with a `condition`, not a list of paragraphs.
+
+### After-story — `config/after_story/<characterCardId>.json`
+
+One file per character card; the id is the **card** id, not a new id range (66 in vanilla: 61
+characters + 5 items).
+
+- `pic` is the picture shown, `close_condition` decides when the panel closes.
+- `prior` and `extra` are **`RiteNode.Settlement[]`**, exactly the shape a rite's branches use:
+  `{condition, result_text, pic, result, action, sort}`. Nothing new to learn, and the same rule
+  applies — `sort` decides the order, and a missing `sort` counts as `10`.
+- The save keeps `prior` as a string key and `extra` as a set, so the same config can be reused by
+  several runs.
 
 ## Verify
 
