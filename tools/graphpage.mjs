@@ -505,6 +505,9 @@ function panelHtml(n) {
   const title = dispLabel(n);
   const sec = (t, body) => "<h3>" + escHtml(t) + "</h3>" + body;
   const hint = (text) => '<div class="cond muted">' + text + "</div>";
+  // Three different logics used to read as one flat list. Say which is which: a condition is
+  // all-of, a trigger is any-of, and a rite's open tips are what the game says when unmet.
+  const sub = (text) => '<div class="sublabel">' + escHtml(text) + "</div>";
   const row = (k, r, dir) => {
     const label = (dir === "in" ? REL_IN[r] || REL_OUT[r] : REL_OUT[r]) || r;
     return '<div class="relrow"><div class="reltag">' + escHtml(label) + '</div><div class="relval">' + chip(k) + "</div></div>";
@@ -540,7 +543,13 @@ function panelHtml(n) {
     // Everything that has to hold for this node to show up, in one place: its own condition,
     // the tips on a rite's open conditions, and the nodes that trigger it. A reader asking
     // "when does this happen" does not care which of the three it came from.
-    sec("条件", conds + condOutRows + openTips + inRows || hint(emptyIn)) +
+    sec(
+      "条件",
+      (conds || condOutRows ? sub("全部满足") + conds + condOutRows : "") +
+        (inRows ? sub("任一发生就会触发") + inRows : "") +
+        (openTips ? sub("开启条件：不满足时游戏会这样提示") + openTips : "") ||
+        hint(emptyIn)
+    ) +
     nb +
     sec("会发生什么", outRows || hint("没有。它不引发别的事。"))
   );
@@ -748,6 +757,7 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
 #modal-body .relval a:hover { text-decoration: underline; }
 #modal-body .cond { color: #cfc0a4; font-size: 13px; line-height: 1.75; margin: 3px 0; }
 #modal-body .cond.muted { color: #7a6f5e; }
+#modal-body .sublabel { color: #9a8d78; font-size: 12px; letter-spacing: .04em; margin: 12px 0 2px; }
 #modal-body .swrow { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; }
 #modal-body .sw { font-size: 12px; color: #d8c9ab; background: #241d15; border: 1px solid #3a3128; border-radius: 3px; padding: 2px 8px; }
 .badge { font-size: 10px; padding: 0 4px; border-radius: 2px; }

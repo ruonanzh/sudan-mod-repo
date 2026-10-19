@@ -127,6 +127,15 @@ test("时机 is the timing, and everything else that gates a node is 条件", { 
   const rite = els.get("modal-body").innerHTML.split("<h3>条件</h3>")[1].split("<h3>")[0];
   assert.match(rite, /由它开启/, "what triggers it is also part of 条件");
   assert.match(rite, /条件涉及卡/, "as is a condition that names a card");
+  // The three logics are labelled: all-of, any-of, and a rite's unmet tips.
+  assert.match(rite, /<div class="sublabel">全部满足<\/div>/);
+  assert.match(rite, /<div class="sublabel">任一发生就会触发<\/div>/);
+
+  win.__openNode("rite:5000812"); // two open_conditions, each with its own tip
+  await tick();
+  const oc = els.get("modal-body").innerHTML;
+  assert.match(oc, /<div class="sublabel">开启条件：不满足时游戏会这样提示<\/div>/);
+  assert.match(oc, /匪帮调动中，无法进行训练/, "the tip the game prints when unmet");
 });
 
 test("a switch reads as the sentence its value earns", { skip }, async () => {
