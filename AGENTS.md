@@ -32,6 +32,7 @@
 - `AGENTS.md` —— 本文件：固定的环境事实与边界。
 - `script/` —— 测试与维护者的工具。`run-tests.mjs` 是唯一入口；`gen-field-tables.mjs` 从字段普查重建 `schema/fields.json`；`prompt-standard.md` 是提示词写作标准，改本文件或任一 `SKILL.md` 前先读它。
 - `.pi/skills/` —— 分步指导。读匹配的那一份，每份自己写了触发条件。
+  - `setup-workspace` —— 环境准备：先确定 mod 根目录（必需）；dump 游戏代码的工具链、参考游戏美术都是可选的，用到时才准备。开局或换机器先读这一份。
   - `mod-creator` —— 主参考：mod 布局、`info.json`、mod 能提供哪些 config、合并语义、JSONC 规则，以及带可用示例的卡与事件/仪式写法。
   - `mod-installer` —— 把 mod 复制进 mod 根目录、启用它、再从日志确认。
   - `card-art` —— 图片契约：尺寸、命名，以及一张贴图替换掉什么。
