@@ -277,6 +277,24 @@ function reportSettlements(fileRel, list, where) {
   });
 }
 
+/**
+ * An event branch has no condition, and writing one is not a gate.
+ * `EventTrigger.DoSettlements` appends one thunk per branch to a single sequence and runs it;
+ * the condition field is never read on that path, and none of the 1869 shipped branches has one.
+ * The same JSON shape means something else one file over — in `rite.settlement` the branches are
+ * a cascade — so the message points there instead of just saying "unused key".
+ */
+function checkEventBranchConditions(fileRel, list) {
+  list.forEach((branch, i) => {
+    if (!isPlainObject(branch) || !("condition" in branch)) return;
+    warn(
+      "EVENT_BRANCH_CONDITION",
+      fileRel,
+      `settlement[${i}] has a condition, but an event branch never tests it: every branch of event.settlement runs, in order. Gate the outcome inside the branch (case/option/confirm), or move the choice into a rite.settlement, where the first branch that matches wins.`,
+    );
+  });
+}
+
 /** Report unknown and legacy keys for one object. */
 function reportFields(fileRel, kind, obj, where) {
   const { fail: bad, legacy } = splitKeys(kind, obj);
@@ -867,6 +885,7 @@ function lintMod(modDir, vanilla, opts) {
         }
         if (relPath === "config/event" && Array.isArray(value.settlement)) {
           reportSettlements(fileRel, value.settlement, "settlement");
+          checkEventBranchConditions(fileRel, value.settlement);
           checkDeadBranches(fileRel, "settlement", value.settlement);
         }
         if (relPath === "config/loot" && Array.isArray(value.item)) {

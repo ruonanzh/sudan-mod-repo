@@ -313,7 +313,8 @@ test("B7 restating a whole vanilla event does not silence a legacy key", () => {
   const body = {
     id: 5910020,
     on: { round_begin_ba: 1 },
-    settlement: [{ condition: {}, action: { "counter+7000001": 1 }, result: ["x"] }],
+    // No `condition` here: an event branch has none, and B7 is about `text`, not about that rule.
+    settlement: [{ action: { "counter+7000001": 1 } }],
     text: "the card text vanilla writes and no reader backs",
   };
   const r = lint(makeMod(oneRecord("event", body)));
