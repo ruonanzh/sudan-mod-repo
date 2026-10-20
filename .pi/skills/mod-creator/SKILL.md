@@ -132,9 +132,7 @@ dictionary keeps only the last value.
         "title": "军队",
         "text": "一支常年流浪在外但装备精良、训练有素的军队。",
         "pops": [],
-        "card_favour": "",
         "type": "item",
-        "tips": "",
         "rare": 4,
         "resource": ["cards/2000376"],
         "tag": { "体魄": 10, "战斗": 10, "部队": 1, "纯色材质": 1 },
@@ -158,11 +156,11 @@ Card fields:
 | `rare` | 1 to 4. 1 stone, 2 copper, 3 silver, 4 gold |
 | `resource` | sprite name, or an array of sprite names for multiple art variants |
 | `tag` | a map of tag name to integer. Negative and zero are legal |
-| `pops` | hover bubble text entries |
+| `pops` | declared as `string[]` and **empty in all 1294 vanilla cards**. Legacy: an object here fails the conversion. Use `post_rite` for the pop-up behaviour |
 | `equips` | equipment slots this card accepts, e.g. `["武器","服装","饰品"]` |
 | `is_only` | whether only one copy may exist |
-| `card_vanishing` / `vanish` | expiry behaviour, usually `0` and `{}` |
-| `post_rite` | optional settlement array that runs after use |
+| `card_vanishing` / `vanish` | `card_vanishing` is rounds of life: each round pass adds 1, and once `life >= card_vanishing` the card is queued to vanish. `0` = never ages. `vanish` is the operation block run when the card is destroyed; `{}` in 1267 of 1294 vanilla cards |
+| `post_rite` | optional settlement array. After a rite that involved this card settles, every branch whose `condition` holds appends its `result_text` and queues its `result`/`action`. Branches of cards equipped on it are collected too |
 
 Card ids in vanilla run `2000001` to `2001351`. Community mods have used `17xxxxx`, `21xxxxx` to
 `27xxxxx`, `2999999` and `9000xxx`. There is no reserved block and no registry, so check for
@@ -185,6 +183,8 @@ To make a card obtainable, add a `config/upgrade.json` entry. It is the destiny 
 ```
 
 `link_card` is what draws the shop thumbnail. `cost: 0` is legal and shows the item for free.
+`link_card_inst` is **not** an authored key: the game synthesises that `Card` from `link_card`
+(`PointShopController.InitUpgradeCards`), so writing it does nothing.
 
 ## An event
 
@@ -194,10 +194,10 @@ must hold, `settlement` is an array of branches with an `action`.
 ```jsonc
 {
     "id": 5300029,
-    "text": "书店营业",
+    "text": "书店营业",              // display only: nothing reads it
     "is_replay": 1,                 // may it trigger more than once
     "auto_start_init": [1],         // already enabled when init config 1 starts
-    "start_trigger": true,          // event_on checks the condition at once
+    "start_trigger": true,          // unsettled; see the note below
     "on": { "round_begin_ba": 1 },  // timing; 1 means every round start
     "condition": {
         "!rite": 5002006,            // ! negates
@@ -205,8 +205,6 @@ must hold, `settlement` is an array of branches with an `action`.
     },
     "settlement": [
         {
-            "tips_resource": "",
-            "tips_text": "",
             "action": { "rite": 5002006 }
         }
     ]
@@ -215,13 +213,25 @@ must hold, `settlement` is an array of branches with an `action`.
 
 Facts that decide whether the file works:
 
-- **The field list per node type is in `tools/lint.mjs`, in `NODE_FIELDS`.** It was read out of the
-  decompiled types and checked against every shipped file: zero keys in the game's own 3365 event and
-  rite files are missing from it. A key that is not listed for that node is never read, so
-  `node tools/lint.mjs` reports it as `UNKNOWN_FIELD`. Trust that over any prose, including this file.
+- **The field list per node type is in `schema/fields.json`**, which `tools/lint.mjs` loads as
+  `NODE_FIELDS`. It was read out of the decompiled `*_JsonHandler` types and checked against every
+  shipped file. A key that is not registered for that node is never read, so `node tools/lint.mjs`
+  reports it as `UNKNOWN_FIELD`. The per-key evidence (reader index, field offset, corpus count) is in
+  `docs/sudan-game/fields/21-handler-keys.md` in the planning repo.
 - **Where those field lists come from.** `inspect_game_code` reads the dump: `action=search` finds a type or member in `dump.cs`, `action=type` prints its fields with offsets, properties and signatures, `action=body member=<name>` prints that method's ISIL and disassembly, and `action=strings` searches string literals. The dump is `~/.gamer-agent-pi/decompiled/sudan-mod-repo/` and covers the game's eight assemblies; add one in `decompile.json`, then run `action=dump assembly=<name>`. Field offsets are decimal (`[r14+40]` is `0x28`); disassembly offsets are hex (`+58h` is `88`). This repository ships data only, so read the dump to confirm a key or a type, not to write code.
 - `EventNode` has no `auto_start`, even though 1520 vanilla event files carry one. It does nothing.
   `auto_start_init` is the real field.
+- `text` is authored on all 1867 vanilla events and **no code reads it** — it is not one of the seven
+  registered keys. Treat it as a label for whoever opens the file.
+- **An event branch has no `condition`.** `EventTrigger.DoSettlements` runs every branch in array
+  order without testing one, and 0 of the 1869 vanilla branches carry the key. A `condition` you
+  write there is silently ignored; branch selection belongs in `rite.settlement`.
+- `tips_resource` and `tips_text` are written into 1813 event branches and are **not** keys of a
+  settlement: `tips_resource` is not a string in the binary at all, and `tips_text` is a key of
+  `rite`. Both are ignored.
+- **An event branch shows no text of its own.** The settlement shape has `result_text`, but the event
+  host never reads it: what the player sees comes from `action.prompt` (622 of the 1869 vanilla
+  branches). Put the wording there.
 - `auto_start_init` is a list of `init` config ids. `config/init/1.json` is the normal run, so
   `[1]` means "on from the start of a normal game". An event that is in no `auto_start_init` list and
   is never named by another event's `event_on` does not run. A brand-new event that must run every
@@ -234,7 +244,7 @@ Facts that decide whether the file works:
   `[lo, hi]` means a random round in that range. Eight of the 29 are registered by the engine but
   never written by vanilla; SCHEMA.md marks which ones.
 - **Condition keys** carry their operator: `counter.7000017<=`, `rare<`, `r1:体魄`, `hand_have.<id>`,
-  `table_have.<id>`, `have.<id>`, `cost.<id>`, `is`, `type`, `any`, `all`, `!` for negation, and
+  `table_have.<id>`, `have.<id>`, `cost.<tag>`, `is`, `type`, `any`, `all`, `!` for negation, and
   `s1`..`sN` to scope to a rite slot. The full grammar, with the shapes vanilla actually uses, is the
   Conditions section of [`schema/SCHEMA.md`](../../../schema/SCHEMA.md).
 - **Action keys** carry their argument: `rite`, `card`, `g.card`, `event_on`, `event_off`,
@@ -262,12 +272,10 @@ Facts that decide whether the file works:
     "round_number": 1,
     "waiting_round": 0,
     "waiting_round_end_action": [],
-    "method_settlement": "",
     "auto_begin": 0,
     "auto_result": 0,
     "location": "神殿区:[2,10]",
     "icon": "rite_9",
-    "tag_tips": [],
     "tag_tips_up": {},
     "tips_text": ["可以重置苏丹卡的剩余时间"],
     "open_conditions": [],
@@ -298,17 +306,20 @@ Facts that decide whether the file works:
 }
 ```
 
+Never write these keys: `method_settlement`, `tag_tips`, `mapping`, `random_effect`. Vanilla's own rite
+files carry them, but none of the four is registered by a handler, so nothing reads them.
+
 Three settlement arrays exist. What each does with multiple branches:
 
 | array | behaviour |
 |---|---|
 | `settlement_prior` | first branch whose condition holds; the whole `settlement` array is then skipped |
 | `settlement` | first branch whose condition holds |
-| `settlement_extre` | every element, in order; it does not test conditions |
+| `settlement_extre` | every branch whose own `condition` holds, in array order. The condition sees the slot that produced the extra result, not `-1` |
 
-The shipped data agrees, and the decompiled loop settles it: `GetPriorSettlement` and
-`GetNormalSettlement` each return one element, and `DoExtraSettlement` copies every element into
-the queue without calling its condition.
+The shipped data agrees, and the decompiled loops settle it: `GetPriorSettlement` and
+`GetNormalSettlement` each return one element, and `DoExtraSettlement` walks all elements and lets
+each one pass through its own condition test.
 
 The wiki documents it field by field. The shipped data agrees, and it is the data that makes this
 usable as a rule:
@@ -317,7 +328,8 @@ usable as a rule:
   is the **last** branch, 69 out of 69 times, never earlier. An unconditional branch placed earlier
   would make everything after it dead, so no author ever wrote one.
 - In `settlement_extre`, empty conditions appear at every index including index 0 and index 165, 216
-  of them. Position does not matter there, which is what "all matches run" looks like.
+  of them, and only 187 of those 341 are last. That is what a per-branch gate looks like: an entry
+  with no condition always passes, and the entries after it are still tested on their own.
 
 So: put the unconditional branch **last** in `settlement_prior` and `settlement`, and anywhere in
 `settlement_extre`. `node tools/lint.mjs` reports `DEAD_BRANCH` when you get this wrong.
@@ -346,14 +358,16 @@ whether that *rite* is optional. Read the whole slot.
 | field | meaning |
 |---|---|
 | `once_new` | the "new" badge: `1` = new only the first time it appears (`player.only_rites` remembers it), `0` = every time, `-1` = never |
-| `location` | a map pin label, `place:number` or `place:[a,b]`. Only the text before the colon is read, as a name — **nothing parses the number**, so it is not a round. Vanilla has 89 distinct values for 1498 rites; 590 of them share `自宅:[2,12]` |
+| `location` | where the pin goes: `place:slot` or `place:[lo,hi]`. **Both halves are parsed** — the area picks the map transform the pin is parented to, the slot or range picks the position inside it, and `MapController.SetRitesPosition` resolves collisions. 89 distinct values over 1498 rites, and 590 of them share `自宅:[2,12]`, so sharing a position is normal. A malformed range is a load-time error |
 | `open_conditions` | **all of them must hold.** Each entry is `{condition, tips}`, and the rite title bar prints the `tips` of every unmet entry, so write the tip as the reason it cannot open ("匪帮调动中，无法进行训练") — that is the sentence the player reads |
-| `is_enemy` (slot) | `1` = the slot counts for the enemy side; dice and battle rites split their cards by it |
+| `is_enemy` (slot) | `1` keeps the slot out of the friendly tag tally: `RitePanelController.UpdateTagTipsValue` skips slots whose `is_enemy != 0` while it sums a tag chip. 740 of the 5406 vanilla slots set it |
 
-**Reuse a vanilla `location` string; do not invent one.** `GetLocationName` splits on `:` and looks
-only the part before it up as a translation key, then the map looks the whole string up in a
-`SerializableDictionary<string, Vector2>` for the pin position. A made-up name misses both. The ten
-groups vanilla uses, with every number each one carries:
+**Reuse a vanilla `location` string; do not invent one.** The area token names an area of the game's
+own map: `GameController.GetLocation` turns the string into a `RitePosition` and `AddRitePin` parents
+the pin to that area's transform, and `RiteExtensions.GetLocationName` splits on `:` and localises the
+area for display, falling back to the raw token. A made-up area therefore has neither a place on the
+map nor a name. There are ten areas, and no eleventh is reachable from config. The ten groups vanilla
+uses, with every slot value each one carries:
 
 | group | values seen |
 |---|---|
@@ -369,9 +383,9 @@ groups vanilla uses, with every number each one carries:
 | 大敌 | `1` `2` `3` `6` |
 
 `final_pin: 1` is read, and it does one thing: when the rite settles, the game removes the rite and
-then calls `PlayerExtensions.AddRitePin(player, rite.uid)` — so the rite leaves a pin behind on the
-player. `RiteResultPanelController.<Settlement>b__8` skips that when the value is not 1. Twelve
-vanilla rites set it.
+then calls `PlayerExtensions.AddRitePin(player, rite.id)` — so the rite leaves a pin behind on the
+player. `RiteResultPanelController.<Settlement>b__8` skips that when the value is not 1, and
+`UpdateWaiting` reads the same field while the result panel waits. Twelve vanilla rites set it.
 
 Dead field: `is_key` — `0` in all 5406 vanilla slots, and none of the twelve `+0x24` comparisons in
 the whole build sits on a slot.
@@ -382,31 +396,36 @@ closes. No vanilla rite sets it, so every one of them gets the clamp floor of 1.
 
 ## Triggers, timeouts and the order things settle
 
-`start_trigger` is about registration, not about `round_begin_ba`:
+**`start_trigger` is unsettled. Do not build a design on it.** `EventTrigger.Add(EventNode, bool
+enable_start_trigger)` compares the event's field with the second argument and skips its immediate
+settle path when they are equal. `event_on` passes `true`, a save load passes `false`. Read one way,
+that means `event_on` settles at once when `start_trigger` is set and load does not; read the other
+way it is the reverse, because `true` is the value that *differs* from the load's `false` and so takes
+the settling branch. An earlier note in this file claimed a probe had confirmed the first reading;
+that claim is withdrawn. What is settled: `auto_start_init` is what registers an event, and `on` is
+what schedules it, so make a design work without `start_trigger` and only then decide whether to
+write it.
 
-- `event_on` calls `Add(id, true)`. If the event's `start_trigger` is also true, the condition is
-  evaluated immediately against `player.round`, and a passing condition runs the settlement at once.
-- Loading a save calls `Add(e, false)`. `start_trigger: true` therefore does nothing at load: the
-  event waits for its next timing. A probe confirmed this. An event with `start_trigger: true` and
-  `round_begin_ba: 1` opened nothing until the next round began.
 - `auto_start_init: [1]` is what registers an event at all. It is a set of `init/<n>.json` ids,
   compared with `player.configId`, not a delay. `[1]` is the normal run; `[0]` is the guided prologue.
-- `round_begin_ba: x` is a period measured from activation. The game stores
-  `timing_rounds[eventId*100+index] = round + x` and re-arms after each fire. `[min,max]` is
-  max-exclusive (`Random.Range`), so `[3,5]` means 3 or 4.
+- `round_begin_ba: x` is a period measured from activation. `x` alone means every `x` rounds, and the
+  next fire is seeded with `current + Random.Range(x, x)`; `[a,b]` seeds `current + Random.Range(a, b)`
+  with `b` **exclusive**, so `[3,5]` means 3 or 4. `99999` is the idiom for "fire once, then never".
 
-`delay` is separate: `"delay": {"round": 5, ...}` fires the next thing after 5 rounds, and
-`round: 1` means the next round. A round is one in-game day.
+`delay` is separate: `"delay": {"id": 9001, "round": 5, ...}` runs its other operations 5 rounds
+later, and `round: 1` means the next round. A round is one in-game day. `id` is the handle that
+`delay_off` cancels, and a second `delay` with the same `id` overwrites the first schedule instead of
+stacking.
 
 Rite timing fields:
 
 | field | meaning |
 |---|---|
-| `round_number` | how many rounds the rite itself takes. `0` settles immediately |
-| `waiting_round` | how long it may sit on the map. `0` means no limit |
-| `waiting_round_end_action` | what happens on timeout |
-| `auto_begin` | `1` starts the rite automatically. It overrides the timeout |
-| `open_adsorb` | `1` makes the slot pull matching cards in by itself |
+| `round_number` | ticks from start to automatic settlement: `life >= round_number`, and `life` is incremented first, so `0` and `1` both settle on the first tick. `0` also hides the remaining-rounds counter on the pin. Vanilla runs 0–8 |
+| `waiting_round` | patience in ticks while the rite sits on the map unstarted. `0` means no limit |
+| `waiting_round_end_action` | the settlements fired when that patience runs out and the rite is removed |
+| `auto_begin` | `1` makes the round tick start the rite without player input |
+| `open_adsorb` (slot) | `1` makes the slot a candidate for auto-filling from the player's pool when the rite opens (`RiteExtensions.AdsorbCards` skips every slot whose value is 0). `0` is 3349 of the 5406 vanilla slots, and those are filled only by the player |
 
 Daily settlement runs in this order: countdown ticks, then each card's own `vanish`, then rites in
 ascending id order, then the used card's `post_rite`. Absorption follows ascending rite id too. So a
@@ -417,12 +436,17 @@ reach a later one.
 
 | key | means |
 |---|---|
-| `have.<filter>` | a card is alive |
+| `have.<filter>` | a card is alive, anywhere in play |
 | `table_have.<filter>` | a card is on the table and free |
-| `hand_have.<filter>` | a card is in hand |
+| `hand_have.<filter>` | a card is in hand. A card counts as held when it carries the `own`, `adherent` or `player` tag (`CardExtensions.IsHandCard`, literals `0x33796C8` / `0x3374D00` / `0x3379970`) |
 
-`rite_template` and `rite_template_mappings` control where the slots sit on screen. If you do not ship
-them, the game falls back to a normal template and logs
+The filter is a 7-digit card id and/or a tag name, either may be left out, and the comparator sits on
+the end of the key: `have.2000005.幽秘的爱意<`. `!` or `~` in front negates the whole thing.
+
+`rite_template` and `rite_template_mappings` control where the slots sit on screen. A rite reaches
+them through its own `mapping_id`: that row supplies the panel `template_id` and the slot keys the
+panel may open, and 1421 of the 1422 vanilla ids resolve. If you do not ship the template, the game
+falls back to a normal template and logs
 `load rite panel {0} failed, rite_template invalid`. That is a Warning, not a failure, so a rite works
 without them and just looks generic.
 
@@ -444,14 +468,15 @@ Four more things a mod can ship. Only the fields below are read; anything else i
 
 `type` is a constant, not free text — the engine compares it to four values:
 
-| `type` | what it draws |
-|---|---|
-| `2` | normal: one weighted pick per draw |
-| `3` | only-new: one pick per draw, and each draw re-excludes what you already got |
-| `4` | choose M of N: `repeat` entries are picked from the table |
-| `99` | package: the whole table is granted, `repeat` times |
+| `type` | what it draws | vanilla |
+|---|---|---|
+| `2` | one weighted pick per draw | 125 |
+| `3` | one weighted pick per draw, after removing the entries the player already owns | 55 |
+| `4` | `repeat` **weighted** picks without replacement: `repeat` is the `m` in "choose m of n", and the algorithm runs once, not `repeat` times | 2 |
+| `99` | every eligible entry, weights ignored, `repeat` times | 11 |
 
-`repeat` is how many draws happen. In vanilla, 188 tables use `1`; the rest use 3, 6 or 13.
+`repeat` is how many independent draws happen — except under `type: 4`, where it is `m`. In vanilla 188
+tables use `1`; the rest use 3, 6 or 13.
 
 Each `item` is `{type, id, num, weight, condition}`. `type` is `card`, `event`, `rite` or `loot`
 (a table inside a table). `weight` is relative — only the ratios matter, and `SimpleWeightLoot` really does draw with
@@ -517,17 +542,25 @@ The loader registers all twelve fields, so nothing here is dead: `id`, `name`, `
 One file per character card; the id is the **card** id, not a new id range (66 in vanilla: 61
 characters + 5 items).
 
-- `pic` is the picture shown. `close_condition` and `prior` are declared in the schema but no vanilla
-  file uses either (0 of 66), and nothing in the build evaluates `close_condition`; leave both out.
-- `prior` and `extra` are **`RiteNode.Settlement[]`**, exactly the shape a rite's branches use:
-  `{condition, result_text, pic, result, action, key, sort}`. `sort` decides the order and a missing
-  `sort` counts as `10`.
-- A branch is chosen by **`key` first**: if the branch has a `key`, the game compares it with the
-  save's `after_story_key` and takes it on a match; if there is no `key` (or it does not match) the
-  branch's `condition` is evaluated, and a branch with no condition is taken unconditionally. First
-  match wins. Every one of the 7750 vanilla branches carries a string key such as
-  `2000001_extra_1`, so write one. `OverNewAfterStoryItemController.Show` then runs the chosen
-  branch's `result` and then its `action`, and `key` also feeds `Datapool.SetOverId`.
+- `pic` is the picture shown.
+- `close_condition` **is** evaluated. The page loop calls `condition.IsSatisfied`, and a satisfied
+  `close_condition` skips its page instead of rendering it. No vanilla file ships it live: 59 of the
+  66 carry it **commented out** with the same body, `{ "!s1": 1 }`.
+- `prior` and `extra` are **`RiteNode.Settlement[]`**, the same branch shape a rite uses:
+  `{condition, result_text, pic, result, action, key, sort}`. They are not alternatives to each other
+  and not two halves of one list: `prior` has **precedence**.
+- `prior` is the single opening passage. The game walks it first, takes the first branch that passes,
+  runs its `result` then its `action`, and **returns**, so `extra` is never read. All 66 vanilla files
+  declare it as `[]`; writing one turns the whole epilogue into that one passage.
+- `extra` is the epilogue itself, and **every branch that passes becomes a page**, in array order. A
+  pass means: a branch with a `key` must match the save's `after_story_key` (a branch without a key
+  skips that test), its `condition` must hold, and it must not leave both `result_title` and
+  `result_text` empty. So a card with 385 branches renders as a 385-page carousel gated by world
+  state, not as one page chosen from 385. All 7750 vanilla branches carry a key such as
+  `2000001_extra_1`; write one. `key` also feeds `Datapool.SetOverId`, which is what the page text
+  and the previous/next buttons resolve against.
+- `sort` sits on the branch but its consumer is not located, so do not rely on it to order pages:
+  the array order is what you can see and control.
 - The save keeps `prior` as a string key and `extra` as a set, so the same config can be reused by
   several runs.
 
