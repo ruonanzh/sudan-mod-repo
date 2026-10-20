@@ -41,7 +41,7 @@ export interface DecompileConfig {
   dump: DumpConfig;
 }
 
-export const configPath = (cwd: string): string => join(cwd, ".pi/decompile.json");
+export const configPath = (cwd: string): string => join(cwd, ".pi/lib/decompile.json");
 
 export function loadConfig(cwd: string): DecompileConfig {
   const file = configPath(cwd);
@@ -52,7 +52,7 @@ export function loadConfig(cwd: string): DecompileConfig {
   }
   const raw = JSON.parse(readFileSync(file, "utf8")) as DecompileConfig;
   if (!Array.isArray(raw?.dump?.assemblies)) {
-    throw new Error("DECOMPILE_CONFIG_INVALID: .pi/decompile.json has no dump.assemblies array.");
+    throw new Error("DECOMPILE_CONFIG_INVALID: .pi/lib/decompile.json has no dump.assemblies array.");
   }
   if (raw.runtime !== "il2cpp") {
     throw new Error(`DECOMPILE_CONFIG_INVALID: runtime "${String(raw.runtime)}" is not supported by this repository.`);
