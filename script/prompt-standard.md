@@ -176,7 +176,9 @@ node script/check-terms.mjs
 node script/check-terms.mjs --standard <path>   # 默认读本仓的同级目录
 ```
 
-退出码非零即有违规。它挂在 `script/run-tests.mjs` 里，和其他套件一起跑。
+退出码非零即有违规。它由 `script/terms.test.mjs` 带进 `script/run-tests.mjs`，和其他套件一起跑。
+
+**尚未翻译的文件算「待办」，不算违规。** 汉字占非空白字符不到 5% 的文件会被列为 `pending` 并打印出来，但不让测试变红；`--strict` 把它变成失败——翻完最后一份时用这个开关收口。这样是为了避免「还没开工就先红」，红久了的检查没人看。
 
 ### 6.2 人工核对
 
