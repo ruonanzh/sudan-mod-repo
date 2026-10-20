@@ -645,7 +645,7 @@ export async function buildDump(
     const bytes = dirBytes(tmp);
     if (budget > 0 && bytes > budget) {
       throw new Error(
-        `DUMP_OVER_BUDGET: this dump is ${Math.round(bytes / 1048576)} MB and the config allows ${Math.round(budget / 1048576)} MB. Narrow dump.assemblies.`,
+        `DUMP_OVER_BUDGET: this dump is ${Math.round(bytes / 1048576)} MB and the config allows ${Math.round(budget / 1048576)} MB. The previous dump is untouched.\nNEXT: raise dump.budgetBytes, or narrow dump.assemblies.`,
       );
     }
 
