@@ -1,86 +1,73 @@
 ---
 name: mod-installer
 description: >
-  Put a Sultan's Game(苏丹的游戏) mod into the game and confirm the game read it. Covers the mod root path on
-  macOS and Windows, why a copied folder is not yet an enabled mod, how to read the per-mod log, and
-  how to update or remove a mod. Read it when the player wants the mod in the game, says they cannot
-  see it, or after you finish writing one.
+  把一个苏丹的游戏 mod 装进游戏，并确认游戏真的读到了它。覆盖 macOS 与 Windows 上的 mod 根目录、
+  为什么复制文件夹还不等于启用、怎么读单个 mod 的日志，以及怎么更新与移除。玩家要把 mod 装进游戏、
+  说看不见它、或你刚写完一个 mod 时，读这一份。
 ---
 
-# Install a mod
+# 安装 mod
 
-Part of the Sultan's Game mod workspace. If you have not read `mod-creator`, read it first.
+属于苏丹的游戏 mod 工作区。没读过 `mod-creator` 的话，先读它。
 
-## The mod root
+## mod 根目录
 
 ```
 macOS    ~/DoubleCross/SultansGame/Mod/
 Windows  %USERPROFILE%\Documents\DoubleCross\SultansGame\Mod\
 ```
 
-The game derives it from `GetFolderPath(MyDocuments)` joined with the company name, `"SultansGame"`
-and `"Mod"`. On macOS `MyDocuments` is the home directory; on Windows it is `Documents`. That is the
-whole difference between the two paths, so do not reason from one to the other.
+游戏用 `GetFolderPath(MyDocuments)` 拼上公司名、`"SultansGame"` 与 `"Mod"` 推出它。macOS 上 `MyDocuments` 是家目录，Windows 上是 `Documents`。两条路径的差别只有这一处，不要拿一个去推另一个。
 
-If the player cannot find the folder, the in-game mod panel has a button that opens it. The button
-creates the folder when it is missing, so "the folder did not exist" is not a reason to look elsewhere.
+玩家找不到这个文件夹时，游戏内的 mod 面板上有一个按钮可以打开它。文件夹不存在时，这个按钮会把文件夹建出来，所以「文件夹原来不存在」不是去别处找的理由。
 
-## Install
+## 安装
 
-Copy `your_mods/<ModName>/` to `<ModRoot>/<ModName>/`. Copy, do not move: the repo copy is the source.
+把 `your_mods/<ModName>/` 复制到 `<ModRoot>/<ModName>/`。要复制，不要移动：仓库里的那一份是源文件。
 
-The folder name and `info.json` `name` are independent. The folder name is what appears in paths; the
-`name` field is what the panel shows.
+文件夹名与 `info.json` 的 `name` 字段互不相干。文件夹名出现在文件路径里，`name` 字段是 mod 面板上显示的名字。
 
-## A copied folder is not an enabled mod
+## 复制过来不等于已启用
 
-The player must open the mod panel and enable it. The panel is reached from the title screen. Enabling
-writes the game's own `mods.json`, which you never touch.
+复制完成后，玩家要打开 mod 面板启用这个 mod。mod 面板从游戏标题界面进入。启用状态由游戏自己记录（内存里的 `Global.mods`），你不要手写任何启用列表文件。
 
-Two consequences worth saying out loud:
+有两个后果要提前说清：
 
-- When two mods supply the same config path, the one enabled **last** wins. There is no load order
-  field and no dependency field.
-- A mod that changes a vanilla record replaces the whole file. If the player disables it, vanilla
-  comes back. If the game later patches that vanilla file, the mod silently keeps serving its old copy.
+- 两个 mod 提供同一个 `config` 路径时，**后启用**的那个 mod 生效。这里没有加载顺序字段，也没有依赖字段。
+- 改动原版记录的 mod 采取整份替换：游戏读的是这个 mod 提供的那份完整文件，不读原版文件。玩家禁用这个 mod 之后，游戏重新读原版文件，原版内容恢复。游戏以后更新了那个原版文件时，这个 mod 仍然提供它当初复制下来的旧副本。
 
-## Update
+## 更新
 
-Overwrite the folder, then tell the player to refresh the mod list. A mod that removed files needs the
-stale files deleted by hand; the game does not prune a mod folder.
+覆盖文件夹后，让玩家刷新 mod 列表。如果新版删掉了某些文件，旧版留下的那些文件要手动删除：游戏不会清理 mod 目录。
 
-## Remove
+## 移除
 
-Delete the folder. Then have the player refresh. If the mod is still enabled in the panel, the game
-logs that it is missing and skips it.
+删掉文件夹后，让玩家刷新 mod 列表。如果这个 mod 在面板里仍然是启用状态，游戏会在日志里记一条缺失，并跳过这个 mod。
 
-## Confirm that the game read it
+## 确认游戏读到了
 
-Read the log. Do not ask the player whether it worked when the log can answer.
+读日志。日志能回答的问题，不要拿去问玩家。
 
 ```
-~/DoubleCross/SultansGame/ModLog/__mod.log               global
-~/DoubleCross/SultansGame/ModLog/<mod name>_local.log    one per mod
+~/DoubleCross/SultansGame/ModLog/__mod.log              全局
+~/DoubleCross/SultansGame/ModLog/<mod name>_local.log   每个 mod 一份
 ```
 
-What to look for:
+看什么：
 
-| line | meaning |
+| 行 | 含义 |
 |---|---|
-| `read mod <name> file: config/cards.json` | the game read that file |
-| `mod <name> file not exists: config/event` | that entry is absent. **Warning, not an error** |
-| `mod <name> info.json loaded` | metadata accepted |
-| `mod <name> info.json invalid` | fix `info.json` before anything else |
-| `unknown how to read operation` | a key you invented is not an operation |
-| `can not create operation instance` | an operation key exists but its argument is the wrong shape |
-| `is not png, ignored` | something in `image/` is not a PNG |
-| `is not wav, mp3, ogg, ignored` | something in `bgm/` has the wrong extension |
+| `read mod <name> file: config/cards.json` | 游戏读了这个文件 |
+| `mod <name> file not exists: config/event` | 这一项不存在。**警告，不是错误** |
+| `mod <name> info.json loaded` | 元数据被接受 |
+| `mod <name> info.json invalid` | 先修 `info.json`，别的都放到后面 |
+| `unknown how to read operation` | 你编的键不是一个操作 |
+| `can not create operation instance` | 操作键存在，但参数的形状不对 |
+| `is not png, ignored` | `image/` 里有不是 PNG 的东西 |
+| `is not wav, mp3, ogg, ignored` | `bgm/` 里有后缀不对的东西 |
 
-A mod that supplies one file logs about eighteen `file not exists` warnings. That is expected and is
-not a fault. Report the `read` lines as the evidence, not the warnings.
+只提供一个文件的 mod 会打出十几条 `file not exists` 警告。这些警告是预期的，不是故障。报证据时引用 `read` 开头的行，不要引用警告行。
 
-## What the log cannot tell you
+## 日志不能告诉你的事
 
-The log proves the game loaded your data. It does not prove the change is visible. Card art, layout,
-and whether a rite is reachable all need the player's eyes. Say what the log showed, then ask what
-they see.
+日志能证明游戏加载了你的数据，不能证明改动在游戏里看得见。卡图、布局、一个仪式能不能走到，都要玩家自己看。先说明日志显示了什么，再问玩家在游戏里看到了什么。
