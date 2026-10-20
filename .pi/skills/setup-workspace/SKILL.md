@@ -97,6 +97,17 @@ SKIP: Cpp2IL is already installed and runs (0.3s).
 
 `setup` 把 Cpp2IL 下到 `~/.gamer-agent-pi/decompiled/tools/cpp2il/`，并按 `tools/toolchain.json` 校验。镜像按顺序试，每次尝试打一行 `source:`。Il2CppDumper 已随仓放在 `tools/il2cppdumper/`，`setup` 不下载它。
 
+### A4. 失败码与下一步
+
+| 输出 | 含义 | 下一步 |
+|---|---|---|
+| `GAME_NOT_FOUND: ...` | 安装目录不在这个工具认识的 Steam 库里 | 给 `status` 传 `game=<路径>` |
+| `TOOLCHAIN_MISSING` | `tools/toolchain.json` 不存在 | 恢复它，它写着 Cpp2IL 从哪来 |
+| `TOOLCHAIN_UNSUPPORTED_PLATFORM` | `toolchain.json` 没有当前平台的 Cpp2IL 资产 | 补一条资产，或自己把二进制放到目标路径 |
+| `CPP2IL_DOWNLOAD_FAILED` | 所有镜像的大小或摘要校验都失败 | 输出里列了每次尝试与确切的目标路径；手动放好文件，再跑 `action=setup` 校验 |
+| `CPP2IL_NOT_RUNNABLE` | 文件写好了但跑不起来（macOS 上未签名的 arm64 会被杀） | 再跑一次 `action=setup` 让它本地签名；仍失败说明资产不对 |
+| `check_runtime` FAIL | dotnet 缺失或低于 8 | 跑 `install_runtime`，执行它打印的命令，再检查一次 |
+
 ## 可选 B：参考游戏美术
 
 参考游戏美术是原版四张品级底板、卡面标题字体与十二张参考卡。只有在你要画一张像真卡的预览时才需要。
@@ -120,17 +131,6 @@ node tools/setup.mjs
 1. 必需：mod 根目录的路径，以及它存在的证据（`ls`，或游戏写出的 `<mod>_local.log`）。
 2. 做了 A：`status` 的 `game:` 或 `build:` 行；`action=setup` 的 `PASS` 或 `SKIP`。没做就明说「不需要 dump 代码」。
 3. 做了 B：`--check` 说参考集完整。没做就明说 `reference/` 不用。
-
-## dump 代码时的失败码与下一步
-
-| 输出 | 含义 | 下一步 |
-|---|---|---|
-| `GAME_NOT_FOUND: ...` | 安装目录不在这个工具认识的 Steam 库里 | 给 `status` 传 `game=<路径>` |
-| `TOOLCHAIN_MISSING` | `tools/toolchain.json` 不存在 | 恢复它，它写着 Cpp2IL 从哪来 |
-| `TOOLCHAIN_UNSUPPORTED_PLATFORM` | `toolchain.json` 没有当前平台的 Cpp2IL 资产 | 补一条资产，或自己把二进制放到目标路径 |
-| `CPP2IL_DOWNLOAD_FAILED` | 所有镜像的大小或摘要校验都失败 | 输出里列了每次尝试与确切的目标路径；手动放好文件，再跑 `action=setup` 校验 |
-| `CPP2IL_NOT_RUNNABLE` | 文件写好了但跑不起来（macOS 上未签名的 arm64 会被杀） | 再跑一次 `action=setup` 让它本地签名；仍失败说明资产不对 |
-| `check_runtime` FAIL | dotnet 缺失或低于 8 | 跑 `install_runtime`，执行它打印的命令，再检查一次 |
 
 ## 边界
 
