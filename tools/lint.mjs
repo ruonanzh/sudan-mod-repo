@@ -102,6 +102,14 @@ const NODE_FIELDS = JSON.parse(
   readFileSync(new URL("../schema/fields.json", import.meta.url), "utf8"),
 );
 
+// Timing names live in schema/vocab.json, which is generated from the [Timing] attributes. This
+// file used to keep its own hand-typed copy of the 29 names; two copies of the same list stay
+// plausible for years and the one nobody runs is the one that goes stale.
+const VOCAB = JSON.parse(
+  readFileSync(new URL("../schema/vocab.json", import.meta.url), "utf8"),
+);
+const TIMING_KEYS = new Set(VOCAB.timings.keys);
+
 /** node kind for a directory-style config path */
 const DIR_KIND = new Map([
   ["config/event", "event"],
@@ -514,14 +522,6 @@ const results = [];
 const pendingRefs = [];
 
 /** Timing keys the engine registers. A key not here is never scheduled. */
-const TIMING_KEYS = new Set([
-  "round_begin_ba", "rite_end", "card_clean", "counter", "game_end", "rite_start",
-  "card_born", "close_wizard", "close_begin_guide", "sudan_redraw_start", "rite_cancel",
-  "open_rite", "open_rite_end", "open_card_info", "open_card_info_end", "close_prompt",
-  "show_wizard_option", "rite_can_start", "rite_can_fill", "rite_can_stop",
-  "back_to_prev_round_end", "round_begin_fr", "round_end", "rite_begin", "rite_clean",
-  "rite_settlement", "card_dead", "back_to_round_begin", "global_counter",
-]);
 const rel = (mount, p) => p;
 function add(level, code, file, message, extra) {
   results.push({ level, code, file, message, ...(extra ? { extra } : {}) });

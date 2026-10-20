@@ -63,23 +63,23 @@ Class column and absent from the data is a key the game reads and vanilla never 
 
 ## Fields by level
 
-Level 2 is one entry of a shipped config file. Level 3 only exists inside such an entry. A
-row marked `handler` is read by a custom reader rather than a declared field; `legacy` is a key
-the current build no longer reads.
+Level 2 is one entry of a shipped config file. Level 3 only exists inside such an entry. Every
+live key names the reader that binds it and the field offset it lands in, so each row can be
+checked against the dump; `legacy` is a key that is written but never read.
 
 ### Level 2 — one per config entry
 
 | kind | keys | what it is | file |
 |---|---|---|---|
-| `card` | 18 (~2 legacy) | One card in the deck: a character, an item, or a Sultan card. | `config/cards.json` |
-| `event` | 10 (~3 legacy) | A journal/story card whose outcome is a list of settlement branches. | `config/event/<id>.json` |
-| `rite` | 30 (~4 legacy) | The multi-round board puzzle: slots, open conditions, waiting period, then three settlement lists. | `config/rite/<id>.json` |
+| `card` | 16 (~2 legacy) | One card in the deck: a character, an item, or a Sultan card. | `config/cards.json` |
+| `event` | 7 (~3 legacy) | A journal/story card whose outcome is a list of settlement branches. | `config/event/<id>.json` |
+| `rite` | 26 (~4 legacy) | The multi-round board puzzle: slots, open conditions, waiting period, then three settlement lists. | `config/rite/<id>.json` |
 | `loot` | 5 | A weighted random table yielding cards, events, rites or other tables. | `config/loot/<id>.json` |
-| `upgrade` | 10 (~1 legacy) | One entry in the destiny shop: pay cost, run effect, gated by condition. | `config/upgrade.json` |
-| `tag` | 17 (~4 legacy) | One tag definition. Cards carry tags as name -> integer. | `config/tag.json` |
-| `init` | 29 (~1 legacy) | A starting scenario: what the run begins with. | `config/init/<id>.json` |
+| `upgrade` | 9 (~1 legacy) | One entry in the destiny shop: pay cost, run effect, gated by condition. | `config/upgrade.json` |
+| `tag` | 13 (~4 legacy) | One tag definition. Cards carry tags as name -> integer. | `config/tag.json` |
+| `init` | 28 (~1 legacy) | A starting scenario: what the run begins with. | `config/init/<id>.json` |
 | `initDifficulty` | 9 | - | `-` |
-| `quest` | 10 (~3 legacy) | A destiny quest shown in the objective list. | `config/quest.json` |
+| `quest` | 7 (~3 legacy) | A destiny quest shown in the objective list. | `config/quest.json` |
 | `over` | 12 | One ending screen. | `config/over.json` |
 | `afterStory` | 6 | Epilogue text shown after an ending. | `config/after_story/<id>.json` |
 | `wizard` | 13 | The character-creation guide: prompts and options. | `config/wizard/<name>.json` |
@@ -87,10 +87,10 @@ the current build no longer reads.
 | `slotPosition` | 9 | - | `-` |
 | `pos` | 2 | - | `-` |
 | `riteMapping` | 4 | Binds a mapping id to a template and lists which slots it exposes. | `config/rite_template_mappings.json` |
-| `dtRoot` | 5 (~1 legacy) | A dialogue tree. | `config/dt/DT<n>.json` |
-| `sfxTop` | 6 (~1 legacy) | Loop-group music config. | `config/sfx_config.json` |
+| `dtRoot` | 4 (~1 legacy) | A dialogue tree. | `config/dt/DT<n>.json` |
+| `sfxTop` | 5 (~1 legacy) | Loop-group music config. | `config/sfx_config.json` |
 | `sfxArmageddonLoop` | 6 | - | `-` |
-| `game` | 7 (~1 legacy) | Presentation overrides. Mod-only: vanilla ships no game.json. | `config/game.json` |
+| `game` | 6 (~1 legacy) | Presentation overrides. Mod-only: vanilla ships no game.json. | `config/game.json` |
 
 ### Level 3 — nested inside another entry
 
@@ -102,10 +102,10 @@ the current build no longer reads.
 | `riteTagTipsUp` | 2 | `rite.tag_tips_up` (inside rite) |
 | `riteRandomTextUp` | 5 | `rite.random_text_up.<rN>` (inside rite) |
 | `riteFromPin` | 10 | `rite.from_pins[]` (inside rite) |
-| `settlement` | 14 (~2 legacy) | `rite/event settlement arrays` (inside event, rite) |
-| `lootItem` | 6 (~1 legacy) | `loot.item[]` (inside loot) |
-| `questTargetItem` | 5 (~2 legacy) | `quest.<id>.target[]` (inside quest) |
-| `wizardOption` | 8 (~1 legacy) | `wizard.options[]` (inside wizard) |
+| `settlement` | 12 (~2 legacy) | `rite/event settlement arrays` (inside event, rite) |
+| `lootItem` | 5 (~1 legacy) | `loot.item[]` (inside loot) |
+| `questTargetItem` | 3 (~2 legacy) | `quest.<id>.target[]` (inside quest) |
+| `wizardOption` | 7 (~1 legacy) | `wizard.options[]` (inside wizard) |
 | `dtWord` | 6 | `dt.Item[]` (inside dtRoot) |
 | `dtOption` | 4 | `dt.Item[].Option[]` (inside dtRoot) |
 | `sfxLoop` | 4 | `sfx_config.<group>.<n>` (inside sfxTop) |
@@ -115,22 +115,22 @@ the current build no longer reads.
 | `gameEquipIcon` | 3 | `game.json.equip_icon.<name>` (inside game) |
 | `gameCardMaterial` | 8 | `game.json.card_materials.<group>[]` (inside game) |
 | `gameCardMaterialGroup` | 4 | `game.json.card_materials` (inside game) |
-| `afterStoryExtra` | 14 (~2 legacy) | `after_story.prior/extra[]` (inside afterStory) |
+| `afterStoryExtra` | 12 (~2 legacy) | `after_story.prior/extra[]` (inside afterStory) |
 
 **`card`** — One card in the deck: a character, an item, or a Sultan card.
 
 Keys: `id`, `name`, `title`, `text`, `pops`, `type`, `rare`, `resource`, `destroy_resources`, `tag`, `card_vanishing`, `vanish`, `equips`, `is_only`, `sfx`, `post_rite`.
-Legacy (no longer read): `card_favour`, `tips`.
+Legacy (written by someone, read by nothing): `card_favour`, `tips`.
 
 **`event`** — A journal/story card whose outcome is a list of settlement branches.
 
 Keys: `id`, `is_replay`, `auto_start_init`, `on`, `start_trigger`, `condition`, `settlement`.
-Legacy (no longer read): `auto_start`, `cached_settlement`, `text`.
+Legacy (written by someone, read by nothing): `auto_start`, `cached_settlement`, `text`.
 
 **`rite`** — The multi-round board puzzle: slots, open conditions, waiting period, then three settlement lists.
 
 Keys: `id`, `name`, `text`, `tips`, `type`, `final_pin`, `from_pins`, `mapping_id`, `round_number`, `auto_begin`, `auto_result`, `restore_fill_times`, `once_new`, `waiting_round`, `waiting_round_end_action`, `icon`, `location`, `tag_tips_up`, `tips_text`, `random_text`, `random_text_up`, `open_conditions`, `settlement_prior`, `settlement`, `settlement_extre`, `cards_slot`.
-Legacy (no longer read): `mapping`, `method_settlement`, `random_effect`, `tag_tips`.
+Legacy (written by someone, read by nothing): `mapping`, `method_settlement`, `random_effect`, `tag_tips`.
 
 **`slot`** — One slot on a rite board.
 
@@ -159,7 +159,7 @@ Keys: `rite_id`, `controls`, `resolution`, `width`, `start_reserve`, `end_reserv
 **`settlement`** — One outcome branch of a rite or event. Every branch of an event runs in order; a rite takes the first match.
 
 Keys: `guid`, `condition`, `result_title`, `result_text`, `result`, `action`, `id`, `type`, `index`, `key`, `sort`, `pic`.
-Legacy (no longer read): `tips_resource`, `tips_text`.
+Legacy (written by someone, read by nothing): `tips_resource`, `tips_text`.
 
 **`loot`** — A weighted random table yielding cards, events, rites or other tables.
 
@@ -168,22 +168,22 @@ Keys: `id`, `name`, `repeat`, `type`, `item`.
 **`lootItem`** — One weighted entry in a loot table.
 
 Keys: `type`, `id`, `num`, `weight`, `condition`.
-Legacy (no longer read): `refLoot`.
+Legacy (written by someone, read by nothing): `refLoot`.
 
 **`upgrade`** — One entry in the destiny shop: pay cost, run effect, gated by condition.
 
 Keys: `id`, `name`, `text`, `cost`, `condition`, `icon`, `link_card`, `effect`, `incompatible`.
-Legacy (no longer read): `link_card_inst`.
+Legacy (written by someone, read by nothing): `link_card_inst`.
 
 **`tag`** — One tag definition. Cards carry tags as name -> integer.
 
 Keys: `id`, `name`, `code`, `type`, `text`, `resource`, `can_add`, `can_visible`, `can_inherit`, `can_nagative_and_zero`, `tag_sfx`, `tag_rank`, `attributes`.
-Legacy (no longer read): `fail_tag`, `is_composite`, `tag_vanishing`, `tips`.
+Legacy (written by someone, read by nothing): `fail_tag`, `is_composite`, `tag_vanishing`, `tips`.
 
 **`init`** — A starting scenario: what the run begins with.
 
 Keys: `id`, `name`, `wizard`, `show_deadline`, `show_story`, `show_ithink`, `show_prestige`, `show_helpbtn`, `sudan_box_show_after_wizard`, `disable_auto_gen_sudan_card`, `sudan_pool`, `sudan_card_desc`, `sudan_pool_desc`, `sudan_shuffle`, `sudan_redraw_count`, `sudan_redraw_times_per_round`, `sudan_redraw_times_recovery_round`, `default_cards`, `card_equips`, `default_rite`, `default_event`, `single_dice_face_weight`, `think_id`, `think_show_settlement`, `gold_dice_count`, `back_to_prev_round_count`, `sudan_life_time`, `difficulty`.
-Legacy (no longer read): `cards`.
+Legacy (written by someone, read by nothing): `cards`.
 
 **`initDifficulty`** — -
 
@@ -192,12 +192,12 @@ Keys: `name`, `title`, `desc`, `bg`, `single_dice_face_weight`, `sudan_redraw_ti
 **`quest`** — A destiny quest shown in the objective list.
 
 Keys: `id`, `name`, `text`, `icon`, `favour_text`, `upgrade_point`, `target`.
-Legacy (no longer read): `isComplete`, `isReceived`, `pre`.
+Legacy (written by someone, read by nothing): `isComplete`, `isReceived`, `pre`.
 
 **`questTargetItem`** — One completion target of a quest.
 
 Keys: `text`, `show_counter`, `condition`.
-Legacy (no longer read): `isComplete`, `value`.
+Legacy (written by someone, read by nothing): `isComplete`, `value`.
 
 **`over`** — One ending screen.
 
@@ -214,7 +214,7 @@ Keys: `condition`, `name`, `text`, `op`, `dt`, `action`, `options`, `id`, `init`
 **`wizardOption`** — One choice in the creation guide.
 
 Keys: `condition`, `name`, `text`, `op`, `dt`, `action`, `options`.
-Legacy (no longer read): `path`.
+Legacy (written by someone, read by nothing): `path`.
 
 **`riteTemplate`** — Board layout: background, foreground, per-slot position/scale/rotation.
 
@@ -235,7 +235,7 @@ Keys: `id`, `tips`, `template_id`, `slot_open`.
 **`dtRoot`** — A dialogue tree.
 
 Keys: `dialog_tree_id`, `first_word_id`, `description`, `Item`.
-Legacy (no longer read): `words`.
+Legacy (written by someone, read by nothing): `words`.
 
 **`dtWord`** — One line in a dialogue tree.
 
@@ -248,7 +248,7 @@ Keys: `option_Jump_condition`, `option_Jump_word`, `option_Jump_id`, `action`.
 **`sfxTop`** — Loop-group music config.
 
 Keys: `main_game_loop`, `main_game_loop_difficulty`, `settle_loop`, `settle_loop_difficulty`, `armageddon_music_loop`.
-Legacy (no longer read): `path`.
+Legacy (written by someone, read by nothing): `path`.
 
 **`sfxLoop`** — One looping clip definition.
 
@@ -261,7 +261,7 @@ Keys: `clip`, `start`, `loop_start`, `loop_end`, `play_instant`, `play_in_rite_c
 **`game`** — Presentation overrides. Mod-only: vanilla ships no game.json.
 
 Keys: `init`, `map`, `rite_icon`, `rite_outline_icon`, `equip_icon`, `card_materials`.
-Legacy (no longer read): `path`.
+Legacy (written by someone, read by nothing): `path`.
 
 **`gameMap`** — World-map override.
 
@@ -290,7 +290,7 @@ Keys: `chars`, `char_forgrounds`, `items`, `sudans`.
 **`afterStoryExtra`** — One epilogue paragraph.
 
 Keys: `guid`, `condition`, `result_title`, `result_text`, `result`, `action`, `id`, `type`, `index`, `key`, `sort`, `pic`.
-Legacy (no longer read): `tips_resource`, `tips_text`.
+Legacy (written by someone, read by nothing): `tips_resource`, `tips_text`.
 
 ## Field tables
 
@@ -299,24 +299,24 @@ Legacy (no longer read): `tips_resource`, `tips_text`.
 One card in the deck: a character, an item, or a Sultan card.  
 File: `config/cards.json`
 
-| key |
-|---|
-| `id` |
-| `name` |
-| `title` |
-| `text` |
-| `pops` |
-| `type` |
-| `rare` |
-| `resource` |
-| `destroy_resources` |
-| `tag` |
-| `card_vanishing` |
-| `vanish` |
-| `equips` |
-| `is_only` |
-| `sfx` |
-| `post_rite` |
+| key | reader | offset |
+|---|---|---|
+| `id` | `b__0_1` | 0x10 |
+| `name` | `b__0_2` | 0x18 |
+| `title` | `b__0_3` | 0x20 |
+| `text` | `b__0_4` | 0x28 |
+| `pops` | `b__0_5` | 0x30 |
+| `type` | `b__0_6` | 0x38 |
+| `rare` | `b__0_7` | 0x40 |
+| `resource` | `b__0_8` | 0x48 |
+| `destroy_resources` | `b__0_9` | 0x50 |
+| `tag` | `b__0_10` | 0x58 |
+| `card_vanishing` | `b__0_11` | 0x60 |
+| `vanish` | `b__0_12` | 0x68 |
+| `equips` | `b__0_13` | 0x70 |
+| `is_only` | `b__0_14` | 0x78 |
+| `sfx` | `b__0_15` | 0x80 |
+| `post_rite` | `b__0_16` | 0x88 |
 
 Legacy or derived keys (read by nothing, or filled from another key): `card_favour`, `tips`
 
@@ -325,15 +325,15 @@ Legacy or derived keys (read by nothing, or filled from another key): `card_favo
 A journal/story card whose outcome is a list of settlement branches.  
 File: `config/event/<id>.json`
 
-| key |
-|---|
-| `id` |
-| `is_replay` |
-| `auto_start_init` |
-| `on` |
-| `start_trigger` |
-| `condition` |
-| `settlement` |
+| key | reader | offset |
+|---|---|---|
+| `id` | `b__0_1` | 0x18 |
+| `is_replay` | `b__0_2` | 0x1c |
+| `auto_start_init` | `b__0_3` | 0x20 |
+| `on` | `b__0_4` | 0x28 |
+| `start_trigger` | `b__0_5` | 0x30 |
+| `condition` | `b__0_6` | 0x38 |
+| `settlement` | `b__0_7` | 0x40 |
 
 Legacy or derived keys (read by nothing, or filled from another key): `auto_start`, `cached_settlement`, `text`
 
@@ -342,34 +342,34 @@ Legacy or derived keys (read by nothing, or filled from another key): `auto_star
 The multi-round board puzzle: slots, open conditions, waiting period, then three settlement lists.  
 File: `config/rite/<id>.json`
 
-| key |
-|---|
-| `id` |
-| `name` |
-| `text` |
-| `tips` |
-| `type` |
-| `final_pin` |
-| `from_pins` |
-| `mapping_id` |
-| `round_number` |
-| `auto_begin` |
-| `auto_result` |
-| `restore_fill_times` |
-| `once_new` |
-| `waiting_round` |
-| `waiting_round_end_action` |
-| `icon` |
-| `location` |
-| `tag_tips_up` |
-| `tips_text` |
-| `random_text` |
-| `random_text_up` |
-| `open_conditions` |
-| `settlement_prior` |
-| `settlement` |
-| `settlement_extre` |
-| `cards_slot` |
+| key | reader | offset |
+|---|---|---|
+| `id` | `b__0_1` | 0x10 |
+| `name` | `b__0_2` | 0x18 |
+| `text` | `b__0_3` | 0x20 |
+| `tips` | `b__0_4` | 0x28 |
+| `type` | `b__0_5` | 0x30 |
+| `final_pin` | `b__0_6` | 0x34 |
+| `from_pins` | `b__0_7` | 0x38 |
+| `mapping_id` | `b__0_8` | 0x40 |
+| `round_number` | `b__0_9` | 0x44 |
+| `auto_begin` | `b__0_10` | 0x48 |
+| `auto_result` | `b__0_11` | 0x49 |
+| `restore_fill_times` | `b__0_12` | 0x4c |
+| `once_new` | `b__0_13` | 0x50 |
+| `waiting_round` | `b__0_14` | 0x54 |
+| `waiting_round_end_action` | `b__0_15` | 0x58 |
+| `icon` | `b__0_16` | 0x60 |
+| `location` | `b__0_17` | 0x68 |
+| `tag_tips_up` | `b__0_18` | 0x70 |
+| `tips_text` | `b__0_19` | 0x78 |
+| `random_text` | `b__0_20` | 0x80 |
+| `random_text_up` | `b__0_21` | 0x88 |
+| `open_conditions` | `b__0_22` | 0x90 |
+| `settlement_prior` | `b__0_23` | 0x98 |
+| `settlement` | `b__0_24` | 0xa0 |
+| `settlement_extre` | `b__0_25` | 0xa8 |
+| `cards_slot` | `b__0_26` | 0xb0 |
 
 Legacy or derived keys (read by nothing, or filled from another key): `mapping`, `method_settlement`, `random_effect`, `tag_tips`
 
@@ -378,98 +378,98 @@ Legacy or derived keys (read by nothing, or filled from another key): `mapping`,
 One slot on a rite board.  
 File: `rite.cards_slot.<sN>`
 
-| key |
-|---|
-| `guid` |
-| `condition` |
-| `open_adsorb` |
-| `is_key` |
-| `is_empty` |
-| `is_enemy` |
-| `text` |
-| `tips_icon` |
-| `pops` |
+| key | reader | offset |
+|---|---|---|
+| `guid` | `b__0_1` | 0x10 |
+| `condition` | `b__0_2` | 0x18 |
+| `open_adsorb` | `b__0_3` | 0x20 |
+| `is_key` | `b__0_4` | 0x24 |
+| `is_empty` | `b__0_5` | 0x28 |
+| `is_enemy` | `b__0_6` | 0x29 |
+| `text` | `b__0_7` | 0x30 |
+| `tips_icon` | `b__0_8` | 0x38 |
+| `pops` | `b__0_9` | 0x40 |
 
 ### riteSlotPop
 
 A conditional line shown when a card sits in a slot.  
 File: `rite.cards_slot.<sN>.pops[]`
 
-| key |
-|---|
-| `condition` |
-| `action` |
+| key | reader | offset |
+|---|---|---|
+| `condition` | `b__0_1` | 0x10 |
+| `action` | `b__0_2` | 0x18 |
 
 ### riteOpenCondition
 
 One reason the rite cannot open yet.  
 File: `rite.open_conditions[]`
 
-| key |
-|---|
-| `condition` |
-| `tips` |
+| key | reader | offset |
+|---|---|---|
+| `condition` | `b__0_1` | 0x10 |
+| `tips` | `b__0_2` | 0x18 |
 
 ### riteTagTipsUp
 
 Tag-driven tooltip override on a rite.  
 File: `rite.tag_tips_up`
 
-| key |
-|---|
-| `tips` |
-| `type` |
+| key | reader | offset |
+|---|---|---|
+| `tips` | `b__0_1` | 0x10 |
+| `type` | `b__0_2` | 0x18 |
 
 ### riteRandomTextUp
 
 Copy for one dice check result.  
 File: `rite.random_text_up.<rN>`
 
-| key |
-|---|
-| `text` |
-| `type` |
-| `type_tips` |
-| `low_target` |
-| `low_target_tips` |
+| key | reader | offset |
+|---|---|---|
+| `text` | `b__0_1` | 0x10 |
+| `type` | `b__0_2` | 0x18 |
+| `type_tips` | `b__0_3` | 0x20 |
+| `low_target` | `b__0_4` | 0x28 |
+| `low_target_tips` | `b__0_5` | 0x30 |
 
 ### riteFromPin
 
 Map-pin geometry for reaching a rite.  
 File: `rite.from_pins[]`
 
-| key |
-|---|
-| `rite_id` |
-| `controls` |
-| `resolution` |
-| `width` |
-| `start_reserve` |
-| `end_reserve` |
-| `arrow_length` |
-| `arrow_angle` |
-| `color` |
-| `dashed` |
+| key | reader | offset |
+|---|---|---|
+| `rite_id` | `b__0_1` | 0x10 |
+| `controls` | `b__0_2` | 0x18 |
+| `resolution` | `b__0_3` | 0x20 |
+| `width` | `b__0_4` | 0x24 |
+| `start_reserve` | `b__0_5` | 0x28 |
+| `end_reserve` | `b__0_6` | 0x2c |
+| `arrow_length` | `b__0_7` | 0x30 |
+| `arrow_angle` | `b__0_8` | 0x34 |
+| `color` | `b__0_9` | 0x38 |
+| `dashed` | `b__0_10` | 0x3c |
 
 ### settlement
 
 One outcome branch of a rite or event. Every branch of an event runs in order; a rite takes the first match.  
 File: `rite/event settlement arrays`
 
-| key |
-|---|
-| `guid` |
-| `condition` |
-| `result_title` |
-| `result_text` |
-| `result` |
-| `action` |
-| `id` |
-| `type` |
-| `index` |
-| `key` |
-| `sort` |
-| `pic` |
+| key | reader | offset |
+|---|---|---|
+| `guid` | `b__0_1` | 0x10 |
+| `condition` | `b__0_2` | 0x18 |
+| `result_title` | `b__0_3` | 0x20 |
+| `result_text` | `b__0_4` | 0x28 |
+| `result` | `b__0_5` | 0x30 |
+| `action` | `b__0_6` | 0x38 |
+| `id` | `b__0_7` | 0x40 |
+| `type` | `b__0_8` | 0x44 |
+| `index` | `b__0_9` | 0x48 |
+| `key` | `b__0_10` | 0x50 |
+| `sort` | `b__0_11` | 0x58 |
+| `pic` | `b__0_12` | 0x60 |
 
 Legacy or derived keys (read by nothing, or filled from another key): `tips_resource`, `tips_text`
 
@@ -478,26 +478,26 @@ Legacy or derived keys (read by nothing, or filled from another key): `tips_reso
 A weighted random table yielding cards, events, rites or other tables.  
 File: `config/loot/<id>.json`
 
-| key |
-|---|
-| `id` |
-| `name` |
-| `repeat` |
-| `type` |
-| `item` |
+| key | reader | offset |
+|---|---|---|
+| `id` | `b__0_1` | 0x10 |
+| `name` | `b__0_2` | 0x18 |
+| `repeat` | `b__0_3` | 0x20 |
+| `type` | `b__0_4` | 0x24 |
+| `item` | `b__0_5` | 0x28 |
 
 ### lootItem
 
 One weighted entry in a loot table.  
 File: `loot.item[]`
 
-| key |
-|---|
-| `type` |
-| `id` |
-| `num` |
-| `weight` |
-| `condition` |
+| key | reader | offset |
+|---|---|---|
+| `type` | `b__0_1` | 0x18 |
+| `id` | `b__0_2` | 0x20 |
+| `num` | `b__0_3` | 0x24 |
+| `weight` | `b__0_4` | 0x28 |
+| `condition` | `b__0_5` | 0x30 |
 
 Legacy or derived keys (read by nothing, or filled from another key): `refLoot`
 
@@ -506,17 +506,17 @@ Legacy or derived keys (read by nothing, or filled from another key): `refLoot`
 One entry in the destiny shop: pay cost, run effect, gated by condition.  
 File: `config/upgrade.json`
 
-| key |
-|---|
-| `id` |
-| `name` |
-| `text` |
-| `cost` |
-| `condition` |
-| `icon` |
-| `link_card` |
-| `effect` |
-| `incompatible` |
+| key | reader | offset |
+|---|---|---|
+| `id` | `b__0_1` | 0x18 |
+| `name` | `b__0_2` | 0x20 |
+| `text` | `b__0_3` | 0x28 |
+| `cost` | `b__0_4` | 0x30 |
+| `condition` | `b__0_5` | 0x38 |
+| `icon` | `b__0_6` | 0x40 |
+| `link_card` | `b__0_7` | 0x48 |
+| `effect` | `b__0_8` | 0x50 |
+| `incompatible` | `b__0_9` | 0x58 |
 
 Legacy or derived keys (read by nothing, or filled from another key): `link_card_inst`
 
@@ -525,21 +525,21 @@ Legacy or derived keys (read by nothing, or filled from another key): `link_card
 One tag definition. Cards carry tags as name -> integer.  
 File: `config/tag.json`
 
-| key |
-|---|
-| `id` |
-| `name` |
-| `code` |
-| `type` |
-| `text` |
-| `resource` |
-| `can_add` |
-| `can_visible` |
-| `can_inherit` |
-| `can_nagative_and_zero` |
-| `tag_sfx` |
-| `tag_rank` |
-| `attributes` |
+| key | reader | offset |
+|---|---|---|
+| `id` | `b__0_1` | 0x14 |
+| `name` | `b__0_2` | 0x18 |
+| `code` | `b__0_3` | 0x20 |
+| `type` | `b__0_4` | 0x28 |
+| `text` | `b__0_5` | 0x30 |
+| `resource` | `b__0_6` | 0x38 |
+| `can_add` | `b__0_7` | 0x40 |
+| `can_visible` | `b__0_8` | 0x41 |
+| `can_inherit` | `b__0_9` | 0x42 |
+| `can_nagative_and_zero` | `b__0_10` | 0x43 |
+| `tag_sfx` | `b__0_11` | 0x48 |
+| `tag_rank` | `b__0_12` | 0x50 |
+| `attributes` | `b__0_13` | 0x58 |
 
 Legacy or derived keys (read by nothing, or filled from another key): `fail_tag`, `is_composite`, `tag_vanishing`, `tips`
 
@@ -548,36 +548,36 @@ Legacy or derived keys (read by nothing, or filled from another key): `fail_tag`
 A starting scenario: what the run begins with.  
 File: `config/init/<id>.json`
 
-| key |
-|---|
-| `id` |
-| `name` |
-| `wizard` |
-| `show_deadline` |
-| `show_story` |
-| `show_ithink` |
-| `show_prestige` |
-| `show_helpbtn` |
-| `sudan_box_show_after_wizard` |
-| `disable_auto_gen_sudan_card` |
-| `sudan_pool` |
-| `sudan_card_desc` |
-| `sudan_pool_desc` |
-| `sudan_shuffle` |
-| `sudan_redraw_count` |
-| `sudan_redraw_times_per_round` |
-| `sudan_redraw_times_recovery_round` |
-| `default_cards` |
-| `card_equips` |
-| `default_rite` |
-| `default_event` |
-| `single_dice_face_weight` |
-| `think_id` |
-| `think_show_settlement` |
-| `gold_dice_count` |
-| `back_to_prev_round_count` |
-| `sudan_life_time` |
-| `difficulty` |
+| key | reader | offset |
+|---|---|---|
+| `id` | `b__0_1` | 0x10 |
+| `name` | `b__0_2` | 0x18 |
+| `wizard` | `b__0_3` | 0x20 |
+| `show_deadline` | `b__0_4` | 0x28 |
+| `show_story` | `b__0_5` | 0x29 |
+| `show_ithink` | `b__0_6` | 0x2a |
+| `show_prestige` | `b__0_7` | 0x2b |
+| `show_helpbtn` | `b__0_8` | 0x2c |
+| `sudan_box_show_after_wizard` | `b__0_9` | 0x2d |
+| `disable_auto_gen_sudan_card` | `b__0_10` | 0x2e |
+| `sudan_pool` | `b__0_11` | 0x30 |
+| `sudan_card_desc` | `b__0_12` | 0x38 |
+| `sudan_pool_desc` | `b__0_13` | 0x40 |
+| `sudan_shuffle` | `b__0_14` | 0x48 |
+| `sudan_redraw_count` | `b__0_15` | 0x4c |
+| `sudan_redraw_times_per_round` | `b__0_16` | 0x50 |
+| `sudan_redraw_times_recovery_round` | `b__0_17` | 0x54 |
+| `default_cards` | `b__0_18` | 0x58 |
+| `card_equips` | `b__0_19` | 0x60 |
+| `default_rite` | `b__0_20` | 0x68 |
+| `default_event` | `b__0_21` | 0x70 |
+| `single_dice_face_weight` | `b__0_22` | 0x78 |
+| `think_id` | `b__0_23` | 0x80 |
+| `think_show_settlement` | `b__0_24` | 0x84 |
+| `gold_dice_count` | `b__0_25` | 0x88 |
+| `back_to_prev_round_count` | `b__0_26` | 0x8c |
+| `sudan_life_time` | `b__0_27` | 0x90 |
+| `difficulty` | `b__0_28` | 0x98 |
 
 Legacy or derived keys (read by nothing, or filled from another key): `cards`
 
@@ -586,32 +586,32 @@ Legacy or derived keys (read by nothing, or filled from another key): `cards`
 -  
 File: `-`
 
-| key |
-|---|
-| `name` |
-| `title` |
-| `desc` |
-| `bg` |
-| `single_dice_face_weight` |
-| `sudan_redraw_times_per_round` |
-| `gold_dice_count` |
-| `back_to_prev_round_count` |
-| `sudan_life_time` |
+| key | reader | offset |
+|---|---|---|
+| `name` | `b__0_1` | 0x10 |
+| `title` | `b__0_2` | 0x18 |
+| `desc` | `b__0_3` | 0x20 |
+| `bg` | `b__0_4` | 0x28 |
+| `single_dice_face_weight` | `b__0_5` | 0x30 |
+| `sudan_redraw_times_per_round` | `b__0_6` | 0x38 |
+| `gold_dice_count` | `b__0_7` | 0x3c |
+| `back_to_prev_round_count` | `b__0_8` | 0x40 |
+| `sudan_life_time` | `b__0_9` | 0x44 |
 
 ### quest
 
 A destiny quest shown in the objective list.  
 File: `config/quest.json`
 
-| key |
-|---|
-| `id` |
-| `name` |
-| `text` |
-| `icon` |
-| `favour_text` |
-| `upgrade_point` |
-| `target` |
+| key | reader | offset |
+|---|---|---|
+| `id` | `b__0_1` | 0x14 |
+| `name` | `b__0_2` | 0x18 |
+| `text` | `b__0_3` | 0x20 |
+| `icon` | `b__0_4` | 0x28 |
+| `favour_text` | `b__0_5` | 0x30 |
+| `upgrade_point` | `b__0_6` | 0x38 |
+| `target` | `b__0_7` | 0x40 |
 
 Legacy or derived keys (read by nothing, or filled from another key): `isComplete`, `isReceived`, `pre`
 
@@ -620,11 +620,11 @@ Legacy or derived keys (read by nothing, or filled from another key): `isComplet
 One completion target of a quest.  
 File: `quest.<id>.target[]`
 
-| key |
-|---|
-| `text` |
-| `show_counter` |
-| `condition` |
+| key | reader | offset |
+|---|---|---|
+| `text` | `b__0_1` | 0x18 |
+| `show_counter` | `b__0_2` | 0x20 |
+| `condition` | `b__0_3` | 0x28 |
 
 Legacy or derived keys (read by nothing, or filled from another key): `isComplete`, `value`
 
@@ -633,70 +633,70 @@ Legacy or derived keys (read by nothing, or filled from another key): `isComplet
 One ending screen.  
 File: `config/over.json`
 
-| key |
-|---|
-| `id` |
-| `name` |
-| `sub_name` |
-| `text_extra` |
-| `open_after_story` |
-| `text` |
-| `manual_prompt` |
-| `success` |
-| `comment` |
-| `bg` |
-| `icon` |
-| `title` |
+| key | reader | offset |
+|---|---|---|
+| `id` | `b__0_1` | 0x10 |
+| `name` | `b__0_2` | 0x18 |
+| `sub_name` | `b__0_3` | 0x20 |
+| `text_extra` | `b__0_4` | 0x28 |
+| `open_after_story` | `b__0_5` | 0x30 |
+| `text` | `b__0_6` | 0x38 |
+| `manual_prompt` | `b__0_7` | 0x40 |
+| `success` | `b__0_8` | 0x44 |
+| `comment` | `b__0_9` | 0x48 |
+| `bg` | `b__0_10` | 0x50 |
+| `icon` | `b__0_11` | 0x58 |
+| `title` | `b__0_12` | 0x60 |
 
 ### afterStory
 
 Epilogue text shown after an ending.  
 File: `config/after_story/<id>.json`
 
-| key |
-|---|
-| `id` |
-| `name` |
-| `pic` |
-| `close_condition` |
-| `prior` |
-| `extra` |
+| key | reader | offset |
+|---|---|---|
+| `id` | `b__0_1` | 0x10 |
+| `name` | `b__0_2` | 0x18 |
+| `pic` | `b__0_3` | 0x20 |
+| `close_condition` | `b__0_4` | 0x28 |
+| `prior` | `b__0_5` | 0x30 |
+| `extra` | `b__0_6` | 0x38 |
 
 ### wizard
 
 The character-creation guide: prompts and options.  
 File: `config/wizard/<name>.json`
 
-| key |
-|---|
-| `condition` |
-| `name` |
-| `text` |
-| `op` |
-| `dt` |
-| `action` |
-| `options` |
-| `id` |
-| `init` |
-| `prompt_draw_sudan_start` |
-| `prompt_draw_sudan_start_first` |
-| `prompt_draw_sudan_end_with_times` |
-| `prompt_draw_sudan_end_without_times` |
+| key | reader | offset |
+|---|---|---|
+| `condition` | `b__0_1` | 0x18 |
+| `name` | `b__0_2` | 0x20 |
+| `text` | `b__0_3` | 0x28 |
+| `op` | `b__0_4` | 0x30 |
+| `dt` | `b__0_5` | 0x38 |
+| `action` | `b__0_6` | 0x40 |
+| `options` | `b__0_7` | 0x48 |
+| `id` | `b__0_8` | 0x50 |
+| `init` | `b__0_9` | 0x58 |
+| `prompt_draw_sudan_start` | `b__0_10` | 0x60 |
+| `prompt_draw_sudan_start_first` | `b__0_11` | 0x68 |
+| `prompt_draw_sudan_end_with_times` | `b__0_12` | 0x70 |
+| `prompt_draw_sudan_end_without_times` | `b__0_13` | 0x78 |
 
 ### wizardOption
 
 One choice in the creation guide.  
 File: `wizard.options[]`
 
-| key |
-|---|
-| `condition` |
-| `name` |
-| `text` |
-| `op` |
-| `dt` |
-| `action` |
-| `options` |
+| key | reader | offset |
+|---|---|---|
+| `condition` | `b__0_1` | 0x18 |
+| `name` | `b__0_2` | 0x20 |
+| `text` | `b__0_3` | 0x28 |
+| `op` | `b__0_4` | 0x30 |
+| `dt` | `b__0_5` | 0x38 |
+| `action` | `b__0_6` | 0x40 |
+| `options` | `b__0_7` | 0x48 |
 
 Legacy or derived keys (read by nothing, or filled from another key): `path`
 
@@ -705,73 +705,73 @@ Legacy or derived keys (read by nothing, or filled from another key): `path`
 Board layout: background, foreground, per-slot position/scale/rotation.  
 File: `config/rite_template/<id>.json`
 
-| key |
-|---|
-| `id` |
-| `name` |
-| `tips` |
-| `bg` |
-| `fg` |
-| `fg_in_slot_index` |
-| `nomal_slot_bg` |
-| `bg_pos` |
-| `mobile_bg_pos` |
-| `mobile_scale` |
-| `title_pos` |
-| `title_bg_hide` |
-| `title_help_btn_hide` |
-| `slots` |
+| key | reader | offset |
+|---|---|---|
+| `id` | `b__0_1` | 0x10 |
+| `name` | `b__0_2` | 0x18 |
+| `tips` | `b__0_3` | 0x20 |
+| `bg` | `b__0_4` | 0x28 |
+| `fg` | `b__0_5` | 0x30 |
+| `fg_in_slot_index` | `b__0_6` | 0x38 |
+| `nomal_slot_bg` | `b__0_7` | 0x40 |
+| `bg_pos` | `b__0_8` | 0x48 |
+| `mobile_bg_pos` | `b__0_9` | 0x50 |
+| `mobile_scale` | `b__0_10` | 0x58 |
+| `title_pos` | `b__0_11` | 0x60 |
+| `title_bg_hide` | `b__0_12` | 0x68 |
+| `title_help_btn_hide` | `b__0_13` | 0x69 |
+| `slots` | `b__0_14` | 0x70 |
 
 ### slotPosition
 
 -  
 File: `-`
 
-| key |
-|---|
-| `is_hide_bg` |
-| `is_set_card_hide_bg` |
-| `slot_bg` |
-| `pos` |
-| `scale` |
-| `rotation_z` |
-| `mobile_pos` |
-| `mobile_scale` |
-| `mobile_rotation_z` |
+| key | reader | offset |
+|---|---|---|
+| `is_hide_bg` | `b__0_1` | 0x10 |
+| `is_set_card_hide_bg` | `b__0_2` | 0x11 |
+| `slot_bg` | `b__0_3` | 0x18 |
+| `pos` | `b__0_4` | 0x20 |
+| `scale` | `b__0_5` | 0x28 |
+| `rotation_z` | `b__0_6` | 0x30 |
+| `mobile_pos` | `b__0_7` | 0x38 |
+| `mobile_scale` | `b__0_8` | 0x40 |
+| `mobile_rotation_z` | `b__0_9` | 0x48 |
 
 ### pos
 
 -  
 File: `-`
 
-| key |
-|---|
-| `x` |
-| `y` |
+| key | reader | offset |
+|---|---|---|
+| `x` | `b__0_1` | 0x10 |
+| `y` | `b__0_2` | 0x14 |
 
 ### riteMapping
 
 Binds a mapping id to a template and lists which slots it exposes.  
 File: `config/rite_template_mappings.json`
 
-| key |
-|---|
-| `id` |
-| `tips` |
-| `template_id` |
-| `slot_open` |
+| key | reader | offset |
+|---|---|---|
+| `id` | `b__0_1` | 0x10 |
+| `tips` | `b__0_2` | 0x18 |
+| `template_id` | `b__0_3` | 0x20 |
+| `slot_open` | `b__0_4` | 0x28 |
 
 ### dtRoot
 
 A dialogue tree.  
 File: `config/dt/DT<n>.json`
 
-| key |
-|---|
-| `dialog_tree_id` |
-| `first_word_id` |
-| `description` |
-| `Item` |
+| key | reader | offset |
+|---|---|---|
+| `dialog_tree_id` | `b__0_1` | 0x18 |
+| `first_word_id` | `b__0_2` | 0x20 |
+| `description` | `b__0_3` | 0x28 |
+| `Item` | `b__0_4` | 0x30 |
 
 Legacy or derived keys (read by nothing, or filled from another key): `words`
 
@@ -780,39 +780,39 @@ Legacy or derived keys (read by nothing, or filled from another key): `words`
 One line in a dialogue tree.  
 File: `dt.Item[]`
 
-| key |
-|---|
-| `word_id` |
-| `word` |
-| `jump_type` |
-| `direct_id` |
-| `Option` |
-| `action` |
+| key | reader | offset |
+|---|---|---|
+| `word_id` | `b__0_1` | 0x10 |
+| `word` | `b__0_2` | 0x18 |
+| `jump_type` | `b__0_3` | 0x20 |
+| `direct_id` | `b__0_4` | 0x28 |
+| `Option` | `b__0_5` | 0x30 |
+| `action` | `b__0_6` | 0x38 |
 
 ### dtOption
 
 One choice on a dialogue line.  
 File: `dt.Item[].Option[]`
 
-| key |
-|---|
-| `option_Jump_condition` |
-| `option_Jump_word` |
-| `option_Jump_id` |
-| `action` |
+| key | reader | offset |
+|---|---|---|
+| `option_Jump_condition` | `b__0_1` | 0x10 |
+| `option_Jump_word` | `b__0_2` | 0x18 |
+| `option_Jump_id` | `b__0_3` | 0x20 |
+| `action` | `b__0_4` | 0x28 |
 
 ### sfxTop
 
 Loop-group music config.  
 File: `config/sfx_config.json`
 
-| key |
-|---|
-| `main_game_loop` |
-| `main_game_loop_difficulty` |
-| `settle_loop` |
-| `settle_loop_difficulty` |
-| `armageddon_music_loop` |
+| key | reader | offset |
+|---|---|---|
+| `main_game_loop` | `b__0_1` | 0x18 |
+| `main_game_loop_difficulty` | `b__0_2` | 0x20 |
+| `settle_loop` | `b__0_3` | 0x28 |
+| `settle_loop_difficulty` | `b__0_4` | 0x30 |
+| `armageddon_music_loop` | `b__0_5` | 0x38 |
 
 Legacy or derived keys (read by nothing, or filled from another key): `path`
 
@@ -821,40 +821,40 @@ Legacy or derived keys (read by nothing, or filled from another key): `path`
 One looping clip definition.  
 File: `sfx_config.<group>.<n>`
 
-| key |
-|---|
-| `clip` |
-| `start` |
-| `loop_start` |
-| `loop_end` |
+| key | reader | offset |
+|---|---|---|
+| `clip` | `b__0_1` | 0x10 |
+| `start` | `b__0_2` | 0x18 |
+| `loop_start` | `b__0_3` | 0x1c |
+| `loop_end` | `b__0_4` | 0x20 |
 
 ### sfxArmageddonLoop
 
 -  
 File: `-`
 
-| key |
-|---|
-| `clip` |
-| `start` |
-| `loop_start` |
-| `loop_end` |
-| `play_instant` |
-| `play_in_rite_create` |
+| key | reader | offset |
+|---|---|---|
+| `clip` | `b__0_1` | 0x10 |
+| `start` | `b__0_2` | 0x18 |
+| `loop_start` | `b__0_3` | 0x1c |
+| `loop_end` | `b__0_4` | 0x20 |
+| `play_instant` | `b__0_5` | 0x24 |
+| `play_in_rite_create` | `b__0_6` | 0x25 |
 
 ### game
 
 Presentation overrides. Mod-only: vanilla ships no game.json.  
 File: `config/game.json`
 
-| key |
-|---|
-| `init` |
-| `map` |
-| `rite_icon` |
-| `rite_outline_icon` |
-| `equip_icon` |
-| `card_materials` |
+| key | reader | offset |
+|---|---|---|
+| `init` | `b__0_1` | 0x18 |
+| `map` | `b__0_2` | 0x20 |
+| `rite_icon` | `b__0_3` | 0x28 |
+| `rite_outline_icon` | `b__0_4` | 0x30 |
+| `equip_icon` | `b__0_5` | 0x38 |
+| `card_materials` | `b__0_6` | 0x40 |
 
 Legacy or derived keys (read by nothing, or filled from another key): `path`
 
@@ -863,94 +863,94 @@ Legacy or derived keys (read by nothing, or filled from another key): `path`
 World-map override.  
 File: `game.json.map`
 
-| key |
-|---|
-| `overwrite` |
-| `desktop` |
-| `map` |
-| `locations` |
+| key | reader | offset |
+|---|---|---|
+| `overwrite` | `b__0_1` | 0x10 |
+| `desktop` | `b__0_2` | 0x18 |
+| `map` | `b__0_3` | 0x20 |
+| `locations` | `b__0_4` | 0x28 |
 
 ### gamePoint
 
 An x/y pair.  
 File: `various`
 
-| key |
-|---|
-| `x` |
-| `y` |
+| key | reader | offset |
+|---|---|---|
+| `x` | `b__0_1` | 0x10 |
+| `y` | `b__0_2` | 0x14 |
 
 ### gameMapLocation
 
 One pin on the map.  
 File: `game.json.map.locations.<name>`
 
-| key |
-|---|
-| `name` |
-| `icon` |
-| `x` |
-| `y` |
-| `sub_locations` |
+| key | reader | offset |
+|---|---|---|
+| `name` | `b__0_1` | 0x10 |
+| `icon` | `b__0_2` | 0x18 |
+| `x` | `b__0_3` | 0x20 |
+| `y` | `b__0_4` | 0x24 |
+| `sub_locations` | `b__0_5` | 0x28 |
 
 ### gameEquipIcon
 
 Icons for one equipment slot.  
 File: `game.json.equip_icon.<name>`
 
-| key |
-|---|
-| `name` |
-| `equip` |
-| `unequip` |
+| key | reader | offset |
+|---|---|---|
+| `name` | `b__0_1` | 0x10 |
+| `equip` | `b__0_2` | 0x18 |
+| `unequip` | `b__0_3` | 0x20 |
 
 ### gameCardMaterial
 
 Unity material override for a card category.  
 File: `game.json.card_materials.<group>[]`
 
-| key |
-|---|
-| `main` |
-| `color` |
-| `metallic` |
-| `metallic_smooth` |
-| `bump` |
-| `bump_scale` |
-| `emission` |
-| `emission_color` |
+| key | reader | offset |
+|---|---|---|
+| `main` | `b__0_1` | 0x10 |
+| `color` | `b__0_2` | 0x18 |
+| `metallic` | `b__0_3` | 0x20 |
+| `metallic_smooth` | `b__0_4` | 0x28 |
+| `bump` | `b__0_5` | 0x30 |
+| `bump_scale` | `b__0_6` | 0x38 |
+| `emission` | `b__0_7` | 0x40 |
+| `emission_color` | `b__0_8` | 0x48 |
 
 ### gameCardMaterialGroup
 
 Material arrays per card category.  
 File: `game.json.card_materials`
 
-| key |
-|---|
-| `chars` |
-| `char_forgrounds` |
-| `items` |
-| `sudans` |
+| key | reader | offset |
+|---|---|---|
+| `chars` | `b__0_1` | 0x10 |
+| `char_forgrounds` | `b__0_2` | 0x18 |
+| `items` | `b__0_3` | 0x20 |
+| `sudans` | `b__0_4` | 0x28 |
 
 ### afterStoryExtra
 
 One epilogue paragraph.  
 File: `after_story.prior/extra[]`
 
-| key |
-|---|
-| `guid` |
-| `condition` |
-| `result_title` |
-| `result_text` |
-| `result` |
-| `action` |
-| `id` |
-| `type` |
-| `index` |
-| `key` |
-| `sort` |
-| `pic` |
+| key | reader | offset |
+|---|---|---|
+| `guid` | `b__0_1` | 0x10 |
+| `condition` | `b__0_2` | 0x18 |
+| `result_title` | `b__0_3` | 0x20 |
+| `result_text` | `b__0_4` | 0x28 |
+| `result` | `b__0_5` | 0x30 |
+| `action` | `b__0_6` | 0x38 |
+| `id` | `b__0_7` | 0x40 |
+| `type` | `b__0_8` | 0x44 |
+| `index` | `b__0_9` | 0x48 |
+| `key` | `b__0_10` | 0x50 |
+| `sort` | `b__0_11` | 0x58 |
+| `pic` | `b__0_12` | 0x60 |
 
 Legacy or derived keys (read by nothing, or filled from another key): `tips_resource`, `tips_text`
 
@@ -1372,7 +1372,8 @@ positives, and they are why a vanilla run is not expected to exit 0.
   every card entry and every condition that used it.
 - A repeated JSON key is an append, not a mistake. Never round-trip a config file through a
   JSON library.
-- `is_key` is 0 in all 5406 vanilla slots; `restore_fill_times` is written by nothing;
+- `is_key` is 0 in all 5406 vanilla slots; `restore_fill_times` is written by nothing but *is*
+  read: `RitePanelShowController.OnLastState` clamps it to 1..10 and uses it as the refill bound;
   `method_settlement` is always `""` and `random_effect` always `{}`. No example exists.
 - `is_empty`, `is_replay`, `auto_begin`, `auto_result`, `is_only` and the tag `can_*` flags
   are written as integers 0/1, while `start_trigger` and `final_pin` are real booleans.

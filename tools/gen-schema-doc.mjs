@@ -162,22 +162,18 @@ const PARENT = {
   gamePoint: "game",
 };
 
-/** `keys` counts every key a row can carry: declared, handler-read, and legacy-only. */
+/** `keys` counts the live keys, plus a mark for the legacy-only ones. */
 const keysOf = (spec) => {
-  const own = spec.fields.length;
-  const handler = (spec.handler || []).length;
+  const live = spec.fields.length;
   const legacy = (spec.legacy || []).length;
-  const marks = [];
-  if (handler) marks.push(`+${handler} handler`);
-  if (legacy) marks.push(`~${legacy} legacy`);
-  return `${own + handler + legacy}${marks.length ? " (" + marks.join(", ") + ")" : ""}`;
+  return `${live}${legacy ? ` (~${legacy} legacy)` : ""}`;
 };
 
 w("## Fields by level");
 w();
-w("Level 2 is one entry of a shipped config file. Level 3 only exists inside such an entry. A");
-w("row marked `handler` is read by a custom reader rather than a declared field; `legacy` is a key");
-w("the current build no longer reads.");
+w("Level 2 is one entry of a shipped config file. Level 3 only exists inside such an entry. Every");
+w("live key names the reader that binds it and the field offset it lands in, so each row can be");
+w("checked against the dump; `legacy` is a key that is written but never read.");
 w();
 w("### Level 2 — one per config entry");
 w();
@@ -204,8 +200,7 @@ for (const [kind, spec] of Object.entries(FIELDS)) {
   w(`**\`${kind}\`** — ${what}`);
   w();
   w("Keys: " + spec.fields.map((f) => `\`${f}\``).join(", ") + ".");
-  if ((spec.handler || []).length) w("Handler-read: " + spec.handler.map((f) => `\`${f}\``).join(", ") + ".");
-  if ((spec.legacy || []).length) w("Legacy (no longer read): " + spec.legacy.map((f) => `\`${f}\``).join(", ") + ".");
+  if ((spec.legacy || []).length) w("Legacy (written by someone, read by nothing): " + spec.legacy.map((f) => `\`${f}\``).join(", ") + ".");
   w();
 }
 
@@ -219,15 +214,14 @@ for (const [kind, spec] of Object.entries(FIELDS)) {
   w(`File: \`${where}\``);
   w();
   if (spec.fields.length) {
-    w("| key |");
-    w("|---|");
-    for (const f of spec.fields) w(`| \`${f}\` |`);
+    w("| key | reader | offset |");
+    w("|---|---|---|");
+    for (const f of spec.fields) {
+      const m = spec.meta?.[f] || {};
+      w(`| \`${f}\` | \`${m.reader || "?"}\` | ${m.offset || "?"} |`);
+    }
   } else {
     w("No fixed keys.");
-  }
-  if (spec.handler?.length) {
-    w();
-    w(`Handler keys (read from the JSON without a property of their own): ${spec.handler.map((k) => `\`${k}\``).join(", ")}`);
   }
   if (spec.legacy?.length) {
     w();
@@ -403,7 +397,8 @@ w("- A card's `tag` keys are tag **display names**, not `code` strings. Renaming
 w("  every card entry and every condition that used it.");
 w("- A repeated JSON key is an append, not a mistake. Never round-trip a config file through a");
 w("  JSON library.");
-w("- `is_key` is 0 in all 5406 vanilla slots; `restore_fill_times` is written by nothing;");
+w("- `is_key` is 0 in all 5406 vanilla slots; `restore_fill_times` is written by nothing but *is*");
+w("  read: `RitePanelShowController.OnLastState` clamps it to 1..10 and uses it as the refill bound;");
 w("  `method_settlement` is always `\"\"` and `random_effect` always `{}`. No example exists.");
 w("- `is_empty`, `is_replay`, `auto_begin`, `auto_result`, `is_only` and the tag `can_*` flags");
 w("  are written as integers 0/1, while `start_trigger` and `final_pin` are real booleans.");
