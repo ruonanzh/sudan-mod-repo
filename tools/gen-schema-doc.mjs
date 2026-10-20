@@ -8,13 +8,64 @@
  * the tables below, so the reference and the validator cannot drift apart.
  */
 import { readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+//   node tools/gen-schema-doc.mjs                       rewrite schema/SCHEMA.md
+//   node tools/gen-schema-doc.mjs --check                exit 1 if SCHEMA.md is stale
+//   node tools/gen-schema-doc.mjs --fields <p> --out <p>  use another table, write elsewhere
+//
+// `--fields` and `--out` exist so the tests can prove the invariants on a throwaway table
+// without touching the committed one.
+const ARGV = process.argv.slice(2);
+const argOf = (name, dflt = null) => {
+  const i = ARGV.indexOf(name);
+  return i >= 0 && ARGV[i + 1] ? ARGV[i + 1] : dflt;
+};
+const CHECK = ARGV.includes("--check");
+const FIELDS_PATH = argOf("--fields");
+const OUT_PATH = argOf("--out");
+
+const die = (msg) => {
+  process.stderr.write(msg + "\n");
+  process.exit(1);
+};
 
 const read = (p) => JSON.parse(readFileSync(new URL(p, import.meta.url), "utf8"));
-const FIELDS = read("../schema/fields.json");
+const FIELDS = FIELDS_PATH
+  ? JSON.parse(readFileSync(resolve(FIELDS_PATH), "utf8"))
+  : read("../schema/fields.json");
 const VOCAB = read("../schema/vocab.json");
 const SAVES = read("../schema/save-fields.json");
 const EDGES = read("../schema/edges.json");
 const CATEGORIES = read("../schema/categories.json");
+
+/**
+ * The table makes one claim per key, and this is what enforces it: every live key names the
+ * reader that binds it and the offset it lands in, and no key sits in two buckets. A table that
+ * fails here would generate a reference that looks authoritative and is not.
+ */
+function tableProblems(table) {
+  const problems = [];
+  for (const [kind, spec] of Object.entries(table)) {
+    const fields = spec.fields || [];
+    const meta = spec.meta || {};
+    const legacy = spec.legacy || [];
+    if (spec.handler) problems.push(`${kind}: the "handler" bucket was removed; use fields or legacy`);
+    for (const key of fields) {
+      const m = meta[key];
+      if (!m) problems.push(`${kind}.${key}: live key with no meta entry (reader + offset)`);
+      else if (!/^b__0_\d+$/.test(m.reader || "")) problems.push(`${kind}.${key}: reader ${JSON.stringify(m.reader)} is not b__0_N`);
+      else if (!/^0x[0-9a-f]+$/.test(m.offset || "")) problems.push(`${kind}.${key}: offset ${JSON.stringify(m.offset)} is not hex`);
+    }
+    for (const key of Object.keys(meta)) if (!fields.includes(key)) problems.push(`${kind}.${key}: meta entry for a key that is not live`);
+    for (const key of legacy) if (fields.includes(key)) problems.push(`${kind}.${key}: both live and legacy`);
+    if (!fields.length) problems.push(`${kind}: no live keys`);
+  }
+  return problems;
+}
+
+const tableBad = tableProblems(FIELDS);
+if (tableBad.length) die(`schema/fields.json is inconsistent:\n  ${tableBad.join("\n  ")}`);
 
 /** kind -> [what it is, which file, what the key is] */
 const ABOUT = {
@@ -360,5 +411,19 @@ w("- `loot.item[].id` and `.num` are declared int and written as strings.");
 w("- The template key is `nomal_slot_bg`, one letter short of normal. It is the real key.");
 w("- `rite.location` must be `\"<region>:[min,max]\"`.");
 
-writeFileSync(new URL("../schema/SCHEMA.md", import.meta.url), out.join("\n") + "\n");
-process.stdout.write(`wrote schema/SCHEMA.md: ${out.length} lines\n`);
+const text = out.join("\n") + "\n";
+const target = OUT_PATH ? resolve(OUT_PATH) : new URL("../schema/SCHEMA.md", import.meta.url);
+if (CHECK) {
+  let current = "";
+  try {
+    current = readFileSync(target, "utf8");
+  } catch {
+    die(`${String(target)} does not exist; run the generator`);
+  }
+  if (current !== text) die(`${String(target)} is stale: run node tools/gen-schema-doc.mjs`);
+  process.stdout.write(`schema/SCHEMA.md is up to date (${out.length} lines)\n`);
+} else {
+  writeFileSync(target, text);
+  process.stdout.write(`wrote ${OUT_PATH || "schema/SCHEMA.md"}: ${out.length} lines\n`);
+}
+

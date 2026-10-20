@@ -18,11 +18,76 @@
       "sfx",
       "post_rite"
     ],
-    "handler": [
-      "tips",
-      "card_favour"
-    ],
-    "legacy": []
+    "meta": {
+      "id": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "name": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      },
+      "title": {
+        "reader": "b__0_3",
+        "offset": "0x20"
+      },
+      "text": {
+        "reader": "b__0_4",
+        "offset": "0x28"
+      },
+      "pops": {
+        "reader": "b__0_5",
+        "offset": "0x30"
+      },
+      "type": {
+        "reader": "b__0_6",
+        "offset": "0x38"
+      },
+      "rare": {
+        "reader": "b__0_7",
+        "offset": "0x40"
+      },
+      "resource": {
+        "reader": "b__0_8",
+        "offset": "0x48"
+      },
+      "destroy_resources": {
+        "reader": "b__0_9",
+        "offset": "0x50"
+      },
+      "tag": {
+        "reader": "b__0_10",
+        "offset": "0x58"
+      },
+      "card_vanishing": {
+        "reader": "b__0_11",
+        "offset": "0x60"
+      },
+      "vanish": {
+        "reader": "b__0_12",
+        "offset": "0x68"
+      },
+      "equips": {
+        "reader": "b__0_13",
+        "offset": "0x70"
+      },
+      "is_only": {
+        "reader": "b__0_14",
+        "offset": "0x78"
+      },
+      "sfx": {
+        "reader": "b__0_15",
+        "offset": "0x80"
+      },
+      "post_rite": {
+        "reader": "b__0_16",
+        "offset": "0x88"
+      }
+    },
+    "legacy": [
+      "card_favour",
+      "tips"
+    ]
   },
   "event": {
     "fields": [
@@ -34,12 +99,40 @@
       "condition",
       "settlement"
     ],
-    "handler": [
-      "text",
-      "cached_settlement"
-    ],
+    "meta": {
+      "id": {
+        "reader": "b__0_1",
+        "offset": "0x18"
+      },
+      "is_replay": {
+        "reader": "b__0_2",
+        "offset": "0x1c"
+      },
+      "auto_start_init": {
+        "reader": "b__0_3",
+        "offset": "0x20"
+      },
+      "on": {
+        "reader": "b__0_4",
+        "offset": "0x28"
+      },
+      "start_trigger": {
+        "reader": "b__0_5",
+        "offset": "0x30"
+      },
+      "condition": {
+        "reader": "b__0_6",
+        "offset": "0x38"
+      },
+      "settlement": {
+        "reader": "b__0_7",
+        "offset": "0x40"
+      }
+    },
     "legacy": [
-      "auto_start"
+      "auto_start",
+      "cached_settlement",
+      "text"
     ]
   },
   "rite": {
@@ -71,14 +164,253 @@
       "settlement_extre",
       "cards_slot"
     ],
-    "handler": [
-      "tag_tips",
-      "method_settlement",
-      "random_effect"
-    ],
+    "meta": {
+      "id": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "name": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      },
+      "text": {
+        "reader": "b__0_3",
+        "offset": "0x20"
+      },
+      "tips": {
+        "reader": "b__0_4",
+        "offset": "0x28"
+      },
+      "type": {
+        "reader": "b__0_5",
+        "offset": "0x30"
+      },
+      "final_pin": {
+        "reader": "b__0_6",
+        "offset": "0x34"
+      },
+      "from_pins": {
+        "reader": "b__0_7",
+        "offset": "0x38"
+      },
+      "mapping_id": {
+        "reader": "b__0_8",
+        "offset": "0x40"
+      },
+      "round_number": {
+        "reader": "b__0_9",
+        "offset": "0x44"
+      },
+      "auto_begin": {
+        "reader": "b__0_10",
+        "offset": "0x48"
+      },
+      "auto_result": {
+        "reader": "b__0_11",
+        "offset": "0x49"
+      },
+      "restore_fill_times": {
+        "reader": "b__0_12",
+        "offset": "0x4c"
+      },
+      "once_new": {
+        "reader": "b__0_13",
+        "offset": "0x50"
+      },
+      "waiting_round": {
+        "reader": "b__0_14",
+        "offset": "0x54"
+      },
+      "waiting_round_end_action": {
+        "reader": "b__0_15",
+        "offset": "0x58"
+      },
+      "icon": {
+        "reader": "b__0_16",
+        "offset": "0x60"
+      },
+      "location": {
+        "reader": "b__0_17",
+        "offset": "0x68"
+      },
+      "tag_tips_up": {
+        "reader": "b__0_18",
+        "offset": "0x70"
+      },
+      "tips_text": {
+        "reader": "b__0_19",
+        "offset": "0x78"
+      },
+      "random_text": {
+        "reader": "b__0_20",
+        "offset": "0x80"
+      },
+      "random_text_up": {
+        "reader": "b__0_21",
+        "offset": "0x88"
+      },
+      "open_conditions": {
+        "reader": "b__0_22",
+        "offset": "0x90"
+      },
+      "settlement_prior": {
+        "reader": "b__0_23",
+        "offset": "0x98"
+      },
+      "settlement": {
+        "reader": "b__0_24",
+        "offset": "0xa0"
+      },
+      "settlement_extre": {
+        "reader": "b__0_25",
+        "offset": "0xa8"
+      },
+      "cards_slot": {
+        "reader": "b__0_26",
+        "offset": "0xb0"
+      }
+    },
     "legacy": [
-      "mapping"
+      "mapping",
+      "method_settlement",
+      "random_effect",
+      "tag_tips"
     ]
+  },
+  "slot": {
+    "fields": [
+      "guid",
+      "condition",
+      "open_adsorb",
+      "is_key",
+      "is_empty",
+      "is_enemy",
+      "text",
+      "tips_icon",
+      "pops"
+    ],
+    "meta": {
+      "guid": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "condition": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      },
+      "open_adsorb": {
+        "reader": "b__0_3",
+        "offset": "0x20"
+      },
+      "is_key": {
+        "reader": "b__0_4",
+        "offset": "0x24"
+      },
+      "is_empty": {
+        "reader": "b__0_5",
+        "offset": "0x28"
+      },
+      "is_enemy": {
+        "reader": "b__0_6",
+        "offset": "0x29"
+      },
+      "text": {
+        "reader": "b__0_7",
+        "offset": "0x30"
+      },
+      "tips_icon": {
+        "reader": "b__0_8",
+        "offset": "0x38"
+      },
+      "pops": {
+        "reader": "b__0_9",
+        "offset": "0x40"
+      }
+    },
+    "legacy": []
+  },
+  "riteSlotPop": {
+    "fields": [
+      "condition",
+      "action"
+    ],
+    "meta": {
+      "condition": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "action": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      }
+    },
+    "legacy": []
+  },
+  "riteOpenCondition": {
+    "fields": [
+      "condition",
+      "tips"
+    ],
+    "meta": {
+      "condition": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "tips": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      }
+    },
+    "legacy": []
+  },
+  "riteTagTipsUp": {
+    "fields": [
+      "tips",
+      "type"
+    ],
+    "meta": {
+      "tips": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "type": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      }
+    },
+    "legacy": []
+  },
+  "riteRandomTextUp": {
+    "fields": [
+      "text",
+      "type",
+      "type_tips",
+      "low_target",
+      "low_target_tips"
+    ],
+    "meta": {
+      "text": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "type": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      },
+      "type_tips": {
+        "reader": "b__0_3",
+        "offset": "0x20"
+      },
+      "low_target": {
+        "reader": "b__0_4",
+        "offset": "0x28"
+      },
+      "low_target_tips": {
+        "reader": "b__0_5",
+        "offset": "0x30"
+      }
+    },
+    "legacy": []
   },
   "riteFromPin": {
     "fields": [
@@ -93,22 +425,48 @@
       "color",
       "dashed"
     ],
-    "handler": [],
-    "legacy": []
-  },
-  "slot": {
-    "fields": [
-      "guid",
-      "condition",
-      "open_adsorb",
-      "is_key",
-      "is_empty",
-      "is_enemy",
-      "text",
-      "tips_icon",
-      "pops"
-    ],
-    "handler": [],
+    "meta": {
+      "rite_id": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "controls": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      },
+      "resolution": {
+        "reader": "b__0_3",
+        "offset": "0x20"
+      },
+      "width": {
+        "reader": "b__0_4",
+        "offset": "0x24"
+      },
+      "start_reserve": {
+        "reader": "b__0_5",
+        "offset": "0x28"
+      },
+      "end_reserve": {
+        "reader": "b__0_6",
+        "offset": "0x2c"
+      },
+      "arrow_length": {
+        "reader": "b__0_7",
+        "offset": "0x30"
+      },
+      "arrow_angle": {
+        "reader": "b__0_8",
+        "offset": "0x34"
+      },
+      "color": {
+        "reader": "b__0_9",
+        "offset": "0x38"
+      },
+      "dashed": {
+        "reader": "b__0_10",
+        "offset": "0x3c"
+      }
+    },
     "legacy": []
   },
   "settlement": {
@@ -126,11 +484,60 @@
       "sort",
       "pic"
     ],
-    "handler": [
+    "meta": {
+      "guid": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "condition": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      },
+      "result_title": {
+        "reader": "b__0_3",
+        "offset": "0x20"
+      },
+      "result_text": {
+        "reader": "b__0_4",
+        "offset": "0x28"
+      },
+      "result": {
+        "reader": "b__0_5",
+        "offset": "0x30"
+      },
+      "action": {
+        "reader": "b__0_6",
+        "offset": "0x38"
+      },
+      "id": {
+        "reader": "b__0_7",
+        "offset": "0x40"
+      },
+      "type": {
+        "reader": "b__0_8",
+        "offset": "0x44"
+      },
+      "index": {
+        "reader": "b__0_9",
+        "offset": "0x48"
+      },
+      "key": {
+        "reader": "b__0_10",
+        "offset": "0x50"
+      },
+      "sort": {
+        "reader": "b__0_11",
+        "offset": "0x58"
+      },
+      "pic": {
+        "reader": "b__0_12",
+        "offset": "0x60"
+      }
+    },
+    "legacy": [
       "tips_resource",
       "tips_text"
-    ],
-    "legacy": []
+    ]
   },
   "loot": {
     "fields": [
@@ -140,24 +547,66 @@
       "type",
       "item"
     ],
-    "handler": [],
+    "meta": {
+      "id": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "name": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      },
+      "repeat": {
+        "reader": "b__0_3",
+        "offset": "0x20"
+      },
+      "type": {
+        "reader": "b__0_4",
+        "offset": "0x24"
+      },
+      "item": {
+        "reader": "b__0_5",
+        "offset": "0x28"
+      }
+    },
     "legacy": []
   },
   "lootItem": {
     "fields": [
-      "refLoot",
       "type",
       "id",
       "num",
       "weight",
       "condition"
     ],
-    "handler": [],
-    "legacy": []
+    "meta": {
+      "type": {
+        "reader": "b__0_1",
+        "offset": "0x18"
+      },
+      "id": {
+        "reader": "b__0_2",
+        "offset": "0x20"
+      },
+      "num": {
+        "reader": "b__0_3",
+        "offset": "0x24"
+      },
+      "weight": {
+        "reader": "b__0_4",
+        "offset": "0x28"
+      },
+      "condition": {
+        "reader": "b__0_5",
+        "offset": "0x30"
+      }
+    },
+    "legacy": [
+      "refLoot"
+    ]
   },
   "upgrade": {
     "fields": [
-      "link_card_inst",
       "id",
       "name",
       "text",
@@ -168,12 +617,50 @@
       "effect",
       "incompatible"
     ],
-    "handler": [],
-    "legacy": []
+    "meta": {
+      "id": {
+        "reader": "b__0_1",
+        "offset": "0x18"
+      },
+      "name": {
+        "reader": "b__0_2",
+        "offset": "0x20"
+      },
+      "text": {
+        "reader": "b__0_3",
+        "offset": "0x28"
+      },
+      "cost": {
+        "reader": "b__0_4",
+        "offset": "0x30"
+      },
+      "condition": {
+        "reader": "b__0_5",
+        "offset": "0x38"
+      },
+      "icon": {
+        "reader": "b__0_6",
+        "offset": "0x40"
+      },
+      "link_card": {
+        "reader": "b__0_7",
+        "offset": "0x48"
+      },
+      "effect": {
+        "reader": "b__0_8",
+        "offset": "0x50"
+      },
+      "incompatible": {
+        "reader": "b__0_9",
+        "offset": "0x58"
+      }
+    },
+    "legacy": [
+      "link_card_inst"
+    ]
   },
   "tag": {
     "fields": [
-      "is_composite",
       "id",
       "name",
       "code",
@@ -188,12 +675,66 @@
       "tag_rank",
       "attributes"
     ],
-    "handler": [
-      "tips",
+    "meta": {
+      "id": {
+        "reader": "b__0_1",
+        "offset": "0x14"
+      },
+      "name": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      },
+      "code": {
+        "reader": "b__0_3",
+        "offset": "0x20"
+      },
+      "type": {
+        "reader": "b__0_4",
+        "offset": "0x28"
+      },
+      "text": {
+        "reader": "b__0_5",
+        "offset": "0x30"
+      },
+      "resource": {
+        "reader": "b__0_6",
+        "offset": "0x38"
+      },
+      "can_add": {
+        "reader": "b__0_7",
+        "offset": "0x40"
+      },
+      "can_visible": {
+        "reader": "b__0_8",
+        "offset": "0x41"
+      },
+      "can_inherit": {
+        "reader": "b__0_9",
+        "offset": "0x42"
+      },
+      "can_nagative_and_zero": {
+        "reader": "b__0_10",
+        "offset": "0x43"
+      },
+      "tag_sfx": {
+        "reader": "b__0_11",
+        "offset": "0x48"
+      },
+      "tag_rank": {
+        "reader": "b__0_12",
+        "offset": "0x50"
+      },
+      "attributes": {
+        "reader": "b__0_13",
+        "offset": "0x58"
+      }
+    },
+    "legacy": [
       "fail_tag",
-      "tag_vanishing"
-    ],
-    "legacy": []
+      "is_composite",
+      "tag_vanishing",
+      "tips"
+    ]
   },
   "init": {
     "fields": [
@@ -226,15 +767,178 @@
       "sudan_life_time",
       "difficulty"
     ],
-    "handler": [
+    "meta": {
+      "id": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "name": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      },
+      "wizard": {
+        "reader": "b__0_3",
+        "offset": "0x20"
+      },
+      "show_deadline": {
+        "reader": "b__0_4",
+        "offset": "0x28"
+      },
+      "show_story": {
+        "reader": "b__0_5",
+        "offset": "0x29"
+      },
+      "show_ithink": {
+        "reader": "b__0_6",
+        "offset": "0x2a"
+      },
+      "show_prestige": {
+        "reader": "b__0_7",
+        "offset": "0x2b"
+      },
+      "show_helpbtn": {
+        "reader": "b__0_8",
+        "offset": "0x2c"
+      },
+      "sudan_box_show_after_wizard": {
+        "reader": "b__0_9",
+        "offset": "0x2d"
+      },
+      "disable_auto_gen_sudan_card": {
+        "reader": "b__0_10",
+        "offset": "0x2e"
+      },
+      "sudan_pool": {
+        "reader": "b__0_11",
+        "offset": "0x30"
+      },
+      "sudan_card_desc": {
+        "reader": "b__0_12",
+        "offset": "0x38"
+      },
+      "sudan_pool_desc": {
+        "reader": "b__0_13",
+        "offset": "0x40"
+      },
+      "sudan_shuffle": {
+        "reader": "b__0_14",
+        "offset": "0x48"
+      },
+      "sudan_redraw_count": {
+        "reader": "b__0_15",
+        "offset": "0x4c"
+      },
+      "sudan_redraw_times_per_round": {
+        "reader": "b__0_16",
+        "offset": "0x50"
+      },
+      "sudan_redraw_times_recovery_round": {
+        "reader": "b__0_17",
+        "offset": "0x54"
+      },
+      "default_cards": {
+        "reader": "b__0_18",
+        "offset": "0x58"
+      },
+      "card_equips": {
+        "reader": "b__0_19",
+        "offset": "0x60"
+      },
+      "default_rite": {
+        "reader": "b__0_20",
+        "offset": "0x68"
+      },
+      "default_event": {
+        "reader": "b__0_21",
+        "offset": "0x70"
+      },
+      "single_dice_face_weight": {
+        "reader": "b__0_22",
+        "offset": "0x78"
+      },
+      "think_id": {
+        "reader": "b__0_23",
+        "offset": "0x80"
+      },
+      "think_show_settlement": {
+        "reader": "b__0_24",
+        "offset": "0x84"
+      },
+      "gold_dice_count": {
+        "reader": "b__0_25",
+        "offset": "0x88"
+      },
+      "back_to_prev_round_count": {
+        "reader": "b__0_26",
+        "offset": "0x8c"
+      },
+      "sudan_life_time": {
+        "reader": "b__0_27",
+        "offset": "0x90"
+      },
+      "difficulty": {
+        "reader": "b__0_28",
+        "offset": "0x98"
+      }
+    },
+    "legacy": [
       "cards"
+    ]
+  },
+  "initDifficulty": {
+    "fields": [
+      "name",
+      "title",
+      "desc",
+      "bg",
+      "single_dice_face_weight",
+      "sudan_redraw_times_per_round",
+      "gold_dice_count",
+      "back_to_prev_round_count",
+      "sudan_life_time"
     ],
+    "meta": {
+      "name": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "title": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      },
+      "desc": {
+        "reader": "b__0_3",
+        "offset": "0x20"
+      },
+      "bg": {
+        "reader": "b__0_4",
+        "offset": "0x28"
+      },
+      "single_dice_face_weight": {
+        "reader": "b__0_5",
+        "offset": "0x30"
+      },
+      "sudan_redraw_times_per_round": {
+        "reader": "b__0_6",
+        "offset": "0x38"
+      },
+      "gold_dice_count": {
+        "reader": "b__0_7",
+        "offset": "0x3c"
+      },
+      "back_to_prev_round_count": {
+        "reader": "b__0_8",
+        "offset": "0x40"
+      },
+      "sudan_life_time": {
+        "reader": "b__0_9",
+        "offset": "0x44"
+      }
+    },
     "legacy": []
   },
   "quest": {
     "fields": [
-      "isComplete",
-      "isReceived",
       "id",
       "name",
       "text",
@@ -243,10 +947,66 @@
       "upgrade_point",
       "target"
     ],
-    "handler": [
+    "meta": {
+      "id": {
+        "reader": "b__0_1",
+        "offset": "0x14"
+      },
+      "name": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      },
+      "text": {
+        "reader": "b__0_3",
+        "offset": "0x20"
+      },
+      "icon": {
+        "reader": "b__0_4",
+        "offset": "0x28"
+      },
+      "favour_text": {
+        "reader": "b__0_5",
+        "offset": "0x30"
+      },
+      "upgrade_point": {
+        "reader": "b__0_6",
+        "offset": "0x38"
+      },
+      "target": {
+        "reader": "b__0_7",
+        "offset": "0x40"
+      }
+    },
+    "legacy": [
+      "isComplete",
+      "isReceived",
       "pre"
+    ]
+  },
+  "questTargetItem": {
+    "fields": [
+      "text",
+      "show_counter",
+      "condition"
     ],
-    "legacy": []
+    "meta": {
+      "text": {
+        "reader": "b__0_1",
+        "offset": "0x18"
+      },
+      "show_counter": {
+        "reader": "b__0_2",
+        "offset": "0x20"
+      },
+      "condition": {
+        "reader": "b__0_3",
+        "offset": "0x28"
+      }
+    },
+    "legacy": [
+      "isComplete",
+      "value"
+    ]
   },
   "over": {
     "fields": [
@@ -263,8 +1023,210 @@
       "icon",
       "title"
     ],
-    "handler": [],
+    "meta": {
+      "id": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "name": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      },
+      "sub_name": {
+        "reader": "b__0_3",
+        "offset": "0x20"
+      },
+      "text_extra": {
+        "reader": "b__0_4",
+        "offset": "0x28"
+      },
+      "open_after_story": {
+        "reader": "b__0_5",
+        "offset": "0x30"
+      },
+      "text": {
+        "reader": "b__0_6",
+        "offset": "0x38"
+      },
+      "manual_prompt": {
+        "reader": "b__0_7",
+        "offset": "0x40"
+      },
+      "success": {
+        "reader": "b__0_8",
+        "offset": "0x44"
+      },
+      "comment": {
+        "reader": "b__0_9",
+        "offset": "0x48"
+      },
+      "bg": {
+        "reader": "b__0_10",
+        "offset": "0x50"
+      },
+      "icon": {
+        "reader": "b__0_11",
+        "offset": "0x58"
+      },
+      "title": {
+        "reader": "b__0_12",
+        "offset": "0x60"
+      }
+    },
     "legacy": []
+  },
+  "afterStory": {
+    "fields": [
+      "id",
+      "name",
+      "pic",
+      "close_condition",
+      "prior",
+      "extra"
+    ],
+    "meta": {
+      "id": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "name": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      },
+      "pic": {
+        "reader": "b__0_3",
+        "offset": "0x20"
+      },
+      "close_condition": {
+        "reader": "b__0_4",
+        "offset": "0x28"
+      },
+      "prior": {
+        "reader": "b__0_5",
+        "offset": "0x30"
+      },
+      "extra": {
+        "reader": "b__0_6",
+        "offset": "0x38"
+      }
+    },
+    "legacy": []
+  },
+  "wizard": {
+    "fields": [
+      "condition",
+      "name",
+      "text",
+      "op",
+      "dt",
+      "action",
+      "options",
+      "id",
+      "init",
+      "prompt_draw_sudan_start",
+      "prompt_draw_sudan_start_first",
+      "prompt_draw_sudan_end_with_times",
+      "prompt_draw_sudan_end_without_times"
+    ],
+    "meta": {
+      "condition": {
+        "reader": "b__0_1",
+        "offset": "0x18"
+      },
+      "name": {
+        "reader": "b__0_2",
+        "offset": "0x20"
+      },
+      "text": {
+        "reader": "b__0_3",
+        "offset": "0x28"
+      },
+      "op": {
+        "reader": "b__0_4",
+        "offset": "0x30"
+      },
+      "dt": {
+        "reader": "b__0_5",
+        "offset": "0x38"
+      },
+      "action": {
+        "reader": "b__0_6",
+        "offset": "0x40"
+      },
+      "options": {
+        "reader": "b__0_7",
+        "offset": "0x48"
+      },
+      "id": {
+        "reader": "b__0_8",
+        "offset": "0x50"
+      },
+      "init": {
+        "reader": "b__0_9",
+        "offset": "0x58"
+      },
+      "prompt_draw_sudan_start": {
+        "reader": "b__0_10",
+        "offset": "0x60"
+      },
+      "prompt_draw_sudan_start_first": {
+        "reader": "b__0_11",
+        "offset": "0x68"
+      },
+      "prompt_draw_sudan_end_with_times": {
+        "reader": "b__0_12",
+        "offset": "0x70"
+      },
+      "prompt_draw_sudan_end_without_times": {
+        "reader": "b__0_13",
+        "offset": "0x78"
+      }
+    },
+    "legacy": []
+  },
+  "wizardOption": {
+    "fields": [
+      "condition",
+      "name",
+      "text",
+      "op",
+      "dt",
+      "action",
+      "options"
+    ],
+    "meta": {
+      "condition": {
+        "reader": "b__0_1",
+        "offset": "0x18"
+      },
+      "name": {
+        "reader": "b__0_2",
+        "offset": "0x20"
+      },
+      "text": {
+        "reader": "b__0_3",
+        "offset": "0x28"
+      },
+      "op": {
+        "reader": "b__0_4",
+        "offset": "0x30"
+      },
+      "dt": {
+        "reader": "b__0_5",
+        "offset": "0x38"
+      },
+      "action": {
+        "reader": "b__0_6",
+        "offset": "0x40"
+      },
+      "options": {
+        "reader": "b__0_7",
+        "offset": "0x48"
+      }
+    },
+    "legacy": [
+      "path"
+    ]
   },
   "riteTemplate": {
     "fields": [
@@ -283,7 +1245,133 @@
       "title_help_btn_hide",
       "slots"
     ],
-    "handler": [],
+    "meta": {
+      "id": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "name": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      },
+      "tips": {
+        "reader": "b__0_3",
+        "offset": "0x20"
+      },
+      "bg": {
+        "reader": "b__0_4",
+        "offset": "0x28"
+      },
+      "fg": {
+        "reader": "b__0_5",
+        "offset": "0x30"
+      },
+      "fg_in_slot_index": {
+        "reader": "b__0_6",
+        "offset": "0x38"
+      },
+      "nomal_slot_bg": {
+        "reader": "b__0_7",
+        "offset": "0x40"
+      },
+      "bg_pos": {
+        "reader": "b__0_8",
+        "offset": "0x48"
+      },
+      "mobile_bg_pos": {
+        "reader": "b__0_9",
+        "offset": "0x50"
+      },
+      "mobile_scale": {
+        "reader": "b__0_10",
+        "offset": "0x58"
+      },
+      "title_pos": {
+        "reader": "b__0_11",
+        "offset": "0x60"
+      },
+      "title_bg_hide": {
+        "reader": "b__0_12",
+        "offset": "0x68"
+      },
+      "title_help_btn_hide": {
+        "reader": "b__0_13",
+        "offset": "0x69"
+      },
+      "slots": {
+        "reader": "b__0_14",
+        "offset": "0x70"
+      }
+    },
+    "legacy": []
+  },
+  "slotPosition": {
+    "fields": [
+      "is_hide_bg",
+      "is_set_card_hide_bg",
+      "slot_bg",
+      "pos",
+      "scale",
+      "rotation_z",
+      "mobile_pos",
+      "mobile_scale",
+      "mobile_rotation_z"
+    ],
+    "meta": {
+      "is_hide_bg": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "is_set_card_hide_bg": {
+        "reader": "b__0_2",
+        "offset": "0x11"
+      },
+      "slot_bg": {
+        "reader": "b__0_3",
+        "offset": "0x18"
+      },
+      "pos": {
+        "reader": "b__0_4",
+        "offset": "0x20"
+      },
+      "scale": {
+        "reader": "b__0_5",
+        "offset": "0x28"
+      },
+      "rotation_z": {
+        "reader": "b__0_6",
+        "offset": "0x30"
+      },
+      "mobile_pos": {
+        "reader": "b__0_7",
+        "offset": "0x38"
+      },
+      "mobile_scale": {
+        "reader": "b__0_8",
+        "offset": "0x40"
+      },
+      "mobile_rotation_z": {
+        "reader": "b__0_9",
+        "offset": "0x48"
+      }
+    },
+    "legacy": []
+  },
+  "pos": {
+    "fields": [
+      "x",
+      "y"
+    ],
+    "meta": {
+      "x": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "y": {
+        "reader": "b__0_2",
+        "offset": "0x14"
+      }
+    },
     "legacy": []
   },
   "riteMapping": {
@@ -293,7 +1381,24 @@
       "template_id",
       "slot_open"
     ],
-    "handler": [],
+    "meta": {
+      "id": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "tips": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      },
+      "template_id": {
+        "reader": "b__0_3",
+        "offset": "0x20"
+      },
+      "slot_open": {
+        "reader": "b__0_4",
+        "offset": "0x28"
+      }
+    },
     "legacy": []
   },
   "dtRoot": {
@@ -303,7 +1408,24 @@
       "description",
       "Item"
     ],
-    "handler": [],
+    "meta": {
+      "dialog_tree_id": {
+        "reader": "b__0_1",
+        "offset": "0x18"
+      },
+      "first_word_id": {
+        "reader": "b__0_2",
+        "offset": "0x20"
+      },
+      "description": {
+        "reader": "b__0_3",
+        "offset": "0x28"
+      },
+      "Item": {
+        "reader": "b__0_4",
+        "offset": "0x30"
+      }
+    },
     "legacy": [
       "words"
     ]
@@ -317,7 +1439,32 @@
       "Option",
       "action"
     ],
-    "handler": [],
+    "meta": {
+      "word_id": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "word": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      },
+      "jump_type": {
+        "reader": "b__0_3",
+        "offset": "0x20"
+      },
+      "direct_id": {
+        "reader": "b__0_4",
+        "offset": "0x28"
+      },
+      "Option": {
+        "reader": "b__0_5",
+        "offset": "0x30"
+      },
+      "action": {
+        "reader": "b__0_6",
+        "offset": "0x38"
+      }
+    },
     "legacy": []
   },
   "dtOption": {
@@ -327,7 +1474,24 @@
       "option_Jump_id",
       "action"
     ],
-    "handler": [],
+    "meta": {
+      "option_Jump_condition": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "option_Jump_word": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      },
+      "option_Jump_id": {
+        "reader": "b__0_3",
+        "offset": "0x20"
+      },
+      "action": {
+        "reader": "b__0_4",
+        "offset": "0x28"
+      }
+    },
     "legacy": []
   },
   "sfxTop": {
@@ -338,8 +1502,31 @@
       "settle_loop_difficulty",
       "armageddon_music_loop"
     ],
-    "handler": [],
-    "legacy": []
+    "meta": {
+      "main_game_loop": {
+        "reader": "b__0_1",
+        "offset": "0x18"
+      },
+      "main_game_loop_difficulty": {
+        "reader": "b__0_2",
+        "offset": "0x20"
+      },
+      "settle_loop": {
+        "reader": "b__0_3",
+        "offset": "0x28"
+      },
+      "settle_loop_difficulty": {
+        "reader": "b__0_4",
+        "offset": "0x30"
+      },
+      "armageddon_music_loop": {
+        "reader": "b__0_5",
+        "offset": "0x38"
+      }
+    },
+    "legacy": [
+      "path"
+    ]
   },
   "sfxLoop": {
     "fields": [
@@ -348,7 +1535,61 @@
       "loop_start",
       "loop_end"
     ],
-    "handler": [],
+    "meta": {
+      "clip": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "start": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      },
+      "loop_start": {
+        "reader": "b__0_3",
+        "offset": "0x1c"
+      },
+      "loop_end": {
+        "reader": "b__0_4",
+        "offset": "0x20"
+      }
+    },
+    "legacy": []
+  },
+  "sfxArmageddonLoop": {
+    "fields": [
+      "clip",
+      "start",
+      "loop_start",
+      "loop_end",
+      "play_instant",
+      "play_in_rite_create"
+    ],
+    "meta": {
+      "clip": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "start": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      },
+      "loop_start": {
+        "reader": "b__0_3",
+        "offset": "0x1c"
+      },
+      "loop_end": {
+        "reader": "b__0_4",
+        "offset": "0x20"
+      },
+      "play_instant": {
+        "reader": "b__0_5",
+        "offset": "0x24"
+      },
+      "play_in_rite_create": {
+        "reader": "b__0_6",
+        "offset": "0x25"
+      }
+    },
     "legacy": []
   },
   "game": {
@@ -360,36 +1601,35 @@
       "equip_icon",
       "card_materials"
     ],
-    "handler": [],
-    "legacy": []
-  },
-  "wizard": {
-    "fields": [
-      "id",
-      "init",
-      "prompt_draw_sudan_start",
-      "prompt_draw_sudan_start_first",
-      "prompt_draw_sudan_end_with_times",
-      "prompt_draw_sudan_end_without_times"
-    ],
-    "handler": [
-      "name",
-      "options",
-      "text"
-    ],
-    "legacy": []
-  },
-  "afterStory": {
-    "fields": [
-      "id",
-      "name",
-      "pic",
-      "close_condition",
-      "prior",
-      "extra"
-    ],
-    "handler": [],
-    "legacy": []
+    "meta": {
+      "init": {
+        "reader": "b__0_1",
+        "offset": "0x18"
+      },
+      "map": {
+        "reader": "b__0_2",
+        "offset": "0x20"
+      },
+      "rite_icon": {
+        "reader": "b__0_3",
+        "offset": "0x28"
+      },
+      "rite_outline_icon": {
+        "reader": "b__0_4",
+        "offset": "0x30"
+      },
+      "equip_icon": {
+        "reader": "b__0_5",
+        "offset": "0x38"
+      },
+      "card_materials": {
+        "reader": "b__0_6",
+        "offset": "0x40"
+      }
+    },
+    "legacy": [
+      "path"
+    ]
   },
   "gameMap": {
     "fields": [
@@ -398,7 +1638,41 @@
       "map",
       "locations"
     ],
-    "handler": [],
+    "meta": {
+      "overwrite": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "desktop": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      },
+      "map": {
+        "reader": "b__0_3",
+        "offset": "0x20"
+      },
+      "locations": {
+        "reader": "b__0_4",
+        "offset": "0x28"
+      }
+    },
+    "legacy": []
+  },
+  "gamePoint": {
+    "fields": [
+      "x",
+      "y"
+    ],
+    "meta": {
+      "x": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "y": {
+        "reader": "b__0_2",
+        "offset": "0x14"
+      }
+    },
     "legacy": []
   },
   "gameMapLocation": {
@@ -409,7 +1683,28 @@
       "y",
       "sub_locations"
     ],
-    "handler": [],
+    "meta": {
+      "name": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "icon": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      },
+      "x": {
+        "reader": "b__0_3",
+        "offset": "0x20"
+      },
+      "y": {
+        "reader": "b__0_4",
+        "offset": "0x24"
+      },
+      "sub_locations": {
+        "reader": "b__0_5",
+        "offset": "0x28"
+      }
+    },
     "legacy": []
   },
   "gameEquipIcon": {
@@ -418,7 +1713,20 @@
       "equip",
       "unequip"
     ],
-    "handler": [],
+    "meta": {
+      "name": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "equip": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      },
+      "unequip": {
+        "reader": "b__0_3",
+        "offset": "0x20"
+      }
+    },
     "legacy": []
   },
   "gameCardMaterial": {
@@ -432,7 +1740,40 @@
       "emission",
       "emission_color"
     ],
-    "handler": [],
+    "meta": {
+      "main": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "color": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      },
+      "metallic": {
+        "reader": "b__0_3",
+        "offset": "0x20"
+      },
+      "metallic_smooth": {
+        "reader": "b__0_4",
+        "offset": "0x28"
+      },
+      "bump": {
+        "reader": "b__0_5",
+        "offset": "0x30"
+      },
+      "bump_scale": {
+        "reader": "b__0_6",
+        "offset": "0x38"
+      },
+      "emission": {
+        "reader": "b__0_7",
+        "offset": "0x40"
+      },
+      "emission_color": {
+        "reader": "b__0_8",
+        "offset": "0x48"
+      }
+    },
     "legacy": []
   },
   "gameCardMaterialGroup": {
@@ -442,85 +1783,94 @@
       "items",
       "sudans"
     ],
-    "handler": [],
-    "legacy": []
-  },
-  "gamePoint": {
-    "fields": [
-      "x",
-      "y"
-    ],
-    "handler": [],
-    "legacy": []
-  },
-  "questTargetItem": {
-    "fields": [
-      "isComplete",
-      "value",
-      "text",
-      "show_counter",
-      "condition"
-    ],
-    "handler": [],
-    "legacy": []
-  },
-  "wizardOption": {
-    "fields": [
-      "condition",
-      "name",
-      "text",
-      "op",
-      "dt",
-      "action",
-      "options"
-    ],
-    "handler": [],
+    "meta": {
+      "chars": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "char_forgrounds": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      },
+      "items": {
+        "reader": "b__0_3",
+        "offset": "0x20"
+      },
+      "sudans": {
+        "reader": "b__0_4",
+        "offset": "0x28"
+      }
+    },
     "legacy": []
   },
   "afterStoryExtra": {
     "fields": [
+      "guid",
       "condition",
-      "key",
-      "pic",
+      "result_title",
       "result_text",
-      "sort"
-    ],
-    "handler": [],
-    "legacy": []
-  },
-  "riteTagTipsUp": {
-    "fields": [
-      "tips",
-      "type"
-    ],
-    "handler": [],
-    "legacy": []
-  },
-  "riteRandomTextUp": {
-    "fields": [
-      "text",
+      "result",
+      "action",
+      "id",
       "type",
-      "type_tips",
-      "low_target",
-      "low_target_tips"
+      "index",
+      "key",
+      "sort",
+      "pic"
     ],
-    "handler": [],
-    "legacy": []
-  },
-  "riteOpenCondition": {
-    "fields": [
-      "condition",
-      "tips"
-    ],
-    "handler": [],
-    "legacy": []
-  },
-  "riteSlotPop": {
-    "fields": [
-      "condition",
-      "action"
-    ],
-    "handler": [],
-    "legacy": []
+    "meta": {
+      "guid": {
+        "reader": "b__0_1",
+        "offset": "0x10"
+      },
+      "condition": {
+        "reader": "b__0_2",
+        "offset": "0x18"
+      },
+      "result_title": {
+        "reader": "b__0_3",
+        "offset": "0x20"
+      },
+      "result_text": {
+        "reader": "b__0_4",
+        "offset": "0x28"
+      },
+      "result": {
+        "reader": "b__0_5",
+        "offset": "0x30"
+      },
+      "action": {
+        "reader": "b__0_6",
+        "offset": "0x38"
+      },
+      "id": {
+        "reader": "b__0_7",
+        "offset": "0x40"
+      },
+      "type": {
+        "reader": "b__0_8",
+        "offset": "0x44"
+      },
+      "index": {
+        "reader": "b__0_9",
+        "offset": "0x48"
+      },
+      "key": {
+        "reader": "b__0_10",
+        "offset": "0x50"
+      },
+      "sort": {
+        "reader": "b__0_11",
+        "offset": "0x58"
+      },
+      "pic": {
+        "reader": "b__0_12",
+        "offset": "0x60"
+      }
+    },
+    "legacy": [
+      "tips_resource",
+      "tips_text"
+    ]
   }
 }

@@ -240,7 +240,10 @@ function reportRange(fileRel, kind, obj, where) {
 /** Return the keys of `obj` that the given node kind does not declare. */
 function splitKeys(kind, obj) {  const spec = NODE_FIELDS[kind];
   if (!spec || !isPlainObject(obj)) return { fail: [], legacy: [] };
-  const ok = new Set([...spec.fields, ...spec.handler]);
+  // `fields` is exactly the registered reader set, so it is exactly what the game reads.
+  // There used to be a third bucket, `handler`, for "registered but reached another way";
+  // it mixed live keys with dead ones (wizard.name vs card.tips), so both passed silently.
+  const ok = new Set(spec.fields);
   const legacy = new Set(spec.legacy);
   const bad = [];
   const old = [];
@@ -250,6 +253,20 @@ function splitKeys(kind, obj) {  const spec = NODE_FIELDS[kind];
     else bad.push(key);
   }
   return { fail: bad, legacy: old };
+}
+
+/**
+ * Field-check one Settlement array. The same class backs nine hosts (rite. settlement /
+ * settlement_prior / settlement_extre / waiting_round_end_action, event.settlement,
+ * card.post_rite, over.text_extra, after_story.prior/extra), and the loader reads the same
+ * twelve keys in all of them, so every host goes through here. Until now only the rite
+ * arrays were checked, which is why `tips_resource` in an event branch was silent.
+ */
+function reportSettlements(fileRel, list, where) {
+  if (!Array.isArray(list)) return;
+  list.forEach((item, i) => {
+    if (isPlainObject(item)) reportFields(fileRel, "settlement", item, `${where}[${i}]`);
+  });
 }
 
 /** Report unknown and legacy keys for one object. */
@@ -849,6 +866,7 @@ function lintMod(modDir, vanilla, opts) {
           }
         }
         if (relPath === "config/event" && Array.isArray(value.settlement)) {
+          reportSettlements(fileRel, value.settlement, "settlement");
           checkDeadBranches(fileRel, "settlement", value.settlement);
         }
         if (relPath === "config/loot" && Array.isArray(value.item)) {
@@ -886,6 +904,8 @@ function lintMod(modDir, vanilla, opts) {
         }
         if (tblKind) {
           reportFields(relPath, tblKind, rec, String(key));
+          if (tblKind === "card") reportSettlements(relPath, rec.post_rite, `${key}.post_rite`);
+          if (tblKind === "over") reportSettlements(relPath, rec.text_extra, `${key}.text_extra`);
           reportRequired(relPath, tblKind, rec, String(key));
           reportRange(relPath, tblKind, rec, String(key));
           pendingRefs.push({ fileRel: relPath, obj: rec });
