@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * graphpage.mjs — render the story graph as one page: a list on the left, the selected
- * node's neighbourhood on the right, a category switcher in the top right, and a node that
- * opens its own editor.
+ * node's neighbourhood on the right, a category switcher in the top right, and the node the
+ * reader picked in a column of its own beside them, so the picture is never covered.
  *
  *   node tools/graphpage.mjs --out .preview/graph/graph.html [--mod your_mods/x]
  *
@@ -18,8 +18,9 @@
  *
  * A depth-1 view draws ~60 nodes, so the picture is no longer what makes the file big: the
  * panel's narration and rite branches are. They are 10.2 MiB and only ever read for one node,
- * so they move to graph.detail.js next to the page, fetched when a panel first opens. A page
- * copied without that file still draws and still opens panels; it says which file is missing.
+ * so they move to graph.detail.js next to the page, pulled in with a script tag when a panel
+ * first opens. A page copied without that file still draws and still opens panels; it says
+ * which file is missing. A script tag, not fetch(): fetch() is a CORS error under file://.
  * Open time in a browser cannot be measured from here; the 16 ms compile and the 23 ms it
  * takes to read both files are the only numbers this side of the DOM can give.
  */
@@ -604,8 +605,9 @@ function draw() {
   laneLayout(live, gen.lanes, LANE_GAP, LANE_HEAD);
   live.getElementById(selected).addClass("centre");
   markFilter();
+  // fit() alone: it already shows every drawn node, and centering on the selected one
+  // afterwards would push the last lane out of a canvas that is now only part of the width.
   live.fit(undefined, 40);
-  live.center(live.getElementById(selected));
   return gen;
 }
 
@@ -617,6 +619,29 @@ function markFilter() {
     const rec = byKey.get(n.data("k"));
     if (rec) n.toggleClass("dim", !inCat(rec));
   });
+}
+
+// The panel is a column beside the canvas, not an overlay: opening it narrows the drawing area,
+// so the renderer has to be told its container changed or it keeps drawing at the old width.
+function refitCanvas() {
+  if (!cy) return;
+  cy.resize();
+  if (selected) cy.fit(undefined, 40);
+}
+
+function openPanel() {
+  const modal = document.getElementById("modal");
+  const wasHidden = modal.hidden;
+  modal.hidden = false;
+  // Every open re-renders the panel's text but only the first one moves the canvas.
+  if (wasHidden) refitCanvas();
+}
+
+function closePanel() {
+  const modal = document.getElementById("modal");
+  if (modal.hidden) return;
+  modal.hidden = true;
+  refitCanvas();
 }
 
 // What a node is called on the canvas, in the list and in a link. An event's designer note is
@@ -958,9 +983,15 @@ function panelHtml(n) {
   );
 }
 
+// A page opened from disk has no editor server behind it, and fetch() there is a CORS failure:
+// the panel printed "Failed to fetch" where the file should be. The page already hides 编辑 off
+// the server, so it says where the file can be read instead of asking for it.
+const NO_SERVER_TEXT = "这一页只能看。节点所在的文件要用 node tools/editor.mjs 打开。";
+
 // The file that holds a node, as the server reads it. Reading is allowed on a read-only
 // page: only a write needs a mod to land in.
 async function nodeSource(key) {
+  if (location.protocol !== "http:") return { ok: false, noServer: true };
   try {
     const res = await fetch("/api/node/" + encodeURIComponent(key));
     return await res.json();
@@ -1022,6 +1053,10 @@ async function fillSource(key) {
   pane.innerHTML = '<div class="note" style="margin-top:0">读取中…</div>';
   const node = await nodeSource(key);
   if (!document.getElementById("srcpane")) return; // the reader moved on while this was in flight
+  if (node.noServer) {
+    pane.innerHTML = '<div class="note" style="margin-top:0">' + escHtml(NO_SERVER_TEXT) + "</div>";
+    return;
+  }
   if (!node.ok) {
     pane.innerHTML = '<div class="note bad">' + escHtml(node.error) + "</div>";
     return;
@@ -1052,19 +1087,18 @@ window.__openNode = (key) => {
   if (!byKey.has(key)) return;
   ensureDetail((ok) => {
   const box = document.getElementById("modal-body");
-  // Left: what the node says now. Right: the file it says it in, so a change can be read
-  // beside the current values instead of across two views.
-  if (box.classList) box.classList.add("wide");
+  // The node's own reading first, then the file it lives in: one column, so the panel stays a
+  // column beside the canvas instead of a sheet over it.
   box.innerHTML =
+    '<div class="drawerbar"><button id="panelclose" class="pill">关闭</button></div>' +
     '<div class="editsplit">' +
     '<div class="editview" id="panelview">' +
     (ok ? "" : '<div class="note bad">' + escHtml(missingDetailText()) + "</div>") +
     panelHtml(nodeOf(key)) + "</div>" +
     '<div class="editsrc" id="srcpane"></div>' +
     "</div>";
-  const modal = document.getElementById("modal");
-  modal.hidden = false;
-  modal.onclick = (e) => { if (e.target === modal) modal.hidden = true; };
+  document.getElementById("panelclose").onclick = closePanel;
+  openPanel();
   box.querySelectorAll("[data-go]").forEach((a) => {
     a.onclick = (e) => {
       e.preventDefault();
@@ -1079,7 +1113,7 @@ window.__openNode = (key) => {
 };
 
 // ---------------------------------------------------------------- wiring
-document.onkeydown = (e) => { if (e.key === "Escape") document.getElementById("modal").hidden = true; };
+document.onkeydown = (e) => { if (e.key === "Escape") closePanel(); };
 qEl.oninput = listRows;
 document.getElementById("chain").onchange = (e) => { chainOnly = e.target.checked; listRows(); };
 // Same selection, wider walk: the depth control never changes what is centred.
@@ -1111,39 +1145,45 @@ window.__draw = draw;
 
 export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable = true, modNote = "", detailUrl = "graph.detail.js" } = {}) {
   const body = `
-<div class="gwrap">
-  <div class="gtop">
-    <div class="grow-row">
-      <span class="note" style="margin:0">节点 ${g.nodes.length} · 边 ${g.edges.length} · 剧情链 ${g.components.count} 条（最大 ${g.components.largest}）${modNote ? ` · ${esc(modNote)}` : ""}</span>
-      <span class="ctl">
-        <input id="q" type="text" placeholder="搜索 ID / 名字 / 任意语言">
-        <label><input id="chain" type="checkbox"> 只看剧情链</label>
-        <label>层数 <select id="depth"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label>
-        <select id="lang">
-          <option value="zh">简中</option><option value="en">en</option><option value="ja">ja</option><option value="zhTW">zhTW</option>
-        </select>
-      </span>
+<div class="gshell">
+  <div class="gwrap">
+    <div class="gtop">
+      <div class="grow-row">
+        <span class="note" style="margin:0">节点 ${g.nodes.length} · 边 ${g.edges.length} · 剧情链 ${g.components.count} 条（最大 ${g.components.largest}）${modNote ? ` · ${esc(modNote)}` : ""}</span>
+        <span class="ctl">
+          <input id="q" type="text" placeholder="搜索 ID / 名字 / 任意语言">
+          <label><input id="chain" type="checkbox"> 只看剧情链</label>
+          <label>层数 <select id="depth"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label>
+          <select id="lang">
+            <option value="zh">简中</option><option value="en">en</option><option value="ja">ja</option><option value="zhTW">zhTW</option>
+          </select>
+        </span>
+      </div>
+      <span id="cats" class="cats"></span>
     </div>
-    <span id="cats" class="cats"></span>
+    <div class="gmain">
+      <div class="glist" id="list"></div>
+      <div class="gcanvas"><div id="cy"></div></div>
+    </div>
+    <div class="note" id="cap">点左边或图上的节点，从这里开始画</div>
+    <div class="note">滚轮缩放、拖动平移，点节点打开编辑页。<span id="count"></span></div>
   </div>
-  <div class="gmain">
-    <div class="glist" id="list"></div>
-    <div class="gcanvas"><div id="cy"></div></div>
-  </div>
-  <div class="note" id="cap">点左边或图上的节点，从这里开始画</div>
-  <div class="note">滚轮缩放、拖动平移，点节点打开编辑页。<span id="count"></span></div>
+  <div id="modal" class="modal" hidden><div class="modal-body" id="modal-body"></div></div>
 </div>
-<div id="modal" class="modal" hidden><div class="modal-body" id="modal-body"></div></div>
 `;
   const css = `
-.gwrap { display: flex; flex-direction: column; gap: 10px; }
+.gshell { display: flex; align-items: flex-start; gap: 12px; }
+.gwrap { display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; min-width: 0; }
 .gtop { display: flex; flex-direction: column; gap: 8px; }
 .grow-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .cats { display: flex; gap: 6px; flex-wrap: wrap; }
 .ctl label, .ctl { white-space: nowrap; }
 .ctl { display: flex; gap: 12px; align-items: center; margin-left: auto; }
 .ctl input[type=text] { width: 240px; }
-.gmain { display: grid; grid-template-columns: 340px 1fr; gap: 12px; height: 78vh; }
+.gmain { display: grid; grid-template-columns: clamp(270px, 28%, 340px) 1fr; gap: 12px; height: 78vh; }
+/* With the panel open the controls wrap onto a second row, so the drawing area gives up that
+   much height: the list and the canvas stay inside the window instead of running past it. */
+.gshell:has(#modal:not([hidden])) .gmain { height: calc(100vh - 285px); }
 .glist { overflow: auto; border: 1px solid var(--rule); background: var(--panel); }
 .glist .row { display: grid; grid-template-columns: 76px 1fr; gap: 8px; padding: 4px 8px; cursor: pointer; border-bottom: 1px solid #2f2a24; }
 .glist .row:hover { background: #35291c; }
@@ -1180,18 +1220,17 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
 .badge.FAIL { background: var(--bad); color: #fff; }
 .badge.WARN { background: var(--gold); color: #1a1510; }
 .badge.INFO { background: #4f5a52; color: var(--ink); }
-.modal { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: flex; align-items: center; justify-content: center; z-index: 20; }
+.modal { flex: 0 1 min(640px, 48vw); position: sticky; top: 12px; max-height: 92vh; overflow-y: auto; background: var(--panel); border: 1px solid var(--rule); }
 .modal[hidden] { display: none; }
-.modal-body { background: var(--panel); border: 1px solid var(--rule); width: min(880px, 92vw); max-height: 86vh; overflow: auto; padding: 18px 20px; }
-.modal-body.wide { width: min(1400px, 96vw); }
-.editsplit { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 18px; align-items: start; }
-.editview { padding-right: 6px; border-right: 1px solid #2f2a24; }
+.modal-body { padding: 14px 16px; }
+.drawerbar { display: flex; justify-content: flex-end; margin: 0 0 6px; }
+.editsplit { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-items: start; }
+.editview { padding-bottom: 10px; border-bottom: 1px solid #2f2a24; }
 .editsrc { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.editsrc textarea { min-height: 64vh; font-family: ui-monospace, Menlo, monospace; font-size: 12px; line-height: 1.55; tab-size: 4; }
-.editsrc .src { background: #1d1710; border-left: 2px solid #4a3c28; margin: 6px 0; padding: 8px 10px; max-height: 64vh; overflow: auto; font-family: ui-monospace, Menlo, monospace; font-size: 12px; line-height: 1.55; white-space: pre; color: #cfc0a4; }
+.editsrc textarea { min-height: 40vh; font-family: ui-monospace, Menlo, monospace; font-size: 12px; line-height: 1.55; tab-size: 4; }
+.editsrc .src { background: #1d1710; border-left: 2px solid #4a3c28; margin: 6px 0; padding: 8px 10px; max-height: 40vh; overflow: auto; font-family: ui-monospace, Menlo, monospace; font-size: 12px; line-height: 1.55; white-space: pre; color: #cfc0a4; }
 .editsrc .src .dead { color: #7a6f5e; }
 .editsrc .src .dead i { color: #b4543f; font-style: normal; }
-@media (max-width: 900px) { .editsplit { grid-template-columns: 1fr; } .editview { border-right: 0; padding-right: 0; } }
 `;
   // The scripts go after the shell: they read DOM ids that only exist once the body is parsed.
   return (

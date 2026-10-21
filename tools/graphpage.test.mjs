@@ -50,8 +50,9 @@ function el(id, onHtml) {
  * Run the page script and hand back the window plus the elements it wrote to.
  * `detail: "full"` hands the page the panel text up front, the way a browser that loaded
  * graph.detail.js has it; `detail: null` leaves it out, so the page has to ask for the file.
+ * `protocol` is what the page sees in location: a page opened from disk has no server.
  */
-function mount(g, { editable = true, detail = "full" } = {}) {
+function mount(g, { editable = true, detail = "full", protocol = "http:" } = {}) {
   const els = new Map();
   // A textarea read back through `.value` is how the save button gets its text, so the shim
   // turns the markup the page wrote into that value, the way a browser does.
@@ -80,7 +81,10 @@ function mount(g, { editable = true, detail = "full" } = {}) {
   const win = {};
   const mod = openMod(mkdtempSync(path.join(tmpdir(), "page-")), { vanilla: VANILLA });
   const posts = [];
+  // Every request the page makes, so a test can say the page made none.
+  const fetched = [];
   const fetch = async (url, opts) => {
+    fetched.push(url);
     if (url.startsWith("/api/node/")) {
       const key = decodeURIComponent(url.slice("/api/node/".length));
       const [kind, id] = key.split(":");
@@ -98,12 +102,12 @@ function mount(g, { editable = true, detail = "full" } = {}) {
   new Function("document", "window", "location", "requestAnimationFrame", "fetch", script)(
     document,
     win,
-    { protocol: "http:" },
+    { protocol },
     (fn) => { if (fn) fn(); return 0; },
     fetch
   );
   if (detail === "full") win.__GRAPH_DETAIL__ = detailPayload(g);
-  return { win, els, document, posts, scripts };
+  return { win, els, document, posts, scripts, fetched };
 }
 
 const graph = () => buildGraph({});
@@ -470,4 +474,32 @@ test("a page copied without its detail file still draws, and names what is missi
   win.__openNode("event:5300090");
   assert.equal(scripts.length, 1, "a second open does not ask again");
   assert.match(els.get("modal-body").innerHTML, /没有找到 graph\.detail\.js/, "and still says so");
+});
+
+// ---------------------------------------------------------------- what a page may ask for
+// The page is opened from disk as often as from the editor's server, and under file:// every
+// fetch() is a CORS failure printed into the panel. So the detail file travels by script tag,
+// and nothing on the panel path asks for anything else.
+test("the detail file arrives as a script tag, never as a request", { skip }, () => {
+  const html = renderPage(graph());
+  const start = html.indexOf("function ensureDetail");
+  const end = html.indexOf("document.head.appendChild");
+  assert.ok(start > 0 && end > start, "the loader is in the page");
+  const loader = html.slice(start, end);
+  assert.doesNotMatch(loader, /fetch\(|XMLHttpRequest|import\(/, "no request is made for the detail file");
+  assert.match(loader, /createElement\("script"\)/, "the page builds a script element");
+  assert.match(loader, /tag\.src = DETAIL_URL/, "and points it at the detail file");
+  assert.match(loader, /tag\.onerror/, "a file that is not there has its own path");
+  assert.match(html, /const DETAIL_URL = "graph\.detail\.js"/, "the name is the file beside the page");
+});
+
+test("a page opened from disk fetches nothing, and says where the file can be read", { skip }, async () => {
+  const { win, els, fetched } = mount(graph(), { protocol: "file:" });
+  win.__openNode("event:5300090");
+  await tick();
+  assert.deepEqual(fetched, [], "a file:// page has no server to ask");
+  const right = els.get("srcpane").innerHTML;
+  assert.match(right, /node tools\/editor\.mjs/, "it names the thing that can read the file");
+  assert.doesNotMatch(right, /Failed to fetch/, "and not the browser's CORS error");
+  assert.match(els.get("modal-body").innerHTML, /<h3>描述<\/h3>/, "the panel's text still arrives, from graph.detail.js");
 });
