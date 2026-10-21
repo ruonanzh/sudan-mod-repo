@@ -6,7 +6,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import os from "node:os";
@@ -52,7 +52,7 @@ function el(id, onHtml) {
  * graph.detail.js has it; `detail: null` leaves it out, so the page has to ask for the file.
  * `protocol` is what the page sees in location: a page opened from disk has no server.
  */
-function mount(g, { editable = true, detail = "full", protocol = "http:" } = {}) {
+function mount(g, { editable = true, detail = "full", protocol = "http:", page = {} } = {}) {
   const els = new Map();
   // A textarea read back through `.value` is how the save button gets its text, so the shim
   // turns the markup the page wrote into that value, the way a browser does.
@@ -98,7 +98,7 @@ function mount(g, { editable = true, detail = "full", protocol = "http:" } = {})
     throw new Error(`unexpected ${url}`);
   };
   // Three script blocks in the page; the page's own one is the tagged last block.
-  const script = renderPage(g, { editable }).match(/<script id="pagejs">([\s\S]*?)<\/script>/)[1];
+  const script = renderPage(g, { editable, ...page }).match(/<script id="pagejs">([\s\S]*?)<\/script>/)[1];
   new Function("document", "window", "location", "requestAnimationFrame", "fetch", script)(
     document,
     win,
@@ -385,6 +385,61 @@ test("the caption states the centre, the depth and the count", { skip }, () => {
   assert.match(state.caption, /^以 5300090 浴场移除提示 为中心 · 1 层 · \d+ 个节点$/);
   const n = state.nodes.length;
   assert.equal(state.caption.endsWith(`· ${n} 个节点`), true, "the number is the drawn node count");
+});
+
+// ---------------------------------------------------------------- step 2b: the mod view
+// A mod's records are not a lane of their own: each keeps the category its record classifies
+// into, carries a flag, and one extra pill filters to the flagged ones. Built once — a full
+// build is seconds, and every test below reads the same one.
+let modGraphCache = null;
+const modGraph = () =>
+  (modGraphCache ??= (() => {
+    const dir = mkdtempSync(path.join(tmpdir(), "page-mod-"));
+    mkdirSync(path.join(dir, "config/event"), { recursive: true });
+    writeFileSync(
+      path.join(dir, "config/event/9000001.json"),
+      JSON.stringify({ id: 9000001, text: "新事件", is_replay: 0, on: { rite_end: 5000002 }, condition: {}, settlement: [] })
+    );
+    return buildGraph({ modDir: dir });
+  })());
+
+test("only the mod's own records carry the mod flag", { skip }, () => {
+  const p = payload(modGraph());
+  assert.deepEqual(p.nodes.filter((n) => n.mod).map((n) => n.k), ["event:9000001"], "the record the mod carries is the one marked");
+  assert.equal(p.nodes.find((n) => n.k === "event:5300090").mod, undefined, "a vanilla node carries no flag");
+  assert.equal(payload(graph()).nodes.filter((n) => n.mod).length, 0, "a page built without --mod has no mod nodes");
+});
+
+test("the filter row gains one mod button, and it is the one selected on open", { skip }, () => {
+  const { win, els } = mount(modGraph());
+  const row = els.get("cats").innerHTML;
+  assert.match(row, /data-c="mod"/, "the category row carries a mod button");
+  assert.match(row, /class="pill on" data-c="mod"/, "and it is selected when the page opens");
+  assert.equal(win.__graphState().cat, "mod", "so the list starts on the mod's records");
+  assert.doesNotMatch(mount(graph()).els.get("cats").innerHTML, /data-c="mod"/, "a page with no mod records gets no empty filter");
+});
+
+test("--focus opens the page on that record, with its one-hop picture", { skip }, () => {
+  const g = modGraph();
+  const html = renderPage(g, { focus: "event:9000001" });
+  assert.match(html, /"focus":"event:9000001"/, "the payload names the record the page was built for");
+  const { win } = mount(g, { page: { focus: "event:9000001" } });
+  const state = win.__graphState();
+  assert.equal(state.selected, "event:9000001", "the page starts on it");
+  assert.ok(state.nodes.includes("event:9000001") && state.nodes.includes("rite:5000002"), "and draws its neighbourhood");
+  assert.match(state.caption, /^以 9000001 新事件 为中心 · 1 层 · \d+ 个节点$/, "the caption names it");
+  assert.equal(payload(g).focus, null, "without --focus the payload names no record");
+});
+
+test("a mod node is drawn with a gold border and the same box", { skip }, () => {
+  const script = renderPage(modGraph()).match(/<script id="pagejs">([\s\S]*?)<\/script>/)[1];
+  const style = script.match(/selector: "node\.mod",\s*style: \{([^}]*)\}/)[1];
+  assert.match(style, /"border-color": "#c9a227"/, "gold, the page's accent");
+  assert.match(style, /"border-width": 2/);
+  assert.doesNotMatch(style, /(^|[{,])\s*"?(width|height|shape|font-size)"?\s*:/, "the geometry is every other node's");
+  const { win } = mount(modGraph(), { page: { focus: "event:9000001" } });
+  assert.equal(win.__elements().find((e) => e.data.k === "event:9000001").classes, "mod", "and it carries the class the style selects");
+  assert.equal(win.__elements().find((e) => e.data.k === "rite:5000002").classes, undefined, "a vanilla neighbour is not marked");
 });
 
 // ---------------------------------------------------------------- step 3: lanes

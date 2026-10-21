@@ -2,7 +2,10 @@
 /**
  * editor.mjs — a local process that serves the story graph and writes edits back.
  *
- *   node tools/editor.mjs [--mod your_mods/<name>] [--port 7801] [--static out.html]
+ *   node tools/editor.mjs [--mod your_mods/<name>] [--port 7801] [--static out.html] [--focus kind:id]
+ *
+ * `--focus` opens the page on that record instead of on an empty canvas. tools/preview.mjs uses
+ * it so the card page it writes starts on the card the preview was run for.
  *
  * Without `--mod` the page is read-only: it still shows the whole graph, and every write is
  * refused. A save must land in a mod, and a mod is a directory with an `info.json` inside it
@@ -28,13 +31,14 @@ import { DEFAULT_VANILLA } from "./model.mjs";
 const KIND_OF = { event: "event", rite: "rite", card: "card", loot: "loot", quest: "quest", afterStory: "afterStory", riteTemplate: "riteTemplate", over: "over" };
 
 function parseArgs(argv) {
-  const out = { modDir: null, vanilla: DEFAULT_VANILLA, port: 7801, static: null };
+  const out = { modDir: null, vanilla: DEFAULT_VANILLA, port: 7801, static: null, focus: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--mod") out.modDir = argv[++i];
     else if (a === "--vanilla") out.vanilla = argv[++i];
     else if (a === "--port") out.port = Number(argv[++i]);
     else if (a === "--static") out.static = argv[++i];
+    else if (a === "--focus") out.focus = argv[++i];
   }
   return out;
 }
@@ -167,6 +171,7 @@ function main() {
     // Both files: the page draws without the detail one, but its panels have no text then.
     const written = writePage(g, args.static, {
       editable: false,
+      focus: args.focus,
       modNote: mod ? `mod ${path.relative(process.cwd(), mod.dir)}` : "只读（未指定 --mod）",
     });
     process.stdout.write(`PASS  wrote ${written.file} + ${written.detail} (${g.nodes.length} nodes, read-only)\n`);

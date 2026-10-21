@@ -123,6 +123,20 @@ test("a mod override reuses the node and marks its origin", () => {
   );
 });
 
+test("a mod record keeps its own category, because mod is a filter and not a lane", { skip }, () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "graphmodcat-"));
+  mkdirSync(path.join(dir, "config/event"), { recursive: true });
+  writeFileSync(
+    path.join(dir, "config/event/9000003.json"),
+    JSON.stringify({ id: 9000003, text: "", is_replay: 0, on: { round_begin_ba: 1 }, condition: {}, settlement: [] })
+  );
+  const g = buildGraph({ configDir: VANILLA, modDir: dir });
+  const node = g.nodes.find((n) => n.k === "event:9000003");
+  assert.equal(node.cat, "periodic", "the mod event lands in the category its record classifies into");
+  assert.equal(g.nodes.filter((n) => n.cat === "mod").length, 0, "no node is put in a mod category");
+  assert.equal(g.categoryCounts.mod, undefined, "and the category counts have no mod bucket");
+});
+
 test("counters are annotations, not nodes", { skip }, () => {
   const g = graph();
   assert.equal(g.nodes.filter((n) => n.t === "counter").length, 0, "a counter has no record and must not be a node");

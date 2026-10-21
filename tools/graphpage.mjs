@@ -4,7 +4,12 @@
  * node's neighbourhood on the right, a category switcher in the top right, and the node the
  * reader picked in a column of its own beside them, so the picture is never covered.
  *
- *   node tools/graphpage.mjs --out .preview/graph/graph.html [--mod your_mods/x]
+ *   node tools/graphpage.mjs --out .preview/graph/graph.html [--mod your_mods/x] [--focus rite:5010901]
+ *
+ * `--mod` merges the mod's records into the picture and adds one more filter pill, `mod`, which
+ * is selected on open: the page starts on what the mod touched, with everything else faded.
+ * Mod records keep their own category, so `mod` is a filter across the lanes, not a lane.
+ * `--focus kind:id` opens the page on that record instead of on an empty canvas.
  *
  * The page draws with Cytoscape.js + dagre, inlined from tools/vendor/ so that it opens from
  * `file://` with no network. Nothing is positioned here: the browser lays out the subgraph.
@@ -104,17 +109,27 @@ function detailOf(n) {
 /**
  * The payload the page carries: structure for every node (ids, labels in four languages,
  * categories, badges) and every edge. No panel text: see DETAIL_FIELDS.
+ *
+ * `mod` marks the records this page's mod carries or overrides. It is a flag on the node, not
+ * a category: the node keeps the lane its record classifies into.
+ *
+ * `focus` is the record the page opens on, and `defaultCat` the filter it opens with — `mod`
+ * when the page has any mod record, so a preview opens on what the mod changed.
  */
-export function payload(g) {
+export function payload(g, { focus = null } = {}) {
   const index = new Map(g.nodes.map((n, i) => [n.k, i]));
+  const modNodes = g.nodes.filter((n) => n.o === "mod").length;
   return {
     builtAt: g.builtAt,
+    focus,
+    defaultCat: modNodes ? "mod" : null,
     nodes: g.nodes.map((n) => ({
       k: n.k,
       t: n.t,
       id: n.id,
       c: n.cat || groupOf(n),
       o: n.o,
+      ...(n.o === "mod" ? { mod: true } : {}),
       l: n.l,
       ch: Boolean(n.chain),
       cs: n.compSize || 0,
@@ -198,7 +213,7 @@ const EDGE_CAP = ${EDGE_CAP};
 const cyEl = document.getElementById("cy");
 const listEl = document.getElementById("list"), qEl = document.getElementById("q");
 const capEl = document.getElementById("cap");
-let lang = "zh", cat = null, chainOnly = false, selected = null, depth = 1;
+let lang = "zh", cat = DATA.defaultCat || null, chainOnly = false, selected = null, depth = 1;
 // A lane is a column: gap between columns, headroom for the lane title above them.
 const LANE_GAP = 44, LANE_HEAD = 44;
 // The libraries are inlined ahead of this script and land on the window object. Without them
@@ -261,6 +276,7 @@ function escHtml(s) {
 // take all of one kind. Everything else compares against the category the layout used.
 function inCat(n) {
   if (!cat) return true;
+  if (cat === "mod") return Boolean(n.mod);
   if (cat === "事件") return n.t === "event";
   if (cat === "仪式") return n.t === "rite";
   return n.c === cat;
@@ -467,6 +483,9 @@ const CY_STYLE = [
       "overlay-opacity": 0,
     },
   },
+  // A record the mod carries keeps its lane and its box: the gold border is the whole mark.
+  // It sits before the state rules, so the centre and the selected node still read as themselves.
+  { selector: "node.mod", style: { "border-width": 2, "border-color": "#c9a227" } },
   { selector: "node.centre", style: { "border-width": 3, "border-color": "#c9a227", "background-color": "#3a2f1e", color: "#fff4d0", "font-size": 13, width: 180, "z-index": 20 } },
   { selector: "node.hot", style: { "border-width": 2, "border-color": "#e0c46a", color: "#fff4d0" } },
   { selector: "node.dim", style: { opacity: 0.3 } },
@@ -575,7 +594,8 @@ function graphElements(key, d) {
     for (const i of lane.idxs) {
       const n = DATA.nodes[i];
       const over = capped.over.get(i) || 0;
-      elements.push({ data: { id: n.k, k: n.k, c: lane.cat, fill: CAT_COLOR[lane.cat] || "#8a7a60", label: nodeLabel(n, over), over: over } });
+      const data = { id: n.k, k: n.k, c: lane.cat, fill: CAT_COLOR[lane.cat] || "#8a7a60", label: nodeLabel(n, over), over: over };
+      elements.push(n.mod ? { classes: "mod", data: data } : { data: data });
     }
   }
   // An edge label per line is readable on a neighbourhood and noise on a crowd.
@@ -755,9 +775,12 @@ function cats() {
   // holds the events that classify into it plus the rites those events open. The event-only
   // counts that graph.mjs --check prints are a different question and stay there.
   const countOf = (fn) => DATA.nodes.filter(fn).length;
-  // The two type pills sit right after 全部: they are the coarse cut, the categories are the
-  // fine one, so a reader meets the wide views first.
+  // mod is a cross-cut, so it sits right after 全部: it is the view a preview opens on, and
+  // the two type pills stay the coarse cut of the whole corpus. A page with no mod record gets
+  // no button — an always-empty filter is noise.
+  const modCount = countOf((n) => n.mod);
   const all = [["", "全部", DATA.nodes.length]]
+    .concat(modCount ? [["mod", "mod", modCount]] : [])
     .concat([["仪式", "仪式", countOf((n) => n.t === "rite")], ["事件", "事件", countOf((n) => n.t === "event")]])
     .concat(Object.keys(DATA.categoryCounts).map((c) => [c, CAT_NAME[c] || c, countOf((n) => n.c === c)]));
   box.innerHTML = all.map(([v, label, n]) =>
@@ -1191,6 +1214,8 @@ document.getElementById("lang").onchange = (e) => {
   if (cy) cy.nodes().forEach((n) => { const i = idxOf.get(n.data("k")); if (i != null) n.data("label", nodeLabel(DATA.nodes[i], n.data("over") || 0)); });
   listRows();
 };
+// The record the page was built to show: --focus, when this page carries it.
+if (DATA.focus && byKey.has(DATA.focus)) selected = DATA.focus;
 cats(); listRows(); draw();
 
 // The lane layout is shared source: the page and the tests run the same text.
@@ -1200,6 +1225,7 @@ ${LANE_LAYOUT_JS}
 // behind, and the elements that click built. Both are read-only views of the same draw().
 window.__graphState = () => ({
   selected: selected,
+  cat: cat,
   depth: depth,
   caption: capEl.textContent,
   nodes: lastGen ? lastGen.nodes : [],
@@ -1210,7 +1236,7 @@ window.__select = (key) => focusNode(key);
 window.__draw = draw;
 `;
 
-export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable = true, modNote = "", detailUrl = "graph.detail.js" } = {}) {
+export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable = true, modNote = "", detailUrl = "graph.detail.js", focus = null } = {}) {
   const body = `
 <div class="gshell">
   <div class="gwrap">
@@ -1312,17 +1338,18 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
       body,
       wide: true,
       extraCss: css,
-    }) + scriptBlocks(SCRIPT(JSON.stringify(payload(g)), editable, detailUrl))
+    }) + scriptBlocks(SCRIPT(JSON.stringify(payload(g, { focus })), editable, detailUrl))
   );
 }
 
 function parseArgs(argv) {
-  const out = { configDir: DEFAULT_VANILLA, modDir: null, out: null };
+  const out = { configDir: DEFAULT_VANILLA, modDir: null, out: null, focus: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--vanilla") out.configDir = argv[++i];
     else if (a === "--mod") out.modDir = argv[++i];
     else if (a === "--out") out.out = argv[++i];
+    else if (a === "--focus") out.focus = argv[++i];
   }
   return out;
 }
@@ -1348,7 +1375,7 @@ const megabytes = (n) => (n / 1048576).toFixed(2) + " MB";
 function main() {
   const args = parseArgs(process.argv.slice(2));
   if (!args.out) {
-    process.stderr.write("usage: node tools/graphpage.mjs --out <file> [--mod <dir>] [--vanilla <config dir>]\n");
+    process.stderr.write("usage: node tools/graphpage.mjs --out <file> [--mod <dir>] [--focus kind:id] [--vanilla <config dir>]\n");
     return 2;
   }
   // A graph built from a directory that does not exist has 0 nodes and renders as a clean,
@@ -1360,7 +1387,7 @@ function main() {
     return 1;
   }
   const g = buildGraph({ configDir: requirement.dir, modDir: args.modDir });
-  const written = writePage(g, args.out);
+  const written = writePage(g, args.out, { focus: args.focus });
   // Two files, and the second one is named: a page copied on its own still draws, but its
   // panels have no text, so whoever hands the preview over has to hand over both.
   process.stdout.write(`PASS  wrote ${written.file}  (${megabytes(written.bytes)}, ${g.nodes.length} nodes)\n`);
