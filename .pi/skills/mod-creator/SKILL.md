@@ -86,7 +86,7 @@ config/sfx_npc_role_dub.json                         config/sfx_settle_card_new.
 下面这些游戏自己也读，但**不可 mod**。玩家要求改这些时，直接说作为 mod 做不到：
 
 `achievement.json` `credits.json` `gallery_cards.json` `gallery_cg.json` `imagestyle.json`
-`mobile_help.json` `textstyle.json` `ui.json` `variable.json` `rite.json`
+`mobile_help.json` `textstyle.json` `ui.json` `variable.json`
 
 一个 mod 能提供的只有上面清单里的条目。只交一份文件很正常，也是对的。
 
@@ -94,7 +94,7 @@ config/sfx_npc_role_dub.json                         config/sfx_settle_card_new.
 
 - **表条目按 key 合并。** `cards.json`、`upgrade.json`、`tag.json`、`quest.json`、`over.json`、`rite_template_mappings.json` 与 `sfx_*` 文件都是字典。只写你要新增或修改的那几条记录，其余归原版。`tag.json` 的 key 是标签的 **code 字符串**，不是 `id`。
 
-- **目录条目一个文件一条记录。** `event/`、`rite/`、`loot/`、`init/`、`rite_template/`、`after_story/`、`dt/`、`wizard/`。新增一条记录就是新增一个文件。改一条原版记录要整文件重述，因为这里没有字段级合并。
+- **目录条目一个文件一条记录。** 仪式没有 `rite.json` 这个文件：一条仪式就是 `rite/<id>.json`。目录条目包括 `event/`、`rite/`、`loot/`、`init/`、`rite_template/`、`after_story/`、`dt/`、`wizard/`。新增一条记录就是新增一个文件。改一条原版记录要整文件重述，因为这里没有字段级合并。
 
 目录条目里，文件名必须等于 `id`。`rite` 这一条是关键的：游戏用 id 拼路径（字面量 `rite/{0}.json`），名字对不上的文件根本不会被读。其余目录在现存每一个 mod 里都是同样的行为；名字对不上就当缺陷处理。
 
