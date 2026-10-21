@@ -353,12 +353,18 @@ function clampDepth(d) {
 // The walk behind one selection: breadth first, both directions, depth hops out. A page
 // cannot import, so this is the browser half of tools/graph.mjs subgraph(); the two must
 // clamp, walk and sort the same way.
+/** Cards are leaves in this picture; every other judgement about them follows from that. */
+const isCardIdx = (i) => DATA.nodes[i] && (DATA.nodes[i].t === "card" || DATA.nodes[i].c === "card");
+
 function walkFrom(key, d) {
   const start = idxOf.get(key);
   const dep = clampDepth(d);
   const hops = new Map();
   if (start == null) return { centre: -1, depth: dep, hops: hops };
   hops.set(start, 0);
+  // A card is a leaf: everything references cards, so a walk that passed through one would show
+  // its whole fan-in. Cards are reached, never walked out of, and a card root never expands.
+  if (isCardIdx(start)) return { centre: start, depth: dep, hops: hops };
   let frontier = [start];
   const a = adj();
   for (let step = 1; step <= dep && frontier.length; step++) {
@@ -367,7 +373,7 @@ function walkFrom(key, d) {
       for (const [to] of (a.out.get(i) || []).concat(a.inc.get(i) || [])) {
         if (hops.has(to)) continue;
         hops.set(to, step);
-        next.push(to);
+        if (!isCardIdx(to)) next.push(to);
       }
     }
     frontier = next;
@@ -536,7 +542,9 @@ function renderer() {
 function graphElements(key, d) {
   const walk = walkFrom(key, d);
   // Both ends inside the walk: an edge to a node that is not drawn hangs in the air.
-  const within = DATA.edges.filter(([a, b]) => walk.hops.has(a) && walk.hops.has(b));
+  // Only one direction of card edge is drawn: the non-card that mentions the card points at it.
+  // A card's own outgoing edges are noise, and they would double every reference.
+  const within = DATA.edges.filter(([a, b]) => walk.hops.has(a) && walk.hops.has(b) && !isCardIdx(a));
   const capped = clampEdges(within);
   // Cards are not drawn: a card is a thing a condition mentions, not a step in the story, and a
   // 卡牌 lane full of leaves is what made the picture unreadable. The panel still names them.
