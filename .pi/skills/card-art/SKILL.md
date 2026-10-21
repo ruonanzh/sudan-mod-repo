@@ -129,7 +129,7 @@ node tools/art.mjs check --file your_mods/<ModName>/image/cards/<名字>.png
 
 生成时依次打印 `mode`、`prompt`、`ref`、`task` 四行，结束时打印 `PASS  image/cards/<卡 id>.png written at 472x1028`，并把这张卡的 `resource` 设成 `["cards/<卡 id>"]`。**把图的路径告诉玩家**，不要假设他会自己看到。
 
-不像就改 `--subject` / `--add` 再来一次，每次都很便宜。**玩家确认这张图之前，不要继续往下做**：接进 mod、安装、写其它字段都等确认之后。
+不像就改 `--subject` / `--add` 再来一次，每次都很便宜。**玩家确认这张图之前，不要往下走。** 确认之后再做：写配置记录（`gen` 已经把这张卡的 `resource` 指过去了，改动其它字段算这一步）→ 校验（`node tools/lint.mjs`）→ 安装 → 验收。
 
 ### 提示词怎么拼出来的
 

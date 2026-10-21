@@ -170,7 +170,7 @@
 | 阶段词 | 含义 | 禁写 |
 |---|---|---|
 | 建 mod 骨架 | 建 `your_mods/<ModName>/` 与 `info.json` | 建工程、初始化 |
-| 写配置记录 | 在 `config/` 下新增或修改记录：表条目（`config/cards.json` 里的一个 id）或整份文件（`config/event/<id>.json`） | 写 config、改 config、写 json、配置 |
+| 写配置记录 | 在 `config/` 下新增或修改记录：表条目（`config/cards.json` 里的一个 id）或整份文件（`config/event/<id>.json`） | 写 config、改 config、写 json、配置、接进 mod |
 | 放资源 | 往 `image/`、`bgm/` 放文件 | 导素材 |
 | 校验 | 跑 `node tools/lint.mjs` 看它报什么 | — |
 | 安装 | 把 mod 目录复制到 mod 根目录 | 部署、上线 |
