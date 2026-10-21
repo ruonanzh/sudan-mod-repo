@@ -69,7 +69,7 @@ function parseTiming(spec) {
 }
 
 function eventNew(args) {
-  const mod = openMod(args.mod);
+  const mod = openMod(args.mod, { vanilla: args.vanilla });
   const id = num(args.id, "--id");
   if (!args.text) throw new ModelError("--text is required; it is the event card's line");
   const timing = parseTiming(args.on || "round_begin_ba=1");
@@ -97,7 +97,7 @@ function eventNew(args) {
 function addBranch(args) {
   const kind = args.kind;
   const into = args.into || (kind === "event" ? "settlement" : "settlement");
-  const mod = openMod(args.mod);
+  const mod = openMod(args.mod, { vanilla: args.vanilla });
   const id = args.id;
   const got = mod.get(kind, id);
   if (!got) throw new ModelError(`no ${kind} ${id} in this mod`);
@@ -139,7 +139,7 @@ function riteBranch(args) {
 }
 
 function riteNew(args) {
-  const mod = openMod(args.mod);
+  const mod = openMod(args.mod, { vanilla: args.vanilla });
   const id = num(args.id, "--id");
   if (!args.name) throw new ModelError("--name is required");
   const record = {
@@ -172,7 +172,7 @@ function riteNew(args) {
 }
 
 function riteSlot(args) {
-  const mod = openMod(args.mod);
+  const mod = openMod(args.mod, { vanilla: args.vanilla });
   const id = args.id;
   const slotName = args.slot;
   if (!slotName) throw new ModelError("--slot is required, e.g. --slot s2");
@@ -200,7 +200,7 @@ function riteSlot(args) {
 }
 
 function riteOp(args) {
-  const mod = openMod(args.mod);
+  const mod = openMod(args.mod, { vanilla: args.vanilla });
   if (!args.at) throw new ModelError("--at is required, e.g. --at settlement.0.result");
   const op = parseOp(args.op);
   const got = mod.get("rite", args.id);

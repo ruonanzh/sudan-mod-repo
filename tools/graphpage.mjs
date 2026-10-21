@@ -13,6 +13,7 @@ import path from "node:path";
 import { buildGraph } from "./graph.mjs";
 import { esc, pageHtml } from "./html.mjs";
 import { DEFAULT_VANILLA } from "./model.mjs";
+import { vanillaRequirement } from "./paths.mjs";
 
 const ROW_H = 26;
 const EDGE_CAP = 40;
@@ -925,10 +926,18 @@ function parseArgs(argv) {
 function main() {
   const args = parseArgs(process.argv.slice(2));
   if (!args.out) {
-    process.stderr.write("usage: node tools/graphpage.mjs --out <file> [--mod <dir>]\n");
+    process.stderr.write("usage: node tools/graphpage.mjs --out <file> [--mod <dir>] [--vanilla <config dir>]\n");
     return 2;
   }
-  const g = buildGraph({ configDir: String(args.configDir).replace(/^~/, os.homedir()), modDir: args.modDir });
+  // A graph built from a directory that does not exist has 0 nodes and renders as a clean,
+  // empty page. The player cannot tell that from "this mod has no events", so refuse.
+  const requirement = vanillaRequirement(args.configDir);
+  if (!requirement.dir) {
+    process.stdout.write(`FAIL  ${requirement.message}\n`);
+    process.stdout.write(`NEXT  ${requirement.next}\n`);
+    return 1;
+  }
+  const g = buildGraph({ configDir: requirement.dir, modDir: args.modDir });
   const html = renderPage(g);
   const file = path.resolve(String(args.out).replace(/^~/, os.homedir()));
   mkdirSync(path.dirname(file), { recursive: true });

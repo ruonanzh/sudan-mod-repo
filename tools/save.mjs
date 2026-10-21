@@ -12,9 +12,10 @@
  * second step. Without --write nothing touches the disk.
  */
 import { existsSync, readFileSync, writeFileSync, copyFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { parseDoc, findEntry, valueOf, literal } from "./jsonc.mjs";
-import { DEFAULT_VANILLA } from "./model.mjs";
+import { vanillaRequirement } from "./paths.mjs";
 
 function parseArgs(argv) {
   const out = { _: [], write: false };
@@ -46,7 +47,7 @@ function resolve(root, dotted) {
 }
 
 function open(file) {
-  const p = String(file).replace(/^~/, process.env.HOME || "");
+  const p = String(file).replace(/^~/, os.homedir());
   if (!existsSync(p)) throw new Error(`no such save file: ${p}`);
   return { p, doc: parseDoc(readFileSync(p, "utf8")) };
 }
@@ -128,11 +129,11 @@ function set(args) {
 }
 
 let nameCache = null;
-function cardNames() {
+/** Card id -> name, from the vanilla config the caller already verified. */
+function cardNames(vanillaDir) {
   if (nameCache) return nameCache;
   nameCache = new Map();
-  const base = String(DEFAULT_VANILLA).replace(/^~/, process.env.HOME || "");
-  const file = path.join(base, "cards.json");
+  const file = path.join(vanillaDir, "cards.json");
   if (!existsSync(file)) return nameCache;
   const doc = parseDoc(readFileSync(file, "utf8"));
   for (const entry of doc.root.entries) {
@@ -144,7 +145,14 @@ function cardNames() {
 
 function cards(args) {
   const { doc } = open(args.save);
-  const names = cardNames();
+  // Without the config every card prints a blank name. An empty column looks like a data
+  // problem, so say what is actually missing and stop.
+  const requirement = vanillaRequirement(args.vanilla);
+  if (!requirement.dir) {
+    emit("FAIL", requirement.message, requirement.next);
+    return 1;
+  }
+  const names = cardNames(requirement.dir);
   const list = findEntry(doc.root, "cards")?.value;
   if (!list || list.type !== "array") {
     emit("FAIL", "this save has no cards array; it may not be a run save");
@@ -175,7 +183,7 @@ function main() {
   const args = parseArgs(argv.slice(1));
   const table = { show, get, set, cards };
   if (!cmd || !table[cmd]) {
-    process.stderr.write("usage: node tools/save.mjs <show|get|set|cards> --save <file> [--path ...] [--write]\n");
+    process.stderr.write("usage: node tools/save.mjs <show|get|set|cards> --save <file> [--path ...] [--write] [--vanilla <config dir>]\n");
     return 2;
   }
   try {

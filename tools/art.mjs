@@ -237,7 +237,7 @@ async function waitFor(key, id) {
 const pickUrl = (o) => Object.values(o ?? {}).find((v) => typeof v === "string" && v.startsWith("http")) ?? null;
 
 function loadCard(args) {
-  const mod = openMod(args.mod);
+  const mod = openMod(args.mod, { vanilla: args.vanilla });
   const got = mod.get("card", args.id);
   if (!got) throw new ModelError(`no card ${args.id} in this mod`);
   return { mod, card: toPlain(got.doc, got.node) };
@@ -330,7 +330,7 @@ async function main() {
   const table = { prompt: cmdPrompt, gen: cmdGen, fit: cmdFit, check: cmdCheck, refs: cmdRefs };
   if (!table[cmd]) {
     process.stderr.write(
-      "usage: node tools/art.mjs <prompt|gen|fit|check|refs> [--mod <dir> --id <id>] [--ref f] [--in f] [--out f] [--subject text] [--add text] [--prompt text] [--ref-add file]\n",
+      "usage: node tools/art.mjs <prompt|gen|fit|check|refs> [--mod <dir> --id <id>] [--vanilla <config dir>] [--ref f] [--in f] [--out f] [--subject text] [--add text] [--prompt text] [--ref-add file]\n",
     );
     return 2;
   }

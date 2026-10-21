@@ -67,7 +67,7 @@ function pngSize(file) {
 }
 
 function newCard(args) {
-  const mod = openMod(args.mod);
+  const mod = openMod(args.mod, { vanilla: args.vanilla });
   const id = Number(args.id);
   if (!Number.isInteger(id)) throw new ModelError("--id must be an integer");
   if (!args.name) throw new ModelError("--name is required");
@@ -98,7 +98,7 @@ function newCard(args) {
 }
 
 function setCard(args) {
-  const mod = openMod(args.mod);
+  const mod = openMod(args.mod, { vanilla: args.vanilla });
   const id = args.id;
   if (!args.field) throw new ModelError("--field is required, e.g. --field text");
   const raw = args._[0] ?? args.value;
@@ -118,7 +118,7 @@ function coerce(raw) {
 }
 
 function tagCard(args) {
-  const mod = openMod(args.mod);
+  const mod = openMod(args.mod, { vanilla: args.vanilla });
   const id = args.id;
   const got = mod.get("card", id);
   if (!got) throw new ModelError(`no card ${id} in this mod`);
@@ -140,7 +140,7 @@ function tagCard(args) {
 }
 
 function showCard(args) {
-  const mod = openMod(args.mod);
+  const mod = openMod(args.mod, { vanilla: args.vanilla });
   const got = mod.get("card", args.id);
   if (!got) {
     emit("FAIL", `no card ${args.id} in this mod`);
@@ -151,7 +151,7 @@ function showCard(args) {
 }
 
 function listCards(args) {
-  const mod = openMod(args.mod);
+  const mod = openMod(args.mod, { vanilla: args.vanilla });
   const ids = mod.ids("card");
   if (!ids.length) {
     emit("INFO", "this mod defines no cards");
@@ -166,7 +166,7 @@ function listCards(args) {
 }
 
 function addArt(args) {
-  const mod = openMod(args.mod);
+  const mod = openMod(args.mod, { vanilla: args.vanilla });
   if (!args.from) throw new ModelError("--from <png> is required");
   if (!existsSync(args.from)) throw new ModelError(`no such file: ${args.from}`);
   const size = pngSize(args.from);

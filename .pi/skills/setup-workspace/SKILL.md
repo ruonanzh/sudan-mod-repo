@@ -26,6 +26,27 @@ Environment.GetFolderPath(MyDocuments) + Application.companyName + "SultansGame"
 
 判据：目录存在。全新机器上它由游戏创建；游戏没启动过就没有这个目录，先启动一次游戏。
 
+## 路径不对时怎么办
+
+`node tools/paths.mjs check` 判定三个必需目录，每个目录一个哨兵。哨兵不过时，工具报 `FAIL` 或 `MISS`，并打一行 `NEXT`：它不猜路径，也不渲染空结果。
+
+| 位置 | 哨兵 | 不过时问玩家这一句 |
+|---|---|---|
+| `steam` | `steamapps/appmanifest_3117820.acf` 存在，它写的 `installdir` 在 `steamapps/common/` 下存在 | 「游戏是用 Steam 装的吗？装在哪个盘？」 |
+| `vanilla` | 配置目录里有 `cards.json` 与 `rite/` | 「游戏装在哪个目录？第二个 Steam 库在哪个盘？」 |
+| `modRoot` | 同级有 `ModLog/__mod.log`，且目录可写 | 「启动过一次游戏吗？是这台机器吗？」 |
+
+状态词只有四个。`OK` 表示过了哨兵。`MISS` 表示候选位置一个都没过。`FAIL` 表示指定或记录的路径在、哨兵不过。`EMPTY` 只出现在 `workshop`，表示玩家没订阅，不是错误。
+
+问清之后，写进 `.pi/paths.json` 并复查：
+
+```bash
+node tools/paths.mjs set --steam "<Steam 库>" --vanilla "<原版 config 目录>"
+node tools/paths.mjs check
+```
+
+`set` 拒绝哨兵不过的目录，所以它写下的路径一定验证过。`check` 的退出码为 0，才继续往下做。
+
 ## 可选 A：dump 游戏代码
 
 **默认不需要。** 这个游戏的 mod 只改数据，多数任务不需要 dump。需要查一个类型、一个方法或一条字符串时，才做这一步。做完得到的是可 grep 的源码树：`dump.cs` 加每类型一份 ISIL 方法体。
@@ -116,7 +137,7 @@ SKIP: Cpp2IL is already installed and runs (0.3s).
 node tools/setup.mjs --check
 ```
 
-它列出已有的与缺的。要提取：
+它列出已有的与缺的，并报出 `steam` 与 `vanilla` 两个判定。要提取：
 
 ```
 node tools/setup.mjs

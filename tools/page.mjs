@@ -20,6 +20,7 @@ import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { openMod, ModelError } from "./model.mjs";
+import { vanillaRequirement } from "./paths.mjs";
 import { toPlain } from "./jsonc.mjs";
 import { decodePng, encodePng, cropCover, overlay, solid, nineSlice, tint } from "./png.mjs";
 import { composePrompt, composeSubject, composeBoilerplate } from "./art.mjs";
@@ -769,10 +770,18 @@ function main() {
   if (args.labels) useLabels(args.labels);
   if (!PAGE_KINDS.includes(kind) || !args.mod || !args.id) {
     process.stderr.write(
-      `usage: node tools/page.mjs <${PAGE_KINDS.join("|")}> --mod <dir> --id <id> [--spec <file|->] [--out <file>] [--labels <file>]\n`,
+      `usage: node tools/page.mjs <${PAGE_KINDS.join("|")}> --mod <dir> --id <id> [--spec <file|->] [--out <file>] [--labels <file>] [--vanilla <config dir>]\n`,
     );
     return 2;
   }
+  // A page rendered from a missing config looks fine and shows nothing: refuse before rendering.
+  const requirement = vanillaRequirement(args.vanilla);
+  if (!requirement.dir) {
+    process.stdout.write(`FAIL  ${requirement.message}\n`);
+    process.stdout.write(`NEXT  ${requirement.next}\n`);
+    return 1;
+  }
+
   // Opening the editor is the moment the art is first needed, so that is when it is built.
   ensureReference();
 
@@ -780,7 +789,7 @@ function main() {
   let record;
   let proposal = false;
   try {
-    mod = openMod(args.mod);
+    mod = openMod(args.mod, { vanilla: requirement.dir });
     if (args.spec) {
       // A proposal: the JSON is given here, the mod is only used for the palette and the art.
       const text = args.spec === "-" ? readFileSync(0, "utf8") : readFileSync(args.spec, "utf8");

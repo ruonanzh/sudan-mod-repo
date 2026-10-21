@@ -14,15 +14,21 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSy
 import path from "node:path";
 import os from "node:os";
 import { parseDoc, getDoc, findEntry, findEntries, valueOf, literal } from "./jsonc.mjs";
+import { resolveVanilla } from "./paths.mjs";
 
 const here = (p) => new URL(p, import.meta.url);
 const LAYOUT = JSON.parse(readFileSync(here("../schema/layout.json"), "utf8"));
 const FIELDS = JSON.parse(readFileSync(here("../schema/fields.json"), "utf8"));
 
-export const DEFAULT_VANILLA =
-  "~/Library/Application Support/Steam/steamapps/common/Sultan's Game/Sultan's Game.app/Contents/Resources/Data/StreamingAssets/config";
+/**
+ * The vanilla config on THIS machine, resolved by paths.mjs: an explicit argument, then
+ * `.pi/paths.json`, then the game directory the app recorded, then discovery. It is null when
+ * none of those holds a verified config, and a tool that needs the config must then print a FAIL
+ * line instead of rendering an empty result.
+ */
+export const DEFAULT_VANILLA = resolveVanilla();
 
-const expand = (p) => String(p).replace(/^~/, os.homedir());
+const expand = (p) => (p === null || p === undefined ? null : String(p).replace(/^~/, os.homedir()));
 
 /** Thrown for a caller mistake. The CLI turns this into a FAIL line plus a NEXT line. */
 export class ModelError extends Error {}

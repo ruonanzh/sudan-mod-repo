@@ -141,3 +141,53 @@ export function record(kind, overrides = {}) {
 export function oneRecord(kind, body) {
   return { [`${FILE_OF[kind]}/${body.id}.json`]: body };
 }
+
+// ---------------------------------------------------------------------------
+// Fake installs: a Steam library, a vanilla config and a mod root in a temp dir.
+//
+// `tools/paths.mjs` decides where the game is from sentinels, so the only way to test the
+// decision is to build a directory that passes one sentinel and fails another. Nothing here
+// reads or writes the real install.
+// ---------------------------------------------------------------------------
+
+/** A throwaway directory, removed by `cleanupAll()`. */
+export function tmpDir(prefix = "sudan-tmp-") {
+  const dir = mkdtempSync(path.join(tmpdir(), prefix));
+  dirs.push(dir);
+  return dir;
+}
+
+/** `<root>/Steam` shaped like a library: the manifest, and optionally the install it names. */
+export function fakeLibrary(root, { installdir = "Sultan's Game", install = true, manifest = true } = {}) {
+  const lib = path.join(root, "Steam");
+  mkdirSync(path.join(lib, "steamapps"), { recursive: true });
+  if (manifest) {
+    const line = installdir === null ? "" : `\t"installdir"\t\t"${installdir}"\n`;
+    writeFileSync(
+      path.join(lib, "steamapps", "appmanifest_3117820.acf"),
+      `"AppState"\n{\n\t"appid"\t\t"3117820"\n\t"name"\t\t"Sultan's Game"\n${line}}\n`,
+    );
+  }
+  if (install && installdir) mkdirSync(path.join(lib, "steamapps", "common", installdir), { recursive: true });
+  return lib;
+}
+
+/** The config directory of a macOS-shaped install, with its two sentinels. */
+export function fakeVanilla(installDir, { cards = true, rite = true } = {}) {
+  const cfg = path.join(installDir, "Sultan's Game.app", "Contents", "Resources", "Data", "StreamingAssets", "config");
+  mkdirSync(cfg, { recursive: true });
+  if (cards) writeFileSync(path.join(cfg, "cards.json"), "{}\n");
+  if (rite) mkdirSync(path.join(cfg, "rite"), { recursive: true });
+  return cfg;
+}
+
+/** `<base>/DoubleCross/SultansGame/{Mod,ModLog}` — a mod root the game has written a log beside. */
+export function fakeModRoot(base, { log = true } = {}) {
+  const dir = path.join(base, "DoubleCross", "SultansGame", "Mod");
+  mkdirSync(dir, { recursive: true });
+  if (log) {
+    mkdirSync(path.join(base, "DoubleCross", "SultansGame", "ModLog"), { recursive: true });
+    writeFileSync(path.join(base, "DoubleCross", "SultansGame", "ModLog", "__mod.log"), "");
+  }
+  return dir;
+}

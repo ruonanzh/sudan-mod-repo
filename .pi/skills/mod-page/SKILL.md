@@ -54,7 +54,7 @@ node tools/page.mjs <kind> --mod your_mods/<ModName> --id <id> --out your_mods/<
 | `init` | 开局 |
 
 - **提案还没写进 mod**：加 `--spec - < 提案.json`（或用 `--spec 文件`），副标题会标「提案 · 尚未写入 mod」，不产生任何 config 文件。
-- **`ModName` 还没定**：先调 `create_mod_folder(name="<小写 snake_case>")` 建目录并绑定会话，再写 `info.json`。细节在 `mod-creator` 的 `## Creating the folder` 与 `## info.json`。
+- **`ModName` 还没定**：先调 `create_mod_folder(name="<小写 snake_case>")` 建目录并绑定会话，再写 `info.json`。细节在 `mod-creator` 的 `## 建 mod 骨架` 与 `## info.json`。
 - `.preview/` 不属于 mod：它被 git 忽略，也不要装进游戏。
 
 ## 页面上会看到什么（脚本决定，你不用排版）

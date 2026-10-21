@@ -12,42 +12,24 @@
  *   node tools/setup.mjs --game <path>   the install, or its Data directory
  *   node tools/setup.mjs --python <py>   the interpreter that has UnityPy
  *   node tools/setup.mjs --index <url>   a pip index, for a network that needs one
+ *   node tools/setup.mjs --paths <file>  read .pi/paths.json from here instead
+ *
+ * The game is located by tools/paths.mjs, the same judgment every other tool uses: the Steam
+ * library is the one whose `appmanifest_3117820.acf` names an existing install, and the library
+ * list comes from `config/libraryfolders.vdf`. This file keeps no candidate list of its own.
  *
  * Extraction needs UnityPy. Without it the script creates .setup-venv/ and installs it
  * there, which is a one-time download. PyPI direct measured 5m58s without a VPN against
  * 4s from the Tsinghua mirror, so the mirror is tried first and PyPI is the fallback.
  */
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
-import os from "node:os";
+import { judge, shorten } from "./paths.mjs";
 
 const ROOT = path.join(path.dirname(new URL(import.meta.url).pathname), "..");
 const REF = path.join(ROOT, "reference");
 const VENV = path.join(ROOT, ".setup-venv");
-
-/** Where the install usually is. Steam is not the only place, so the list is a guess. */
-function candidates() {
-  const home = os.homedir();
-  const out = [];
-  if (process.platform === "darwin") {
-    out.push(path.join(home, "Library/Application Support/Steam/steamapps/common/Sultan's Game"));
-  } else if (process.platform === "win32") {
-    for (const base of [process.env["ProgramFiles(x86)"], process.env.ProgramFiles, "C:\\Program Files (x86)", "C:\\Program Files"]) {
-      if (base) out.push(path.join(base, "Steam", "steamapps", "common", "Sultan's Game"));
-    }
-    for (const drive of ["C:", "D:", "E:", "F:"]) out.push(path.join(`${drive}\\`, "SteamLibrary", "steamapps", "common", "Sultan's Game"));
-    // Another drive only shows up in libraryfolders.vdf, so read the paths out of it.
-    for (const steam of [process.env["ProgramFiles(x86)"], process.env.ProgramFiles].filter(Boolean)) {
-      const vdf = path.join(steam, "Steam", "steamapps", "libraryfolders.vdf");
-      if (!existsSync(vdf)) continue;
-      for (const m of readFileSync(vdf, "utf8").matchAll(/"path"\s+"([^"]+)"/g)) {
-        out.push(path.join(m[1].replace(/\\\\/g, "\\"), "steamapps", "common", "Sultan's Game"));
-      }
-    }
-  }
-  return out;
-}
 
 /** The directory that holds resources.assets, given either the install or the Data dir. */
 function dataDir(p) {
@@ -61,37 +43,25 @@ function dataDir(p) {
 }
 
 /**
- * The app records the game directory it verified in .gamer-agent.local.json, next to the
- * repo. That value is judged by the repo's own game-paths logic, so it wins over anything
- * this script would guess. Absent when the repo is used outside the app.
+ * The Data directory of the install. tools/paths.mjs judges the game; this turns the judged
+ * install into the one directory extract-art.py reads.
  */
-function recordedGameDir() {
-  const f = path.join(ROOT, ".gamer-agent.local.json");
-  if (!existsSync(f)) return null;
-  try {
-    const dir = JSON.parse(readFileSync(f, "utf8")).gameDir;
-    return dir ? dataDir(dir) : null;
-  } catch {
-    return null;
-  }
-}
-
-function findGame(explicit) {
+function findGame(explicit, judgeOpts) {
   if (explicit) return dataDir(path.resolve(explicit));
-  const recorded = recordedGameDir();
-  if (recorded) {
-    console.log("Using the game directory already recorded for this workspace.");
-    return recorded;
+  const judged = judge(judgeOpts);
+  const steam = judged.rows.find((r) => r.name === "steam");
+  if (steam.status === "OK" && steam.install) {
+    const found = dataDir(steam.install);
+    if (found) return found;
   }
-  for (const c of candidates()) {
-    const d = dataDir(c);
-    if (d) return d;
-  }
+  // A config recorded in .pi/paths.json can still name the install when discovery found none.
+  const vanilla = judged.rows.find((r) => r.name === "vanilla");
+  if (vanilla.status === "OK") return dataDir(path.dirname(path.dirname(vanilla.path)));
   return null;
 }
 
-/** What the preview needs, and what it can live without. */
-function status() {
+/** What the preview needs, and what it can live without, plus the two judged locations. */
+function status(judgeOpts = {}) {
   const need = ["card.png", "card-stone.png", "card-copper.png", "card-silver.png", "card-gold.png"]
     .map((f) => ({ file: `reference/plates/${f}`, ok: existsSync(path.join(REF, "plates", f)), required: true }));
   const fonts = existsSync(path.join(REF, "fonts"))
@@ -100,10 +70,23 @@ function status() {
   const cards = existsSync(path.join(REF, "cards"))
     ? readdirSync(path.join(REF, "cards")).filter((f) => f.endsWith(".png")).length
     : 0;
+  const judged = judge(judgeOpts);
+  const location = (name) => {
+    const r = judged.rows.find((x) => x.name === name);
+    return {
+      file: `${name.padEnd(7)} ${r.path ? shorten(r.path) : "(not found)"}`,
+      ok: r.status === "OK",
+      required: true,
+      location: true,
+      detail: r.reason,
+    };
+  };
   return [
     ...need,
     { file: "reference/fonts/ (card title font)", ok: fonts > 0, required: false, detail: `${fonts} files` },
     { file: "reference/cards/ (style references)", ok: cards > 0, required: false, detail: `${cards} files` },
+    location("steam"),
+    location("vanilla"),
   ];
 }
 
@@ -135,17 +118,27 @@ function main() {
     return i > -1 ? process.argv[i + 1] : null;
   };
   if (process.argv.includes("--help") || process.argv.includes("-h")) {
-    console.log("usage: node tools/setup.mjs [--check] [--game <install|Data>] [--python <py>]");
+    console.log("usage: node tools/setup.mjs [--check] [--game <install|Data>] [--python <py>] [--paths <file>]");
     return 0;
   }
 
-  const rows = status();
+  // One file decides where the game is, and a test can replace it. Everything below asks it.
+  const paths = arg("--paths");
+  const judgeOpts = paths ? { file: paths } : {};
+
+  const rows = status(judgeOpts);
   if (process.argv.includes("--check")) {
     for (const r of rows) {
       console.log(`${r.ok ? "OK  " : r.required ? "MISS" : "    "} ${r.file}${r.detail ? ` (${r.detail})` : ""}`);
     }
     const missing = rows.filter((r) => r.required && !r.ok);
-    console.log(missing.length ? `\n${missing.length} required file group(s) missing. Run: node tools/setup.mjs` : "\nAll required files present.");
+    if (missing.some((r) => r.location)) {
+      console.log(`\nThe game was not found. Pass it explicitly:\n  node tools/setup.mjs --game "<install folder>"`);
+    } else if (missing.length) {
+      console.log(`\n${missing.length} required file group(s) missing. Run: node tools/setup.mjs`);
+    } else {
+      console.log("\nAll required files present.");
+    }
     return missing.length ? 1 : 0;
   }
 
@@ -154,7 +147,7 @@ function main() {
     return 0;
   }
 
-  const game = findGame(arg("--game"));
+  const game = findGame(arg("--game"), judgeOpts);
   if (!game) {
     console.error("Cannot find the game. Pass it explicitly:\n  node tools/setup.mjs --game \"<install folder>\"");
     return 2;
