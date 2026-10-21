@@ -47,7 +47,7 @@ input[type=text], input[type=number], textarea, select {
 textarea { min-height: 84px; resize: vertical; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
 th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #362c21; vertical-align: top; }
-th { color: var(--dim); font-weight: normal; font-size: 12px; letter-spacing: .08em; }
+th { color: var(--dim); font-weight: normal; font-size: 12px; letter-spacing: .08em; white-space: nowrap; }
 td.num { width: 92px; }
 .cardface {
   width: 236px; aspect-ratio: 472 / 1028; border: 1px solid var(--rule);
