@@ -45,6 +45,26 @@ reads the log back.
 The game discovers a mod by scanning `MOD_ROOT` for subdirectories that contain `info.json`. There is
 no registration file. Write mods only under `your_mods/<ModName>/` in this repo.
 
+## Creating the folder
+
+The folder is created by a tool, not by `mkdir`: `create_mod_folder(name=...)` makes
+`your_mods/<name>/` and binds the session to it. It is also the write-isolation boundary — the
+guard only allows writes inside the bound directory — so do not create the directory another way.
+
+- `name` is lowercase snake_case: `a-z`, `0-9`, `_`, starts with a letter, at most 40 characters
+  (`broken_blade`, not `Broken Blade`). It is the folder name, not the panel name: the display
+  name is `info.json`'s `name`.
+- It creates no source files. Write `info.json` yourself (next section).
+- Failures and what to do:
+
+| output | action |
+|---|---|
+| `EXISTING: This session is already bound to <path>` | already bound; keep using it, do not create a second one |
+| `INVALID_MOD_NAME: ...` | fix the name and call again |
+| `MOD_NAME_TAKEN: <name> already exists` | the folder is taken; pick another name |
+| `MOD_DIRECTORY_MISSING` / `UNAVAILABLE` | the bound folder is gone or unreadable. Ask the player to restore it, or start a new session; do not bind a second directory |
+| `HELPER_READ_ONLY` | Game Helper sessions cannot create a mod; switch to a mod-development session |
+
 ## info.json
 
 ```jsonc

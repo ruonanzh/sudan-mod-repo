@@ -45,39 +45,9 @@ description: >
 
 ## `ModName` 还没定？
 
-页面要一个 mod 目录。没有绑定目录时，先调 **`create_mod_folder`**：
+先调 `create_mod_folder(name="<小写 snake_case，字母开头，≤40>")` 建目录并绑定会话，然后写 `info.json`。它只建目录、不建源文件。
 
-```
-create_mod_folder(name="broken_blade")
-```
-
-- `name` 必须是小写 snake_case：`a-z`、`0-9`、`_`，字母开头，最长 40 字符。
-- 它建 `your_mods/<name>/` 并把当前会话绑到这个目录，返回 `CREATED: <路径>。This session is now bound to the directory. No mod source files have been generated or validated yet.`
-- **它只建目录，不建源文件。** `info.json` 要自己写：
-
-```json
-{
-  "name": "断刃",
-  "description": "一张新武器卡，和它的三个数值方案。",
-  "tags": ["Utilities"],
-  "version": "1.0.0"
-}
-```
-
-- `name` 是 mod 面板上显示的名字（中文可以）；`tags` 从创意工坊分类里选，`Utilities` 最安全；`version` 写 `1.0.0`。
-- 写 `info.json` 后跑 `node tools/lint.mjs your_mods/<ModName>`，它检查必填项与长度限制。
-
-失败与对应动作：
-
-| 输出 | 动作 |
-|---|---|
-| `EXISTING: This session is already bound to <路径>` | 已经绑过了，直接用那个目录，不要再建 |
-| `INVALID_MOD_NAME: ...` | 换名字再调一次，参数规则同上 |
-| `MOD_NAME_TAKEN: <name> already exists` | 这个目录被占了，换一个名字再调 |
-| `MOD_DIRECTORY_MISSING` / `UNAVAILABLE` | 已绑的目录不见了或打不开。请玩家恢复它，或新开一个会话；不要自己另建一个 |
-| `HELPER_READ_ONLY` | Game Helper 会话不能建 mod，换个 mod 开发会话 |
-
-**会话绑定是写隔离的依据**：mod-guard 只允许往绑定的目录里写。所以 `create_mod_folder` 之后不要再改 `ModName`——mod 根目录里的文件夹名、玩家的启用记录、日志里的名字都按它来。
+名字规则、`info.json` 的字段与失败码，都在 `mod-creator` → `## Mod layout` 与 `## info.json` 两节。
 
 ## 页面放在哪
 
