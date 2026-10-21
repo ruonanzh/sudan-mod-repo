@@ -59,7 +59,7 @@ config/sfx_npc_role_dub.json                         config/sfx_settle_card_new.
 下面这些文件游戏自己也读，但不可 mod。玩家要求改这些文件时，直接说作为 mod 做不到：
 
 `achievement.json` `credits.json` `gallery_cards.json` `gallery_cg.json` `imagestyle.json`
-`mobile_help.json` `textstyle.json` `ui.json` `variable.json` `rite.json`
+`mobile_help.json` `textstyle.json` `ui.json` `variable.json`
 
 ## 一个事件文件
 

@@ -31,7 +31,7 @@ config/sfx_npc_role_dub.json                         config/sfx_settle_card_new.
 下面这些文件游戏自己也读，但**不可 mod**：
 
 `achievement.json` `credits.json` `gallery_cards.json` `gallery_cg.json` `imagestyle.json`
-`mobile_help.json` `textstyle.json` `ui.json` `variable.json` `rite.json`
+`mobile_help.json` `textstyle.json` `ui.json` `variable.json`
 
 玩家要求改这些文件时，直接说作为 mod 做不到。`gallery_cards.json` 就在这一列里，所以卡廊本身不可 mod。
 
