@@ -689,11 +689,10 @@ function listRows() {
     escHtml(dispLabel(n).slice(0, 40)) +
     (n.t !== "event" && lang !== "zh" && n.tr && !n.tr[lang] ? ' <span class="toless">无' + lang + "</span>" : "") + "</span></div>"
   ).join("") || '<div class="note">没有匹配</div>';
+  // The list is the navigator: one click there means "show me this", so it redraws. A node on
+  // the canvas is the thing you are already looking at, so it needs a second click to replace
+  // the picture, and a single click only moves the selection and opens its text.
   listEl.onclick = (e) => {
-    const row = e.target.closest(".row");
-    if (row) selectOnly(row.dataset.k);
-  };
-  listEl.ondblclick = (e) => {
     const row = e.target.closest(".row");
     if (row) focusNode(row.dataset.k);
   };
