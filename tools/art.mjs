@@ -3,8 +3,12 @@
  * art.mjs — write the prompt for a card's picture, generate it, and cut it to fit.
  *
  *   node tools/art.mjs prompt --mod your_mods/x --id 2100900
- *   node tools/art.mjs gen    --mod your_mods/x --id 2100900                 # uses the composed prompt
- *   node tools/art.mjs gen    --mod your_mods/x --id 2100900 --prompt "..."  # or yours
+ *   node tools/art.mjs gen    --mod your_mods/x --id 2100900                 # composed from the card
+ *   node tools/art.mjs gen    --mod your_mods/x --id 2100900 --subject "..." # player's content, game style
+ *   node tools/art.mjs gen    --mod your_mods/x --id 2100900 --add "..."     # same, appended
+ *   node tools/art.mjs gen    --mod your_mods/x --id 2100900 --prompt "..."  # whole prompt, no style
+ *   node tools/art.mjs gen    --mod your_mods/x --id 2100900 --ref <图>      # replace the reference
+ *   node tools/art.mjs gen    --mod your_mods/x --id 2100900 --ref-add <图>  # style from the game, content from <图>
  *   node tools/art.mjs fit    --in raw.png --out image/cards/2100900.png     # no API, no credits
  *   node tools/art.mjs check  --file image/cards/2100900.png
  *
@@ -61,6 +65,9 @@ const TYPE_HINT = {
 
 const CARD_ART = JSON.parse(readFileSync(new URL("../schema/card-art.json", import.meta.url), "utf8"));
 
+const STYLE_MATCH =
+  "Match the reference drawing's style and palette, and keep its FULLY TRANSPARENT background: do not add any backdrop, plate or frame.";
+
 const STYLE =
   "flat engraved illustration, warm muted palette of ochre, oxblood and bone, " +
   "visible ink linework, folk woodcut influence, " +
@@ -93,10 +100,51 @@ export function composeBoilerplate(card) {
   return { head: `A ${tier.name} tier ${card.type} card: ${kind}, ${tendency}.`, tail: STYLE };
 }
 
-/** Full prompt for the generator: boilerplate, then the player's words, then boilerplate. */
-export function composePrompt(card, subjectOverride) {
+/**
+ * Full prompt for the generator: head, the subject, the style tail.
+ *
+ * `subject` replaces the generated subject sentence; `add` is appended to it. Both stay inside
+ * the head/tail pair, so the picture keeps the game's look. Use `prompt` (see `resolvePrompt`)
+ * only when the caller wants to drop that look entirely.
+ */
+export function composePrompt(card, { subject, add } = {}) {
   const { head, tail } = composeBoilerplate(card);
-  return `${head} ${subjectOverride || composeSubject(card)} ${tail}`;
+  const content = [subject || composeSubject(card), add].filter(Boolean).join(" ");
+  return `${head} ${content} ${tail}`;
+}
+
+/**
+ * Which of the three modes the arguments ask for, and the text that goes to the model.
+ * `verbatim` is the whole prompt, so nothing of the game's style survives it — that is why it
+ * is the last resort. The mode is reported so a run says what it did.
+ */
+export function resolvePrompt(card, args = {}) {
+  if (args.prompt) return { prompt: args.prompt, mode: "verbatim" };
+  const subject = args.subject;
+  const add = args.add;
+  const mode = subject && add ? "composed+subject+add" : subject ? "composed+subject" : add ? "composed+add" : "composed";
+  return { prompt: composePrompt(card, { subject, add }), mode };
+}
+
+
+/**
+ * Which pictures go to the model, and who decides the style.
+ *
+ * The endpoint accepts one `input` or several `inputs`, and `chat_image` takes up to 16 with the
+ * prompt naming them as `image[1]`, `image[2]`. That is what makes "content from the player's
+ * picture, style from the game's" possible: keep the tier reference first so it stays `image[1]`.
+ */
+export function planRefs({ gameRef, ref, refAdd } = {}) {
+  if (ref) return { files: [ref], style: "player", promptSuffix: STYLE_MATCH };
+  const files = [gameRef, refAdd].filter(Boolean);
+  if (!files.length) return { files: [], style: "none", promptSuffix: "" };
+  if (refAdd && gameRef)
+    return {
+      files,
+      style: "game+player",
+      promptSuffix: `${STYLE_MATCH} Use the style and palette of image[1]. Take the subject's shape and details from image[2].`,
+    };
+  return { files, style: gameRef ? "game" : "player", promptSuffix: STYLE_MATCH };
 }
 
 /** Where a same-tier, same-type reference picture lives. */
@@ -226,10 +274,13 @@ function cmdCheck(args) {
 
 async function cmdGen(args) {
   const { mod, card } = loadCard(args);
-  let prompt = args.prompt || composePrompt(card);
+  const { prompt: composed, mode } = resolvePrompt(card, args);
+  let prompt = composed;
   const key = requireKey();
+  process.stdout.write(`mode    ${mode}\n`);
 
-  const ref = args.ref || refFor(card, mod.dir);
+  const gameRef = refFor(card, mod.dir);
+  const plan = planRefs({ gameRef, ref: args.ref, refAdd: args.refAdd });
   const body = {
     prompt,
     model: "chat_image_2.5_flare",
@@ -237,17 +288,19 @@ async function cmdGen(args) {
     output_format: "png",
   };
   let endpoint = "/generation/text-to-image";
-  if (ref) {
-    // Same tier and type as the card: the model follows the game's own plate and palette.
-    body.input = await uploadRef(key, ref);
+  if (plan.files.length) {
+    const tokens = [];
+    for (const file of plan.files) tokens.push(await uploadRef(key, file));
+    if (tokens.length === 1) body.input = tokens[0];
+    else body.inputs = tokens;
     endpoint = "/generation/image-to-image";
-    prompt = `${prompt} Match the reference drawing's style and palette, and keep its FULLY TRANSPARENT background: do not add any backdrop, plate or frame.`;
+    prompt = plan.promptSuffix ? `${prompt} ${plan.promptSuffix}` : prompt;
     body.prompt = prompt;
   } else {
     emit("WARN", "no reference picture for this tier; the palette comes from the prompt alone. Run `node tools/art.mjs refs`.");
   }
   process.stdout.write(`prompt  ${prompt}\n`);
-  process.stdout.write(`ref     ${ref ? path.basename(ref) : "none"}\n`);
+  process.stdout.write(`refs    ${plan.files.length ? plan.files.map((f) => path.basename(f)).join(", ") : "none"} (style: ${plan.style})\n`);
   const created = await api(key, endpoint, body);
   const taskId = String(created?.task_id ?? "");
   if (!taskId) throw new ModelError(`Tripo accepted no task: ${JSON.stringify(created).slice(0, 200)}`);
@@ -277,7 +330,7 @@ async function main() {
   const table = { prompt: cmdPrompt, gen: cmdGen, fit: cmdFit, check: cmdCheck, refs: cmdRefs };
   if (!table[cmd]) {
     process.stderr.write(
-      "usage: node tools/art.mjs <prompt|gen|fit|check|refs> [--mod <dir> --id <id>] [--ref f] [--in f] [--out f] [--prompt text]\n",
+      "usage: node tools/art.mjs <prompt|gen|fit|check|refs> [--mod <dir> --id <id>] [--ref f] [--in f] [--out f] [--subject text] [--add text] [--prompt text] [--ref-add file]\n",
     );
     return 2;
   }

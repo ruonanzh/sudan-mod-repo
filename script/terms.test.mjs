@@ -75,6 +75,20 @@ test("T6 a long key name that merely contains a shorter one is not a hit", () =>
   assert.equal(run([file]).status, 0);
 });
 
+test("T9 a banned stage word fails and names the stage word", () => {
+  // The same action was called 写 config / 制作 mod / 写 json in different documents. One name now.
+  const file = tmpFile("doc.md", "确认之后，再写 config 并安装。\n");
+  const r = run([file]);
+  assert.equal(r.status, 1);
+  assert.match(r.stdout + r.stderr, /写 config/);
+  assert.match(r.stdout + r.stderr, /写配置记录/);
+});
+
+test("T10 the accepted stage word passes", () => {
+  const file = tmpFile("doc.md", "确认之后，再写配置记录，然后安装。\n");
+  assert.equal(run([file]).status, 0);
+});
+
 test("T7 a tool message with non-ASCII text fails", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "sudan-tools-"));
   writeFileSync(

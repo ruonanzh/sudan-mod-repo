@@ -9,7 +9,7 @@ description: 苏丹的游戏 mod 工作区的环境准备。先确定 mod 根目
 
 ## 必需：mod 根目录
 
-这个路径是**推导出来的**，不是配置项，没有环境变量能改它。游戏的推导链是：
+这个路径是**推导出来的**，不是设置项，没有环境变量能改它。游戏的推导链是：
 
 ```
 Environment.GetFolderPath(MyDocuments) + Application.companyName + "SultansGame" + "Mod"

@@ -78,14 +78,28 @@ function readKeyTerms(standard) {
   return [...new Set(out)];
 }
 
-/** `concepts` → [{banned, accepted, english}] */
-function readConceptTerms(standard) {
+/**
+ * Banned synonyms come from two tables:
+ *   `concepts` — 英文 | 中文 | 禁写   (the accepted word is the Chinese column)
+ *   `stages`   — 阶段词 | 含义 | 禁写  (the accepted word is the first column)
+ * A banned cell may carry a parenthetical explanation; only the term before `（` is enforced.
+ */
+function readBannedTerms(standard) {
   const out = [];
+  const words = (cell) =>
+    cell
+      .split(/[、,，]/)
+      .map((w) => w.split("（")[0].trim())
+      .filter((w) => w && w !== "—" && w !== "-");
+
   for (const cells of tableRows(block(standard, "concepts"))) {
     const [english = "", accepted = "", banned = ""] = cells;
-    const words = banned.split(/[、,，]/).map((w) => w.trim()).filter((w) => w && w !== "—" && w !== "-");
     const zh = (accepted.match(/[\u4e00-\u9fff]+/g) || []).join("");
-    for (const w of words) out.push({ banned: w, accepted: zh || accepted, english });
+    for (const w of words(banned)) out.push({ banned: w, accepted: zh || accepted, english });
+  }
+  for (const cells of tableRows(block(standard, "stages"))) {
+    const [stage = "", , banned = ""] = cells;
+    for (const w of words(banned)) out.push({ banned: w, accepted: stage, english: "" });
   }
   return out;
 }
@@ -111,6 +125,11 @@ function maskNonProse(text) {
   });
 }
 
+/** Accepted phrasings, longest first, so masking a phrase cannot leave a shorter one behind. */
+function acceptedPhrases(terms) {
+  return [...new Set(terms.map((t) => t.accepted).filter(Boolean))].sort((a, b) => b.length - a.length);
+}
+
 function checkProse(file, keys, concepts) {
   const text = readFileSync(file, "utf8");
   const rel = path.relative(REPO, file) || file;
@@ -122,6 +141,7 @@ function checkProse(file, keys, concepts) {
 
   const problems = [];
   const prose = maskNonProse(text);
+  const accepted = acceptedPhrases(concepts);
   prose.forEach((line, i) => {
     if (!CJK.test(line)) return; // a line with no Chinese is a command, a key list or a table row
     const where = `${rel}:${i + 1}`;
@@ -129,8 +149,13 @@ function checkProse(file, keys, concepts) {
       const re = new RegExp(`(?<![A-Za-z0-9_\`])${key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![A-Za-z0-9_])`, "g");
       if (re.test(line)) problems.push(`${where} 键名 ${key} 没有反引号（指键时写 \`${key}\`，指机制时写中文）`);
     }
+    // Mask the accepted phrasings first: 「写配置记录」 contains 「配置」, and the accepted word
+    // must not be reported as its own banned substring.
+    let plain = line;
+    for (const a of accepted) plain = plain.split(a).join("\u0000");
     for (const term of concepts) {
-      if (line.includes(term.banned)) problems.push(`${where} 禁用说法「${term.banned}」，应写「${term.accepted}」（${term.english}）`);
+      if (plain.includes(term.banned))
+        problems.push(`${where} 禁用说法「${term.banned}」，应写「${term.accepted}」${term.english ? `（${term.english}）` : ""}`);
     }
   });
   return { file: rel, pending: false, problems };
@@ -174,7 +199,7 @@ try {
   process.exit(2);
 }
 const keys = readKeyTerms(standard);
-const concepts = readConceptTerms(standard);
+const concepts = readBannedTerms(standard);
 if (!keys.length) {
   process.stderr.write("the standard has no key table (terms:keys block)\n");
   process.exit(2);
