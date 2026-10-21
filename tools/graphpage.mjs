@@ -725,6 +725,10 @@ function selectOnly(key) {
   listEl.querySelectorAll(".row.sel").forEach((el) => el.classList.remove("sel"));
   const row = listEl.querySelector('.row[data-k="' + key + '"]');
   if (row) row.classList.add("sel");
+  // Nothing on the canvas yet: a reader who clicks a row expects to see that node's picture, not
+  // an empty frame with a text panel beside it. Only the first click draws; later clicks keep the
+  // picture and just move the selection.
+  if (!lastGen) draw();
   window.__openNode(key);
 }
 
