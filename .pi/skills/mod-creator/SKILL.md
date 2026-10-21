@@ -1,69 +1,57 @@
 ---
 name: mod-creator
 description: >
-  The reference for writing and changing Sultan's Game(苏丹的游戏) mods. Read it first, before you search the
-  vanilla config, before you write your first file, and before you answer what a mod can do. Covers
-  the mod layout, info.json, the exact set of config entries a mod may supply, merge-by-key versus
-  whole-file replacement, the JSONC rules, authoring a card and an event or rite with working
-  examples, and the verified facts about ids and sprites. Sultan's Game mods are data only. There is
-  no compile step and no code.
+  写苏丹的游戏 mod、改苏丹的游戏 mod 的主参考。在你翻原版配置之前、写第一个文件之前、回答「一个 mod
+  能做什么」之前，先读这一份。覆盖 mod 布局、`info.json`、mod 能提供的 config 条目全集、按 key 合并
+  与整文件重述的区别、JSONC 规则、带可用示例的卡与事件/仪式写法，以及 id 与贴图上已经验证的事实。
+  苏丹的游戏 mod 只是数据：没有编译，没有代码。
 ---
 
-# Writing Sultan's Game mods
+# 写苏丹的游戏 mod
 
-A mod is a folder of JSONC and PNG. Nothing compiles. Nothing runs.
+一个 mod 就是一个装着 JSONC 与 PNG 的文件夹。没有编译步骤，也没有代码。
 
-## What you must load before writing
+## 动手前必须先读什么
 
-The vanilla data is the only complete description of the format, and it is annotated. Read the file
-you intend to change before you change it:
+原版数据是这个格式唯一完整的描述，而且带注释。先读你要改的那个文件，再动它：
 
 ```
 macOS    ~/Library/Application Support/Steam/steamapps/common/Sultan's Game/Sultan's Game.app/Contents/Resources/Data/StreamingAssets/config/
 Windows  <steam>\\steamapps\\common\\Sultan's Game\\Sultan's Game_Data\\StreamingAssets\\config\\
 ```
 
-The devs left Chinese `//` comments in these files that explain each field. `config/event/5300000.json`
-is the tutorial opening and documents `confirm`, `option`, `success` and `failed` in place, with both
-the short and the long form side by side. It is the single best example file.
+开发者在这些文件里留了中文 `//` 注释，逐个解释字段。`config/event/5300000.json` 是教学局的开场，就地写明了 `confirm`、`option`、`success` 与 `failed`，短写与长写两种形状并排给出。它是最好的单一样例文件。
 
-When the change needs an image, also load `card-art`. When the player must agree on a scope or a
-value, the answer is a page: load `mod-page`. After writing, `mod-installer` puts it in the game and
-reads the log back.
+改动需要图片时，再读 `card-art`。需要玩家先就某个范围或某个值达成一致时，答案是页面：读 `mod-page`。写完之后，`mod-installer` 负责把它装进游戏并读回日志。
 
-## Mod layout
+## mod 布局
 
 ```
 <ModName>/
-  info.json          required
-  preview.png|jpg    optional Workshop thumbnail; the game globs "preview.*", size is not enforced
-  config/            data, mirrors StreamingAssets/config/
-  image/             sprites, walked recursively
-  bgm/               audio, walked
+  info.json          必需
+  preview.png|jpg    可选, 创意工坊缩略图, 游戏用 "preview.*" 通配, 不校验尺寸
+  config/            数据, 镜像 StreamingAssets/config/
+  image/             贴图, 递归遍历
+  bgm/               音频, 递归遍历
 ```
 
-The game discovers a mod by scanning `MOD_ROOT` for subdirectories that contain `info.json`. There is
-no registration file. Write mods only under `your_mods/<ModName>/` in this repo.
+游戏靠扫描 `MOD_ROOT` 下含 `info.json` 的子目录来发现 mod。没有注册文件。写 mod 只写在本仓的 `your_mods/<ModName>/` 下。
 
-## Creating the folder
+## 建 mod 骨架
 
-The folder is created by a tool, not by `mkdir`: `create_mod_folder(name=...)` makes
-`your_mods/<name>/` and binds the session to it. It is also the write-isolation boundary — the
-guard only allows writes inside the bound directory — so do not create the directory another way.
+目录由工具建，不用 `mkdir`：`create_mod_folder(name=...)` 建出 `your_mods/<name>/`，并把会话绑定到它。它同时是写入隔离的边界——守卫只允许写绑定目录里面——所以不要用别的办法建这个目录。
 
-- `name` is lowercase snake_case: `a-z`, `0-9`, `_`, starts with a letter, at most 40 characters
-  (`broken_blade`, not `Broken Blade`). It is the folder name, not the panel name: the display
-  name is `info.json`'s `name`.
-- It creates no source files. Write `info.json` yourself (next section).
-- Failures and what to do:
+- `name` 是小写 snake_case：`a-z`、`0-9`、`_`，以字母开头，最多 40 个字符（`broken_blade`，不是 `Broken Blade`）。它是文件夹名，不是面板名：面板上显示的名字是 `info.json` 的 `name`。
+- 它不建任何源文件。`info.json` 自己写（下一节）。
+- 失败与对应的做法：
 
-| output | action |
+| 输出 | 做法 |
 |---|---|
-| `EXISTING: This session is already bound to <path>` | already bound; keep using it, do not create a second one |
-| `INVALID_MOD_NAME: ...` | fix the name and call again |
-| `MOD_NAME_TAKEN: <name> already exists` | the folder is taken; pick another name |
-| `MOD_DIRECTORY_MISSING` / `UNAVAILABLE` | the bound folder is gone or unreadable. Ask the player to restore it, or start a new session; do not bind a second directory |
-| `HELPER_READ_ONLY` | Game Helper sessions cannot create a mod; switch to a mod-development session |
+| `EXISTING: This session is already bound to <path>` | 已经绑定过了，继续用这个目录，不要再建第二个 |
+| `INVALID_MOD_NAME: ...` | 改名字，再调一次 |
+| `MOD_NAME_TAKEN: <name> already exists` | 这个名字被占了，换一个名字 |
+| `MOD_DIRECTORY_MISSING` / `UNAVAILABLE` | 绑定的目录已经不在了或读不了。请玩家恢复它，或者开一个新会话；不要绑定第二个目录 |
+| `HELPER_READ_ONLY` | Game Helper 会话不能建 mod；换到 mod 开发会话 |
 
 ## info.json
 
@@ -76,18 +64,17 @@ guard only allows writes inside the bound directory — so do not create the dir
 }
 ```
 
-| field | type | rule |
+| 字段 | 类型 | 规则 |
 |---|---|---|
-| `name` | string | required, at most 128 bytes |
-| `description` | string | at most 8000 bytes, `\n` allowed |
-| `tags` | string[] | ASCII only; the game matches ASCII tags and ignores others |
-| `version` | string | present but unused by the game |
-| `enable_reassign_id` | bool | optional, opt in to the game's mod id reassignment |
+| `name` | string | 必需，最多 128 字节 |
+| `description` | string | 最多 8000 字节，允许 `\n` |
+| `tags` | string[] | 只允许 ASCII；游戏按 ASCII 匹配标签，其他字符忽略 |
+| `version` | string | 写了，游戏不用 |
+| `enable_reassign_id` | bool | 可选，接受游戏对这个 mod 的 id 重新分配 |
 
-## What a mod may supply, and nothing else
+## mod 能提供什么，别的都不行
 
-This list is exact. The loader logs `file not exists` for each entry a mod omits, so the set is
-readable from the log of any mod.
+这份清单是完整的。mod 少给哪一项，加载器就为哪一项写一行 `file not exists`，所以这个集合从任何一个 mod 的日志里都能读出来。
 
 ```
 config/game.json          config/tag.json            config/cards.json
@@ -99,34 +86,26 @@ config/sfx_config.json    config/over_music_config.json
 config/sfx_npc_role_dub.json                         config/sfx_settle_card_new.json
 ```
 
-These are **not** moddable even though the game reads them for itself. If the player asks for a change
-here, say it cannot be done as a mod:
+下面这些游戏自己也读，但**不可 mod**。玩家要求改这些时，直接说作为 mod 做不到：
 
 `achievement.json` `credits.json` `gallery_cards.json` `gallery_cg.json` `imagestyle.json`
 `mobile_help.json` `textstyle.json` `ui.json` `variable.json` `rite.json`
 
-A mod may ship exactly one of the entries above. Shipping one file is normal and correct.
+一个 mod 能提供的只有上面清单里的条目。只交一份文件很正常，也是对的。
 
-## Two merge behaviours, and how to tell them apart
+## 两种合并行为，以及怎么区分
 
-- **Table entries merge by key.** `cards.json`, `upgrade.json`, `tag.json`, `quest.json`, `over.json`,
-  `rite_template_mappings.json` and the `sfx_*` files are dictionaries. Put only the records you add
-  or change. Vanilla keeps the rest.
-  `tag.json` is keyed by the tag **code string**, not by `id`.
+- **表条目按 key 合并。** `cards.json`、`upgrade.json`、`tag.json`、`quest.json`、`over.json`、`rite_template_mappings.json` 与 `sfx_*` 文件都是字典。只写你要新增或修改的那几条记录，其余归原版。`tag.json` 的 key 是标签的 **code 字符串**，不是 `id`。
 
-- **Directory entries are one record per file.** `event/`, `rite/`, `loot/`, `init/`, `rite_template/`,
-  `after_story/`, `dt/`, `wizard/`. Adding a record means adding a file. Changing a vanilla record
-  means restating that whole file, because there is no field-level merge.
+- **目录条目一个文件一条记录。** `event/`、`rite/`、`loot/`、`init/`、`rite_template/`、`after_story/`、`dt/`、`wizard/`。新增一条记录就是新增一个文件。改一条原版记录要整文件重述，因为这里没有字段级合并。
 
-Inside a directory entry, the filename must equal the `id`. For `rite` this is load-bearing: the game
-builds the path from the id (the literal `rite/{0}.json`), so a mismatched name is not read at all.
-The other directories behave the same way in every mod in the wild; treat a mismatch as a defect.
+目录条目里，文件名必须等于 `id`。`rite` 这一条是关键的：游戏用 id 拼路径（字面量 `rite/{0}.json`），名字对不上的文件根本不会被读。其余目录在现存每一个 mod 里都是同样的行为；名字对不上就当缺陷处理。
 
-## JSONC rules
+## JSONC 规则
 
-The game's reader accepts `//`, `/* */`, trailing commas and a BOM. Follow the same style as vanilla.
+游戏的读取器接受 `//`、`/* */`、尾逗号与 BOM。按原版的写法写。
 
-**A repeated key is not a mistake.** It appends:
+**重复键不是笔误。** 它是追加：
 
 ```jsonc
 "success": {
@@ -135,14 +114,13 @@ The game's reader accepts `//`, `/* */`, trailing commas and a BOM. Follow the s
 }
 ```
 
-That adds three events. Never parse a config file and write it back with a JSON library, because a
-dictionary keeps only the last value.
+这样写等于加三个事件。绝不要用 JSON 库把配置文件读成对象再写回：字典只保留最后一个值。
 
-`settlement` arrays are the other place repeats appear, inside `result`.
+`settlement` 数组是重复键出现的另一处，在 `result` 里面。
 
-## A card
+## 一张卡
 
-`config/cards.json` is a dictionary keyed by card id. This is a complete, minimal new item card:
+`config/cards.json` 是按卡 id 索引的字典。下面是一张完整、最小的新道具卡：
 
 ```jsonc
 {
@@ -164,29 +142,27 @@ dictionary keeps only the last value.
 }
 ```
 
-Card fields:
+卡的字段：
 
-| field | meaning |
+| 字段 | 含义 |
 |---|---|
-| `id` | must equal the dictionary key |
-| `name` | the card face name. **It is clipped at the card face width, so keep it short** |
-| `title` | the subtitle line, e.g. 军队 |
-| `text` | the rules or flavour text in the card detail view |
-| `type` | `char`, `item`, or `sudan` |
-| `rare` | 1 to 4. 1 stone, 2 copper, 3 silver, 4 gold |
-| `resource` | sprite name, or an array of sprite names for multiple art variants |
-| `tag` | a map of tag name to integer. Negative and zero are legal |
-| `pops` | declared as `string[]` and **empty in all 1294 vanilla cards**. Legacy: an object here fails the conversion. Use `post_rite` for the pop-up behaviour |
-| `equips` | equipment slots this card accepts, e.g. `["武器","服装","饰品"]` |
-| `is_only` | whether only one copy may exist |
-| `card_vanishing` / `vanish` | `card_vanishing` is rounds of life: each round pass adds 1, and once `life >= card_vanishing` the card is queued to vanish. `0` = never ages. `vanish` is the operation block run when the card is destroyed; `{}` in 1267 of 1294 vanilla cards |
-| `post_rite` | optional settlement array. After a rite that involved this card settles, every branch whose `condition` holds appends its `result_text` and queues its `result`/`action`. Branches of cards equipped on it are collected too |
+| `id` | 必须等于字典的 key |
+| `name` | 卡面名字。**它按卡面宽度截断，所以写短** |
+| `title` | 卡面副标题那一行，例如 军队 |
+| `text` | 卡牌详情里显示的规则或风味文字 |
+| `type` | `char`、`item` 或 `sudan` |
+| `rare` | 1 到 4。1 石、2 铜、3 银、4 金 |
+| `resource` | 贴图名；多种画法时写贴图名的数组 |
+| `tag` | 标签名到整数的映射。负数与 0 都合法 |
+| `pops` | 声明为 `string[]`，**原版 1294 张卡全部是空数组**。它是旧版留下的弹窗定义，写对象会让转换失败；弹窗行为用 `post_rite` |
+| `equips` | 这张卡接受的装备槽，例如 `["武器","服装","饰品"]` |
+| `is_only` | 是否只允许存在一张 |
+| `card_vanishing` / `vanish` | `card_vanishing` 是寿命轮数：每过一轮加 1，`life >= card_vanishing` 时这张卡进消失队列。`0` = 永不老化。`vanish` 是卡被销毁时执行的操作块；原版 1294 张卡里 1267 张是 `{}` |
+| `post_rite` | 可选的结算数组。涉及这张卡的仪式结算完之后，每一条 `condition` 成立的分支追加自己的 `result_text`，并把自己的 `result`/`action` 入队。装备在这张卡上的卡，它们的分支也一起收集 |
 
-Card ids in vanilla run `2000001` to `2001351`. Community mods have used `17xxxxx`, `21xxxxx` to
-`27xxxxx`, `2999999` and `9000xxx`. There is no reserved block and no registry, so check for
-collisions and pick a value nothing else uses.
+原版的卡 id 从 `2000001` 到 `2001351`。社区 mod 用过 `17xxxxx`、`21xxxxx` 到 `27xxxxx`、`2999999` 与 `9000xxx`。这里没有保留段，也没有注册表，所以先查有没有撞车，再挑一个别人没用过的值。
 
-To make a card obtainable, add a `config/upgrade.json` entry. It is the destiny shop:
+要让一张卡能拿到，加一条 `config/upgrade.json` 条目。它是命运商店：
 
 ```jsonc
 "3300095": {
@@ -202,26 +178,23 @@ To make a card obtainable, add a `config/upgrade.json` entry. It is the destiny 
 }
 ```
 
-`link_card` is what draws the shop thumbnail. `cost: 0` is legal and shows the item for free.
-`link_card_inst` is **not** an authored key: the game synthesises that `Card` from `link_card`
-(`PointShopController.InitUpgradeCards`), so writing it does nothing.
+`link_card` 决定商店缩略图画什么。`cost: 0` 合法，等于免费展示这件东西。`link_card_inst` **不是**可写的键（`upgrade` 的历史键）：游戏从 `link_card` 合成那张 `Card`（`PointShopController.InitUpgradeCards`），写它没有任何作用。
 
-## An event
+## 一个事件
 
-`config/event/<id>.json`. This is the whole language: `on` is when it triggers, `condition` is what
-must hold, `settlement` is an array of branches with an `action`.
+`config/event/<id>.json`。整套语言就这些：`on` 是它何时触发，`condition` 是必须成立什么，`settlement` 是一串带 `action` 的分支。
 
 ```jsonc
 {
     "id": 5300029,
-    "text": "书店营业",              // display only: nothing reads it
-    "is_replay": 1,                 // may it trigger more than once
-    "auto_start_init": [1],         // already enabled when init config 1 starts
-    "start_trigger": true,          // unsettled; see the note below
-    "on": { "round_begin_ba": 1 },  // timing; 1 means every round start
+    "text": "书店营业",              // 只用于显示, 没有代码读它
+    "is_replay": 1,                 // 能不能触发多次
+    "auto_start_init": [1],         // init 配置 1 启动时就已经启用
+    "start_trigger": true,          // 未决, 见下面的说明
+    "on": { "round_begin_ba": 1 },  // 时机, 1 表示每轮开始
     "condition": {
-        "!rite": 5002006,            // ! negates
-        "counter.7000017<=": 43      // the comparison operator lives in the key
+        "!rite": 5002006,            // ! 表示取反
+        "counter.7000017<=": 43      // 比较运算符写在键里
     },
     "settlement": [
         {
@@ -231,56 +204,26 @@ must hold, `settlement` is an array of branches with an `action`.
 }
 ```
 
-Facts that decide whether the file works:
+决定这个文件有没有效的事实：
 
-- **The field list per node type is in `schema/fields.json`**, which `tools/lint.mjs` loads as
-  `NODE_FIELDS`. It was read out of the decompiled `*_JsonHandler` types and checked against every
-  shipped file. A key that is not registered for that node is never read, so `node tools/lint.mjs`
-  reports it as `UNKNOWN_FIELD`. The per-key evidence (reader index, field offset, corpus count) is in
-  `docs/sudan-game/fields/21-handler-keys.md` in the planning repo.
-- **Where those field lists come from.** `inspect_game_code` reads the dump: `action=search` finds a type or member in `dump.cs`, `action=type` prints its fields with offsets, properties and signatures, `action=body member=<name>` prints that method's ISIL and disassembly, and `action=strings` searches string literals. The dump is `~/.gamer-agent-pi/decompiled/sudan-mod-repo/` and covers the game's eight assemblies; add one in `.pi/lib/decompile.json`, then run `action=dump assembly=<name>`. Field offsets are decimal (`[r14+40]` is `0x28`); disassembly offsets are hex (`+58h` is `88`). This repository ships data only, so read the dump to confirm a key or a type, not to write code.
-- `EventNode` has no `auto_start`, even though 1520 vanilla event files carry one. It does nothing.
-  `auto_start_init` is the real field.
-- `text` is authored on all 1867 vanilla events and **no code reads it** — it is not one of the seven
-  registered keys. Treat it as a label for whoever opens the file.
-- **An event branch has no `condition`.** `EventTrigger.DoSettlements` runs every branch in array
-  order without testing one, and 0 of the 1869 vanilla branches carry the key. A `condition` you
-  write there is silently ignored; branch selection belongs in `rite.settlement`.
-- `tips_resource` and `tips_text` are written into 1813 event branches and are **not** keys of a
-  settlement: `tips_resource` is not a string in the binary at all, and `tips_text` is a key of
-  `rite`. Both are ignored.
-- **An event branch shows no text of its own.** The settlement shape has `result_text`, but the event
-  host never reads it: what the player sees comes from `action.prompt` (622 of the 1869 vanilla
-  branches). Put the wording there.
-- `auto_start_init` is a list of `init` config ids. `config/init/1.json` is the normal run, so
-  `[1]` means "on from the start of a normal game". An event that is in no `auto_start_init` list and
-  is never named by another event's `event_on` does not run. A brand-new event that must run every
-  round needs `"auto_start_init": [1]`.
+- **每种节点类型的字段清单在 `schema/fields.json` 里**，`tools/lint.mjs` 把它读作 `NODE_FIELDS`。这份清单是从反编译出来的 `*_JsonHandler` 类型里读出来的，并且对着每一个随包文件核对过。某个节点没有注册的键永远不被读，所以 `node tools/lint.mjs` 把它报成 `UNKNOWN_FIELD`。逐键的证据（读取器序号、字段偏移、语料计数）在设计仓的 `docs/sudan-game/fields/21-handler-keys.md`。
+- **这些字段清单从哪来。** `inspect_game_code` 读那份 dump：`action=search` 在 `dump.cs` 里找类型或成员，`action=type` 打印它的字段与偏移、属性、签名，`action=body member=<name>` 打印那个方法的 ISIL 与反汇编，`action=strings` 搜字符串字面量。dump 在 `~/.gamer-agent-pi/decompiled/sudan-mod-repo/`，覆盖游戏八个程序集；要加一个就写进 `.pi/lib/decompile.json`，再跑 `action=dump assemblies=<name>`。字段偏移是十进制（`[r14+40]` 就是 `0x28`），反汇编偏移是十六进制（`+58h` 就是 `88`）。本仓只提供数据，所以读 dump 是为了确认一个键或一个类型，不是为了写代码。
+- `EventNode` 没有 `auto_start`，尽管有 1520 个原版事件文件带着它。这个键什么都不做，它在 `schema/fields.json` 的 `legacy` 列表里（历史键）。真字段是 `auto_start_init`。
+- `text` 在 1867 个原版事件上都被写了，而**没有任何代码读它**——它不在那七个注册键里，是历史键。把它当成给打开这个文件的人看的标签。
+- **事件分支没有 `condition`。** `EventTrigger.DoSettlements` 按数组顺序执行每一条分支，一条都不判断，1869 条原版分支里 0 条带这个键。你在那里写的 `condition` 会被静默忽略；挑分支是 `rite.settlement` 的事。
+- `tips_resource` 与 `tips_text` 被写进 1813 条事件分支，而它们**不是**结算的键：`tips_resource` 在二进制里根本不是字符串，`tips_text` 是 `rite` 的键。两个都被忽略。
+- **事件分支不显示自己的文字。** 结算形状里有 `result_text`，但事件这一侧从不读它：玩家看到的是 `action.prompt`（1869 条原版分支里 622 条写了它）。措辞写在那里。
+- `auto_start_init` 是一串 `init` 配置 id。`config/init/1.json` 是正常的一局，所以 `[1]` 的意思是「正常局一开局就启用」。一个事件如果不在任何 `auto_start_init` 列表里，也没有被别的事件的 `event_on` 点到，它就不跑。一个全新的事件要每轮都跑，就得写 `"auto_start_init": [1]`。
 
-- **Timing keys.** There are exactly 29, and a key outside that set is never scheduled. Do not
-  memorise them and do not trust a list in any document: read
-  [`schema/SCHEMA.md`](../../../schema/SCHEMA.md) section Timings, or run
-  `node tools/lint.mjs <modDir>` and let `UNKNOWN_TIMING` tell you. A number means "every round";
-  `[lo, hi]` means a random round in that range. Eight of the 29 are registered by the engine but
-  never written by vanilla; SCHEMA.md marks which ones.
-- **Condition keys** carry their operator: `counter.7000017<=`, `rare<`, `r1:体魄`, `hand_have.<id>`,
-  `table_have.<id>`, `have.<id>`, `cost.<tag>`, `is`, `type`, `any`, `all`, `!` for negation, and
-  `s1`..`sN` to scope to a rite slot. The full grammar, with the shapes vanilla actually uses, is the
-  Conditions section of [`schema/SCHEMA.md`](../../../schema/SCHEMA.md).
-- **Action keys** carry their argument: `rite`, `card`, `g.card`, `event_on`, `event_off`,
-  `clean.self`, `clean.rite`, `clean.sN`, `counter+<id>`, `counter=<id>`, `global_counter+<id>`,
-  `total.<id>+<tag>`, `pop.<shorthand>`, `loot`, `coin`, `table`, `choose`, `option`, `confirm`,
-  `success`, `failed`, `case:op1`.., `delay`, `copy`, `sleep`, `focus`, `slide`, `rebirth.<slot>`,
-  `over`, `steam_achievement`, `enable_auto_gen_sudan_card`, `begin_guide`, `close_story`,
-  `change_name`, `change_card_name`, `change_card_text`, `change_desk_bg`, `change_location_icon`,
-  `debug`, `no_show`, `no_prompt`.
-- **`success` and `failed`** wrap branches after a `confirm`, an `option`, or a dice check. `case:opN`
-  selects the branch for option N.
-- Slot-scoped keys inside a rite use `s1`..`sN`. Dice checks use `r1`..`r5`.
+- **时机键。** 一共正好 29 个，不在这个集合里的键永远不会被排期。不要背它们，也不要信任何文档里的清单：读 [`schema/SCHEMA.md`](../../../schema/SCHEMA.md) 的 Timings 一节，或者跑 `node tools/lint.mjs <modDir>`，让 `UNKNOWN_TIMING` 告诉你。写数字表示「每几轮一次」；写 `[lo, hi]` 表示在这个区间里随机取一轮。29 个里有 8 个被引擎注册、原版从未写过；SCHEMA.md 标了是哪几个。
+- **条件键**把运算符带在身上：`counter.7000017<=`、`rare<`、`r1:体魄`、`hand_have.<id>`、`table_have.<id>`、`have.<id>`、`cost.<tag>`、`is`、`type`、`any`、`all`、`!` 表示取反，`s1`..`sN` 把范围限定到仪式的某个槽位。完整语法与原版实际用到的形状，是 [`schema/SCHEMA.md`](../../../schema/SCHEMA.md) 的 Conditions 一节。
+- **操作键**把参数带在身上：`rite`、`card`、`g.card`、`event_on`、`event_off`、`clean.self`、`clean.rite`、`clean.sN`、`counter+<id>`、`counter=<id>`、`global_counter+<id>`、`total.<id>+<tag>`、`pop.<shorthand>`、`loot`、`coin`、`table`、`choose`、`option`、`confirm`、`success`、`failed`、`case:op1`..、`delay`、`copy`、`sleep`、`focus`、`slide`、`rebirth.<slot>`、`over`、`steam_achievement`、`enable_auto_gen_sudan_card`、`begin_guide`、`close_story`、`change_name`、`change_card_name`、`change_card_text`、`change_desk_bg`、`change_location_icon`、`debug`、`no_show`、`no_prompt`。
+- **`success` 与 `failed`** 把 `confirm`、`option` 或骰子检定之后的分支包起来。`case:opN` 选第 N 个选项那一条分支。
+- 仪式里限定槽位的键用 `s1`..`sN`。骰子检定用 `r1`..`r5`。
 
-## A rite
+## 一个仪式
 
-`config/rite/<id>.json`. A rite is the board where the player places cards.
+`config/rite/<id>.json`。仪式就是玩家放卡的那块板子。
 
 ```jsonc
 {
@@ -326,70 +269,48 @@ Facts that decide whether the file works:
 }
 ```
 
-Never write these keys: `method_settlement`, `tag_tips`, `mapping`, `random_effect`. Vanilla's own rite
-files carry them, but none of the four is registered by a handler, so nothing reads them.
+绝不要写这几个键：`method_settlement`、`tag_tips`、`mapping`、`random_effect`。原版自己的仪式文件带着它们，但四个都不在任何 `handler` 的注册表里，所以没有东西读它们——它们就是 `schema/fields.json` 里 `rite` 的 `legacy` 列表（历史键）。
 
-Three settlement arrays exist. What each does with multiple branches:
+有三个结算数组。多个分支时各自怎么做：
 
-| array | behaviour |
+| 数组 | 行为 |
 |---|---|
-| `settlement_prior` | first branch whose condition holds; the whole `settlement` array is then skipped |
-| `settlement` | first branch whose condition holds |
-| `settlement_extre` | every branch whose own `condition` holds, in array order. The condition sees the slot that produced the extra result, not `-1` |
+| `settlement_prior` | 首条条件成立的分支；然后**整个** `settlement` 数组被跳过 |
+| `settlement` | 首条条件成立的分支 |
+| `settlement_extre` | 每条自身 `condition` 成立的分支，按数组顺序。判断条件看到的是产生这条附加结果的那个槽位，不是 `-1` |
 
-The shipped data agrees, and the decompiled loops settle it: `GetPriorSettlement` and
-`GetNormalSettlement` each return one element, and `DoExtraSettlement` walks all elements and lets
-each one pass through its own condition test.
+随包数据与它一致，反编译出来的循环给了定论：`GetPriorSettlement` 与 `GetNormalSettlement` 各返回一个元素，`DoExtraSettlement` 遍历所有元素，让每一条各自过自己的条件判断。
 
-The wiki documents it field by field. The shipped data agrees, and it is the data that makes this
-usable as a rule:
+wiki 逐字段讲了这件事。随包数据与它一致，而真正让这条规则能用的是数据本身：
 
-- In all 1498 rites, an empty `condition` (`{}` or absent) inside `settlement` or `settlement_prior`
-  is the **last** branch, 69 out of 69 times, never earlier. An unconditional branch placed earlier
-  would make everything after it dead, so no author ever wrote one.
-- In `settlement_extre`, empty conditions appear at every index including index 0 and index 165, 216
-  of them, and only 187 of those 341 are last. That is what a per-branch gate looks like: an entry
-  with no condition always passes, and the entries after it are still tested on their own.
+- 在全部 1498 个仪式里，`settlement` 或 `settlement_prior` 里空的 `condition`（`{}` 或没写）都是**最后**一条，69 次里 69 次如此，从没早过。把一条无条件分支放在前面，它后面的每一条分支就都成了死分支，所以没有一个作者这么写。
+- 在 `settlement_extre` 里，空条件出现在每个下标上，包括下标 0 与下标 165，共 216 条；341 条里只有 187 条在最后。逐分支的闸门就是这个样子：没有条件的条目总是通过，它后面的条目仍然各自被判断。
 
-So: put the unconditional branch **last** in `settlement_prior` and `settlement`, and anywhere in
-`settlement_extre`. `node tools/lint.mjs` reports `DEAD_BRANCH` when you get this wrong.
+所以：无条件分支放在 `settlement_prior` 与 `settlement` 的**最后**，在 `settlement_extre` 里放哪都行。写错了 `node tools/lint.mjs` 会报 `DEAD_BRANCH`。
 
-`is_empty` picks a hint, and it is not a rule:
+`is_empty` 挑的是提示，不是规则：
 
-| value | meaning |
+| 值 | 含义 |
 |---|---|
-| `0` | the empty slot shows the "cannot be empty" hint |
-| `1` | the empty slot shows the "may stay empty" hint |
+| `0` | 空槽显示「不能为空」的提示 |
+| `1` | 空槽显示「可以为空」的提示 |
 
-`CardSlotController.Init` reads it at `slot+0x28`, and all it does is choose **which sprite set** the
-slot's `tips_icon` names are looked up in — one set for each value, nothing else. `CheckConfirm()`
-walks the placed cards with `CanPutCard` without reading it, so the engine does not refuse to start
-a rite because a slot marked `0` is empty. To require a card, write the requirement in the
-settlement condition instead: `"s3": 1` requires it, `"!s3": 1` requires it to be empty.
+`CardSlotController.Init` 在 `slot+0x28` 读它，读到的值只用来选**哪一套贴图**：槽位 `tips_icon` 里的名字去这套贴图里查，两个值各一套，别的什么都没有。`CheckConfirm()` 用 `CanPutCard` 走一遍已放进去的卡，不读这个值，所以引擎不会因为一个标了 `0` 的槽空着就拒绝开始仪式。要强制放卡，把要求写进结算条件：`"s3": 1` 要求放了，`"!s3": 1` 要求空着。
 
-The 0/1 polarity in that table comes from **vanilla's own comments**, not from code: `"is_empty":0,
-// 不能为空` appears 53 times and `"is_empty":1, //可以为空` / `// 可以为空` 10 times. The icons
-themselves are in the game's assets, so nothing in the config or the code names them. One more trap:
-`is_empty` is a line inside a bigger object, so a search for `is_empty:1` tells you nothing about
-whether that *rite* is optional. Read the whole slot.
+这张表里的 0/1 极性来自**原版自己的注释**，不是代码：`"is_empty":0, // 不能为空` 出现 53 次，`"is_empty":1, //可以为空` / `// 可以为空` 出现 10 次。图标本身在游戏资源里，配置与代码都没有给它们起名。还有一个坑：`is_empty` 是更大对象里的一行，所以搜到 `is_empty:1` 说明不了那个**仪式**是不是可选。要读整个槽位。
 
-### The rest of a rite's fields
+### 仪式的其余字段
 
-| field | meaning |
+| 字段 | 含义 |
 |---|---|
-| `once_new` | the "new" badge: `1` = new only the first time it appears (`player.only_rites` remembers it), `0` = every time, `-1` = never |
-| `location` | where the pin goes: `place:slot` or `place:[lo,hi]`. **Both halves are parsed** — the area picks the map transform the pin is parented to, the slot or range picks the position inside it, and `MapController.SetRitesPosition` resolves collisions. 89 distinct values over 1498 rites, and 590 of them share `自宅:[2,12]`, so sharing a position is normal. A malformed range is a load-time error |
-| `open_conditions` | **all of them must hold.** Each entry is `{condition, tips}`, and the rite title bar prints the `tips` of every unmet entry, so write the tip as the reason it cannot open ("匪帮调动中，无法进行训练") — that is the sentence the player reads |
-| `is_enemy` (slot) | `1` keeps the slot out of the friendly tag tally: `RitePanelController.UpdateTagTipsValue` skips slots whose `is_enemy != 0` while it sums a tag chip. 740 of the 5406 vanilla slots set it |
+| `once_new` | 「新」标记：`1` = 只在第一次出现时是新（`player.only_rites` 记住它），`0` = 每次都新，`-1` = 从不 |
+| `location` | 图钉插在哪：`place:slot` 或 `place:[lo,hi]`。**两半都会被解析**——区域决定图钉挂到哪个地图变换下，槽位或区间决定它在区域里的位置，`MapController.SetRitesPosition` 处理位置冲突。1498 个仪式里 89 个不同取值，其中 590 个共用 `自宅:[2,12]`，所以位置重合是正常的。区间写错是加载期错误 |
+| `open_conditions` | **全部都要成立。** 每条是 `{condition, tips}`，仪式标题栏会显示每一条没满足的 `tips`，所以把提示写成打不开的原因（「匪帮调动中，无法进行训练」）——玩家读到的就是这句话 |
+| `is_enemy`（槽位） | `1` 让这个槽不参与友方标签的合计：`RitePanelController.UpdateTagTipsValue` 累加一个标签的数值时跳过 `is_enemy != 0` 的槽。原版 5406 个槽里有 740 个写了它 |
 
-**Reuse a vanilla `location` string; do not invent one.** The area token names an area of the game's
-own map: `GameController.GetLocation` turns the string into a `RitePosition` and `AddRitePin` parents
-the pin to that area's transform, and `RiteExtensions.GetLocationName` splits on `:` and localises the
-area for display, falling back to the raw token. A made-up area therefore has neither a place on the
-map nor a name. There are ten areas, and no eleventh is reachable from config. The ten groups vanilla
-uses, with every slot value each one carries:
+**复用原版的 `location` 字符串，不要自己编。** 区域名是游戏自己地图上的一块区域：`GameController.GetLocation` 把这个字符串变成 `RitePosition`，`AddRitePin` 把图钉挂到那块区域的变换下，`RiteExtensions.GetLocationName` 按 `:` 切开、本地化区域名给显示用，取不到就退回原始串。所以编出来的区域既没有地图上的位置，也没有名字。一共十个区域，config 里没有第十一个。下面原版用到的十组，连同每组的全部槽位取值：
 
-| group | values seen |
+| 组 | 见过的取值 |
 |---|---|
 | 自宅 | `1` `2` `10` `14` `[1,12]` `[2,6]` `[2,10]` `[2,12]` `[2,14]` `[3,12]` `[4,12]` |
 | 上城区 | `3` `[1,6]` `[1,12]` `[2,10]` `[3,12]` `[7,12]` |
@@ -398,83 +319,54 @@ uses, with every slot value each one carries:
 | 神殿区 | `11` `[2,10]` |
 | 野外 | `8` `9` `[1,6]` `[1,14]` `[2,14]` `[9,10]` `[9,14]` `[12,14]` |
 | 黑街 | `1` `10` `[1,5]` `[1,9]` `[2,5]` `[2,9]` |
-| 奇珍 | `1` through `15`, one at a time |
-| 结局 | `1` through `20`, one at a time |
+| 奇珍 | `1` 到 `15`，一次一个 |
+| 结局 | `1` 到 `20`，一次一个 |
 | 大敌 | `1` `2` `3` `6` |
 
-`final_pin: 1` is read, and it does one thing: when the rite settles, the game removes the rite and
-then calls `PlayerExtensions.AddRitePin(player, rite.id)` — so the rite leaves a pin behind on the
-player. `RiteResultPanelController.<Settlement>b__8` skips that when the value is not 1, and
-`UpdateWaiting` reads the same field while the result panel waits. Twelve vanilla rites set it.
+`final_pin: 1` 会被读，只做一件事：仪式结算时，游戏先移除这个仪式，再调 `PlayerExtensions.AddRitePin(player, rite.id)`——于是这个仪式在玩家身上留下一个图钉。`RiteResultPanelController.<Settlement>b__8` 在值不是 1 时跳过这一步，结果面板等待时 `UpdateWaiting` 读同一个字段。十二个原版仪式写了它。
 
-Dead field: `is_key` — `0` in all 5406 vanilla slots, and none of the twelve `+0x24` comparisons in
-the whole build sits on a slot.
+死键：`is_key`——原版 5406 个槽位全是 `0`，而且整个构建里十二处 `+0x24` 比较没有一处落在槽位上。
 
-`restore_fill_times` is **not** dead, just unused in vanilla: `RitePanelShowController.OnLastState`
-reads it (`+0x4C`), clamps it to `1..10`, and uses the result to refill slots when a rite panel
-closes. No vanilla rite sets it, so every one of them gets the clamp floor of 1.
+`restore_fill_times` 不是死键，只是原版没用：`RitePanelShowController.OnLastState` 读它（`+0x4C`），把它夹在 `1..10`，用于仪式面板关闭时补满槽位。没有一个原版仪式写它，所以它们全都拿到夹取的下界 1。
 
-## Triggers, timeouts and the order things settle
+## 触发、超时，以及结算的先后
 
-**`start_trigger` is unsettled. Do not build a design on it.** `EventTrigger.Add(EventNode, bool
-enable_start_trigger)` compares the event's field with the second argument and skips its immediate
-settle path when they are equal. `event_on` passes `true`, a save load passes `false`. Read one way,
-that means `event_on` settles at once when `start_trigger` is set and load does not; read the other
-way it is the reverse, because `true` is the value that *differs* from the load's `false` and so takes
-the settling branch. An earlier note in this file claimed a probe had confirmed the first reading;
-that claim is withdrawn. What is settled: `auto_start_init` is what registers an event, and `on` is
-what schedules it, so make a design work without `start_trigger` and only then decide whether to
-write it.
+**`start_trigger` 是未决的。不要拿它当设计的地基。** `EventTrigger.Add(EventNode, bool enable_start_trigger)` 把这个事件的字段与第二个参数比较，相等时跳过立即结算那条路。`event_on` 传 `true`，读档传 `false`。按一种读法，这意味着设了 `start_trigger` 时 `event_on` 立刻结算、读档不结算；按另一种读法正好相反，因为恰恰是 `true` 这个值**不等于**读档传的 `false`，于是走结算那一支。本文件早先的一条笔记声称有探针确认过第一种读法；那个说法已撤回。已经确定的是：`auto_start_init` 负责注册事件，`on` 负责排期，所以先让设计在不用 `start_trigger` 的情况下成立，再决定要不要写它。
 
-- `auto_start_init: [1]` is what registers an event at all. It is a set of `init/<n>.json` ids,
-  compared with `player.configId`, not a delay. `[1]` is the normal run; `[0]` is the guided prologue.
-- `round_begin_ba: x` is a period measured from activation. `x` alone means every `x` rounds, and the
-  next fire is seeded with `current + Random.Range(x, x)`; `[a,b]` seeds `current + Random.Range(a, b)`
-  with `b` **exclusive**, so `[3,5]` means 3 or 4. `99999` is the idiom for "fire once, then never".
+- `auto_start_init: [1]` 是事件被注册的根本原因。它是一组 `init/<n>.json` 的 id，与 `player.configId` 比较，不是延迟。`[1]` 是正常的一局；`[0]` 是引导序章。
+- `round_begin_ba: x` 是从启用时刻起算的周期。只写 `x` 表示每 `x` 轮一次，下一次触发用 `current + Random.Range(x, x)` 播种；`[a,b]` 用 `current + Random.Range(a, b)` 播种，`b` **不含**，所以 `[3,5]` 是 3 或 4。`99999` 是「触发一次，之后再不来」的惯用写法。
 
-`delay` is separate: `"delay": {"id": 9001, "round": 5, ...}` runs its other operations 5 rounds
-later, and `round: 1` means the next round. A round is one in-game day. `id` is the handle that
-`delay_off` cancels, and a second `delay` with the same `id` overwrites the first schedule instead of
-stacking.
+`delay` 是另一回事：`"delay": {"id": 9001, "round": 5, ...}` 让它其余的操作在 5 轮之后执行，`round: 1` 是下一轮。一轮是游戏内的一天。`id` 是 `delay_off` 用来取消的句柄，同一个 `id` 的第二个 `delay` 会覆盖第一份排期，而不是叠加上去。
 
-Rite timing fields:
+仪式的时机字段：
 
-| field | meaning |
+| 字段 | 含义 |
 |---|---|
-| `round_number` | ticks from start to automatic settlement: `life >= round_number`, and `life` is incremented first, so `0` and `1` both settle on the first tick. `0` also hides the remaining-rounds counter on the pin. Vanilla runs 0–8 |
-| `waiting_round` | patience in ticks while the rite sits on the map unstarted. `0` means no limit |
-| `waiting_round_end_action` | the settlements fired when that patience runs out and the rite is removed |
-| `auto_begin` | `1` makes the round tick start the rite without player input |
-| `open_adsorb` (slot) | `1` makes the slot a candidate for auto-filling from the player's pool when the rite opens (`RiteExtensions.AdsorbCards` skips every slot whose value is 0). `0` is 3349 of the 5406 vanilla slots, and those are filled only by the player |
+| `round_number` | 从开始到自动结算走多少轮：`life >= round_number`，而 `life` 是先自增的，所以 `0` 与 `1` 都在第一跳结算。`0` 还会让图钉上不显示剩余轮数。原版取值 0–8 |
+| `waiting_round` | 仪式放在地图上没开始时能等多少轮。`0` 表示不限 |
+| `waiting_round_end_action` | 等不下去、仪式被移除时执行的结算 |
+| `auto_begin` | `1` 让轮次跳到来时自动开始仪式，不需要玩家动手 |
+| `open_adsorb`（槽位） | `1` 让这个槽成为仪式打开时从玩家卡池自动吸附的候选（`RiteExtensions.AdsorbCards` 跳过值为 0 的每一个槽）。原版 5406 个槽里 3349 个是 `0`，这些槽只能由玩家自己放 |
 
-Daily settlement runs in this order: countdown ticks, then each card's own `vanish`, then rites in
-ascending id order, then the used card's `post_rite`. Absorption follows ascending rite id too. So a
-lower id competes harder for a card, which is why a card can get stuck in an early rite and never
-reach a later one.
+每日结算按这个顺序跑：倒计时，然后每张卡自己的 `vanish`，然后按 id 升序跑仪式，然后是刚用掉的卡的 `post_rite`。吸附也按仪式 id 升序。所以 id 小的仪式抢卡更凶，这就是一张卡会卡在靠前的仪式里、永远到不了后面那个仪式的原因。
 
-## Condition helpers that are easy to confuse
+## 容易混的条件辅助键
 
-| key | means |
+| 键 | 含义 |
 |---|---|
-| `have.<filter>` | a card is alive, anywhere in play |
-| `table_have.<filter>` | a card is on the table and free |
-| `hand_have.<filter>` | a card is in hand. A card counts as held when it carries the `own`, `adherent` or `player` tag (`CardExtensions.IsHandCard`, literals `0x33796C8` / `0x3374D00` / `0x3379970`) |
+| `have.<filter>` | 有一张卡活着，在场上任何地方 |
+| `table_have.<filter>` | 有一张卡在桌上且空闲 |
+| `hand_have.<filter>` | 有一张卡在手上。带 `own`、`adherent` 或 `player` 标签的卡算在手上（`CardExtensions.IsHandCard`，字面量 `0x33796C8` / `0x3374D00` / `0x3379970`） |
 
-The filter is a 7-digit card id and/or a tag name, either may be left out, and the comparator sits on
-the end of the key: `have.2000005.幽秘的爱意<`. `!` or `~` in front negates the whole thing.
+过滤器是一个 7 位卡 id 或一个标签名，两者都可以省掉，比较符写在键尾：`have.2000005.幽秘的爱意<`。前面加 `!` 或 `~` 对整个条件取反。
 
-`rite_template` and `rite_template_mappings` control where the slots sit on screen. A rite reaches
-them through its own `mapping_id`: that row supplies the panel `template_id` and the slot keys the
-panel may open, and 1421 of the 1422 vanilla ids resolve. If you do not ship the template, the game
-falls back to a normal template and logs
-`load rite panel {0} failed, rite_template invalid`. That is a Warning, not a failure, so a rite works
-without them and just looks generic.
+`rite_template` 与 `rite_template_mappings` 决定槽位摆在屏幕的什么位置。仪式靠自己的 `mapping_id` 走到它们：那一行给出面板的 `template_id` 与面板可以打开的槽位键，原版 1422 个 id 里有 1421 个能解析。你不提供模板时，游戏退回一个普通模板，并写一行 `load rite panel {0} failed, rite_template invalid`。那是警告，不是失败，所以仪式不提供这两个文件也能用，只是长得普通。
 
-## Loot tables, quests, endings and after-story
+## 掉落表、任务、结局与后日谈
 
-Four more things a mod can ship. Only the fields below are read; anything else is ignored.
+一个 mod 还能提供四样东西。只读下面这些字段，其他都被忽略。
 
-### Loot tables — `config/loot/<id>.json`, one file per table
+### 掉落表——`config/loot/<id>.json`，一个文件一张表
 
 ```jsonc
 {
@@ -486,33 +378,24 @@ Four more things a mod can ship. Only the fields below are read; anything else i
 }
 ```
 
-`type` is a constant, not free text — the engine compares it to four values:
+`type` 是常量，不是自由文本——引擎拿它与四个值比较：
 
-| `type` | what it draws | vanilla |
+| `type` | 每次抽什么 | 原版数量 |
 |---|---|---|
-| `2` | one weighted pick per draw | 125 |
-| `3` | one weighted pick per draw, after removing the entries the player already owns | 55 |
-| `4` | `repeat` **weighted** picks without replacement: `repeat` is the `m` in "choose m of n", and the algorithm runs once, not `repeat` times | 2 |
-| `99` | every eligible entry, weights ignored, `repeat` times | 11 |
+| `2` | 每次抽一次带权选择 | 125 |
+| `3` | 每次抽一次带权选择，先排除玩家已有的条目 | 55 |
+| `4` | 不重复地做 `repeat` 次**带权**抽取：`repeat` 就是「n 中选 m」的 `m`，算法整体跑一遍，不是跑 `repeat` 遍 | 2 |
+| `99` | 每条合格条目都抽，忽略权重，跑 `repeat` 次 | 11 |
 
-`repeat` is how many independent draws happen — except under `type: 4`, where it is `m`. In vanilla 188
-tables use `1`; the rest use 3, 6 or 13.
+`repeat` 是独立抽取的次数——除了 `type: 4` 时它是 `m`。原版 188 张表用 `1`，其余用 3、6 或 13。
 
-Each `item` is `{type, id, num, weight, condition}`. `type` is `card`, `event`, `rite` or `loot`
-(a table inside a table). `weight` is relative — only the ratios matter, and `SimpleWeightLoot` really does draw with
-`Random.Range` after summing them. `num` is how many are
-granted, and writes as a string in vanilla (`"1"`). `condition` filters the item the same way every
-other condition does.
+每条 `item` 是 `{type, id, num, weight, condition}`。`type` 是 `card`、`event`、`rite` 或 `loot`（表套表）。`weight` 是相对值——只有比值有意义，`SimpleWeightLoot` 确实是把它们加起来之后用 `Random.Range` 抽。`num` 是给几条，原版写成字符串（`"1"`）。`condition` 过滤条目的方式与别处每一个条件一样。
 
-Vanilla counts: 193 tables, 1280 items (870 card, 215 event, 171 rite, 24 loot).
+原版计数：193 张表，1280 条 item（870 张卡、215 个事件、171 个仪式、24 个掉落表）。
 
-Two warnings on the item object. `refLoot` is an **ignored key** — the loader registers only
-`type`, `id`, `num`, `weight` and `condition`, and no vanilla item carries it; nest a table with
-`"type": "loot"` instead. And `condition` is parsed but never evaluated: `SimpleWeightLoot`,
-`WeightedNChooseM`, `RealGenCard` and `Generate` build a `ConditionContext` and none of them calls
-`IsSatisfied`. Do not try to gate a drop with it — split the table or gate the settlement instead.
+item 对象上有两个警告。`refLoot` 是**历史键**——加载器只注册 `type`、`id`、`num`、`weight` 与 `condition`，没有一条原版 item 带着它；要套表就写 `"type": "loot"`。而 `condition` 会被读进来，但从不求值：`SimpleWeightLoot`、`WeightedNChooseM`、`RealGenCard` 与 `Generate` 都构造了 `ConditionContext`，四个都没有调 `IsSatisfied`。不要想用它闸住掉落——拆表，或者把闸设在结算上。
 
-### Quests — `config/quest.json`, one table keyed by id
+### 任务——`config/quest.json`，一张按 id 索引的表
 
 ```jsonc
 "3300001": { "id": 3300001, "name": "坠落的初端", "text": "...", "favour_text": "...",
@@ -521,79 +404,41 @@ Two warnings on the item object. `refLoot` is an **ignored key** — the loader 
                            "condition": { "global_counter.7220001>=": 1 } } ] }
 ```
 
-What the loader actually registers: `id`, `name`, `text`, `icon`, `favour_text`, `upgrade_point`,
-`target`. Anything else in the object is dropped.
+加载器真正注册的只有：`id`、`name`、`text`、`icon`、`favour_text`、`upgrade_point`、`target`。对象里别的都被丢掉。
 
-- `target[]` is what must hold. `condition` is a normal condition, `text` is the line the player
-  reads (it goes through `FormatStringVariable`, so `{变量}` works), `show_counter` names a counter
-  to print beside it — empty means none, decided by `String.IsNullOrEmpty` in
-  `StoryTargetItemController.Init`. All 193 vanilla targets carry a condition.
-- `isComplete` (on both the quest and the target) is save-side state, and drives the tick sprite.
-  Do not write it.
-- `upgrade_point` is what the quest is worth; the completion notification prints it (1 each across
-  the 161 vanilla quests).
-- `target.value` is a number **printed into the target line** (`StoryTargetItemController.Init` boxes
-  it and appends it), never compared. No vanilla target sets it.
-- **`pre` does nothing.** It is all over `quest.json` (161 values, each another quest id), but the
-  string `pre` does not exist in `global-metadata.dat` at all, so the loader has no key to match —
-  the same dead-key situation as `auto_start` on events. Do not build a quest chain on it.
+- `target[]` 是必须成立的东西。`condition` 是普通条件，`text` 是玩家读到的那一行（它经过 `FormatStringVariable`，所以 `{变量}` 有效），`show_counter` 指定一个计数器显示在它旁边——留空就是不显示，由 `StoryTargetItemController.Init` 里的 `String.IsNullOrEmpty` 决定。原版 193 条 target 都带条件。
+- `isComplete`（任务上与 target 上都有）是存档侧的状态，负责那个勾的贴图。不要写它。
+- `upgrade_point` 是这个任务值多少；完成提示会把它显示出来（原版 161 个任务每个都是 1）。
+- `target.value` 是一个**显示进 target 那一行**的数字（`StoryTargetItemController.Init` 把它括起来再拼上去），从不参与比较。原版没有任何 target 写它；它在 `questTargetItem` 的 `legacy` 列表里。
+- **`pre` 什么都不做。** 它在 `quest.json` 里到处都是（161 个值，每个是另一个任务 id），但字符串 `pre` 在 `global-metadata.dat` 里根本不存在，所以加载器没有键可匹配——与事件上的 `auto_start` 是同一种历史键。不要拿它搭任务链。
 
-### Endings — `config/over.json`, one table keyed by id
+### 结局——`config/over.json`，一张按 id 索引的表
 
-The loader registers all twelve fields, so nothing here is dead: `id`, `name`, `sub_name`,
-`text_extra`, `open_after_story`, `text`, `manual_prompt`, `success`, `comment`, `bg`, `icon`,
-`title`.
+加载器把十二个字段全部注册了，所以这里没有死键：`id`、`name`、`sub_name`、`text_extra`、`open_after_story`、`text`、`manual_prompt`、`success`、`comment`、`bg`、`icon`、`title`。
 
-- `name`, `sub_name`, `text`, `bg`, `icon`, `title`, `manual_prompt`, `comment` are display.
-  `comment` is registered but no vanilla ending uses it.
-- `open_after_story: 1` makes the ending continue into the after-story. `OverNewStep2StoryController`
-  takes it as `Action<bool> hasAfterStory`, so it decides that jump (108 of 159 in vanilla).
-- `success` decides which title the record screen uses (`OverNodeController`): `0` shows
-  `DeadTitle`, anything else shows `SuccessTitle`, and `2` additionally switches `VictoryIcon` on.
-  So write `0` for a failure ending, `1` for a win, `2` for a win with the victory icon.
-  Vanilla: 63 are `1`, 46 are `2`, 4 are `0`, 46 leave it out.
-- `text_extra` is a `RiteNode.Settlement[]` and it is **read**: `OverNewStep2StoryController` prints
-  the ending's own `text`, then walks `text_extra` (length at `+0x18`, each entry's `condition` at
-  `+0x18` of the entry) and appends the passage of every branch whose condition holds. So write one
-  branch per extra paragraph you want to be able to appear, each with its own condition.
+- `name`、`sub_name`、`text`、`bg`、`icon`、`title`、`manual_prompt`、`comment` 都是显示用的。`comment` 注册了，但没有一个原版结局用它。
+- `open_after_story: 1` 让这个结局继续进后日谈。`OverNewStep2StoryController` 把它当作 `Action<bool> hasAfterStory`，所以是它决定跳不跳（原版 159 个结局里 108 个写了它）。
+- `success` 决定回顾界面用哪个标题（`OverNodeController`）：`0` 显示 `DeadTitle`，其他任何值显示 `SuccessTitle`，而 `2` 另外把 `VictoryIcon` 打开。所以失败结局写 `0`，胜利写 `1`，胜利并带胜利图标写 `2`。原版：63 个是 `1`，46 个是 `2`，4 个是 `0`，46 个没写。
+- `text_extra` 是一个 `RiteNode.Settlement[]`，而且它**会被读**：`OverNewStep2StoryController` 先显示结局自己的 `text`，再遍历 `text_extra`（长度在 `+0x18`，每条条目的 `condition` 在条目自己的 `+0x18`），把每一条条件成立的分支那一段追加上去。所以想多出一段，就写一条带自己条件的分支。
 
-### After-story — `config/after_story/<characterCardId>.json`
+### 后日谈——`config/after_story/<characterCardId>.json`
 
-One file per character card; the id is the **card** id, not a new id range (66 in vanilla: 61
-characters + 5 items).
+一个角色卡一个文件；这个 id 是**卡**的 id，不是新的编号段（原版 66 个：61 个角色加 5 个道具）。
 
-- `pic` is the picture shown.
-- `close_condition` **is** evaluated. The page loop calls `condition.IsSatisfied`, and a satisfied
-  `close_condition` skips its page instead of rendering it. No vanilla file ships it live: 59 of the
-  66 carry it **commented out** with the same body, `{ "!s1": 1 }`.
-- `prior` and `extra` are **`RiteNode.Settlement[]`**, the same branch shape a rite uses:
-  `{condition, result_text, pic, result, action, key, sort}`. They are not alternatives to each other
-  and not two halves of one list: `prior` has **precedence**.
-- `prior` is the single opening passage. The game walks it first, takes the first branch that passes,
-  runs its `result` then its `action`, and **returns**, so `extra` is never read. All 66 vanilla files
-  declare it as `[]`; writing one turns the whole epilogue into that one passage.
-- `extra` is the epilogue itself, and **every branch that passes becomes a page**, in array order. A
-  pass means: a branch with a `key` must match the save's `after_story_key` (a branch without a key
-  skips that test), its `condition` must hold, and it must not leave both `result_title` and
-  `result_text` empty. So a card with 385 branches renders as a 385-page carousel gated by world
-  state, not as one page chosen from 385. All 7750 vanilla branches carry a key such as
-  `2000001_extra_1`; write one. `key` also feeds `Datapool.SetOverId`, which is what the page text
-  and the previous/next buttons resolve against.
-- `sort` sits on the branch but its consumer is not located, so do not rely on it to order pages:
-  the array order is what you can see and control.
-- The save keeps `prior` as a string key and `extra` as a set, so the same config can be reused by
-  several runs.
+- `pic` 是显示的那张画。
+- `close_condition` **会**被求值。页面循环调 `condition.IsSatisfied`，`close_condition` 成立就跳过这一页、不渲染它。没有原版文件把它写成活的：66 个里 59 个用同一份内容把它**注释掉**了，`{ "!s1": 1 }`。
+- `prior` 与 `extra` 都是 **`RiteNode.Settlement[]`**，与仪式用的分支形状一样：`{condition, result_text, pic, result, action, key, sort}`。两者不是互相替代的关系，也不是同一个列表的两半：`prior` 有**优先权**。
+- `prior` 是那一段开场白。游戏先走它，取第一条通过的分支，跑它的 `result` 再跑它的 `action`，然后**返回**，所以 `extra` 从来不会被读。66 个原版文件全都把它声明成 `[]`；写一条进去，整个尾声就变成那一段。
+- `extra` 才是尾声本身，**每一条通过的分支都成为一页**，按数组顺序。通过的意思是：带 `key` 的分支必须匹配存档里的 `after_story_key`（没有 `key` 的分支跳过这项检查），它的 `condition` 必须成立，而且 `result_title` 与 `result_text` 不能都空着。所以一张有 385 条分支的卡渲染成的是一个由世界状态做闸门的 385 页轮播，而不是从 385 条里挑一页。7750 条原版分支每条都带一个 key，例如 `2000001_extra_1`；写一个。这个 `key` 还喂给 `Datapool.SetOverId`，页面的正文与上一页下一页按钮都靠它定位。
+- `sort` 落在分支上，但找不到读它的地方，所以不要靠它排页序：你能看见、能控制的是数组顺序。
+- 存档把 `prior` 存成字符串键、把 `extra` 存成集合，所以同一份配置可以被好几局复用。
 
-## Verify
+## 验收
 
 ```
 node tools/lint.mjs your_mods/<ModName>
 ```
 
-Then install and enable it, and read
-`~/DoubleCross/SultansGame/ModLog/<mod name>_local.log`. You want
-`read mod <name> file: config/<file>` for each file you changed, and no
-`mod <name> info.json invalid`.
+然后安装、启用，读 `~/DoubleCross/SultansGame/ModLog/<mod name>_local.log`。你要看到你改过的每个文件都有 `read mod <name> file: config/<file>`，并且没有 `mod <name> info.json invalid`。
 
-Missing files are noise, not errors. A mod that supplies one file will log eighteen warnings and still
-work.
+缺文件是噪音，不是错误。只提供一个文件的 mod 会打出十八条警告，照样能用。
