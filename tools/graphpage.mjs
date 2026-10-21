@@ -502,6 +502,17 @@ const CY_STYLE = [
 ];
 
 let cy = null;
+// Fit, then stop before it looks absurd: a three-node view would otherwise zoom until one box
+// fills the canvas. 1.15 keeps the drawn size close to the size it has in a busy view.
+function fitNicely(inst) {
+  if (!inst) return;
+  inst.fit(undefined, 40);
+  if (inst.zoom() > 1.15) {
+    inst.zoom(1.15);
+    inst.center();
+  }
+}
+
 function renderer() {
   if (cy || !cytoscape) return cy;
   cy = cytoscape({
@@ -535,11 +546,13 @@ function renderer() {
 // What one selection draws: the elements, and the node and edge sets they came from.
 function graphElements(key, d) {
   const walk = walkFrom(key, d);
+  // Cards are referenced by everything, so a 1-hop view of any node is mostly cards. They are
+  // things a condition mentions, not steps in the story: drop them from the drawn set here, at
+  // the one place the element list is derived from, so lanes, edges and counts all agree.
+  for (const i of [...walk.hops.keys()]) if (DATA.nodes[i].t === "card") walk.hops.delete(i);
   // Both ends inside the walk: an edge to a node that is not drawn hangs in the air.
   const within = DATA.edges.filter(([a, b]) => walk.hops.has(a) && walk.hops.has(b));
   const capped = clampEdges(within);
-  // Cards are not drawn: a card is a thing a condition mentions, not a step in the story, and a
-  // 卡牌 lane full of leaves is what made the picture unreadable. The panel still names them.
   const idxs = [...walk.hops.keys()].sort((x, y) => x - y);
   const lanes = lanesOf(idxs);
   const elements = [];
@@ -615,7 +628,7 @@ function draw() {
   markFilter();
   // fit() alone: it already shows every drawn node, and centering on the selected one
   // afterwards would push the last lane out of a canvas that is now only part of the width.
-  live.fit(undefined, 40);
+  fitNicely(live);
   return gen;
 }
 
@@ -634,7 +647,7 @@ function markFilter() {
 function refitCanvas() {
   if (!cy) return;
   cy.resize();
-  if (selected) cy.fit(undefined, 40);
+  if (selected) fitNicely(cy);
 }
 
 function openPanel() {
