@@ -32,7 +32,7 @@ config/sfx_npc_role_dub.json                         config/sfx_settle_card_new.
 
 一个 mod 只交一份 `config/rite/<id>.json` 很正常，也是对的。
 
-注意：游戏自己也读 `variable.json`、`ui.json` 这一类文件，但这些文件**不可 mod**。玩家要求改这些文件时，直接说作为 mod 做不到。不可 mod 的清单是 `achievement.json`、`credits.json`、`gallery_cards.json`、`gallery_cg.json`、`imagestyle.json`、`mobile_help.json`、`textstyle.json`、`ui.json`、`variable.json`。原版没有 `rite.json` 这个文件：一条仪式就是 `rite/<id>.json`。
+注意：游戏自己也读 `variable.json`、`ui.json` 这一类文件，但这些文件**不可 mod**。玩家要求改这些文件时，直接说作为 mod 做不到。不可 mod 的清单是 `achievement.json`、`credits.json`、`gallery_cards.json`、`gallery_cg.json`、`imagestyle.json`、`mobile_help.json`、`textstyle.json`、`ui.json`、`variable.json`。
 
 ### JSONC 规则
 
