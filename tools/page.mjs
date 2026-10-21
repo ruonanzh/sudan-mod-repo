@@ -171,6 +171,30 @@ export function opPhrase(key) {
   return `${neg === "!" ? "非 " : ""}${esc(word)}${markHtml}${tailHtml}`;
 }
 
+
+/**
+ * A condition as one line of prose: `{ "counter.7000490>=": 1 }` reads 计数器 大于等于 7000490.
+ *
+ * A condition object is a small table squeezed into a narrow column, and it wraps into four
+ * lines. Its meaning is a sentence, so print the sentence.
+ */
+export function conditionText(obj) {
+  if (!obj || typeof obj !== "object") return esc(String(obj));
+  const entries = Object.entries(obj);
+  if (!entries.length) return "无条件";
+  const parts = entries.map(([key, value]) => {
+    const phrase = opPhrase(key).replace(/<[^>]+>/g, (m) => m); // keep markup
+    const solo = /[<>=]$|(>=|<=)$/.test(key); // the key already carries the threshold
+    if (value && typeof value === "object") return `${phrase} ${conditionText(value)}`;
+    if (solo) return phrase;
+    if (value === true) return phrase;
+    const text = typeof value === "string" && /[\u4e00-\u9fff]/.test(value) ? esc(value) : `<code>${esc(String(value))}</code>`;
+    return `${phrase} ${text}`;
+  });
+  const joiner = entries.length > 1 ? "，并且 " : "";
+  return parts.join(joiner);
+}
+
 /**
  * Render a value the way a player reads it.
  *
@@ -178,7 +202,7 @@ export function opPhrase(key) {
  * research has a label for it, instead of a one-line JSON dump: the dump widens the column and
  * says nothing. Arrays of objects become the child table for that kind; scalars join with 、.
  */
-function fmt(value, kind) {
+function fmt(value, kind, key) {
   if (value === undefined || value === null) return "（无）";
   if (typeof value === "string") {
     if (!value) return "（空）";
@@ -191,6 +215,7 @@ function fmt(value, kind) {
     if (value.every((v) => !v || typeof v !== "object")) return value.map((v) => fmt(v)).join("、");
     return tableFor(kind, value);
   }
+  if (key && /condition/i.test(key)) return conditionText(value);
   const entries = Object.entries(value || {});
   if (!entries.length) return "（空）";
   const rows = entries
@@ -215,13 +240,18 @@ function rowWithDetails(cols, row, kind) {
   const details = [];
   const cells = cols.map((c) => {
     const v = row?.[c];
-    if (v && typeof v === "object" && (Array.isArray(v) ? v.length : Object.keys(v).length)) {
+    const cls = TEXT_COLUMNS.has(c) ? ' class="txt"' : "";
+    const size = v && typeof v === "object" ? (Array.isArray(v) ? v.length : Object.keys(v).length) : 0;
+    if (v && typeof v === "object" && size && size <= 2 && !Array.isArray(v)) {
+      return `<td${cls}>${fmt(v, kind, c)}</td>`;
+    }
+    if (v && typeof v === "object" && size) {
       const count = Array.isArray(v) ? v.length : Object.keys(v).length;
       const box = `<div class="morebox">${fmt(v, kind)}</div>`;
       details.push(box);
-      return `<td><button class="exp" data-closed="${count} 项">${count} 项</button></td>`;
+      return `<td${cls}><button class="exp" data-closed="${count} 项">${count} 项</button></td>`;
     }
-    return `<td>${fmt(v, kind)}</td>`;
+    return `<td${cls}>${fmt(v, kind, c)}</td>`;
   }).join("");
   const dataRow = `<tr>${cells}</tr>`;
   if (!details.length) return dataRow;
@@ -245,12 +275,53 @@ function fieldRow(label, valueHtml, note) {
 /** How many rows a table shows before folding the rest behind a summary. */
 const TABLE_FOLD = 25;
 
-/** Columns to show for a child table: the live keys of that kind, in reader order. */
+/**
+ * Which columns a nested table shows, in reading order.
+ *
+ * The record order is not the reading order: a page that puts 段落名 and 段落配图 next to the
+ * passage itself squeezes the passage into a third of the width. So each kind names the columns
+ * that carry meaning, text first. Keys not listed still appear, after the listed ones.
+ */
+const COLUMN_ORDER = {
+  // 段落名 is an i18n locator, not something a player reads: it stays in the record.
+  afterStoryExtra: ["result_text", "condition", "sort", "pic"],
+  settlement: ["result_title", "result_text", "condition", "action", "result"],
+  lootItem: ["type", "id", "num", "weight"],
+  questTargetItem: ["text", "show_counter", "condition", "value"],
+  initDifficulty: ["name", "title", "desc"],
+  slot: ["text", "condition", "is_empty", "is_enemy", "open_adsorb"],
+  riteFromPin: ["rite_id", "color", "dashed"],
+};
+
+/** Keys that stay in the record but would only squeeze the table: locators, loader bookkeeping. */
+const HIDDEN_COLUMNS = { afterStoryExtra: ["key"] };
+
+/** Columns whose content is prose, so they get width and keep their line breaks. */
+const TEXT_COLUMNS = new Set(["result_text", "result_title", "text", "tips", "desc", "prompt"]);
+
+/** Columns to show for a child table: the live keys of that kind, in reading order. */
 function columnsFor(kind, rows) {
   const order = FIELDS[kind]?.fields || [];
   const present = new Set();
   for (const row of rows) if (row && typeof row === "object") for (const k of Object.keys(row)) present.add(k);
-  return order.filter((k) => present.has(k));
+  // A column that is the same on every row costs width and says nothing.
+  const constant = new Set(
+    (order || []).filter((k) => {
+      if (rows.length < 3) return false;
+      const counts = new Map();
+      for (const r of rows) {
+        const key = JSON.stringify(r?.[k] ?? null);
+        counts.set(key, (counts.get(key) || 0) + 1);
+      }
+      const top = Math.max(...counts.values());
+      return top / rows.length >= 0.8;
+    }),
+  );
+  const hidden = [...(HIDDEN_COLUMNS[kind] || []), ...constant];
+  const preferred = COLUMN_ORDER[kind] || [];
+  const chosen = preferred.filter((k) => present.has(k));
+  const rest = order.filter((k) => present.has(k) && !chosen.includes(k) && !hidden.includes(k));
+  return [...chosen, ...rest];
 }
 
 /** A table of nested records, with each column headed by that key's label. */
@@ -264,11 +335,11 @@ function tableFor(kind, value) {
     const rows = value.map((row) => rowWithDetails(cols, row, kind)).join("");
     const shown = value.length > TABLE_FOLD;
     if (shown) {
-      const head1 = `<table>${head(cols, "")}${value.slice(0, TABLE_FOLD).map((row) => rowWithDetails(cols, row, kind)).join("")}</table>`;
-      const rest = `<table>${head(cols, "")}${value.slice(TABLE_FOLD).map((row) => rowWithDetails(cols, row, kind)).join("")}</table>`;
-      return `${head1}<details style="margin-top:10px"><summary>还有 ${value.length - TABLE_FOLD} 条，点开看</summary>${rest}</details>`;
+      const head1 = `<div class="tablewrap"><table>${head(cols, "")}${value.slice(0, TABLE_FOLD).map((row) => rowWithDetails(cols, row, kind)).join("")}</table></div>`;
+      const restRows = `<div class="tablewrap"><table>${head(cols, "")}${value.slice(TABLE_FOLD).map((row) => rowWithDetails(cols, row, kind)).join("")}</table></div>`;
+      return `${head1}<details style="margin-top:10px"><summary>还有 ${value.length - TABLE_FOLD} 条，点开看</summary>${restRows}</details>`;
     }
-    return `<table>${head(cols, "")}${rows}</table>`;
+    return `<div class="tablewrap"><table>${head(cols, "")}${rows}</table></div>`;
   }
   if (value && typeof value === "object") {
     const entries = Object.entries(value);
@@ -338,13 +409,15 @@ function recordBody(kind, record) {
     // `tag` is a map of Chinese tag name to number: it has its own table on the card page.
     const shown = value && typeof value === "object" && !Array.isArray(value) && kind === "card" && key === "tag"
       ? `${Object.entries(value).map(([k, v]) => `${k} ${v}`).join(" · ") || "（空）"}`
-      : fmt(value, kind);
+      : fmt(value, kind, key);
     rows.push(fieldRow(info?.label || key, shown, info?.note));
   }
 
   for (const [key, childKind] of Object.entries(nested)) {
     const value = record[key];
     if (value === undefined) continue;
+    // An empty list is not a section: it prints a heading, a note and "没写内容" for nothing.
+    if (Array.isArray(value) && !value.length) continue;
     const info = labelOf(kind, key);
     if (!info) undescribed.push(key);
     const title = info?.label || key;
@@ -743,8 +816,10 @@ function main() {
     kind === "card"
       ? `${mark}卡牌 · id ${record.id} · ${record.type} · 稀有度 ${record.rare}`
       : kind === "rite"
-        ? `仪式 · id ${record.id} · ${Object.keys(record.cards_slot || {}).length} 个槽 · ${(record.settlement || []).length} 条结果`
-        : `事件 · id ${record.id} · ${Object.keys(record.on || {}).length} 个触发 · ${(record.settlement || []).length} 条分支`;
+        ? `${mark}仪式 · id ${record.id} · ${Object.keys(record.cards_slot || {}).length} 个槽 · ${(record.settlement || []).length} 条结果`
+        : kind === "event"
+          ? `${mark}事件 · id ${record.id} · ${Object.keys(record.on || {}).length} 个触发 · ${(record.settlement || []).length} 条分支`
+          : `${mark}${KIND_LABEL[kind] || kind} · ${idForTitle} · ${Object.keys(record).length} 项`;
   let body;
   try {
     body = bodyFor(kind, record, mod.dir);

@@ -46,7 +46,7 @@ input[type=text], input[type=number], textarea, select {
 }
 textarea { min-height: 84px; resize: vertical; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
-th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #362c21; vertical-align: top; word-break: break-word; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #362c21; vertical-align: top; }
 th { color: var(--dim); font-weight: normal; font-size: 12px; letter-spacing: .08em; }
 td.num { width: 92px; }
 .cardface {
@@ -74,6 +74,12 @@ details[open] summary { color: var(--ink); }
 table.sub { margin-top: 6px; background: #262019; border: 1px solid #3c3227; }
 table.sub th, table.sub td { font-size: 12.5px; padding: 4px 6px; border-bottom: 1px dotted #3c3227; }
 table.sub th { width: 42%; color: var(--dim); }
+table { table-layout: auto; }
+td.txt { min-width: 26ch; max-width: 46ch; white-space: pre-wrap; overflow-wrap: anywhere; }
+td:not(.txt) { overflow-wrap: normal; }
+table.sub { width: auto; min-width: 60%; }
+table.sub td.txt { min-width: 18ch; }
+.tablewrap { width: 100%; overflow-x: auto; }
 button.exp {
   background: transparent; border: 1px solid var(--rule); color: var(--dim);
   font: inherit; font-size: 12px; padding: 1px 8px; cursor: pointer;
