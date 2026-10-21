@@ -7,10 +7,9 @@
  *   node tools/page.mjs rite --mod your_mods/x --id 5010901
  *   node tools/page.mjs card --mod your_mods/x --id 2100900 --out /tmp/x.html
  *
- * The page writes nothing and runs no script: the game panel injects the markup, so a
- * <script> would never run. Values are shown as form controls so the player can change
- * them with a click, and the panel saves each named control with their comments. The
- * agent then applies what they picked with tools/card.mjs or tools/story.mjs.
+ * The page is read-only on purpose. There is no page editor wired for this game, so a form
+ * control would collect a value nobody reads: the player answers in chat and the agent
+ * applies it with tools/card.mjs or tools/story.mjs. Values are printed as text.
  */
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -60,12 +59,7 @@ function pageHtml({ title, sub, body }) {
     title,
     sub,
     font: ff.css ? ff : null,
-    body: `${body}
-<h2>你的意见</h2>
-<div class="panel">
-<div class="note">在下面写，或者直接改上面的输入框。改完保存后告诉我，我按你选的值落地。</div>
-<textarea class="fb" name="feedback" placeholder="哪一项要改、改成什么；哪一段剧情不对；卡面想要什么风格。"></textarea>
-</div>`,
+    body,
   });
 }
 
@@ -78,16 +72,6 @@ const SLOTS = ["武器", "服装", "饰品", "驯兽"];
 
 function cardBody(record, modDir) {
   const subject = composeSubject(record);
-  const allNames = TAG_ROLES.allTagNames?.names || [];
-  const groups = { used: [], other: [] };
-  for (const t of allNames) (t.usedOnCards ? groups.used : groups.other).push(t);
-  const tagNameOptions =
-    `<option value="">（选择要加的标签）</option>` +
-    `<optgroup label="原版卡上用过的 ${groups.used.length} 个">` +
-    groups.used.map((t) => `<option value="${esc(t.name)}">${esc(t.name)}${t.type === "buff" ? " · 数值" : t.type === "debuff" ? " · 负面" : ""}</option>`).join("") +
-    `</optgroup><optgroup label="tag.json 里定义但卡上没用过 ${groups.other.length} 个">` +
-    groups.other.map((t) => `<option value="${esc(t.name)}">${esc(t.name)}</option>`).join("") +
-    `</optgroup>`;
   const tags = Object.entries(record.tag || {});
   // A marker tag is present or absent: every vanilla use is exactly 1. A stat tag carries a
   // number and has an observed range. Rendering both as numbers invites a value the game never sees.
@@ -96,7 +80,7 @@ function cardBody(record, modDir) {
     .map(
       ([name]) => `<tr>
   <td>${esc(name)}</td>
-  <td class="num"><input type="checkbox" name="tag_${esc(name)}" value="1" checked> 有</td>
+  <td class="num">有</td>
 </tr>`,
     )
     .join("\n");
@@ -106,7 +90,7 @@ function cardBody(record, modDir) {
       const range = TAG_ROLES.stat[name];
       return `<tr>
   <td>${esc(name)}</td>
-  <td class="num"><input type="number" name="tag_${esc(name)}" value="${esc(value)}"></td>
+  <td class="num">${esc(value)}</td>
   <td style="color:#8a7a60;font-size:12px">${range ? `${range.min} … ${range.max}` : "新属性"}</td>
 </tr>`;
     })
@@ -118,22 +102,18 @@ function cardBody(record, modDir) {
   ${artInline(modDir, record.id, record.rare, record.name, record.type, fontFace().family) || '<div class="cardface">472 × 1028<br>卡面图放这里<br><span style="opacity:.6">只替换内部画面，边框由游戏画</span></div>'}
   <div class="grow">
     <div class="panel">
-      <div class="row"><div class="lbl">名字</div><div><input type="text" name="name" value="${esc(record.name)}"></div></div>
-      <div class="row"><div class="lbl">副标题</div><div><input type="text" name="title" value="${esc(record.title || "")}"></div></div>
-      <div class="row"><div class="lbl">类别</div><div><select name="type">
-        ${["item", "char", "sudan"].map((t) => `<option value="${t}"${record.type === t ? " selected" : ""}>${t}</option>`).join("")}
-      </select></div></div>
-      <div class="row"><div class="lbl">稀有度</div><div><select name="rare">
-        ${[1, 2, 3, 4].map((r) => `<option value="${r}"${record.rare === r ? " selected" : ""}>${r} · ${["石块", "铜", "银", "金"][r - 1]}</option>`).join("")}
-      </select></div></div>
-      <div class="row"><div class="lbl">说明</div><div><textarea name="text">${esc(record.text || "")}</textarea></div></div>
+      <div class="row"><div class="lbl">名字</div><div class="val">${esc(record.name)}</div></div>
+      <div class="row"><div class="lbl">副标题</div><div class="val">${esc(record.title || "（无）")}</div></div>
+      <div class="row"><div class="lbl">类别</div><div class="val">${esc(record.type)}</div></div>
+      <div class="row"><div class="lbl">稀有度</div><div class="val">${esc(record.rare)} · ${["石块", "铜", "银", "金"][record.rare - 1] || "?"}</div></div>
+      <div class="row"><div class="lbl">说明</div><div class="val" style="white-space:pre-wrap">${esc(record.text || "（无）")}</div></div>
       <div class="row"><div class="lbl">可装备槽</div><div>${record.type === "char"
-        ? `<div class="slots">${SLOTS.map((slot) => {
+        ? `<div class="val">${SLOTS.map((slot) => {
             const n = (record.equips || []).filter((x) => x === slot).length;
-            return `<label>${esc(slot)} <input type="number" name="slot_${esc(slot)}" value="${n}" min="0" max="9"></label>`;
-          }).join("")}</div>`
+            return n ? `${esc(slot)} ×${n}` : "";
+          }).filter(Boolean).join("、") || "（无）"}</div>`
         : `<div class="note" style="margin:0">这张卡不是角色，没有槽位。物品能不能穿、穿到哪，由标签决定：<b>装备</b>=1 加 <b>武器</b>/<b>服装</b>/<b>饰品</b>/<b>驯兽</b> 之一。</div>`}</div></div>
-      <div class="row"><div class="lbl">唯一</div><div><input type="checkbox" name="is_only"${record.is_only ? " checked" : ""}> 只能有一张</div></div>
+      <div class="row"><div class="lbl">唯一</div><div class="val">${record.is_only ? "只能有一张" : "可以有多个"}</div></div>
     </div>
   </div>
 </div>
@@ -141,7 +121,7 @@ function cardBody(record, modDir) {
 <h2>画面 · 你想让图画成什么</h2>
 <div class="panel">
 <div class="note" style="margin-top:0">只写主体：画谁、画什么、什么神态。构图、风格、透明底这些我按游戏要求自动补，不用你管。</div>
-<textarea name="art_subject" style="min-height:110px">${esc(subject)}</textarea>
+<div class="val" style="white-space:pre-wrap">${esc(subject)}</div>
 </div>
 
 <h2>标记 · 有或没有</h2>
@@ -158,9 +138,6 @@ ${markerRows || '<tr><td colspan="2" style="color:#8a7a60">没有标记</td></tr
 <table>
 <tr><th>属性</th><th>数值</th><th>原版范围</th></tr>
 ${statRows || '<tr><td colspan="3" style="color:#8a7a60">没有属性</td></tr>'}
-<tr><td><select name="tag_new_name">${tagNameOptions}</select></td>
-    <td class="num"><input type="number" name="tag_new_value" value="1"></td>
-    <td></td></tr>
 </table>
 <div class="note">标签用的是<b>中文显示名</b>，不是 code。改名会让引用它的所有条件失效。</div>
 </div>
@@ -325,25 +302,6 @@ function artInline(modDir, id, rare, name, type, fontFamily) {
   plate.src = payload.plates[wantPlate];
   if (wantArt) art.src = payload.art;
 
-  // The script sits above the fields in the document, so the controls do not exist yet
-  // when it runs. Wire them once the document has parsed.
-  function wire() {
-    var rareSelect = document.querySelector('select[name="rare"]');
-    if (rareSelect) rareSelect.addEventListener("change", function () {
-      var v = Number(rareSelect.value) || 1;
-      if (payload.plates[v]) { wantPlate = v; plate.src = payload.plates[v]; }
-    });
-    var nameInput = document.querySelector('input[name="name"]');
-    var nameEl = document.getElementById("cardName");
-    if (nameInput && nameEl) nameInput.addEventListener("input", function () {
-      name = nameInput.value;
-      nameEl.textContent = name;
-      // A long name must shrink rather than run off the card, the way the game clips it.
-      nameEl.style.fontSize = (name.length <= 2 ? 56 : Math.min(46, Math.floor(200 / Math.max(1, name.length)))) + "px";
-    });
-  }
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", wire);
-  else wire();
 })();
 </script>`;
 }
@@ -365,11 +323,7 @@ function riteBody(record) {
   <td><code>${esc(name)}</code></td>
   <td>${esc(slot.text || "")}</td>
   <td>${esc(cond)}</td>
-  <td class="num"><select name="slot_empty_${esc(name)}">
-    <option value="0"${slot.is_empty === 0 ? " selected" : ""}>0 必填</option>
-    <option value="1"${slot.is_empty === 1 ? " selected" : ""}>1 可空</option>
-  </select></td>
-  <td><input type="checkbox" name="slot_drop_${esc(name)}"> 删掉</td>
+  <td class="num">${slot.is_empty ? "可空" : "必填"}</td>
 </tr>`;
     })
     .join("\n");
@@ -390,18 +344,18 @@ function riteBody(record) {
   return `
 <h2>仪式</h2>
 <div class="panel">
-  <div class="row"><div class="lbl">名字</div><div><input type="text" name="name" value="${esc(record.name)}"></div></div>
-  <div class="row"><div class="lbl">地点</div><div><input type="text" name="location" value="${esc(record.location)}"></div></div>
-  <div class="row"><div class="lbl">持续回合</div><div><input type="number" name="round_number" value="${esc(record.round_number)}"></div></div>
-  <div class="row"><div class="lbl">说明</div><div><textarea name="text">${esc(record.text || "")}</textarea></div></div>
+  <div class="row"><div class="lbl">名字</div><div class="val">${esc(record.name)}</div></div>
+  <div class="row"><div class="lbl">地点</div><div class="val">${esc(record.location)}</div></div>
+  <div class="row"><div class="lbl">持续回合</div><div class="val">${esc(record.round_number)}</div></div>
+  <div class="row"><div class="lbl">说明</div><div class="val" style="white-space:pre-wrap">${esc(record.text || "（无）")}</div></div>
 </div>
 <div class="note">地点格式必须是 <code>地区:[最小,最大]</code>。</div>
 
 <h2>槽位</h2>
 <div class="panel">
 <table>
-<tr><th>槽</th><th>提示文字</th><th>只接受</th><th>空缺</th><th></th></tr>
-${slots || '<tr><td colspan="5" style="color:#8a7a60">还没有槽位</td></tr>'}
+<tr><th>槽</th><th>提示文字</th><th>只接受</th><th>空缺</th></tr>
+${slots || '<tr><td colspan="4" style="color:#8a7a60">还没有槽位</td></tr>'}
 </table>
 </div>
 
@@ -447,11 +401,11 @@ function eventBody(record) {
   return `
 <h2>事件</h2>
 <div class="panel">
-  <div class="row"><div class="lbl">备注明</div><div><input type="text" name="text" value="${esc(record.text || "")}"></div></div>
+  <div class="row"><div class="lbl">备注明</div><div class="val">${esc(record.text || "（无）")}</div></div>
   <div class="row"><div class="lbl">触发</div><div>${on}</div></div>
   <div class="row"><div class="lbl">条件</div><div><code>${esc(cond)}</code></div></div>
-  <div class="row"><div class="lbl">可重复</div><div><input type="checkbox" name="is_replay"${record.is_replay ? " checked" : ""}> 每回合可以再触发</div></div>
-  <div class="row"><div class="lbl">启动即检查</div><div><input type="checkbox" name="start_trigger"${record.start_trigger ? " checked" : ""}> 一开始就检查条件</div></div>
+  <div class="row"><div class="lbl">可重复</div><div class="val">${record.is_replay ? "每回合可以再触发" : "只触发一次"}</div></div>
+  <div class="row"><div class="lbl">启动即检查</div><div class="val">${record.start_trigger ? "一开始就检查条件" : "等时机到再检查"}</div></div>
 </div>
 <div class="note">事件的结算分支是<b>顺序全部执行</b>，不是首条命中。分支选择发生在 <code>action</code> 里（option / case:opN / success / failed）。</div>
 
@@ -511,7 +465,7 @@ function main() {
   mkdirSync(path.dirname(out), { recursive: true });
   writeFileSync(out, html);
   process.stdout.write(`PASS  wrote ${out}\n`);
-  process.stdout.write(`NEXT  open it and mark it up; tell me what to change\n`);
+  process.stdout.write(`NEXT  show it to the player, then change the record from what they answer in chat\n`);
   return 0;
 }
 

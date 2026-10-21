@@ -1,82 +1,69 @@
 ---
 name: mod-page
 description: >
-  Write a mod page: one self-contained HTML file under the mod directory's `.preview/` that shows what
-  a mod changes, which values it sets, and which choices are still open. The player comments on the
-  page in the app, and you revise from the comments. Read it before you answer with options, a scope,
-  or a value to agree on, and before you describe what a mod does. The answer is a page, not a long
-  reply.
+  写 mod 说明页：mod 目录 `.preview/` 下的一个自包含 HTML 文件，把这次要改的卡、仪式、
+  事件和取值摆清楚，让玩家一眼看懂再回话。要在回复里给选项、定范围、摆数字或对比之前，
+  先读这一份。答案是一个页面，不是一段长回复；玩家的回复在聊天里，不在页面上。
 ---
 
-# The mod page
+# mod 说明页
 
-Part of the Sultan's Game(苏丹的游戏) mod workspace. If you have not read `mod-creator`, read it first.
+属于苏丹的游戏 mod 工作区。没读过 `mod-creator` 的话，先读它。
 
-A mod page is one HTML file the player reads. It shows what the mod changes, which values it sets, and
-which choices are still open. The player comments on the page and you revise.
+mod 说明页就是一个给玩家看的 HTML 文件：写清这次改了什么、各项取什么值、哪些还没定。
 
-## When to write a page
+**页面只是给人看的东西。** 玩家看完在聊天里回话，页面上写的东西不会自动传回来——苏丹仓没有配页面编辑器，页面就是一份静态 HTML。
 
-Write a page. Do not put the options in a long reply and ask.
+## 什么时候写页面
 
-Write a page when any of these is true:
+**写页面，不要把选项摊在一段长回复里再问。**
 
-- You and the player must agree on a scope or a value before you write the mod.
-- The player asks what the mod does, or what changed.
-- The result needs numbers, options, or a comparison.
-- The player says the work is thin, vague, or incomplete.
+下面任一条成立就写页面：
 
-A plain reply is enough when the answer fits in one short paragraph.
+- 你们必须先就范围或某个值达成一致，然后才能开始写 mod。
+- 玩家问这个 mod 做了什么，或者这次改了什么。
+- 结论需要数字、选项或对比才说得清。
+- 玩家说做得单薄、含糊、不完整。
 
-## Where the page goes
+一句话就能答的问题，直接回复就够。
 
-`your_mods/<ModName>/.preview/<topic>.modpage.html`
+## 页面放在哪
 
-- The name must end in `.modpage.html`. Another name opens in the plain viewer, without commenting.
-- `.preview/` is not part of the mod. It is git-ignored and must not be installed into the game.
+```
+your_mods/<ModName>/.preview/<主题>.modpage.html
+```
 
-## What a page must be
+- 用 `node tools/page.mjs card --mod your_mods/<ModName> --id <卡 id>` 生成，`rite`、`event` 同理。默认就写到这个路径，文件名按内容起。
+- 页面是**只读**的：值都印成文字，没有输入框。卡页面还会把卡面拼出来给你看（原版底板 + 卡图 + 卡名），合成图直接内嵌。
+- `.preview/` 不属于 mod：它被 git 忽略，也不要装进游戏。
+- 后缀 `.modpage.html` 是 `tools/page.mjs` 的默认值，沿用即可；它现在只表示「这是说明页」。
 
-- **One file.** Put styles and images inside it. The player may open it with no network.
-- **The game, not the files.** Write what changes in the game. Do not list the files you edited.
-  For this game that means naming the card, the rite, the event, the number.
-- **Images inside the file.** An image must be a data URI.
-- **Real controls for a choice.** Use `<input type="checkbox">`, `<input type="radio">` or `<select>`
-  with a `name`. A drawn box such as `☐` cannot be clicked, and the panel saves a named control's
-  value with the comments.
-- **Room to write.** When the page asks for a sentence or more, use a `<textarea>` about four rows
-  tall. A one-line field is for a value, not for a thought.
-- **No page script.** The panel reads the file and injects the markup, so a `<script>` in the page
-  does not run. To show the effect of a selection, use CSS only, for example `:checked + label` or
-  `:has()`.
+## 页面必须是怎样
 
-## Card data belongs in a table
+- **一个文件。** 样式和图片都放进这个文件里，玩家可能在没有网络的情况下打开它。
+- **写游戏里看到的变化，不写你改了哪些文件。** 落到具体的卡、仪式、事件、数字上。
+- **图片要用 data URI 内嵌。** 不许外链。
+- **不要用控件来提问。** 页面里的输入框、勾选框点了不会保存任何东西，所以别让玩家以为在页面上勾完就定了。要问选择，就把候选值排成表格，旁边写你推荐哪个、为什么；玩家在聊天里回。
+- **页面里不放脚本。** 它不会执行；想标出推荐项，用底色或一个「推荐」标签就够。
 
-When the page proposes a card, show the fields as a table with the value you propose and the vanilla
-value beside it. The fields that matter to a player are `name`, `title`, `text`, `type`, `rare` and
-the `tag` numbers. Show the tag numbers as a small table of tag name to integer, because the numbers
-are the balance and the player has opinions about them.
+## 卡的数据用表格
 
-## Rite and story data belongs in a branch list
+页面要提一张卡时，把字段做成表格：左边是你提议的值，右边是原版的值。玩家真正关心的字段是 `name`、`title`、`text`、`type`、`rare`，以及 `tag` 上的数字。
 
-When the page proposes a rite or an event, show the trigger, the condition, and each settlement branch
-as its own row with its condition and its outcome. The player needs to see which branch fires first.
-That ordering is the design, not a detail.
+`tag` 的数字单独做成一张小表（标签名对整数）。这些数字就是平衡，玩家对它们有意见。
 
-## Style
+## 仪式与剧情的数据用分支表
 
-The page should read as part of the game, not as a document. The game's interface is deep warm brown
-with parchment panels, gold rules and engraved ornament.
+页面要提一个仪式或一个事件时，把触发、条件、每一条结算分支各占一行，写清这条分支的条件和结果。玩家要能看出**哪条先命中**：这个顺序本身就是设计，不是细节。
 
-Do not invent colour values. Take them from the game's own screenshots: ask the player for one
-screenshot of a card, a rite board and the mod panel, and sample the ground, the panel, the rule and
-the text colour from those. Invented hex values look almost right and read as foreign.
+## 样式
 
-Use a serif for headings and a system sans for body. Keep the measure narrow; the panel is not
-full width.
+页面要读起来像游戏的一部分，不像一份文档。游戏界面是深暖棕底、羊皮纸面板、金色分隔线、带刻线的装饰。
 
-## After the player comments
+**不要自己编颜色值。** 从游戏自己的截图里取：让玩家给一张卡面、一块仪式面板、一张 mod 面板的截图，从里面吸底色、面板色、分隔线色和文字色。编出来的十六进制值看着差不多，放到游戏旁边一眼就假。
 
-Read the feedback block from the page, change the mod, and revise the page. Do not argue with a
-comment inside the page. Answer it by changing the value or by adding a row that shows the
-consequence.
+标题用衬线体，正文用系统无衬线体。正文栏要窄——面板本来就不宽。
+
+## 玩家回话之后
+
+按玩家说的改 mod，再改页面：要么把那个值改掉，要么加一行，把不同选择的后果摆出来。不要**在页面里**跟玩家争辩。
