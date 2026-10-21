@@ -35,7 +35,8 @@
   - `setup-workspace` —— 环境准备：先确定 mod 根目录（必需）；dump 游戏代码的工具链、参考游戏美术都是可选的，用到时才准备。开局或换机器先读这一份。
   - `mod-creator` —— 主参考：mod 布局、`info.json`、mod 能提供哪些 config、合并语义、JSONC 规则，以及带可用示例的卡与事件/仪式写法。
   - `mod-installer` —— 把 mod 复制进 mod 根目录、启用它、再从日志确认。
-  - `card-art` —— 图片契约：尺寸、命名，以及一张贴图替换掉什么。
+  - `card-art` —— 图片怎么制作：尺寸、命名、生成卡面图的提示词，以及一张贴图替换掉什么。
+  - `mod-audio` —— 换游戏里已有的音频：文件名即片段名、能用的格式，以及为什么只能替换不能新增。
   - `mod-page` —— 写 mod 说明页：一个本地 HTML 页，列出这个 mod 改了哪些记录与字段，玩家可以在上面标注意见。本文件提到的「mod 说明页」就是它。
 - `schema/` —— 唯一事实来源，也是字段规则的唯一所在。
   `fields.json` 存每种节点的形状，`vocab.json` 存时机、条件、操作的词汇表，`save-fields.json` 存存档形状；`SCHEMA.md` 由 `tools/gen-schema-doc.mjs` 从这三个文件生成。**不要手改 `SCHEMA.md`。**
