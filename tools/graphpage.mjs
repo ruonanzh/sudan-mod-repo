@@ -354,7 +354,14 @@ function clampDepth(d) {
 // cannot import, so this is the browser half of tools/graph.mjs subgraph(); the two must
 // clamp, walk and sort the same way.
 /** Cards are leaves in this picture; every other judgement about them follows from that. */
-const isCardIdx = (i) => DATA.nodes[i] && (DATA.nodes[i].t === "card" || DATA.nodes[i].c === "card");
+// Leaves are drawn but never walked out of: a card is mentioned by dozens of nodes, and a 星盘
+// layout template is referenced the same way. The arrow points at them, one layer deep, and the
+// walk continues through everything else.
+const LEAF_KINDS = new Set(["card", "riteTemplate"]);
+const isLeafIdx = (i) => {
+  const n = DATA.nodes[i];
+  return !!n && (LEAF_KINDS.has(n.t) || LEAF_KINDS.has(n.c));
+};
 
 function walkFrom(key, d) {
   const start = idxOf.get(key);
@@ -364,7 +371,7 @@ function walkFrom(key, d) {
   hops.set(start, 0);
   // A card is a leaf: everything references cards, so a walk that passed through one would show
   // its whole fan-in. Cards are reached, never walked out of, and a card root never expands.
-  if (isCardIdx(start)) return { centre: start, depth: dep, hops: hops };
+  if (isLeafIdx(start)) return { centre: start, depth: dep, hops: hops };
   let frontier = [start];
   const a = adj();
   for (let step = 1; step <= dep && frontier.length; step++) {
@@ -373,7 +380,7 @@ function walkFrom(key, d) {
       for (const [to] of (a.out.get(i) || []).concat(a.inc.get(i) || [])) {
         if (hops.has(to)) continue;
         hops.set(to, step);
-        if (!isCardIdx(to)) next.push(to);
+        if (!isLeafIdx(to)) next.push(to);
       }
     }
     frontier = next;
@@ -549,7 +556,7 @@ function graphElements(key, d) {
   // Both ends inside the walk: an edge to a node that is not drawn hangs in the air.
   // Only one direction of card edge is drawn: the non-card that mentions the card points at it.
   // A card's own outgoing edges are noise, and they would double every reference.
-  const within = DATA.edges.filter(([a, b]) => walk.hops.has(a) && walk.hops.has(b) && !isCardIdx(a));
+  const within = DATA.edges.filter(([a, b]) => walk.hops.has(a) && walk.hops.has(b) && !isLeafIdx(a));
   const capped = clampEdges(within);
   // Cards are not drawn: a card is a thing a condition mentions, not a step in the story, and a
   // 卡牌 lane full of leaves is what made the picture unreadable. The panel still names them.
