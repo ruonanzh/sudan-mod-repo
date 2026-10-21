@@ -28,6 +28,17 @@ import { esc, CSS, pageHtml as shellPage } from "./html.mjs";
 const TAG_ROLES = JSON.parse(readFileSync(new URL("../schema/tag-roles.json", import.meta.url), "utf8"));
 const CARD_ART = JSON.parse(readFileSync(new URL("../schema/card-art.json", import.meta.url), "utf8"));
 const PLATE = ["stone", "copper", "silver", "gold"];
+
+/** Open a row's detail in the full-width row under it, where the column cannot crush it. */
+const ROW_TOGGLE = `document.addEventListener("click", (e) => {
+  const button = e.target.closest("button.exp");
+  if (!button) return;
+  const row = button.closest("tr");
+  const more = row && row.nextElementSibling;
+  if (!more || !more.classList.contains("more")) return;
+  more.hidden = !more.hidden;
+  button.textContent = more.hidden ? button.dataset.closed : "收起";
+});`;
 const CARD_W = 472;
 const CARD_H = 1028;
 
@@ -58,13 +69,14 @@ function fontFace() {
   };
 }
 
-function pageHtml({ title, sub, body }) {
+function pageHtml({ title, sub, body, script = "" }) {
   const ff = fontFace();
   return shellPage({
     title,
     sub,
     font: ff.css ? ff : null,
     body,
+    script,
   });
 }
 
@@ -191,6 +203,31 @@ function fmt(value, kind) {
   return `<table class="sub">${rows}</table>`;
 }
 
+
+/**
+ * One table row, plus a full-width row under it for any cell that holds an object.
+ *
+ * An object expanded inside a cell is crushed by the column width, so the detail goes into the
+ * row below it instead: the button says how many items, the row underneath spans the table and
+ * is indented. That is the shape a reader expects — the detail belongs to the row above it.
+ */
+function rowWithDetails(cols, row, kind) {
+  const details = [];
+  const cells = cols.map((c) => {
+    const v = row?.[c];
+    if (v && typeof v === "object" && (Array.isArray(v) ? v.length : Object.keys(v).length)) {
+      const count = Array.isArray(v) ? v.length : Object.keys(v).length;
+      const box = `<div class="morebox">${fmt(v, kind)}</div>`;
+      details.push(box);
+      return `<td><button class="exp" data-closed="${count} 项">${count} 项</button></td>`;
+    }
+    return `<td>${fmt(v, kind)}</td>`;
+  }).join("");
+  const dataRow = `<tr>${cells}</tr>`;
+  if (!details.length) return dataRow;
+  return `${dataRow}<tr class="more" hidden><td colspan="${cols.length}">${details.join("")}</td></tr>`;
+}
+
 /** The same table, folded behind a summary, for values that sit inside a long table. */
 function folded(value, kind) {
   if (!value || typeof value !== "object") return fmt(value, kind);
@@ -224,14 +261,14 @@ function tableFor(kind, value) {
     if (!value.length) return '<div style="color:#8a7a60">这一项没写内容。</div>';
     if (value.every((v) => !v || typeof v !== "object")) return `<div>${value.map((v) => fmt(v)).join("、")}</div>`;
     const cols = columnsFor(kind, value);
-    const cell = (v) => `<td>${v && typeof v === "object" ? folded(v, kind) : fmt(v, kind)}</td>`;
-    const rowHtml = (row) => `<tr>${cols.map((c) => cell(row?.[c])).join("")}</tr>`;
-    // A 180-row table buries everything after it; show a screenful and fold the rest.
-    const shown = value.slice(0, TABLE_FOLD);
-    const rest = value.slice(TABLE_FOLD);
-    const head1 = `<table>${head(cols, "")}${shown.map(rowHtml).join("")}</table>`;
-    if (!rest.length) return head1;
-    return `${head1}<details style="margin-top:10px"><summary>还有 ${rest.length} 条，点开看</summary><table>${head(cols, "")}${rest.map(rowHtml).join("")}</table></details>`;
+    const rows = value.map((row) => rowWithDetails(cols, row, kind)).join("");
+    const shown = value.length > TABLE_FOLD;
+    if (shown) {
+      const head1 = `<table>${head(cols, "")}${value.slice(0, TABLE_FOLD).map((row) => rowWithDetails(cols, row, kind)).join("")}</table>`;
+      const rest = `<table>${head(cols, "")}${value.slice(TABLE_FOLD).map((row) => rowWithDetails(cols, row, kind)).join("")}</table>`;
+      return `${head1}<details style="margin-top:10px"><summary>还有 ${value.length - TABLE_FOLD} 条，点开看</summary>${rest}</details>`;
+    }
+    return `<table>${head(cols, "")}${rows}</table>`;
   }
   if (value && typeof value === "object") {
     const entries = Object.entries(value);
@@ -718,7 +755,7 @@ function main() {
     }
     throw e;
   }
-  const html = pageHtml({ title, sub, body });
+  const html = pageHtml({ title, sub, body, script: ROW_TOGGLE });
   const out = args.out || path.join(mod.dir, ".preview", `${kind}-${args.id}.modpage.html`);
   mkdirSync(path.dirname(out), { recursive: true });
   writeFileSync(out, html);

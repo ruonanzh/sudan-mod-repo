@@ -74,6 +74,15 @@ details[open] summary { color: var(--ink); }
 table.sub { margin-top: 6px; background: #262019; border: 1px solid #3c3227; }
 table.sub th, table.sub td { font-size: 12.5px; padding: 4px 6px; border-bottom: 1px dotted #3c3227; }
 table.sub th { width: 42%; color: var(--dim); }
+button.exp {
+  background: transparent; border: 1px solid var(--rule); color: var(--dim);
+  font: inherit; font-size: 12px; padding: 1px 8px; cursor: pointer;
+}
+button.exp:hover { border-color: var(--gold); color: var(--ink); }
+tr.more > td { padding: 0; border-bottom: 1px solid #362c21; background: #241d16; }
+tr.more .morebox { padding: 8px 12px 12px 26px; }
+tr.more .morebox table.sub { margin-top: 0; background: #2a231b; }
+tr.more .morebox th { width: 30%; }
 .fb { min-height: 120px; }
 `;
 
@@ -81,7 +90,7 @@ table.sub th { width: 42%; color: var(--dim); }
  * The page frame. `font` is optional `{css, family}` from a caller that embeds a
  * typeface; `wide` drops the 860px cap for canvas pages.
  */
-export function pageHtml({ title, sub, body, font = null, wide = false, extraCss = "" }) {
+export function pageHtml({ title, sub, body, font = null, wide = false, extraCss = "", script = "" }) {
   return `<!doctype html>
 <meta charset="utf-8">
 <title>${esc(title)}</title>
@@ -93,6 +102,7 @@ ${font ? font.css : ""}</style>
 <div class="sub">${sub}</div>
 ${body}
 </div>
+${script ? `<script>${script}</script>` : ""}
 `;
 }
 
