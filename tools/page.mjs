@@ -127,7 +127,11 @@ function fmt(value) {
     if (!value.length) return "（空）";
     return value.map((v) => fmt(v)).join("、");
   }
-  return `<code>${esc(JSON.stringify(value))}</code>`;
+  // A whole nested object in one row would push everything else off the page; fold it.
+  const text = esc(JSON.stringify(value));
+  const count = Object.keys(value || {}).length;
+  if (text.length <= 60) return `<code>${text}</code>`;
+  return `<details><summary>${count} 项，点开看</summary><div><code>${text}</code></div></details>`;
 }
 
 /** One label/value row, with the note as a dim line under the value. */
@@ -135,6 +139,9 @@ function fieldRow(label, valueHtml, note) {
   const tip = note ? `<div class="note" style="margin:2px 0 0">${esc(note)}</div>` : "";
   return `<div class="row"><div class="lbl">${esc(label)}</div><div class="val">${valueHtml}${tip}</div></div>`;
 }
+
+/** How many rows a table shows before folding the rest behind a summary. */
+const TABLE_FOLD = 25;
 
 /** Columns to show for a child table: the live keys of that kind, in reader order. */
 function columnsFor(kind, rows) {
@@ -149,17 +156,20 @@ function tableFor(kind, value) {
   const head = (cols, extra) =>
     `<tr>${extra}${cols.map((c) => `<th>${esc(labelOf(kind, c)?.label || c)}</th>`).join("")}</tr>`;
   if (Array.isArray(value)) {
-    if (!value.length) return '<div style="color:#8a7a60">（空）</div>';
+    if (!value.length) return '<div style="color:#8a7a60">这一项没写内容。</div>';
     if (value.every((v) => !v || typeof v !== "object")) return `<div>${value.map((v) => fmt(v)).join("、")}</div>`;
     const cols = columnsFor(kind, value);
-    const rows = value
-      .map((row) => `<tr>${cols.map((c) => `<td>${fmt(row?.[c])}</td>`).join("")}</tr>`)
-      .join("");
-    return `<table>${head(cols, "")}${rows}</table>`;
+    const rowHtml = (row) => `<tr>${cols.map((c) => `<td>${fmt(row?.[c])}</td>`).join("")}</tr>`;
+    // A 180-row table buries everything after it; show a screenful and fold the rest.
+    const shown = value.slice(0, TABLE_FOLD);
+    const rest = value.slice(TABLE_FOLD);
+    const head1 = `<table>${head(cols, "")}${shown.map(rowHtml).join("")}</table>`;
+    if (!rest.length) return head1;
+    return `${head1}<details style="margin-top:10px"><summary>还有 ${rest.length} 条，点开看</summary><table>${head(cols, "")}${rest.map(rowHtml).join("")}</table></details>`;
   }
   if (value && typeof value === "object") {
     const entries = Object.entries(value);
-    if (!entries.length) return '<div style="color:#8a7a60">（空）</div>';
+    if (!entries.length) return '<div style="color:#8a7a60">这一项没写内容。</div>';
     const cols = columnsFor(kind, entries.map(([, v]) => v));
     const rows = entries
       .map(([name, row]) => `<tr><td><code>${esc(name)}</code></td>${cols.map((c) => `<td>${fmt(row?.[c])}</td>`).join("")}</tr>`)
@@ -167,6 +177,36 @@ function tableFor(kind, value) {
     return `<table>${head(cols, "<th>名称</th>")}${rows}</table>`;
   }
   return `<div>${fmt(value)}</div>`;
+}
+
+/** The three settlement arrays are one idea ("which branch wins"), so they share one heading. */
+const SETTLEMENT_KEYS = ["settlement_prior", "settlement", "settlement_extre"];
+
+function renderSections(kind, sections) {
+  const out = [];
+  let merged = null;
+  for (const section of sections) {
+    if (kind === "rite" && SETTLEMENT_KEYS.includes(section.key)) {
+      merged ||= { title: "结算分支", items: [] };
+      merged.items.push(section);
+      continue;
+    }
+    if (merged) {
+      out.push(mergedSection(merged));
+      merged = null;
+    }
+    out.push(`<h2>${esc(section.title)}</h2><div class="panel">${section.html}</div>`);
+  }
+  if (merged) out.push(mergedSection(merged));
+  return out.join("\n");
+}
+
+function mergedSection(group) {
+  const note = `<div class="note" style="margin-top:0">该看哪一条：先结算与正常结算都是「第一条成立的生效」，后面的不看；附加结算则是「每条成立的都执行」。所以没有条件的兜底只能放最后。</div>`;
+  const items = group.items
+    .map((s) => `<h3 style="margin:18px 0 8px;color:#b9a887;font-size:14px;font-weight:normal">${esc(s.title)}</h3>${s.html}`)
+    .join("\n");
+  return `<h2>${esc(group.title)}</h2><div class="panel">${note}${items}</div>`;
 }
 
 /**
@@ -179,12 +219,15 @@ function recordBody(kind, record) {
   const rows = [];
   const tables = [];
   const unknown = [];
+  const legacy = [];
   const undescribed = [];
 
   for (const [key, value] of Object.entries(record)) {
     if (key in nested) continue;
     if (!(FIELDS[kind]?.fields || []).includes(key)) {
-      unknown.push(key);
+      // Vanilla writes some keys nothing reads; that is documented, not a mistake by the author.
+      if ((FIELDS[kind]?.legacy || []).includes(key)) legacy.push(key);
+      else unknown.push(key);
       continue;
     }
     const info = labelOf(kind, key);
@@ -201,12 +244,12 @@ function recordBody(kind, record) {
     if (value === undefined) continue;
     const info = labelOf(kind, key);
     if (!info) undescribed.push(key);
-    const title = `${info?.label || key} · ${key}`;
+    const title = info?.label || key;
     const note = info?.note ? `<div class="note">${esc(info.note)}</div>` : "";
-    tables.push(`<h2>${esc(title)}</h2><div class="panel">${note}${tableFor(childKind, value)}</div>`);
+    tables.push({ key, title, html: `${note}${tableFor(childKind, value)}` });
   }
 
-  return { rows: rows.join("\n"), tables: tables.join("\n"), unknown, undescribed };
+  return { rows: rows.join("\n"), tables: renderSections(kind, tables), unknown, legacy, undescribed };
 }
 
 /** The keys nobody described must stop the page: a label-less row is an English field name. */
@@ -218,13 +261,24 @@ function assertDescribed(kind, undescribed) {
   );
 }
 
+/** Keys vanilla itself writes and nothing reads: keep them, but say what they are. */
+function legacySection(legacy) {
+  if (!legacy.length) return "";
+  const rows = legacy.map((k) => `<tr><td><code>${esc(k)}</code></td></tr>`).join("");
+  return `<h2>原版会写、游戏不读</h2>
+<div class="panel">
+<div class="note">下面这些名字在原版文件里出现过，但游戏不会读它们。照着原版抄可以留着，自己新写时不用加。</div>
+<table><tr><th>不生效的名字</th></tr>${rows}</table>
+</div>`;
+}
+
 function unknownSection(unknown) {
   if (!unknown.length) return "";
   const rows = unknown.map((k) => `<tr><td><code>${esc(k)}</code></td></tr>`).join("");
   return `<h2>游戏不读这些键</h2>
 <div class="panel">
-<div class="note">下面这些键不在 <code>schema/fields.json</code> 里，游戏不会读它们。删掉，或先查清楚它该写在哪。</div>
-<table><tr><th>键</th></tr>${rows}</table>
+<div class="note">下面这些名字游戏不认识，写进记录也不会起作用。要么删掉，要么先查清楚它本来该写在哪。</div>
+<table><tr><th>这些名字游戏不认识</th></tr>${rows}</table>
 </div>`;
 }
 
@@ -287,6 +341,7 @@ ${body.tables}
 <div class="note" style="margin-top:0">只写主体：画谁、画什么、什么神态。构图、风格、透明底由生成配方补，不用写在这里。</div>
 <div class="val" style="white-space:pre-wrap">${esc(subject)}</div>
 </div>
+${legacySection(body.legacy)}
 ${unknownSection(body.unknown)}`;
 }
 
@@ -460,38 +515,15 @@ function nameFont(name) {
 function riteBody(record) {
   const body = recordBody("rite", record);
   assertDescribed("rite", body.undescribed);
-  const branches = (record.settlement || [])
-    .map((b, i) => {
-      const cond = b.condition && Object.keys(b.condition).length ? JSON.stringify(b.condition, null, 1) : "（无条件是兜底，必须放最后）";
-      const ops = Object.keys(b.result || {});
-      return `<div class="branch">
-  <div class="when">第 ${i + 1} 条 · 条件 ${esc(cond)}</div>
-  <div><b>${esc(b.result_title || "（无标题）")}</b></div>
-  <div style="color:#cfc0a2">${esc(b.result_text || "")}</div>
-  <div class="note">执行：${ops.map((o) => `<code>${esc(o)}</code>`).join(" ") || "无"}</div>
-</div>`;
-    })
-    .join("\n");
-
   return `
 <h2>仪式</h2>
 <div class="panel">
 ${body.rows}
 </div>
-<div class="note">地点格式必须是 <code>地区:[最小,最大]</code>。</div>
+<div class="note">地点的写法必须是「地区名:[最小,最大]」。</div>
 
 ${body.tables}
-
-<h2>结果分支</h2>
-<div class="panel">
-${branches || '<div style="color:#8a7a60">还没有分支</div>'}
-<div class="note">前两个数组在第一条命中时停止，所以空条件只能放最后；<code>settlement_extre</code> 会把命中的全部执行。</div>
-</div>
-
-<h2>当前记录</h2>
-<div class="panel">
-<div><span class="pill">id ${esc(record.id)}</span><span class="pill">mapping ${esc(record.mapping_id ?? "未设置")}</span><span class="pill">等待 ${esc(record.waiting_round)} 回合</span><span class="pill">${Object.keys(record.cards_slot || {}).length} 槽</span></div>
-</div>
+${legacySection(body.legacy)}
 ${unknownSection(body.unknown)}`;
 }
 
@@ -502,20 +534,6 @@ ${unknownSection(body.unknown)}`;
 function eventBody(record) {
   const body = recordBody("event", record);
   assertDescribed("event", body.undescribed);
-  const branches = (record.settlement || [])
-    .map((b, i) => {
-      const ops = Object.keys(b.result || {});
-      const act = Object.keys(b.action || {});
-      return `<div class="branch">
-  <div class="when">第 ${i + 1} 条${b.condition && Object.keys(b.condition).length ? " · 有条件（不会被执行）" : " · 无条件"}</div>
-  <div><b>${esc(b.result_title || "（无标题）")}</b></div>
-  <div style="color:#cfc0a2">${esc(b.result_text || "")}</div>
-  <div class="note">结果：${ops.map((o) => `<code>${esc(o)}</code>`).join(" ") || "无"}</div>
-  <div class="note">动作：${act.map((o) => `<code>${esc(o)}</code>`).join(" ") || "无"}</div>
-</div>`;
-    })
-    .join("\n");
-
   return `
 <h2>事件</h2>
 <div class="panel">
@@ -524,28 +542,39 @@ ${body.rows}
 <div class="note">事件的结算分支是<b>顺序全部执行</b>，不是首条命中。分支选择发生在 <code>action</code> 里（option / case:opN / success / failed）。</div>
 
 ${body.tables}
-
-<h2>结算分支</h2>
-<div class="panel">
-${branches || '<div style="color:#8a7a60">还没有分支</div>'}
-</div>
+${legacySection(body.legacy)}
 ${unknownSection(body.unknown)}`;
 }
 
 /** The kinds this page knows how to lay out, in the order the CLI help lists them. */
 const PAGE_KINDS = ["card", "rite", "event", "loot", "quest", "over", "afterStory", "upgrade", "tag", "init"];
 
+/** How a page names its own kind. A player never needs the English kind name. */
+const KIND_LABEL = {
+  card: "卡",
+  rite: "仪式",
+  event: "事件",
+  loot: "战利品表",
+  quest: "任务",
+  over: "结局",
+  afterStory: "后日谈",
+  upgrade: "命运商店条目",
+  tag: "标签",
+  init: "开局",
+};
+
 /** Every other supported kind is a list of labelled fields plus whatever nests inside it. */
 function genericBody(kind, record) {
   const body = recordBody(kind, record);
   assertDescribed(kind, body.undescribed);
   return `
-<h2>${esc(kind)}</h2>
+<h2>${esc(KIND_LABEL[kind] || kind)}</h2>
 <div class="panel">
 ${body.rows}
 </div>
 
 ${body.tables}
+${legacySection(body.legacy)}
 ${unknownSection(body.unknown)}`;
 }
 

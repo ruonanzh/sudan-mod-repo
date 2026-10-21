@@ -2,181 +2,181 @@
   "card": {
     "id": {
       "label": "卡牌编号",
-      "note": "卡牌的唯一编号，同时是 cards.json 的键，战利品、事件、仪式要提到这张牌都用它，原版取值 2000001–2010016。",
+      "note": "这张卡的编号，卡表里也用它当名字，战利品、事件、仪式都靠它找到卡，原版用 2000001–2010016。",
       "from": "docs/sudan-game/fields/01-card.md §`id` (level 2)"
     },
     "name": {
       "label": "卡面名称",
-      "note": "牌面上显示的名字，运行时会被 Card.custom_name 覆盖，译文另按 card_<id>_name 取。",
+      "note": "牌面上显示的名字，游戏里有些效果会临时改掉它，译文另按 card_<id>_name 取。",
       "from": "docs/sudan-game/fields/01-card.md §`name` / `title` / `text` (level 2) — i18n"
     },
     "title": {
       "label": "副标题",
-      "note": "卡面第二行文字，同时当界面与图鉴的分类用（如 武器、饰品、书籍），没有运行时覆盖。",
+      "note": "卡面第二行文字，也用作界面与图鉴的分类（如 武器、饰品、书籍），游戏不会改它。",
       "from": "docs/sudan-game/fields/01-card.md §`name` / `title` / `text` (level 2) — i18n"
     },
     "text": {
       "label": "卡面描述",
-      "note": "卡牌信息面板里的说明段落，运行时可用 Card.custom_text 覆盖。",
+      "note": "卡牌信息面板里的说明段落，游戏里有些效果会临时换掉它。",
       "from": "docs/sudan-game/fields/01-card.md §`name` / `title` / `text` (level 2) — i18n"
     },
     "pops": {
       "label": "旧版弹窗定义",
-      "note": "旧版弹窗字段，声明为字符串数组，原版 1294 条全为空，现由 post_rite 与 pop.* 操作承担，写对象会转换失败。",
+      "note": "旧版留下的弹窗位置，原版 1294 张卡全空着（写这里会出错，弹窗请改用 post_rite）。",
       "from": "docs/sudan-game/fields/01-card.md §`pops` (level 2)"
     },
     "type": {
       "label": "卡牌类型",
-      "note": "只能是 item、char、sudan 三种，决定它被当作物件、人物还是苏丹的需求卡，该值本身还能当标签与条件用。",
+      "note": "只能是 item、char、sudan 三种，决定它算物件、人物还是苏丹的需求卡，这个名字本身也能当标签和条件用。",
       "from": "docs/sudan-game/fields/01-card.md §`type` (level 2)"
     },
     "rare": {
       "label": "稀有度",
-      "note": "1–4 的品级，决定卡框美术并供 rare 系列条件取用，超出范围会被夹到 1–4，.uprare 操作改的就是它。",
+      "note": "1–4 的品级，决定卡框美术、稀有度条件也看它，超出范围会被收进 1–4，提升稀有度的效果改的就是它。",
       "from": "docs/sudan-game/fields/01-card.md §`rare` (level 2)"
     },
     "resource": {
       "label": "卡面贴图",
-      "note": "卡面图的贴图名，可写多帧备选，按卡上 pic 标签的值取其中一张（原版无此标签，恒取第一张）。",
+      "note": "卡面图的图片名，可以写多张备选，按卡上图片序号标签的值取其中一张，原版没这个标签所以总取第一张。",
       "from": "docs/sudan-game/fields/01-card.md §`resource` (level 2)"
     },
     "destroy_resources": {
       "label": "撕卡动画帧",
-      "note": "苏丹卡被撕掉时的 7 帧贴图，只出现在 20 张 sudan 卡上，这一版没找到读它的代码，应视为美术元数据。",
+      "note": "苏丹卡被撕掉时的 7 帧图片，只出现在 20 张 sudan 卡上，这一版游戏没用到它，按美术素材看待即可。",
       "from": "docs/sudan-game/fields/01-card.md §`destroy_resources` (level 2)"
     },
     "tag": {
       "label": "初始标签",
-      "note": "开局的标签表（标签名→等级），加载时换成 tag.json 的 code 写进 Card.tag，带 is_composite 的标签还会开出同名装备槽。",
+      "note": "开局的标签表，写成标签名和等级，游戏按 tag 表里同名标签的编号记到卡上，成套的标签还会开出同名装备槽。",
       "from": "docs/sudan-game/fields/01-card.md §`tag` (level 2)"
     },
     "card_vanishing": {
       "label": "存活回合数",
-      "note": "卡牌能活几个回合：每回合 life+1，达到这个值就排进消失队列，0 表示永不老死。",
+      "note": "卡牌能活几个回合，每过一回合数一次，到数就排进消失队列，0 表示永不老死。",
       "from": "docs/sudan-game/fields/01-card.md §`card_vanishing` (level 2)"
     },
     "vanish": {
       "label": "消失时执行",
-      "note": "卡牌每次被移除（不止到期）时执行的操作表，{} 是常规表现，可写 over、event_on、delay。",
+      "note": "卡牌每次被移除时执行的效果，不止到期那一次，原版大多空着，可以写 over、event_on、delay。",
       "from": "docs/sudan-game/fields/01-card.md §`vanish` (level 2)"
     },
     "equips": {
       "label": "装备槽",
-      "note": "这张卡提供的装备槽名（饰品、武器、服装、驯兽），重复写几次就是几个槽，只有 char 卡有效。",
+      "note": "这张卡提供的装备槽（饰品、武器、服装、驯兽），写几遍就有几个，只有 char 这类人物卡有效。",
       "from": "docs/sudan-game/fields/01-card.md §`equips` (level 2)"
     },
     "is_only": {
       "label": "唯一卡",
-      "note": "写 1 表示整局只留一张，放上桌后 id 进 player.only_cards，之后的抽取池会跳过它。",
+      "note": "写 1 表示整局只留一张，这张卡上桌后，后来的抽取不会再抽到它。",
       "from": "docs/sudan-game/fields/01-card.md §`is_only` (level 2)"
     },
     "sfx": {
       "label": "卡牌音效",
-      "note": "给卡牌附带的音效名，会连同其装备上的同名字段一起收集，原版只有贝姬夫人用了 cat。",
+      "note": "给卡牌配的音效名，它身上装备的卡写的音效也会一起算，原版只有贝姬夫人写了 cat。",
       "from": "docs/sudan-game/fields/01-card.md §`sfx` (level 2)"
     },
     "post_rite": {
       "label": "仪式后结算",
-      "note": "挂在卡上的结算分支，涉及它的仪式结算后按 condition 追加提示文字并执行 action/result，装备上的也一并收集。",
+      "note": "挂在卡上的结算分支，涉及它的仪式结束后按条件追加提示文字、执行 action 和 result，装备上的也会一起算。",
       "from": "docs/sudan-game/fields/01-card.md §`post_rite` (level 2) — `RiteNode.Settlement[]`"
     }
   },
   "event": {
     "id": {
       "label": "事件编号",
-      "note": "文件名的 stem 就是它的值，也是 event_on/event_off 引用的身份，两者不一致时事件永远取不到。",
+      "note": "文件名去掉后缀就是它的值，也是 event_on、event_off 引用的身份，两者不一致时事件永远取不到。",
       "from": "docs/sudan-game/fields/02-event.md §`id` (level 2)"
     },
     "is_replay": {
       "label": "是否可以重复触发",
-      "note": "1 表示触发后留在时机桶里还能再触发，0 表示触发后注销并标记完成。",
+      "note": "写 1 表示触发后还留着、时机再到时能再触发，写 0 表示触发完就撤掉并记成已完成。",
       "from": "docs/sudan-game/fields/02-event.md §`is_replay` (level 2)"
     },
     "auto_start_init": {
       "label": "默认本局开始时即启动",
-      "note": "填 init id 的数组：1 是普通开局，0 是苏丹引导开局，不写则开局不注册。",
+      "note": "写在这里表示为哪些开局默认启动，1 是普通局、0 是苏丹引导局，不写就等时机到了才启动。",
       "from": "docs/sudan-game/fields/02-event.md §`auto_start_init` (level 2)"
     },
     "on": {
       "label": "时机",
-      "note": "每个键是一个时机名，值是它的参数（回合数、仪式 id、卡 id），多个时机就是多个监听桶。",
+      "note": "一个时机一行，写时机名和它的参数（第几回合、哪张卡、哪个仪式），写多个表示任一命中就触发。",
       "from": "docs/sudan-game/fields/02-event.md §`on` (level 2)"
     },
     "start_trigger": {
       "label": "是否启动就立即开始校验条件",
-      "note": "true 表示注册当下就校验并结算，false 表示等 on 里的时机触发；被 event_on 拉起时两者反过来。",
+      "note": "打开就立刻检查条件并结算，关掉则等到 on 里的时机才检查，事件被别的效果拉起时这个开关是反的。",
       "from": "docs/sudan-game/fields/02-event.md §`start_trigger` (level 2)"
     },
     "condition": {
       "label": "条件",
-      "note": "结算前求值，不通过就不结算；空对象 {} 表示无条件，写成 null 会抛异常。",
+      "note": "结算前先看它，不成立就不结算，留空表示无条件，整项不写会报错。",
       "from": "docs/sudan-game/fields/02-event.md §`condition` (level 2)"
     },
     "settlement": {
       "label": "效果",
-      "note": "分支数组，事件按顺序执行每一个分支、不做挑选，也从不读分支自己的 condition。",
+      "note": "事件的结局条目，一条接一条全部执行、不会挑，每条自己写的条件也不看。",
       "from": "docs/sudan-game/fields/02-event.md §`settlement` (level 2)"
     }
   },
   "rite": {
     "id": {
       "label": "仪式编号",
-      "note": "文件名的数字，from_pins.rite_id 与存档里的仪式列表都按它引用。",
+      "note": "文件名里的数字，别的仪式和存档都按这个编号引用它。",
       "from": "docs/sudan-game/fields/03-rite.md §Lifecycle the fields hang off"
     },
     "name": {
       "label": "仪式名",
-      "note": "地图钉与仪式面板的标题，可用 [player.name] 这类占位符，玩家自改的名字优先。",
+      "note": "地图钉与仪式面板的标题，可写 [player.name] 这类占位符（玩家自己改的名字优先）。",
       "from": "docs/sudan-game/fields/03-rite.md §`name` / `text` — literal or key?"
     },
     "text": {
       "label": "仪式正文",
-      "note": "仪式面板标题下的说明段落，可以留空，原版有六条为空。",
+      "note": "仪式面板标题下面的说明文字，可以留空（原版有六条没写）。",
       "from": "docs/sudan-game/fields/03-rite.md §`name` / `text` — literal or key?"
     },
     "tips": {
       "label": "条件不足红字",
-      "note": "策划注释称它是条件不满足时确认按钮上方的红字，原版 1498 条全写空串，找不到读取点。",
+      "note": "策划注释说它是条件不满足时确认按钮上方的红字，原版 1498 条全留空（游戏里也找不到读它的地方）。",
       "from": "docs/sudan-game/fields/03-rite.md §`tips` (level 2) — comment-only"
     },
     "type": {
       "label": "仪式类型",
-      "note": "0 普通、1 结局、2 敌人、3 奇珍；大于 0 走单独的地图排布，3 另进宝物列表。",
+      "note": "0 普通、1 结局、2 敌人、3 奇珍，大于 0 的另有地图排布（3 还会进宝物列表）。",
       "from": "docs/sudan-game/fields/03-rite.md §`type` (level 2)"
     },
     "final_pin": {
       "label": "结算后补钉",
-      "note": "为 1 时仪式结算后再往地图加一个钉子，原版只有 5010xxx 结局链的仪式写它。",
+      "note": "打开后仪式结算完会再往地图上加一个钉子，原版只有 5010xxx 结局链的仪式这么写。",
       "from": "docs/sudan-game/fields/03-rite.md §`final_pin` (level 2)"
     },
     "from_pins": {
       "label": "连线起点",
-      "note": "从别的仪式钉拉一条箭头到本仪式，每个元素带一条线的几何参数。",
+      "note": "从别的仪式钉拉一条箭头到本仪式，每一项管这条线的形状参数。",
       "from": "docs/sudan-game/fields/03-rite.md §`from_pins` (level 2)"
     },
     "mapping_id": {
       "label": "面板模板映射",
-      "note": "指向 riteMapping.id，决定 template_id 与允许的 slot_open，id 无效或槽位过多时退回普通模板。",
+      "note": "指向映射表里的一行，决定用哪套模板、可开哪些槽位（编号写错或槽位太多就退回普通模板）。",
       "from": "docs/sudan-game/fields/03-rite.md §`mapping_id` (level 2)"
     },
     "round_number": {
       "label": "持续回合数",
-      "note": "仪式开始后 life 涨到该值就结算，0 与 1 效果相同，只是 0 不显示剩余回合。",
+      "note": "仪式开始后过这么多回合就自动结算（0 与 1 效果相同，只是 0 不显示剩余回合）。",
       "from": "docs/sudan-game/fields/03-rite.md §`round_number` (level 2)"
     },
     "auto_begin": {
       "label": "自动执行",
-      "note": "为 1 时回合结算自动把仪式开起来，不需要玩家点开始，等待计时也就不会跑。",
+      "note": "打开后回合结算会自动把仪式开起来（不用玩家点开始，等待倒计时也就不会走）。",
       "from": "docs/sudan-game/fields/03-rite.md §`auto_begin` (level 2)"
     },
     "auto_result": {
       "label": "自动结算初值",
-      "note": "只是面板开关的初始状态，玩家按仪式 id 存的 auto_result_rites 会盖过它。",
+      "note": "只是面板上那个开关的初始状态，玩家自己拨过之后就按玩家的选择。",
       "from": "docs/sudan-game/fields/03-rite.md §`auto_result` (level 2)"
     },
     "restore_fill_times": {
       "label": "上一步补抽次数",
-      "note": "回退到上一状态时 RecoveryCard 的循环次数，取值被夹到 1 至 10，原版从不写它。",
+      "note": "回退到上一步时补抽卡的次数，超出 1 到 10 会被改回这个范围（原版从不写它）。",
       "from": "docs/sudan-game/fields/03-rite.md §`restore_fill_times` (level 2)"
     },
     "once_new": {
@@ -191,52 +191,52 @@
     },
     "waiting_round_end_action": {
       "label": "等待超时处理",
-      "note": "等待回合耗尽时执行，所有 condition 成立的条目都会跑，不是只取第一条。",
+      "note": "等待回合用完时执行，条件成立的条目全部执行（不是只取第一条）。",
       "from": "docs/sudan-game/fields/03-rite.md §The four `Settlement[]` arrays (level 2)"
     },
     "icon": {
       "label": "图标名",
-      "note": "在 datapool.rite_sprites 里查的 sprite 名而不是路径，但有一个原版值写成了路径。",
+      "note": "这里填图标的名字而不是图片路径，游戏按名字去图标库里找（原版有一个值写成了路径）。",
       "from": "docs/sudan-game/fields/03-rite.md §`icon` (level 2)"
     },
     "location": {
       "label": "地点",
-      "note": "格式「区域:序号」或「区域:[起,止]」，位置重叠会在读配置时就报错。",
+      "note": "写成「区域:序号」或「区域:[起,止]」，两个仪式位置重叠时游戏会直接报错。",
       "from": "docs/sudan-game/fields/03-rite.md §`location` (level 2)"
     },
     "tag_tips_up": {
-      "label": "判定标签提示",
-      "note": "结算面板上方的标签行与结算类型，原版多数是空对象，只有四百多个写了内容。",
+      "label": "标签提示",
+      "note": "结算面板上方那行标签怎么显示。原版多数留空，四百多个仪式写了内容。",
       "from": "docs/sudan-game/fields/04-rite-nested.md §4. `tag_tips_up` — `RiteNode.TagTipsUp`"
     },
     "tips_text": {
       "label": "提示条目",
-      "note": "仪式面板里正文下面的列表提示，最多六条，每条可按序号单独做本地化。",
+      "note": "仪式面板正文下面的一串提示最多六条，每条可以按位置单独翻译。",
       "from": "docs/sudan-game/fields/03-rite.md §`tips_text` (level 2)"
     },
     "random_text": {
       "label": "旧随机文本",
-      "note": "已废弃的纯文本分支表，被带判定信息的 random_text_up 取代，新写不要用。",
+      "note": "已经废弃的分支文字，改用带判定信息的 random_text_up。",
       "from": "docs/sudan-game/fields/04-rite-nested.md §5. `random_text_up.<rN>` — `RiteNode.RandomTextUp`"
     },
     "random_text_up": {
-      "label": "结算分支表",
-      "note": "每个 rN 是一条结果分支而不是随机抽取，键从 r1 起连续，分支由游戏状态挑。",
+      "label": "骰子检定文案",
+      "note": "骰子判定各结果的文案，从 r1 起一条条往下写（用哪条由游戏状态决定，不是随机抽）。",
       "from": "docs/sudan-game/fields/04-rite-nested.md §5. `random_text_up.<rN>` — `RiteNode.RandomTextUp`"
     },
     "open_conditions": {
       "label": "开启条件",
-      "note": "每条是一道门槛加它自己的提示，原版多数为空数组，还有一道以上时显示哪句未定。",
+      "note": "开启仪式的门槛，每条还能写一句不满足时的提示。多数仪式没有门槛。",
       "from": "docs/sudan-game/fields/04-rite-nested.md §3. `open_conditions[]` — `RiteNode.OpenCondition`"
     },
     "settlement_prior": {
       "label": "先结算",
-      "note": "先于 settlement 求值，第一条 condition 成立的条目胜出并取代普通结算。",
+      "note": "比正常结算先判断，第一条条件成立的条目生效并取代正常结算。",
       "from": "docs/sudan-game/fields/03-rite.md §The four `Settlement[]` arrays (level 2)"
     },
     "settlement": {
       "label": "正常结算",
-      "note": "按数组顺序取第一条 condition 成立的条目，只有一条会生效。",
+      "note": "从上往下看，第一条成立的生效，后面的不再看。",
       "from": "docs/sudan-game/fields/03-rite.md §The four `Settlement[]` arrays (level 2)"
     },
     "settlement_extre": {
@@ -246,19 +246,19 @@
     },
     "cards_slot": {
       "label": "槽位",
-      "note": "键为 s1 到 sN 的槽位表，位置按文件里的书写顺序而定，不是按键里的数字。",
+      "note": "槽位的名字从 s1 一路写到 sN，界面上按书写先后排（不按名字里的数字）。",
       "from": "docs/sudan-game/fields/04-rite-nested.md §1. `cards_slot` — the slot dictionary (`RiteNode.Slot`)"
     }
   },
   "slot": {
     "guid": {
       "label": "槽位记录标识",
-      "note": "每条槽位记录的唯一标识，原版 5406 个都不重复，但代码里找不到读取点。",
+      "note": "每个槽位自带的编号，原版 5406 个互不重复（游戏里找不到用它做什么的地方）。",
       "from": "docs/sudan-game/fields/04-rite-nested.md §`guid` (level 3)"
     },
     "condition": {
       "label": "放卡条件",
-      "note": "决定什么卡能放进这个槽，不满足的卡拖过来会被拒，原版有一千多个条件对象没写 type。",
+      "note": "决定哪些卡能放进这个槽，不满足的卡拖过来会被退回。",
       "from": "docs/sudan-game/fields/04-rite-nested.md §`condition` (level 3)"
     },
     "open_adsorb": {
@@ -268,17 +268,17 @@
     },
     "is_key": {
       "label": "关键槽位",
-      "note": "声明成 int，原版 5406 个槽位全是 0，也没有任何读取点，属于死字段。",
+      "note": "原版 5406 个槽位全写 0，游戏也不读它，写了没有效果。",
       "from": "docs/sudan-game/fields/04-rite-nested.md §`is_key` (level 3)"
     },
     "is_empty": {
       "label": "可以为空",
-      "note": "原版注释写 0 是不能为空、1 可以为空，代码只用它挑空槽的贴图。",
+      "note": "原版注释说 0 是不能为空、1 可以为空，实际游戏只用它挑空槽的画法。",
       "from": "docs/sudan-game/fields/04-rite-nested.md §`is_empty` (level 3)"
     },
     "is_enemy": {
       "label": "变成敌人",
-      "note": "为 1 时这个槽里的卡不计入面板顶部标签的数值统计。",
+      "note": "打开时这个槽里的卡不算进面板顶部标签的数值。",
       "from": "docs/sudan-game/fields/04-rite-nested.md §`is_enemy` (level 3)"
     },
     "text": {
@@ -288,36 +288,36 @@
     },
     "tips_icon": {
       "label": "槽位图标",
-      "note": "sprite 名数组，会逐个塞进 Image，原版没有任何槽位写它。",
+      "note": "槽位角落那个图标的名字，原版没有任何槽位写它。",
       "from": "docs/sudan-game/fields/04-rite-nested.md §`tips_icon` (level 3)"
     },
     "pops": {
       "label": "放卡气泡",
-      "note": "只在往槽里放卡或把卡叠上去时逐条判断，条件成立的 action 排队依次播放。",
+      "note": "只在往槽里放卡或叠卡时逐条判断，条件成立的会按顺序逐个播放。",
       "from": "docs/sudan-game/fields/04-rite-nested.md §`pops` presence (level 3)"
     }
   },
   "riteSlotPop": {
     "condition": {
       "label": "气泡触发条件",
-      "note": "放卡或叠卡的那一刻求值，成立才把这个 action 排进队列，不轮询。",
+      "note": "放卡或叠卡那一刻判断一次，成立才把这个动作排进去（不会反复去查）。",
       "from": "docs/sudan-game/fields/04-rite-nested.md §2. `cards_slot.<sN>.pops[]` — `RiteNode.SlotPop`"
     },
     "action": {
       "label": "气泡操作",
-      "note": "排队执行而不是当场执行，常用 pop.<id> 在槽位上冒字或 choose 弹出选择。",
+      "note": "排在后面依次播放，不是当场执行（常用 pop.<id> 冒字、choose 弹选择）。",
       "from": "docs/sudan-game/fields/04-rite-nested.md §2. `cards_slot.<sN>.pops[]` — `RiteNode.SlotPop`"
     }
   },
   "riteOpenCondition": {
     "condition": {
       "label": "开启条件",
-      "note": "仪式能否开启的门槛，对当前游戏状态求值，也包括别的槽里已经有卡这种情况。",
+      "note": "仪式能不能开的一道门槛，按当时的游戏状态判断（别的槽里已经有卡也算）。",
       "from": "docs/sudan-game/fields/04-rite-nested.md §3. `open_conditions[]` — `RiteNode.OpenCondition`"
     },
     "tips": {
       "label": "锁定提示",
-      "note": "这道门槛没过时显示在仪式面板上的那句话，原版每个元素都写了。",
+      "note": "这道门槛没过时显示在仪式面板上的那句话，原版每一条都写了。",
       "from": "docs/sudan-game/fields/04-rite-nested.md §3. `open_conditions[]` — `RiteNode.OpenCondition`"
     }
   },
@@ -368,7 +368,7 @@
     },
     "controls": {
       "label": "曲线控制点",
-      "note": "贝塞尔控制点数组，原版全写 [[100,100]]，为空则画直线。",
+      "note": "两点之间那条线的弯曲控制点。写空就画直线，原版全是同一个值。",
       "from": "docs/sudan-game/fields/04-rite-nested.md §6. `from_pins[]` — `RiteNode.FromPin` (least understood object)"
     },
     "resolution": {
@@ -403,81 +403,81 @@
     },
     "color": {
       "label": "线条颜色",
-      "note": "RGBA 四字节，取值 0 到 255，原版全是 [207,187,161,255]。",
+      "note": "颜色由四个 0 到 255 的数字组成，依次是红、绿、蓝和透明度（原版全是 [207,187,161,255]）。",
       "from": "docs/sudan-game/fields/04-rite-nested.md §6. `from_pins[]` — `RiteNode.FromPin` (least understood object)"
     },
     "dashed": {
       "label": "虚线",
-      "note": "写 true 画虚线、false 画实线，原版全是 true。",
+      "note": "画虚线还是实线，原版全是虚线。",
       "from": "docs/sudan-game/fields/04-rite-nested.md §6. `from_pins[]` — `RiteNode.FromPin` (least understood object)"
     }
   },
   "settlement": {
     "guid": {
-      "label": "分支标识",
-      "note": "手写的 UUID，用来在数组里稳定指认一个分支；事件与 waiting_round_end_action 的分支不写。",
+      "label": "分支名字",
+      "note": "给这条分支起的固定名字，方便以后认，事件和等待超时的分支不写它。",
       "from": "docs/sudan-game/fields/05-settlement.md §`guid`"
     },
     "condition": {
       "label": "分支条件",
-      "note": "结算时求值，false 就跳过这个分支；{} 是无条件兜底，整个键缺失会抛空引用。",
+      "note": "结算时看它，不成立就跳过这条，留空表示兜底，整项不写会报错。",
       "from": "docs/sudan-game/fields/05-settlement.md §`condition`"
     },
     "result_title": {
       "label": "结果标题",
-      "note": "标题行，空字符串是常态；代码里只被「标题与正文都为空就跳过该分支」这一处读取。",
+      "note": "标题行，通常留空，只有标题和正文都空时游戏才会跳过这条分支。",
       "from": "docs/sudan-game/fields/05-settlement.md §Text fields: literals, not i18n keys"
     },
     "result_text": {
       "label": "结果正文",
-      "note": "玩家读到的正文，直接写中文原文，可用换行符与 [占位符]；事件分支没有这个键，提示文字来自 action.prompt。",
+      "note": "玩家读到的正文，直接写中文，可以换行、可以用占位符，事件的分支没有这一项。",
       "from": "docs/sudan-game/fields/05-settlement.md §Text fields: literals, not i18n keys"
     },
     "result": {
-      "label": "结果操作",
-      "note": "显示结果时先执行的一组操作；事件分支没有这个键，只有 action。",
+      "label": "效果",
+      "note": "显示结果时执行的一组效果，事件的分支没有这一项，那种分支只有 action。",
       "from": "docs/sudan-game/fields/05-settlement.md §`result` and `action` — which carries the operations"
     },
     "action": {
-      "label": "动作操作",
-      "note": "随后执行的一组操作（开仪式、发事件、prompt、over、delay 等），事件分支唯一能写它，也是玩家看到那句话的来源。",
+      "label": "动作",
+      "note": "随后执行的一组效果（开仪式、发事件、prompt、over、delay 等），事件分支只能写它，玩家看到的那句话也出自这里。",
       "from": "docs/sudan-game/fields/05-settlement.md §`result` and `action` — which carries the operations"
     },
     "id": {
-      "label": "运行时分支号",
-      "note": "不要手写：加载器按 id!=0 把事件分支拆进 cached_settlement，原版分支全是 0。",
+      "label": "分支号（游戏填）",
+      "note": "不要手写，游戏自己填，原版都是 0。",
       "from": "docs/sudan-game/fields/05-settlement.md §`id`, `type`, `index` — runtime, not content"
     },
     "type": {
-      "label": "来源数组",
-      "note": "加载器写入的来源：1=settlement_prior、2=settlement、3=settlement_extre，手写无效。",
+      "label": "来自哪个列表（游戏填）",
+      "note": "游戏自己填，说明这条来自哪个列表（1 先结算、2 正常结算、3 附加结算），手写无效。",
       "from": "docs/sudan-game/fields/05-settlement.md §`id`, `type`, `index` — runtime, not content"
     },
     "index": {
-      "label": "数组内序号",
-      "note": "加载器写入的 1 起位置，手写无效，分支顺序只看它在数组里的顺序。",
+      "label": "第几条（游戏填）",
+      "note": "游戏自己填的位置，手写无效，顺序只看它在这一组里的先后。",
       "from": "docs/sudan-game/fields/05-settlement.md §`id`, `type`, `index` — runtime, not content"
     },
     "key": {
       "label": "后日谈段落名",
-      "note": "只有 afterStory.extra 用：既是 i18n 键中段 after_story_{key}_text，也是与 after_story_key 比较的跳转标识。",
+      "note": "只有后日谈的段落用它，既是这段文案的名字，也是按存档记录跳到这一段用的名字。",
       "from": "docs/sudan-game/fields/05-settlement.md §`key`, `sort`, `pic`"
     },
     "sort": {
       "label": "段落排序",
-      "note": "只有 afterStory.extra 用，1–99，列表按 (sort, 卡 id) 升序排列，省略按 0 处理。",
+      "note": "只有后日谈的段落用它，写 1–99，页序先按它再按卡编号从小到大排，不写按 0 算。",
       "from": "docs/sudan-game/fields/05-settlement.md §`key`, `sort`, `pic`"
     },
     "pic": {
       "label": "段落配图",
-      "note": "只有 afterStory.extra 用，形如 cards/<资产名>，覆盖这一页的立绘。",
+      "note": "只有后日谈的段落用它，写 cards/<图片名> 这样的路径，用来换掉这一页的立绘。",
       "from": "docs/sudan-game/fields/05-settlement.md §`key`, `sort`, `pic`"
     }
   },
   "loot": {
     "id": {
       "label": "编号",
-      "note": "只是标注，游戏按文件名（主名）索引这张表，本字段不参与任何查找。",
+      "note": "游戏按文件名找这张表，这个编号只是标注，不参与查找。",
       "from": "docs/sudan-game/fields/06-loot.md §`id` vs file stem — the stem is authoritative"
     },
     "name": {
@@ -487,51 +487,51 @@
     },
     "repeat": {
       "label": "抽取次数",
-      "note": "独立抽取几轮，type 为 4 时含义变成「抽几个」的 m，小于等于 0 则什么都不出。",
+      "note": "独立抽取的轮数，算法选 4 时则改为抽几个（非正数不出东西）。",
       "from": "docs/sudan-game/fields/06-loot.md §`repeat` (level 2)"
     },
     "type": {
       "label": "抽取算法",
-      "note": "2 普通权重、3 只抽未拥有的、4 加权不放回抽 m 个、99 全表掉落，其它值一律按 2 处理。",
+      "note": "2 按权重抽一个、3 只抽还没拥有的、4 按权重抽几个不重复、99 整表全掉，其它值都当 2。",
       "from": "docs/sudan-game/fields/06-loot.md §`type` (level 2) — the draw algorithm"
     },
     "item": {
       "label": "掉落池",
-      "note": "池子数组，元素个数就是池大小，顺序还会在并列时决定谁先被选中。",
+      "note": "写几种东西就是几个候选，条数决定各自概率，并列时先写的先被选中。",
       "from": "docs/sudan-game/fields/06-loot.md §Keys"
     }
   },
   "lootItem": {
     "type": {
       "label": "掉落物类型",
-      "note": "决定 id 属于哪个命名空间，只有 card、event、rite、loot 四种，认不出的值什么都不出。",
+      "note": "决定这件东西属于哪一类，只有卡、事件、仪式、战利品四种，认不出的值什么都不出。",
       "from": "docs/sudan-game/fields/06-loot.md §`item[].type` — how the game decides what a value means"
     },
     "id": {
       "label": "掉落物编号",
-      "note": "按 type 指定的命名空间解析的实体 id，写成字符串或数字效果相同。",
+      "note": "具体是哪一件东西，按上面选的类别来解读，写编号或名字都可以。",
       "from": "docs/sudan-game/fields/06-loot.md §Keys"
     },
     "num": {
       "label": "数量",
-      "note": "选中之后才生效的数量，只对 card 有意义，rite 与 loot 会忽略它。",
+      "note": "选中之后才生效的数量，只有卡牌用得上，仪式和战利品都不看它。",
       "from": "docs/sudan-game/fields/06-loot.md §`num` — a count, not a weight"
     },
     "weight": {
       "label": "权重",
-      "note": "相对权重不是百分比，type 99 完全不看它，type 4 只在可选数不大于 m 时忽略它。",
+      "note": "这是相对比例不是百分比，算法 99 完全不看它，算法 4 只在候选数不超过抽取数时忽略它。",
       "from": "docs/sudan-game/fields/06-loot.md §`item[].weight` — exact meaning"
     },
     "condition": {
       "label": "出现条件",
-      "note": "不满足的条目在算权重之和之前就被剔除，它的权重也一起从分母里消失。",
+      "note": "不满足条件的这一条会先被剔除，它的比例也不计入总概率。",
       "from": "docs/sudan-game/fields/06-loot.md §`item[].condition` (level 3) — the gate"
     }
   },
   "upgrade": {
     "id": {
       "label": "编号",
-      "note": "商店身份与 Global.upgrade 的键，与 JSON 键写得不一致时这一条的效果永远不会生效。",
+      "note": "这一条在商店里的身份，和它写的名称对不上时，效果永远不会生效。",
       "from": "docs/sudan-game/fields/07-upgrade.md §`id` (level 2)"
     },
     "name": {
@@ -541,59 +541,59 @@
     },
     "text": {
       "label": "说明文字",
-      "note": "标题下面那段描述，纯文本，没有标记语法，剧情解锁的说明也写在这里。",
+      "note": "标题下面那段描述，是普通文字不带特殊格式，剧情解锁的说明也写在这里。",
       "from": "docs/sudan-game/fields/07-upgrade.md §`text` (level 2)"
     },
     "cost": {
       "label": "价格",
-      "note": "以命运点计价，购买时从 totalPoint 扣掉并累加到 usedPoint，原版是 2 到 40。",
+      "note": "用命运点付账，买的时候从总点数里扣掉并记进已用点数，原版都在 2 到 40 之间。",
       "from": "docs/sudan-game/fields/07-upgrade.md §`cost` (level 2)"
     },
     "condition": {
       "label": "显示条件",
-      "note": "只决定这一行能不能被看见，买不买得起由 cost 决定，所以它挡不住购买。",
+      "note": "只决定这一行能不能被看到，买不买得起由价格决定，它挡不住购买。",
       "from": "docs/sudan-game/fields/07-upgrade.md §`condition` (level 2)"
     },
     "icon": {
       "label": "图标类型",
-      "note": "字符串变量名，原版只有 gain 与 buff（界面写作获得与增益），认不出的值只让徽记空白。",
+      "note": "图标的名字，原版只有「获得」与「增益」两种，写别的名字图标会是空白。",
       "from": "docs/sudan-game/fields/07-upgrade.md §`icon` (level 2)"
     },
     "link_card": {
       "label": "关联卡牌",
-      "note": "商品封面与点击详情的目标卡，指向不存在的卡会让整条记录被静默跳过。",
+      "note": "商品封面和点开看到的详情卡，指向不存在的卡时整条会被悄悄跳过。",
       "from": "docs/sudan-game/fields/07-upgrade.md §`link_card` (level 2)"
     },
     "effect": {
       "label": "效果操作",
-      "note": "不是购买时生效，而是每次新开局时对已激活的项目按声明顺序重放一遍。",
+      "note": "不是买的时候生效，而是每次开新局时把已激活的项目按顺序再执行一遍。",
       "from": "docs/sudan-game/fields/07-upgrade.md §`effect` (level 2)"
     },
     "incompatible": {
       "label": "互斥项目",
-      "note": "填另一条 upgrade 的 id，购买或激活时把对方状态置 0 且不退款，0 表示没有对手。",
+      "note": "写另一条升级项的编号，买或激活时会把对方取消掉且不退款，留 0 表示没有对手。",
       "from": "docs/sudan-game/fields/07-upgrade.md §`incompatible` (level 2)"
     }
   },
   "tag": {
     "id": {
       "label": "编号",
-      "note": "既不唯一（15 个值被两条标签共用），也没有任何地方按 id 查标签，引用一律用名字。",
+      "note": "这个编号不唯一（有 15 个值被两条标签共用），游戏也不按它认标签，一律看中文名。",
       "from": "docs/sudan-game/fields/08-tag.md §`id` (level 2)"
     },
     "name": {
       "label": "中文名",
-      "note": "其它配置引用标签时写的就是这个中文名，code 只在内部字典和本地化里用。",
+      "note": "其它配置提到这个标签时用的就是这个中文名，英文代号只在游戏内部用。",
       "from": "docs/sudan-game/fields/08-tag.md §`name` vs `code` (level 2)"
     },
     "code": {
       "label": "英文代号",
-      "note": "只当 tag.json 的外层键与运行时卡牌标签字典的键，配置数据从不引用它。",
+      "note": "标签表里给它的英文名字，配置里从不提它，只在游戏内部用。",
       "from": "docs/sudan-game/fields/08-tag.md §`name` vs `code` (level 2)"
     },
     "type": {
       "label": "标签类别",
-      "note": "只有 attribute、buff、debuff 三种，但没有任何代码读它，是纯粹的编辑用元数据。",
+      "note": "只有 attribute、buff、debuff 三种，游戏从不看它，只供整理时参考。",
       "from": "docs/sudan-game/fields/08-tag.md §`type` (level 2)"
     },
     "text": {
@@ -603,37 +603,37 @@
     },
     "resource": {
       "label": "图标名",
-      "note": "图标集里的贴图名，形如 tag_数字，不是路径，查不到就退回 tag_0。",
+      "note": "图标图集里的图片名（不是文件路径），形如 tag_加数字，找不到就退回 tag_0。",
       "from": "docs/sudan-game/fields/08-tag.md §`resource` (level 2)"
     },
     "can_add": {
       "label": "零值也显示",
-      "note": "值还是 0 时也把这一行画出来，它不是能不能加这个标签的权限。",
+      "note": "值还是 0 时也把这一行显示出来，它不代表能不能加这个标签。",
       "from": "docs/sudan-game/fields/08-tag.md §`can_visible`, `can_add`, `can_nagative_and_zero` (level 2)"
     },
     "can_visible": {
       "label": "是否显示",
-      "note": "置 0 时卡牌信息面板与仪式结果面板都不列它，但数值照样参与结算。",
+      "note": "写成 0 时卡牌信息面板和仪式结果面板都不列它，但数值照样参与结算。",
       "from": "docs/sudan-game/fields/08-tag.md §`can_visible`, `can_add`, `can_nagative_and_zero` (level 2)"
     },
     "can_inherit": {
       "label": "继承附着卡",
-      "note": "置 1 时叠放在这张牌里的卡所持的同类标签值也计入总值。",
+      "note": "写成 1 时叠放在这张牌里的卡持有的同类标签值也计入总数。",
       "from": "docs/sudan-game/fields/08-tag.md §`can_inherit` (level 2)"
     },
     "can_nagative_and_zero": {
       "label": "允许负值与零",
-      "note": "置 0 时非正的总值被压成 0，只有九个主属性打开它，这样减益才读得出来。",
+      "note": "写成 0 时只要总数是负数或 0 就被压成 0，只有九个主属性打开它，这样减益才看得出来。",
       "from": "docs/sudan-game/fields/08-tag.md §`can_visible`, `can_add`, `can_nagative_and_zero` (level 2)"
     },
     "tag_sfx": {
       "label": "音效名",
-      "note": "取这张牌里优先级最高的非空标签的音效，空字符串表示不响。",
+      "note": "这张牌身上优先级最高的那个标签决定播哪个音效，留空就不响。",
       "from": "docs/sudan-game/fields/08-tag.md §`tag_sfx` (level 2)"
     },
     "tag_rank": {
       "label": "排序优先级",
-      "note": "按降序排，数字越大越靠前，并顺带决定播哪一个 tag_sfx。",
+      "note": "数字越大越靠前，顺带决定播哪一个音效。",
       "from": "docs/sudan-game/fields/08-tag.md §`tag_rank` (level 2)"
     },
     "attributes": {
@@ -645,142 +645,142 @@
   "init": {
     "id": {
       "label": "情景 id",
-      "note": "开局情景的身份，写进 Player.configId，事件的 auto_start_init 也按它匹配。",
+      "note": "开局情景的编号，事件的 auto_start_init 和读档都靠它认出是哪个开局。",
       "from": "docs/sudan-game/fields/09-init.md §id (level 2)"
     },
     "name": {
       "label": "情景名称",
-      "note": "开局的显示名，不复制进 Player，而是随时通过 Player.GetInitNode() 现读。",
+      "note": "开局的显示名称，游戏每次显示时现读这一条，不会另存一份。",
       "from": "docs/sudan-game/fields/09-init.md §Keys"
     },
     "wizard": {
       "label": "开场引导对话",
-      "note": "开场「抽第一张苏丹卡」对话所用的 wizard 条目键，原版写小写 wizard_sudan，而 wizard 条目自己的 id 是大写。",
+      "note": "开场「抽第一张苏丹卡」那段对话用哪个向导，原版这里写小写名字，向导自己写大写。",
       "from": "docs/sudan-game/fields/09-init.md §wizard (level 2)"
     },
     "show_deadline": {
       "label": "显示期限",
-      "note": "取反后写进 Player.deadline_unshow：true 表示不隐藏回合期限。",
+      "note": "写「是」就显示回合期限，写「否」藏起来。",
       "from": "docs/sudan-game/fields/09-init.md §show_* and sudan_box_show_after_wizard (level 2)"
     },
     "show_story": {
       "label": "显示故事",
-      "note": "取反后写进 Player.story_unshow：true 表示不隐藏故事入口。",
+      "note": "写「是」就显示故事入口，写「否」藏起来。",
       "from": "docs/sudan-game/fields/09-init.md §show_* and sudan_box_show_after_wizard (level 2)"
     },
     "show_ithink": {
       "label": "显示俺寻思",
-      "note": "声明了也能读，但不在那次打包的可见性写入里，也找不到消费者，疑为俺寻思按钮的开关。",
+      "note": "疑为「俺寻思」提示按钮的开关，但找不到有谁读它，写什么都不见得有用。",
       "from": "docs/sudan-game/fields/09-init.md §show_* and sudan_box_show_after_wizard (level 2)"
     },
     "show_prestige": {
       "label": "显示声望",
-      "note": "取反后写进 Player.prestige_unshow：true 表示不隐藏声望。",
+      "note": "写「是」就显示声望，写「否」藏起来。",
       "from": "docs/sudan-game/fields/09-init.md §show_* and sudan_box_show_after_wizard (level 2)"
     },
     "show_helpbtn": {
       "label": "显示帮助按钮",
-      "note": "单独取反写进 Player.helpbtn_unshow，所以 false 就是隐藏帮助按钮。",
+      "note": "写「是」就显示帮助按钮，写「否」隐藏。",
       "from": "docs/sudan-game/fields/09-init.md §show_* and sudan_box_show_after_wizard (level 2)"
     },
     "sudan_box_show_after_wizard": {
       "label": "引导后亮出苏丹卡箱",
-      "note": "直接写进 Player.sudan_box_show 且不取反：true 表示引导对话一结束就亮出苏丹卡箱。",
+      "note": "写「是」表示引导对话一结束就亮出苏丹卡箱。",
       "from": "docs/sudan-game/fields/09-init.md §show_* and sudan_box_show_after_wizard (level 2)"
     },
     "disable_auto_gen_sudan_card": {
       "label": "停用苏丹卡自动生成",
-      "note": "写进 Player.disable_auto_gen_sudan_card，开启后卡箱只由 sudan_pool 供给，不再自动生成。",
+      "note": "打开后卡箱里只出 sudan_pool 列的卡，不再自动生新卡。",
       "from": "docs/sudan-game/fields/09-init.md §Keys"
     },
     "sudan_pool": {
       "label": "苏丹卡池",
-      "note": "开局放进卡箱的苏丹卡 id 顺序表，可重复（重复即加权），缺这个键开局会撞空引用。",
+      "note": "开局卡箱里按顺序放哪些苏丹卡，重复写同一张更容易抽到，这一项不能不写。",
       "from": "docs/sudan-game/fields/09-init.md §sudan_pool, sudan_shuffle, sudan_pool_desc (level 2)"
     },
     "sudan_card_desc": {
       "label": "苏丹卡旁白（按卡 id）",
-      "note": "以卡 id 字符串为键的旁白，值可以是单条字符串或字符串数组，原版都用单元素数组。",
+      "note": "每张苏丹卡配的一句旁白，按卡号写。",
       "from": "docs/sudan-game/fields/09-init.md §sudan_card_desc (level 2)"
     },
     "sudan_pool_desc": {
       "label": "苏丹卡旁白（按卡池位置）",
-      "note": "按 sudan_pool 逐位对应的旁白数组，长度必须与卡池相等，否则加载器报错后继续。",
+      "note": "与卡池一一对应的旁白，条数要和卡池一样多，对不上时游戏会报错但仍能继续。",
       "from": "docs/sudan-game/fields/09-init.md §sudan_pool, sudan_shuffle, sudan_pool_desc (level 2)"
     },
     "sudan_shuffle": {
       "label": "是否洗牌",
-      "note": "洗牌会打乱卡池顺序，false 时按卡池倒序取卡，最后一张最先出现。",
+      "note": "写「是」就洗牌，写「否」按卡池顺序倒着取，最后一张最先出现。",
       "from": "docs/sudan-game/fields/09-init.md §sudan_pool, sudan_shuffle, sudan_pool_desc (level 2)"
     },
     "sudan_redraw_count": {
       "label": "苏丹卡洗回重发张数",
-      "note": "洗回一次会重发几张，开局复制进 Player.sudan_redraw_count。",
+      "note": "洗回一次会重发几张，开局时照这个数记下。",
       "from": "docs/sudan-game/fields/09-init.md §sudan_redraw_count, sudan_redraw_times_per_round, sudan_redraw_times_recovery_round (level 2)"
     },
     "sudan_redraw_times_per_round": {
       "label": "苏丹卡每回合可洗回次数",
-      "note": "InitPlayer 不复制这个顶层值，真正生效的是 difficulty 里的同名字段。",
+      "note": "这里写的不作数，实际生效的是难度档里的同名一项。",
       "from": "docs/sudan-game/fields/09-init.md §sudan_redraw_count, sudan_redraw_times_per_round, sudan_redraw_times_recovery_round (level 2)"
     },
     "sudan_redraw_times_recovery_round": {
       "label": "洗回次数恢复回合数",
-      "note": "复制进 Player.sudan_redraw_times_recovery_round，洗回额度用完后要等这么多回合才回一次。",
+      "note": "洗回次数用完后要等这么多回合才回一次，开局照这一项记下。",
       "from": "docs/sudan-game/fields/09-init.md §sudan_redraw_count, sudan_redraw_times_per_round, sudan_redraw_times_recovery_round (level 2)"
     },
     "default_cards": {
       "label": "初始手牌",
-      "note": "第 1 回合手里的卡 id 列表，重复会叠加，带某个特定标签的卡改为把已有卡的 count 加一。",
+      "note": "第 1 回合手里有哪些卡，重复写同一张会叠加，可叠的卡则给已有的那张加一张。",
       "from": "docs/sudan-game/fields/09-init.md §default_cards (level 2)"
     },
     "card_equips": {
       "label": "初始装备",
-      "note": "键是已在手的主卡 id，值是挂到它身上的装备卡 id 数组，主卡不在手就记日志跳过。",
+      "note": "给开局就在手的卡挂装备，写成「主卡 → 装备」，主卡不在手就记条日志跳过。",
       "from": "docs/sudan-game/fields/09-init.md §card_equips (level 2)"
     },
     "default_rite": {
       "label": "初始仪式",
-      "note": "第 1 回合就在场上的仪式 id 列表，其中某个 id 解析失败会让开局直接抛异常。",
+      "note": "第 1 回合就摆在场上的仪式，其中有一个找不到对应仪式，开局就会出错中断。",
       "from": "docs/sudan-game/fields/09-init.md §default_rite (level 2)"
     },
     "default_event": {
       "label": "初始事件",
-      "note": "已声明且能读，但原版两份文件都没有这个键，InitPlayer 也从不读它，消费者未找到。",
+      "note": "目前找不到游戏里有什么地方读它，原版两套开局也都没写这一项。",
       "from": "docs/sudan-game/fields/09-init.md §default_event (level 2)"
     },
     "single_dice_face_weight": {
       "label": "骰面权重（情景级）",
-      "note": "六个骰面的权重，少于 6 个会被静默忽略，难度档里的同名字段优先。",
+      "note": "六个骰面各占多少分量，少于六个数会被悄悄忽略，难度档里的同名一项优先。",
       "from": "docs/sudan-game/fields/09-init.md §single_dice_face_weight (level 2 and level 3)"
     },
     "think_id": {
       "label": "俺寻思仪式 id",
-      "note": "「俺寻思」帮助仪式的 rite id，开局会先把场上同 id 的仪式全部移除，不配置就不显示。",
+      "note": "「俺寻思」帮助仪式用哪一个，开局会先把场上同一个仪式清掉，不写就不显示。",
       "from": "docs/sudan-game/fields/09-init.md §think_id, think_show_settlement (level 2)"
     },
     "think_show_settlement": {
       "label": "俺寻思是否显示结算界面",
-      "note": "可证实的是它被当作文本占位符按 0/1 输出，作者注释说它控制俺寻思仪式是否显示结算界面。",
+      "note": "作者注释说是俺寻思仪式要不要显示结算界面，能证实的只是它被当成 0/1 塞进提示文本。",
       "from": "docs/sudan-game/fields/09-init.md §think_id, think_show_settlement (level 2)"
     },
     "gold_dice_count": {
       "label": "金币骰数量（情景级）",
-      "note": "顶层这个值没有任何消费者，真正加进金币骰计数器的是 difficulty 里的同名值。",
+      "note": "情景这里写的不作数，真正加进金币骰数量的是难度档里的同名一项。",
       "from": "docs/sudan-game/fields/09-init.md §gold_dice_count, back_to_prev_round_count (level 2) and the Difficulty copies (level 3)"
     },
     "back_to_prev_round_count": {
       "label": "回退上一回合次数（情景级）",
-      "note": "顶层这个值没有消费者，生效的是 difficulty 里的同名值，数据里 9999 读作无限。",
+      "note": "情景这里写的不作数，生效的是难度档里的同名一项，原版把 9999 当无限次。",
       "from": "docs/sudan-game/fields/09-init.md §gold_dice_count, back_to_prev_round_count (level 2) and the Difficulty copies (level 3)"
     },
     "sudan_life_time": {
       "label": "苏丹卡处决期限（天）",
-      "note": "写进 Player.sudan_card_init_life，小于等于 0 时按 7 天算，之后又被 difficulty 同名值覆盖。",
+      "note": "苏丹卡到手后还能活几天，不写或写零按 7 天算，之后又被难度档的同名一项盖掉。",
       "from": "docs/sudan-game/fields/09-init.md §sudan_life_time (level 2 and level 3)"
     },
     "difficulty": {
       "label": "难度阶梯",
-      "note": "难度数组，玩家选第几档就按 1 起下标记进 Player.difficulty，留空就没有金币骰、回退和骰面权重。",
+      "note": "难度阶梯，玩家选第几档就按那个顺序生效，留空就没有金币骰、倒回和骰面分量。",
       "from": "docs/sudan-game/fields/09-init.md §difficulty (level 2)"
     }
   },
@@ -797,64 +797,64 @@
     },
     "desc": {
       "label": "难度说明",
-      "note": "长段规则说明，用 Unity 富文本，里面写的成功率与次数只是文字，没有代码校验。",
+      "note": "这一档的长段规则说明，里面写的成功率和次数只是文字，游戏不会拿它去核对。",
       "from": "docs/sudan-game/fields/09-init.md §InitNode.Difficulty (level 3)"
     },
     "bg": {
       "label": "难度卡背景",
-      "note": "难度卡的背景图键，原版三档都没写这个字段，取值形状无从观察。",
+      "note": "难度卡背后的图，原版三档都没写，因此看不出该填什么。",
       "from": "docs/sudan-game/fields/09-init.md §InitNode.Difficulty (level 3)"
     },
     "single_dice_face_weight": {
       "label": "骰面权重（难度级）",
-      "note": "六个骰面的权重，优先于情景级同名字段，原版用它编码 60%、50%、33% 成功率。",
+      "note": "六个骰面各占多少分量，比情景里的同名一项优先，原版用它做出 60%、50%、33% 成功率。",
       "from": "docs/sudan-game/fields/09-init.md §InitNode.Difficulty (level 3)"
     },
     "sudan_redraw_times_per_round": {
       "label": "每回合可洗回次数（难度级）",
-      "note": "SetDifficulty 用它写入 Player.sudan_redraw_times_per_round，这才是实际生效的那一份。",
+      "note": "每回合能洗回几次，这一项才是实际生效的那一份。",
       "from": "docs/sudan-game/fields/09-init.md §InitNode.Difficulty (level 3)"
     },
     "gold_dice_count": {
       "label": "金币骰数量（难度级）",
-      "note": "SetDifficulty 把它累加进金币骰计数器，GetGoldDiceCount 读的正是那个计数器。",
+      "note": "这一档给玩家几枚金币骰，游戏把这一档的数累加进金币骰总数。",
       "from": "docs/sudan-game/fields/09-init.md §InitNode.Difficulty (level 3)"
     },
     "back_to_prev_round_count": {
       "label": "回退上一回合次数（难度级）",
-      "note": "累加进回退计数器时会同时减去 9999，所以写 9999 的实际增量是 0。",
+      "note": "这一档给多少次倒回，游戏累加时会先减去 9999，所以写 9999 实际加的是零。",
       "from": "docs/sudan-game/fields/09-init.md §gold_dice_count, back_to_prev_round_count (level 2) and the Difficulty copies (level 3)"
     },
     "sudan_life_time": {
       "label": "苏丹卡处决期限（难度级）",
-      "note": "SetDifficulty 用它覆盖 Player.sudan_card_init_life，把情景级的同名值盖掉。",
+      "note": "这一档的苏丹卡能活几天，会盖掉情景里写的同名一项。",
       "from": "docs/sudan-game/fields/09-init.md §sudan_life_time (level 2 and level 3)"
     }
   },
   "quest": {
     "id": {
       "label": "故事 id",
-      "note": "故事身份，也是存档里 Global.quest 的键，列表只按 id 排序，原版每条都写的 pre 并不参与。",
+      "note": "故事的编号，存档里靠它记这个故事，列表只按它排序（原版那些 pre 写成什么都不参与）。",
       "from": "docs/sudan-game/fields/10-quest.md §id (level 2)"
     },
     "name": {
       "label": "故事标题",
-      "note": "故事列表里显示的标题，由 StoryController.QuestTitle 取用。",
+      "note": "故事列表里显示的那行标题。",
       "from": "docs/sudan-game/fields/10-quest.md §name / text / favour_text (level 2)"
     },
     "text": {
       "label": "故事简介",
-      "note": "详情面板的简介文字，但只在某个静态开关等于 1 时才显示。",
+      "note": "详情面板里的那段简介，只有某个开关等于 1 时才显示。",
       "from": "docs/sudan-game/fields/10-quest.md §name / text / favour_text (level 2)"
     },
     "icon": {
       "label": "故事卡图",
-      "note": "卡面图路径（如 cards/2000001），在卡图池里取，写空字符串会保留原图而不是清空。",
+      "note": "卡面图的出处（如 cards/2000001），从卡图池里取，留空会保留原图而不是清空。",
       "from": "docs/sudan-game/fields/10-quest.md §icon (level 2)"
     },
     "favour_text": {
       "label": "故事引言",
-      "note": "简介下方的引言，会过一遍 Utils.FormatStringVariable，所以写 {…} 会被替换掉。",
+      "note": "简介下方那句引言，里面的 {…} 会被替换成变量值，所以不能当成普通文字写。",
       "from": "docs/sudan-game/fields/10-quest.md §name / text / favour_text (level 2)"
     },
     "upgrade_point": {
@@ -864,7 +864,7 @@
     },
     "target": {
       "label": "完成条件组",
-      "note": "完成条件数组，必须全部成立才算完成，不是任一成立。",
+      "note": "完成要满足的条件，写几条就得全都成立才算完成，不是任意一条就行。",
       "from": "docs/sudan-game/fields/10-quest.md §target (level 2) — evaluation and what \"complete\" means"
     }
   },
@@ -876,106 +876,106 @@
     },
     "show_counter": {
       "label": "显示进度数字",
-      "note": "只判断是否为空：非空时在这行后面追加计数器数字，数字来自计算出的 value，比较走的是 condition。",
+      "note": "只要这格不为空就在这一行后面追加进度数字，数字来自算出的当前值（比大小的门槛在条件那行）。",
       "from": "docs/sudan-game/fields/10-quest.md §target[].show_counter (level 3)"
     },
     "condition": {
       "label": "条件表达式",
-      "note": "这一行真正生效的判断，原版只用 global_counter.<计数器id>>= 一种写法，值是整数门槛。",
+      "note": "这一行真正生效的判断，原版只写「某个计数器大于等于门槛」这一种，门槛填数字。",
       "from": "docs/sudan-game/fields/10-quest.md §target[].condition (level 3)"
     }
   },
   "over": {
     "id": {
       "label": "结局编号",
-      "note": "结局的编号，over 操作携带的就是它，取值等于 over.json 的键，且 id 空间不连续。",
+      "note": "结局的编号，事件和仪式靠 over 这一项把玩家送到这里，编号中间留了空档。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §`over` — field census"
     },
     "name": {
       "label": "结局标题",
-      "note": "结局画面的标题，也是结局手册里的条目名，i18n 键是 over_{id}_name。",
+      "note": "结局画面的标题，也是结局手册里那一条的名字。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §`over` — field census"
     },
     "sub_name": {
       "label": "结局副标题",
-      "note": "标题下的一行风味副标题，不是正文，i18n 键是 over_{id}_subname。",
+      "note": "标题底下的一行气氛副标题，不是结局正文。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §`over` — field census"
     },
     "text_extra": {
       "label": "附加段落",
-      "note": "条件满足的段落按数组顺序一条条追加在正文之后，数组非空才会插入额外的故事步骤。",
+      "note": "条件对得上的段落按顺序接在正文后面，写了内容才会多出这一步故事。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §`over` — field census"
     },
     "open_after_story": {
       "label": "开启后日谈",
-      "note": "填 1 才打开后日谈轮播，游戏把这个值原样抄进 hasAfterStory。",
+      "note": "填 1 才会打开后日谈轮播，不填就不打开。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §`over` — field census"
     },
     "text": {
       "label": "结局正文",
-      "note": "结局正文，永远会渲染，i18n 键是不带后缀的 over_{id}，写成 over_{id}_text 会被静默忽略。",
+      "note": "结局正文，每次都会显示，译文要挂在 over_{id} 上，写成 over_{id}_text 不生效。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §`over` — field census"
     },
     "manual_prompt": {
       "label": "记入结局手册",
-      "note": "只写成 true，用来标记这条是真结局、会进结局手册，原版从没出现过 false。",
+      "note": "写了就表示这是真结局、会记进结局手册，原版只有写和不写两种情况。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §`over` — field census"
     },
     "success": {
       "label": "结局档位",
-      "note": "结局档位，写进 Animator 触发器：0=失败 1=小胜 2=大胜，写别的值会请求不存在的触发器。",
+      "note": "结局档位，0 是失败、1 是小胜、2 是大胜，写别的数会让结局动画找不到。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §`over` — field census"
     },
     "comment": {
       "label": "开发者备注",
-      "note": "开发者备注字段，原版 159 条一次都没写，备注都写成了 // 注释。",
+      "note": "开发者备注，原版 159 条一次都没用过，作者都把备注写成了 // 注释。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §`over` — field census"
     },
     "bg": {
       "label": "结局背景图",
-      "note": "结局画面的背景 CG 路径，同时也是 CG 图鉴的分组键。",
+      "note": "结局画面的背景图，也是 CG 图鉴里用来分组的依据。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §`over` — field census"
     },
     "icon": {
       "label": "结局手册图标",
-      "note": "结局手册条目的图标路径，原版 159 条全是 over_icon/over_icon_1。",
+      "note": "结局手册里那一条的图标，原版 159 条全都用同一张 over_icon/over_icon_1。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §`over` — field census"
     },
     "title": {
       "label": "结局标题底板",
-      "note": "标题背后的横幅美术路径，原版只有一个取值 over_icon/over_title。",
+      "note": "标题背后的横幅图，原版全都用同一张 over_icon/over_title。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §`over` — field census"
     }
   },
   "afterStory": {
     "id": {
       "label": "所属卡牌",
-      "note": "这一页所属的卡牌 id，也就是文件名，不是新的编号空间。",
+      "note": "这一页属于哪张卡，也就是文件名，不是另起的一套编号。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §`afterStory` — field census"
     },
     "name": {
       "label": "页面标签",
-      "note": "这一页的开发者标签，66 条里有 9 条和卡牌名不同，且没有对应的 i18n 键。",
+      "note": "这一页给开发者看的名字，66 条里有 9 条和卡牌名不同，也没有对应的译文。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §`afterStory` — field census"
     },
     "pic": {
       "label": "整页插图",
-      "note": "整页的插图覆盖，原版一个文件都没写，图片实际来自 extra[].pic 或卡面。",
+      "note": "整页的插图，原版一个都没写，实际图片来自段落自己的插图或卡面。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §`afterStory` — field census"
     },
     "close_condition": {
       "label": "关闭条件",
-      "note": "满足时跳过这张卡的整页，原版 59 个文件里都只是注释掉的 {\"!s1\": 1}。",
+      "note": "条件一对上就跳过这张卡的整页，原版 59 个文件里都没启用它。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §`afterStory` — field census"
     },
     "prior": {
       "label": "开场段落",
-      "note": "只渲染第一条先命中 key 再命中 condition 的段落就返回，原版 66 条全为空数组。",
+      "note": "开场那一页，只显示第一条对得上的，然后就结束，原版 66 条全都没写。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §`afterStory` — field census"
     },
     "extra": {
       "label": "段落池",
-      "note": "key 与 condition 都通过的条目各成一页，按 sort 升序，原版单张卡最多 385 页。",
+      "note": "对得上的条目各成一页，按各自顺序排开，原版单张卡最多 385 页。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §`afterStory` — field census"
     }
   },
@@ -987,52 +987,52 @@
     },
     "name": {
       "label": "选项名称",
-      "note": "选项的按钮文字，根层放的是向导本人的名字，子层唯一被当标题渲染的字符串。",
+      "note": "选项的按钮文字，最外层放的是向导本人的名字，往里每层就是那个选项的标题。",
       "from": "docs/sudan-game/fields/12-wizard.md §Keys"
     },
     "text": {
       "label": "文本内容",
-      "note": "根层是常驻问候语，子层是点击后由 SetText 写进问答面板的正文。",
+      "note": "最外层是一直显示的问候语，往里则是点开选项后写进问答框的正文。",
       "from": "docs/sudan-game/fields/12-wizard.md §Keys"
     },
     "op": {
       "label": "内置动作",
-      "note": "内置向导动作，只认 back/close/draw/redraw/show_left_sudan_card 等字面量，不是通用操作名。",
+      "note": "点下去要做的内置动作，只认 back、close、draw、redraw、show_left_sudan_card 这几个名字。",
       "from": "docs/sudan-game/fields/12-wizard.md §Keys"
     },
     "dt": {
       "label": "对话树",
-      "note": "点击后播放的对话树，填 dt 的文件名，不是它自己声明的 dialog_tree_id。",
+      "note": "点击后播放的对话树，填文件名，不是对话树自己写着的那个名字。",
       "from": "docs/sudan-game/fields/12-wizard.md §Keys"
     },
     "action": {
       "label": "点击对应选项执行的动作",
-      "note": "标准 Operations 操作表，和 op、dt 合并成同一个点击动作列表。",
+      "note": "点下去要执行的操作，会和 op、dt 并成同一串动作一起执行。",
       "from": "docs/sudan-game/fields/12-wizard.md §Keys"
     },
     "options": {
       "label": "子选项",
-      "note": "下一级菜单的选项数组，轮到该节点时按 condition 过滤后渲染，深度没有上限。",
+      "note": "下一级菜单，轮到它时按各自的显示条件筛一遍再列出来，可以一直往下一层。",
       "from": "docs/sudan-game/fields/12-wizard.md §Keys"
     },
     "id": {
       "label": "向导标识",
-      "note": "向导的标识字符串，但不是查找键，查找用的是 init 里指向的文件名。",
+      "note": "向导自己的名字，游戏并不按它找，找的是开局那边填的文件名。",
       "from": "docs/sudan-game/fields/12-wizard.md §Keys"
     },
     "init": {
       "label": "关联引导",
-      "note": "声明属于哪些 init 条目，原版两个文件都没写，机制未落实。",
+      "note": "声明这个向导属于哪些开局，原版两个文件都没写，机制还没弄清楚。",
       "from": "docs/sudan-game/fields/12-wizard.md §Keys"
     },
     "prompt_draw_sudan_start": {
       "label": "开始抽卡时的文本",
-      "note": "非首次抽苏丹卡时显示的提示语，首次抽卡时被 start_first 那条顶替。",
+      "note": "不是第一次抽苏丹卡时显示的提示语，第一次抽时会换成另一条。",
       "from": "docs/sudan-game/fields/12-wizard.md §Keys"
     },
     "prompt_draw_sudan_start_first": {
       "label": "首次抽卡时的文本",
-      "note": "只在首次抽卡时显示，同一段代码随即把 wizard_first_show 置真。",
+      "note": "只在第一次抽苏丹卡时显示，显示过一次以后就不再用它。",
       "from": "docs/sudan-game/fields/12-wizard.md §Keys"
     },
     "prompt_draw_sudan_end_with_times": {
@@ -1042,7 +1042,7 @@
     },
     "prompt_draw_sudan_end_without_times": {
       "label": "无重抽时的抽卡文本",
-      "note": "没有重抽次数时的抽卡后提示语，可以写成空串表示什么都不显示。",
+      "note": "没有重抽次数时抽完卡的提示语，留空就什么都不显示。",
       "from": "docs/sudan-game/fields/12-wizard.md §Keys"
     }
   },
@@ -1054,131 +1054,131 @@
     },
     "name": {
       "label": "次级选项名称",
-      "note": "子选项的按钮文字，这一层唯一被当标题渲染的字符串。",
+      "note": "子选项的按钮文字，这一层只有它会被当成标题显示。",
       "from": "docs/sudan-game/fields/12-wizard.md §Keys"
     },
     "text": {
       "label": "文本内容",
-      "note": "点击后推进问答面板的正文，非空时才会生成一条 SetText 操作。",
+      "note": "点开这个选项后写进问答框的正文，写了才会换掉原来的文字。",
       "from": "docs/sudan-game/fields/12-wizard.md §Keys"
     },
     "op": {
       "label": "内置动作",
-      "note": "内置向导动作，只认 back/close/draw/redraw/show_left_sudan_card 等字面量，不是通用操作名。",
+      "note": "点下去要做的内置动作，只认 back、close、draw、redraw、show_left_sudan_card 这几个名字。",
       "from": "docs/sudan-game/fields/12-wizard.md §Keys"
     },
     "dt": {
       "label": "对话树",
-      "note": "点击后播放的对话树，填 dt 的文件名，不是它自己声明的 dialog_tree_id。",
+      "note": "点击后播放的对话树，填文件名，不是对话树自己写着的那个名字。",
       "from": "docs/sudan-game/fields/12-wizard.md §Keys"
     },
     "action": {
       "label": "点击对应选项执行的动作",
-      "note": "标准 Operations 操作表，与 op、dt、text 一起在点击时按序执行。",
+      "note": "点下去要执行的操作，会和 op、dt、text 一起依次执行。",
       "from": "docs/sudan-game/fields/12-wizard.md §Keys"
     },
     "options": {
       "label": "子选项",
-      "note": "继续往下分叉的子选项，叶子节点没有它，原版最多再深一层。",
+      "note": "再往下的子选项，最末一层没有它，原版最多再深一层。",
       "from": "docs/sudan-game/fields/12-wizard.md §Keys"
     }
   },
   "riteTemplate": {
     "id": {
       "label": "布局编号",
-      "note": "布局的唯一编号，riteMapping.template_id 指向它，原版占 8000001–8000800 且号码有空洞。",
+      "note": "布局的唯一编号，仪式靠 template_id 指过来，原版用 8000001–8000800，中间有空号。",
       "from": "docs/sudan-game/fields/13-rite-template.md §Keys — `riteTemplate` level 2"
     },
     "name": {
       "label": "作者备注名",
-      "note": "仅供作者辨认的标签，原版 252 个布局里只有三个调试用的填了值，其余都是空串。",
+      "note": "只给作者自己认的备注，原版 252 个布局里只有三个调试用的填了，其余都空着。",
       "from": "docs/sudan-game/fields/13-rite-template.md §Keys — `riteTemplate` level 2"
     },
     "tips": {
       "label": "说明文本（无人读取）",
-      "note": "声明了却没人读的死字段，会被序列化但原版全为空串，仪式面板里找不到读取处。",
+      "note": "这一项没有用处，仪式面板从不读它，原版 252 处全是空的。",
       "from": "docs/sudan-game/fields/13-rite-template.md §Keys — `riteTemplate` level 2"
     },
     "bg": {
       "label": "面板底图",
-      "note": "面板背景的精灵名，加载时自动加 rite/template/bg/ 前缀，原版 65 个名字都能取到图。",
+      "note": "仪式面板的背景图，写图的名字，游戏会自动去 rite/template/bg/ 下找，原版 65 个名字都有图。",
       "from": "docs/sudan-game/fields/13-rite-template.md §Keys — `riteTemplate` level 2"
     },
     "fg": {
       "label": "面板前景图",
-      "note": "前景叠加层的精灵名，为空时整个前景物件被关掉而不是画一张空图。",
+      "note": "盖在背景上的前景图，名字留空时这块前景整个关掉，不是画一张空图。",
       "from": "docs/sudan-game/fields/13-rite-template.md §Keys — `riteTemplate` level 2"
     },
     "fg_in_slot_index": {
       "label": "前景插入槽序",
-      "note": "非 0 时把前景图挂进槽位容器并摆到该序号，0 表示留在预制体给它的位置。",
+      "note": "填 0 以外的数字，前景图就排到槽位那一层里对应的位置，填 0 就留在原处。",
       "from": "docs/sudan-game/fields/13-rite-template.md §Keys — `riteTemplate` level 2"
     },
     "nomal_slot_bg": {
       "label": "默认槽框底图",
-      "note": "槽位自身的 slot_bg 为空时用它兜底，它也为空则沿用预制体的图，注意原版把 normal 拼成 nomal。",
+      "note": "槽位没单独指定框时用这张，它也为空就用游戏原样的图，注意原版把 normal 拼成了 nomal。",
       "from": "docs/sudan-game/fields/13-rite-template.md §Keys — `riteTemplate` level 2"
     },
     "bg_pos": {
       "label": "底图坐标",
-      "note": "对象形式的 {x,y}，是背景图的本地坐标，原版 195 个布局用默认的 (0,210)。",
+      "note": "背景图摆在哪，写 x、y 两个数，原版 195 个布局都用 (0,210)。",
       "from": "docs/sudan-game/fields/13-rite-template.md §Keys — `riteTemplate` level 2"
     },
     "mobile_bg_pos": {
       "label": "手机版底图坐标",
-      "note": "手机布局用的 bg_pos，桌面与手机互不兜底，原版有 10 个老布局整项缺失。",
+      "note": "手机版背景图的位置，和电脑版各写各的不互相顶替，原版有 10 个老布局整项没写。",
       "from": "docs/sudan-game/fields/13-rite-template.md §Keys — `riteTemplate` level 2"
     },
     "mobile_scale": {
       "label": "手机版底图缩放",
-      "note": "本意是手机布局的背景缩放，但原版 242 处全是 null，代码每次都走共享默认缩放。",
+      "note": "本来要给手机版的背景单独缩放，但原版 242 处都空着，游戏一律用同一个默认缩放。",
       "from": "docs/sudan-game/fields/13-rite-template.md §Keys — `riteTemplate` level 2"
     },
     "title_pos": {
       "label": "标题栏坐标",
-      "note": "标题栏的本地坐标 {x,y}，原版 y 在 −272 到 30 之间，落在所有槽行之上。",
+      "note": "标题栏摆在哪，写 x、y 两个数，原版 y 在 −272 到 30 之间，在所有槽位上方。",
       "from": "docs/sudan-game/fields/13-rite-template.md §Keys — `riteTemplate` level 2"
     },
     "title_bg_hide": {
       "label": "隐藏标题底图",
-      "note": "为 true 时把标题底图的透明度清零，原版只有 8000547–8000554 这八个布局打开。",
+      "note": "打开后标题底图变得全透明，原版只有 8000547–8000554 这八个布局打开。",
       "from": "docs/sudan-game/fields/13-rite-template.md §Keys — `riteTemplate` level 2"
     },
     "title_help_btn_hide": {
       "label": "隐藏标题帮助按钮",
-      "note": "为 true 时对标题栏的帮助按钮执行 SetActive(false)，原版同样只有那八个布局打开。",
+      "note": "打开后标题栏的帮助按钮消失，原版也只有那八个布局打开。",
       "from": "docs/sudan-game/fields/13-rite-template.md §Keys — `riteTemplate` level 2"
     },
     "slots": {
       "label": "槽位表",
-      "note": "键写作 s1..s17 的槽位字典，键只是标识，几何按 riteMapping.slot_open 给出的名字查。",
+      "note": "这个布局有哪几个槽位，名字写 s1 到 s17，摆在哪由仪式那边的 slot_open 决定。",
       "from": "docs/sudan-game/fields/13-rite-template.md §Keys — `riteTemplate` level 2"
     }
   },
   "slotPosition": {
     "is_hide_bg": {
       "label": "隐藏槽框",
-      "note": "为 true 时关掉该槽的背景图，槽位本身仍然存在，且这一位先于 slot_bg 生效。",
+      "note": "打开后这个槽的框不画出来，槽位本身还在，而且比单独的槽框图更优先。",
       "from": "docs/sudan-game/fields/13-rite-template.md §Keys — `riteTemplate.slots.<name>` level 3 (`RiteTemplateNode.SlotPosition`, dump.cs:523259)"
     },
     "is_set_card_hide_bg": {
       "label": "放卡时隐藏槽框",
-      "note": "为 true 时卡放进该槽会隐藏槽框，接线齐全但原版 1908 处全是 false。",
+      "note": "打开后卡放进这个槽时框会藏起来，原版 1908 处都关着这个开关。",
       "from": "docs/sudan-game/fields/13-rite-template.md §Keys — `riteTemplate.slots.<name>` level 3 (`RiteTemplateNode.SlotPosition`, dump.cs:523259)"
     },
     "slot_bg": {
       "label": "槽框图",
-      "note": "该槽框的精灵名，为空则退到布局的 nomal_slot_bg，再退到预制体自带的图。",
+      "note": "这个槽自己的框用哪张图，留空就用布局的 nomal_slot_bg，再空就用游戏原样的图。",
       "from": "docs/sudan-game/fields/13-rite-template.md §Keys — `riteTemplate.slots.<name>` level 3 (`RiteTemplateNode.SlotPosition`, dump.cs:523259)"
     },
     "pos": {
       "label": "槽位坐标",
-      "note": "对象形式的 {x,y}，单位是相对槽位容器左下角的像素，不是屏幕坐标也不是锚点。",
+      "note": "槽位摆在哪，写成 x、y 两个数，从槽位区左下角量起的像素，不是屏幕位置。",
       "from": "docs/sudan-game/fields/13-rite-template.md §Keys — `riteTemplate.slots.<name>` level 3 (`RiteTemplateNode.SlotPosition`, dump.cs:523259)"
     },
     "scale": {
       "label": "槽位缩放",
-      "note": "对象形式的 {x,y} 缩放，仅非 null 时套用，原版 11 组取值都是等比。",
+      "note": "槽位的缩放，写成 x、y 两个数，不写就保持原大小，原版 11 组取值都是等比。",
       "from": "docs/sudan-game/fields/13-rite-template.md §Keys — `riteTemplate.slots.<name>` level 3 (`RiteTemplateNode.SlotPosition`, dump.cs:523259)"
     },
     "rotation_z": {
@@ -1188,29 +1188,29 @@
     },
     "mobile_pos": {
       "label": "手机版槽位坐标",
-      "note": "手机布局直接拿它替代 pos，不是偏移量，为 null 时根本不设置位置。",
+      "note": "手机版槽位摆在哪，它替掉电脑版的 pos 而不是加在它上面，不写就完全不摆位置。",
       "from": "docs/sudan-game/fields/13-rite-template.md §Keys — `riteTemplate.slots.<name>` level 3 (`RiteTemplateNode.SlotPosition`, dump.cs:523259)"
     },
     "mobile_scale": {
       "label": "手机版槽位缩放",
-      "note": "手机布局的缩放，为 null 时不回退到 scale，会保留上一个分支留下的缩放。",
+      "note": "手机版槽位的缩放，不写也不退回去用 scale，而是留着上一次设过的缩放。",
       "from": "docs/sudan-game/fields/13-rite-template.md §Keys — `riteTemplate.slots.<name>` level 3 (`RiteTemplateNode.SlotPosition`, dump.cs:523259)"
     },
     "mobile_rotation_z": {
       "label": "手机版旋转角度",
-      "note": "手机布局的旋转角度，为 0 时反而回退去用 rotation_z，与桌面的 0 语义相反。",
+      "note": "手机版槽位的旋转角度，写 0 反而会改用 rotation_z，跟电脑版里 0 的意思正好相反。",
       "from": "docs/sudan-game/fields/13-rite-template.md §Keys — `riteTemplate.slots.<name>` level 3 (`RiteTemplateNode.SlotPosition`, dump.cs:523259)"
     }
   },
   "pos": {
     "x": {
       "label": "横坐标",
-      "note": "水平分量，做坐标时是像素、做缩放时是倍率，声明为 float 但原版 98% 写整数。",
+      "note": "横向的值，当位置用时是像素，当缩放用时是倍数，原版 98% 不带小数。",
       "from": "docs/sudan-game/fields/13-rite-template.md §Keys — `RiteTemplateNode.Pos` (dump.cs:523372), used at 8 places"
     },
     "y": {
       "label": "纵坐标",
-      "note": "垂直分量，做坐标时是从容器底边向上的像素，做缩放时是倍率，与 x 成对读取。",
+      "note": "纵向的值，当位置用时是从槽位区底边往上量的像素，当缩放用时是倍数，和 x 一起用。",
       "from": "docs/sudan-game/fields/13-rite-template.md §Keys — `RiteTemplateNode.Pos` (dump.cs:523372), used at 8 places"
     }
   },
@@ -1222,7 +1222,7 @@
     },
     "tips": {
       "label": "映射备注",
-      "note": "映射表的说明列，四个字段之一，研究文档没有记下它的界面作用。",
+      "note": "映射表四栏里的说明栏，研究文档没写清它在界面上有什么用。",
       "from": "docs/sudan-game/fields/03-rite.md §`mapping_id` (level 2)"
     },
     "template_id": {
@@ -1239,132 +1239,132 @@
   "dtRoot": {
     "dialog_tree_id": {
       "label": "对话树备注名",
-      "note": "只用来拼报错信息，原版既不去重也不等于文件名，真正的字典键是文件主名。",
+      "note": "只用来拼出错提示的内容，原版既不保证不重复也不等于文件名，真正认的是文件名。",
       "from": "docs/sudan-game/fields/14-dt.md §`dialog_tree_id` (level 2)"
     },
     "first_word_id": {
       "label": "起始台词编号",
-      "note": "进入对话时先查这一条台词，查不到就抛异常，原版九个文件都写 S1。",
+      "note": "对话从这里开始，找不到这条台词游戏就报错，原版九个文件都写 S1。",
       "from": "docs/sudan-game/fields/14-dt.md §`first_word_id` (level 2)"
     },
     "description": {
       "label": "对话树说明",
-      "note": "纯作者备注，运行时没有任何读取处，面板标题其实来自 wizard 节点的 name 与 text。",
+      "note": "纯粹给作者看的备注，游戏从不读它，面板标题其实取自向导里的 name 与 text。",
       "from": "docs/sudan-game/fields/14-dt.md §`description` (level 2)"
     },
     "Item": {
       "label": "台词列表",
-      "note": "首字母必须大写的容器键，数组顺序无意义，导航一律按 word_id 查。",
+      "note": "台词都写在这一项下面，第一个字母必须大写，排列顺序无所谓，跳转一律按 word_id 找。",
       "from": "docs/sudan-game/fields/14-dt.md §`Item` (level 2) and `word_id` (level 3)"
     }
   },
   "dtWord": {
     "word_id": {
       "label": "台词编号",
-      "note": "树内唯一标识，形如 S1 到 S11，所有跳转都写它，按字符串比较不能当成数字。",
+      "note": "这条台词的名字，形如 S1 到 S11，所有跳转都写它，游戏按文字比对而不当数字算。",
       "from": "docs/sudan-game/fields/14-dt.md §`Item` (level 2) and `word_id` (level 3)"
     },
     "word": {
       "label": "台词正文",
-      "note": "原样推进对话面板的文本，可含换行与 [sudan_life_time] 这类变量记号，不写会留下空提示。",
+      "note": "玩家看到的那句台词，可以换行，也可以写 [sudan_life_time] 这类变量，不写就显示空白。",
       "from": "docs/sudan-game/fields/14-dt.md §`word` (level 3)"
     },
     "jump_type": {
       "label": "分支类型",
-      "note": "要写成带引号的字符串，“0” 走 direct_id、“1” 弹选项、“3” 退出对话，原版没有 “2”。",
+      "note": "玩家看完这句之后怎么走：写 \"0\" 去 direct_id，写 \"1\" 弹选项，写 \"3\" 退出对话，原版没有 \"2\"。",
       "from": "docs/sudan-game/fields/14-dt.md §`jump_type` (level 3)"
     },
     "direct_id": {
       "label": "下一句编号",
-      "note": "只在 jump_type 为 “0” 时才读，其他取值下即使写了目标也不会生效。",
+      "note": "下一句的编号，只在 jump_type 写 \"0\" 时才用，别的取值下写了也不生效。",
       "from": "docs/sudan-game/fields/14-dt.md §`direct_id` (level 3)"
     },
     "Option": {
       "label": "选项列表",
-      "note": "首字母必须大写的容器键，只有 jump_type 为 “1” 的台词才显示，整个键缺失会抛异常。",
+      "note": "这句台词要给的选项写在这一项下面，第一个字母必须大写，只有 jump_type 为 \"1\" 时才显示，整项不写游戏会报错。",
       "from": "docs/sudan-game/fields/14-dt.md §`Option` (level 3) and the OptionItem fields (level 4)"
     },
     "action": {
       "label": "台词操作（未使用）",
-      "note": "声明为操作体，但原版 60 条台词全写空对象，对话流程从不执行它。",
+      "note": "本来是用来做事的地方，原版 60 条台词全留空，对话流程从不执行它。",
       "from": "docs/sudan-game/fields/14-dt.md §`Option` (level 3) and the OptionItem fields (level 4)"
     }
   },
   "dtOption": {
     "option_Jump_condition": {
       "label": "选项显示条件",
-      "note": "条件不成立就不显示该选项，null 表示恒显示，键名中间的 Jump 大写不能改。",
+      "note": "不满足条件时这个选项不出现，不写就总是出现，名字中间的 Jump 大写不能改。",
       "from": "docs/sudan-game/fields/14-dt.md §`Option` (level 3) and the OptionItem fields (level 4)"
     },
     "option_Jump_word": {
       "label": "选项按钮文字",
-      "note": "玩家看到的按钮文案，也是 IOption.text 的返回值，原版取值长度 3 到 8 字。",
+      "note": "选项按钮上写的字，原版取值 3 到 8 个字。",
       "from": "docs/sudan-game/fields/14-dt.md §`Option` (level 3) and the OptionItem fields (level 4)"
     },
     "option_Jump_id": {
       "label": "选项跳转编号",
-      "note": "点击后跳到的台词编号，原版 38 处全部能在同一个文件里找到。",
+      "note": "点了这个选项跳到哪条台词，原版 38 处目标都在同一个文件里。",
       "from": "docs/sudan-game/fields/14-dt.md §`Option` (level 3) and the OptionItem fields (level 4)"
     },
     "action": {
       "label": "选项操作（未使用）",
-      "note": "声明为操作体，但原版 38 处全写空对象，点击选项时只读 option_Jump_id。",
+      "note": "本来是用来做事的地方，原版 38 处全留空，点选项时游戏只看 option_Jump_id。",
       "from": "docs/sudan-game/fields/14-dt.md §`Option` (level 3) and the OptionItem fields (level 4)"
     }
   },
   "sfxTop": {
     "main_game_loop": {
       "label": "主界面背景乐",
-      "note": "键是音乐等级 -1 与 0..7 的循环曲表，难度不是 3 时播这一张。",
+      "note": "主界面的循环背景乐，按音乐等级 -1 与 0 到 7 各有曲子，难度不是 3 时用这一组。",
       "from": "docs/sudan-game/fields/15-sfx.md §The five groups (level 2)"
     },
     "main_game_loop_difficulty": {
       "label": "主界面难度背景乐",
-      "note": "难度为 3 时改播这一张，只有 -1 与 0..5 七个键，等级 6、7 在这里查不到。",
+      "note": "难度为 3 时改用它，只有 -1 与 0 到 5 共七首，等级 6、7 在这里没有曲子。",
       "from": "docs/sudan-game/fields/15-sfx.md §The five groups (level 2)"
     },
     "settle_loop": {
       "label": "结算界面背景乐",
-      "note": "结算画面的循环曲表，键同样是音乐等级 -1 与 0..7。",
+      "note": "结算画面的循环背景乐，同样按音乐等级 -1 与 0 到 7 各有一首。",
       "from": "docs/sudan-game/fields/15-sfx.md §The five groups (level 2)"
     },
     "settle_loop_difficulty": {
       "label": "结算难度背景乐",
-      "note": "难度为 3 时替代 settle_loop，只有 -1 与 0..5 七个键。",
+      "note": "难度为 3 时顶替 settle_loop，只有 -1 与 0 到 5 共七首。",
       "from": "docs/sudan-game/fields/15-sfx.md §The five groups (level 2)"
     },
     "armageddon_music_loop": {
       "label": "神临仪式音乐",
-      "note": "前四组曲表的键是音乐等级，这一组的键是仪式 id，按 armageddon_rite_id 查表且没有 -1 兜底。",
+      "note": "神临仪式进行时放的音乐，不按音乐等级而按仪式编号挑曲，而且没有 -1 那种兜底。",
       "from": "docs/sudan-game/fields/15-sfx.md §The five groups (level 2)"
     }
   },
   "sfxLoop": {
     "clip": {
       "label": "音频片段名",
-      "note": "按名字在控制器的 AudioClip 列表里找，找不到就静音并记日志，要写素材名而不是路径。",
+      "note": "曲子文件的名字，游戏按名字在本地的音频里找，找不到就静音并写条日志，写名字不写路径。",
       "from": "docs/sudan-game/fields/15-sfx.md §`clip` (level 4)"
     },
     "start": {
       "label": "起始播放位置",
-      "note": "单位是秒，直接写进 AudioSource.time，超出片段范围会被静默截断而不报错。",
+      "note": "从第几秒开始播，写超了曲子长度会被悄悄截掉，游戏不报错。",
       "from": "docs/sudan-game/fields/15-sfx.md §`start` (level 4)"
     },
     "loop_start": {
       "label": "循环起点",
-      "note": "循环回跳的秒数，必须不小于 0、不超过片段长度且小于 loop_end，否则整段不播。",
+      "note": "循环回到第几秒，必须是 0 以上、不超过曲子长度、并且小于 loop_end，否则整首都不播。",
       "from": "docs/sudan-game/fields/15-sfx.md §`loop_start` / `loop_end` (level 4)"
     },
     "loop_end": {
       "label": "循环终点",
-      "note": "循环回跳的秒数，写 -1 表示用片段长度，原版只在神临那一组用这个哨兵值。",
+      "note": "循环在第几秒回头，写 -1 表示一直放到曲子结尾，原版只有神临那一组这么写。",
       "from": "docs/sudan-game/fields/15-sfx.md §`loop_start` / `loop_end` (level 4)"
     }
   },
   "sfxArmageddonLoop": {
     "clip": {
       "label": "音频片段名",
-      "note": "写 ArmageddonStop 是停乐的哨兵而不是素材名，写错名字会静音并记一条错误日志。",
+      "note": "曲子文件的名字，写 ArmageddonStop 是让音乐停下而不是某首曲子，名字写错就静音并记一条错误。",
       "from": "docs/sudan-game/fields/15-sfx.md §`clip` (level 4)"
     },
     "start": {
@@ -1379,176 +1379,176 @@
     },
     "loop_end": {
       "label": "循环终点",
-      "note": "原版这一组 22 处全部写 -1，也就是一直循环到片段结尾。",
+      "note": "循环在第几秒回头，原版这一组 22 处全写 -1，也就是一直放到曲子结尾。",
       "from": "docs/sudan-game/fields/15-sfx.md §`loop_start` / `loop_end` (level 4)"
     },
     "play_instant": {
       "label": "立即播放",
-      "note": "为 true 时仪式结算面板一关就开始播，原版只有 2 处写 true，不写即为 false。",
+      "note": "打开后仪式结算面板一关就起乐，原版只有 2 处打开，不写就是不打开。",
       "from": "docs/sudan-game/fields/15-sfx.md §`play_instant` (level 4, armageddon only)"
     },
     "play_in_rite_create": {
       "label": "仪式开始时播放",
-      "note": "为 true 时改在仪式创建时起乐，原版只有 8 处写 true，且会顶掉关面板那条路径。",
+      "note": "打开后改成仪式一开始就起乐，原版只有 8 处打开，而且会顶掉关面板才播那条路。",
       "from": "docs/sudan-game/fields/15-sfx.md §`play_in_rite_create` (level 4, armageddon only)"
     }
   },
   "game": {
     "init": {
       "label": "所属游戏代数",
-      "note": "大于等于 2 才会写进 Datapool.GameId，原版的 init 只有 0 和 1 两代。",
+      "note": "这份改动属于第几代游戏，写 2 以上游戏才会用，原版只有 0 和 1 两代。",
       "from": "docs/sudan-game/fields/16-game.md §`init` (level 2)"
     },
     "map": {
       "label": "地图表现覆盖",
-      "note": "可整段省略的对象，含桌面图、地图图与地点表，只改画面不改游戏逻辑。",
+      "note": "地图画面上的改动，包含桌面底图、地图底图和地点，整段不写也行，只改画面不改玩法。",
       "from": "docs/sudan-game/fields/16-game.md §`map` (level 2)"
     },
     "rite_icon": {
       "label": "仪式图标坐标",
-      "note": "键是自由文本的图标名，值是 {x,y} 坐标，插进 Datapool 表时既不清表也不查冲突。",
+      "note": "仪式图标摆在地图上的位置，名字随你写，两个数就是坐标，加进去时既不清空旧表也不查重名。",
       "from": "docs/sudan-game/fields/16-game.md §`rite_icon`, `rite_outline_icon` (level 2)"
     },
     "rite_outline_icon": {
       "label": "仪式描边图标坐标",
-      "note": "与 rite_icon 同形，值是 {x,y} 坐标，只是喂给描边版图标那张表。",
+      "note": "和 rite_icon 写法一样，两个数是描边版图标摆在哪。",
       "from": "docs/sudan-game/fields/16-game.md §`rite_icon`, `rite_outline_icon` (level 2)"
     },
     "equip_icon": {
       "label": "装备槽图标",
-      "note": "键是装备类型字符串，值是 equip 与 unequip 两张图，按此顺序组成一对。",
+      "note": "装备槽的图标，按装备种类写两张状态的图，先写已装备再写未装备。",
       "from": "docs/sudan-game/fields/16-game.md §`equip_icon` (level 2)"
     },
     "card_materials": {
       "label": "卡面材质",
-      "note": "分四组替换卡面材质，数组长度必须与原版一致，长度不符会被静默忽略。",
+      "note": "换掉卡面用的四组材质，每组数量必须和原版一样多，数量不对就整组不生效。",
       "from": "docs/sudan-game/fields/16-game.md §`card_materials` (level 2)"
     }
   },
   "gameMap": {
     "overwrite": {
       "label": "地点表覆盖开关",
-      "note": "行为与名字相反，写 false 会先清空累积的地点表再插自己的，true 才是往后追加。",
+      "note": "名字和实际相反：关掉它会先清掉已有地点再放自己的，打开才是往后追加。",
       "from": "docs/sudan-game/fields/16-game.md §`map.overwrite` (level 3)"
     },
     "desktop": {
       "label": "桌面底图",
-      "note": "取本 mod 自己的图片，按 mod 相对路径找，空串表示不替换。",
+      "note": "桌面底图，只能用这个 mod 自己带的图，路径相对 mod 目录写，留空就不替换。",
       "from": "docs/sudan-game/fields/16-game.md §`map.desktop`, `map.map` (level 3)"
     },
     "map": {
       "label": "地图底图",
-      "note": "与 desktop 一样只取本 mod 自己的图，空串表示不替换，与 desktop 各自独立生效。",
+      "note": "地图底图，同样只用这个 mod 自己的图，留空就不替换，和 desktop 各管各的。",
       "from": "docs/sudan-game/fields/16-game.md §`map.desktop`, `map.map` (level 3)"
     },
     "locations": {
       "label": "地点表",
-      "note": "键是地点名，值是地点对象，空键与 null 值都会丢掉并各记一条错误。",
+      "note": "地图上的地点都写在这一项下面，名字留空或内容空着都会被丢掉，并各记一条错误。",
       "from": "docs/sudan-game/fields/16-game.md §`map.locations` (level 3)"
     }
   },
   "gamePoint": {
     "x": {
       "label": "横坐标",
-      "note": "二维坐标的横分量，给仪式图标与仪式槽位定位用。",
+      "note": "横着的位置，仪式图标和仪式槽位靠它和 y 定在哪。",
       "from": "docs/sudan-game/fields/16-game.md §`rite_icon`, `rite_outline_icon` (level 2)"
     },
     "y": {
       "label": "纵坐标",
-      "note": "二维坐标的纵分量，与 x 成八字节一对读取，值为浮点。",
+      "note": "竖着的位置，和 x 一起读一起用，可以带小数。",
       "from": "docs/sudan-game/fields/16-game.md §`rite_icon`, `rite_outline_icon` (level 2)"
     }
   },
   "gameMapLocation": {
     "name": {
       "label": "地点名",
-      "note": "直接写进地点控件的文本标签，界面按中文渲染。",
+      "note": "地点在界面上显示的名字，写中文就能正常显示。",
       "from": "docs/sudan-game/fields/16-game.md §`map.locations.<name>.name`, `.x`, `.y`, `.sub_locations` (level 4)"
     },
     "icon": {
       "label": "地点插图",
-      "note": "必须是 image/end_map 里的精灵名且带 .png 后缀，例如 Palace.png。",
+      "note": "地点的插图，要写 image/end_map 里的图名并带上 .png，例如 Palace.png。",
       "from": "docs/sudan-game/fields/16-game.md §`map.locations.<name>.icon` (level 4)"
     },
     "x": {
       "label": "横坐标",
-      "note": "钉在地图父物体本地空间的横坐标，不是屏幕像素，缺省为 0。",
+      "note": "地点钉在地图上的横向位置，跟着地图走而不是屏幕上的点，不写就是 0。",
       "from": "docs/sudan-game/fields/16-game.md §`map.locations.<name>.name`, `.x`, `.y`, `.sub_locations` (level 4)"
     },
     "y": {
       "label": "纵坐标",
-      "note": "与 x 同一空间的纵坐标，缺省为 0 会把钉子放到父物体原点。",
+      "note": "地点钉在地图上的纵向位置，和 x 同一套算法，不写就是 0，会落到地图的角上。",
       "from": "docs/sudan-game/fields/16-game.md §`map.locations.<name>.name`, `.x`, `.y`, `.sub_locations` (level 4)"
     },
     "sub_locations": {
       "label": "仪式槽位坐标表",
-      "note": "每个元素生成一个仪式槽位，数组顺序决定卡落在哪个槽，为空则没有槽。",
+      "note": "这个地点上有几个仪式槽、各在什么位置，写的先后决定卡落在哪个槽，不写就没有槽。",
       "from": "docs/sudan-game/fields/16-game.md §`map.locations.<name>.name`, `.x`, `.y`, `.sub_locations` (level 4)"
     }
   },
   "gameEquipIcon": {
     "name": {
       "label": "图标标签",
-      "note": "与精灵对一起存进 ModEquipIcons，静态代码里看不到读这个标签的地方。",
+      "note": "给这对图标起的名，会和两张图存在一起，游戏里找不到读它的地方。",
       "from": "docs/sudan-game/fields/16-game.md §`equip_icon` (level 2)"
     },
     "equip": {
       "label": "已装备图",
-      "note": "已装备状态的图，按 mod 相对路径取图，是那一对精灵里的第一个。",
+      "note": "装备着的时候显示的图，路径相对 mod 目录写，是两张里的第一张。",
       "from": "docs/sudan-game/fields/16-game.md §`equip_icon` (level 2)"
     },
     "unequip": {
       "label": "未装备图",
-      "note": "未装备状态的图，是那一对里的第二个，与字段声明顺序恰好相反。",
+      "note": "没装备的时候显示的图，是两张里的第二张，写在 equip 后面。",
       "from": "docs/sudan-game/fields/16-game.md §`equip_icon` (level 2)"
     }
   },
   "gameCardMaterial": {
     "main": {
       "label": "主贴图",
-      "note": "材质的主贴图引用，字符串交给 mod 的贴图加载器，可写相对路径或远程地址。",
+      "note": "材质的主贴图，可以写相对 mod 目录的路径，也可以写一个网址。",
       "from": "docs/sudan-game/fields/16-game.md §`card_materials` (level 2)"
     },
     "color": {
       "label": "基础颜色",
-      "note": "浮点数组形式的颜色乘数，惯例写 4 个 RGBA 或 3 个 RGB 分量。",
+      "note": "主贴图的颜色，一般写四个数当红绿蓝和透明度，写三个数就是红绿蓝。",
       "from": "docs/sudan-game/fields/16-game.md §`card_materials` (level 2)"
     },
     "metallic": {
       "label": "金属贴图",
-      "note": "名字像数值但类型是字符串，要写金属度贴图的引用，写数字会是类型错。",
+      "note": "看着像数值，其实要写金属度那张贴图，写成数字游戏会报错。",
       "from": "docs/sudan-game/fields/16-game.md §`card_materials` (level 2)"
     },
     "metallic_smooth": {
       "label": "金属光滑度",
-      "note": "配合金属贴图的标量光滑度，按 Unity 惯例取值 0 到 1。",
+      "note": "配合金属贴图用的光滑度，按惯例填 0 到 1。",
       "from": "docs/sudan-game/fields/16-game.md §`card_materials` (level 2)"
     },
     "bump": {
       "label": "法线贴图",
-      "note": "法线贴图的引用，写法与 main 相同。",
+      "note": "法线贴图，写法和 main 一样。",
       "from": "docs/sudan-game/fields/16-game.md §`card_materials` (level 2)"
     },
     "bump_scale": {
       "label": "法线强度",
-      "note": "法线贴图的强度标量，不写则沿用材质自身的默认值。",
+      "note": "法线贴图的强弱，不写就沿用材质原来的强度。",
       "from": "docs/sudan-game/fields/16-game.md §`card_materials` (level 2)"
     },
     "emission": {
       "label": "自发光遮罩",
-      "note": "自发光遮罩贴图的引用，写法与 main 相同。",
+      "note": "自发光遮罩贴图，写法和 main 一样。",
       "from": "docs/sudan-game/fields/16-game.md §`card_materials` (level 2)"
     },
     "emission_color": {
       "label": "自发光颜色",
-      "note": "浮点数组形式的自发光颜色，通常 3 或 4 个分量。",
+      "note": "自发光的颜色，一般写三个数，也可以带上第四个透明度。",
       "from": "docs/sudan-game/fields/16-game.md §`card_materials` (level 2)"
     }
   },
   "gameCardMaterialGroup": {
     "chars": {
       "label": "角色卡材质组",
-      "note": "替换角色卡卡面材质，数组长度必须等于原版的 chars，否则整组不生效。",
+      "note": "换掉角色卡卡面用的材质，数量必须和原版一样多，否则整组不生效。",
       "from": "docs/sudan-game/fields/16-game.md §`card_materials` (level 2)"
     },
     "char_forgrounds": {
@@ -1558,64 +1558,64 @@
     },
     "items": {
       "label": "道具卡材质组",
-      "note": "替换道具卡卡面材质，同样受等长校验，长度不符就静默忽略。",
+      "note": "换掉道具卡卡面用的材质，同样要数量对得上，不对就整组不生效。",
       "from": "docs/sudan-game/fields/16-game.md §`card_materials` (level 2)"
     },
     "sudans": {
       "label": "苏丹卡材质组",
-      "note": "替换苏丹卡卡面材质，按索引逐元素替换而不是整组覆盖。",
+      "note": "换掉苏丹卡卡面用的材质，是一个一个换掉的，不是整组盖过去。",
       "from": "docs/sudan-game/fields/16-game.md §`card_materials` (level 2)"
     }
   },
   "afterStoryExtra": {
     "guid": {
       "label": "分支标识",
-      "note": "编辑器用的 UUID，7750 个后日谈段落一个也没写。",
+      "note": "编辑器用来认这一条的名字，7750 个后日谈段落一个也没写。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §The level-3 object: the 5 fields actually used"
     },
     "condition": {
       "label": "段落条件",
-      "note": "每一段都必写且从不为 {}，条件不过这一页就不出现，是后日谈唯一的筛选手段。",
+      "note": "每一段都必写且从不为空，条件不过这一页就不出现，是后日谈唯一的筛选手段。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §The level-3 object: the 5 fields actually used"
     },
     "result_title": {
       "label": "段落标题",
-      "note": "配置里从不写它，标题全部来自 i18n 的 after_story_{key}_title，改了 key 标题就会丢。",
+      "note": "配置里从不写它，标题全来自译文表里的 after_story_{key}_title，改了 key 标题就会丢。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §The level-3 object: the 5 fields actually used"
     },
     "result_text": {
       "label": "段落正文",
-      "note": "玩家读到的正文，7750 段全部非空，i18n 键是 after_story_{key}_text。",
+      "note": "玩家读到的正文，7750 段全部非空，对应的译文名是 after_story_{key}_text。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §The level-3 object: the 5 fields actually used"
     },
     "result": {
       "label": "结果操作",
-      "note": "页面显示时执行的一组操作，程序支持但原版 0 处使用。",
+      "note": "这一页显示时执行的一组效果，游戏认它，原版 0 处用过。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §The level-3 object: the 5 fields actually used"
     },
     "action": {
       "label": "动作操作",
-      "note": "显示时随后执行的一组操作，同样支持、原版 0 处使用。",
+      "note": "这一页显示时接着执行的一组效果，游戏同样认它，原版 0 处用过。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §The level-3 object: the 5 fields actually used"
     },
     "id": {
       "label": "运行时编号",
-      "note": "仪式侧的编号，由加载器写入，后日谈从不出现，手写无效。",
+      "note": "仪式那边的编号，游戏自己填，后日谈里从不出现，手写无效。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §The level-3 object: the 5 fields actually used"
     },
     "type": {
       "label": "来源数组",
-      "note": "仪式侧字段（1/2/3 对应三个 rite 数组），后日谈从不出现，手写无效。",
+      "note": "仪式那边用的一项，1/2/3 对应仪式的三组分支，后日谈里从不出现，手写无效。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §The level-3 object: the 5 fields actually used"
     },
     "index": {
       "label": "数组内序号",
-      "note": "仪式侧下标，后日谈按数组顺序成页、不读这个字段。",
+      "note": "仪式那边用的位置，后日谈按先后顺序成页，不看这一项。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §The level-3 object: the 5 fields actually used"
     },
     "key": {
       "label": "段落名",
-      "note": "既是 i18n 键中段 after_story_{key}_text/_title，也是跳转比较用的标识，改了 key 翻译就对不上。",
+      "note": "它夹在译文名 after_story_{key}_text、_title 中间，也是跳转时比对的名字，改了 key 翻译就对不上。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §The level-3 object: the 5 fields actually used"
     },
     "sort": {
@@ -1625,7 +1625,7 @@
     },
     "pic": {
       "label": "段落配图",
-      "note": "覆盖这一页的立绘，形如 cards/<资产名>，只有 1167/7750 段写了。",
+      "note": "换掉这一页的立绘，写成 cards/<图片名> 这样的路径，只有 1167/7750 段写了。",
       "from": "docs/sudan-game/fields/11-over-afterstory.md §The level-3 object: the 5 fields actually used"
     }
   }
