@@ -405,8 +405,10 @@ function clampEdges(list) {
 }
 
 function nodeLabel(n, over) {
-  const text = n.id + "  " + dispLabel(n);
-  return over ? text + "  +" + over : text;
+  // Two lines: the id on top, the name under it. The box is 44 px tall for exactly this, and a
+  // single run of "id  name" wraps at whatever character the width cuts, which reads badly.
+  const name = dispLabel(n) + (over ? "  +" + over : "");
+  return n.id + "\\n" + name;
 }
 
 // Every relation as the node's own neighbour list, in the shape the panel reads.
@@ -430,8 +432,10 @@ const CY_STYLE = [
       "border-width": 1,
       "border-color": "#57452c",
       shape: "round-rectangle",
-      width: 150,
-      height: 30,
+      width: 168,
+      // Two lines of label by default: most node names carry an id and a title on separate runs,
+      // and a one-line box cuts them off mid-word.
+      height: 52,
       label: "data(label)",
       "font-family": 'ui-monospace, Menlo, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", monospace',
       "font-size": 11,
@@ -439,11 +443,13 @@ const CY_STYLE = [
       "text-valign": "center",
       "text-halign": "center",
       "text-wrap": "wrap",
-      "text-max-width": 138,
+      "text-max-width": 152,
+      // Cytoscape centres a two-line label a little low inside the box; pull it back.
+      "text-margin-y": 0,
       "text-overflow-wrap": "anywhere",
       "text-background-color": "#1d1710",
       "text-background-opacity": 0.9,
-      "text-background-padding": 3,
+      "text-background-padding": 2,
       "text-background-shape": "roundrectangle",
       "overlay-opacity": 0,
     },
