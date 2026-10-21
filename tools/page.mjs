@@ -75,19 +75,169 @@ function pageHtml({ title, sub, body }) {
  */
 const SLOTS = ["武器", "服装", "饰品", "驯兽"];
 
+// ---------------------------------------------------------------- labels
+
+let LABELS = JSON.parse(readFileSync(new URL("../schema/field-labels.json", import.meta.url), "utf8"));
+let FIELDS = JSON.parse(readFileSync(new URL("../schema/fields.json", import.meta.url), "utf8"));
+
+/** Point the page at another label table (used by the tests). */
+export function useLabels(file) {
+  LABELS = JSON.parse(readFileSync(file, "utf8"));
+}
+
+export function useFields(file) {
+  FIELDS = JSON.parse(readFileSync(file, "utf8"));
+}
+
+/** The Chinese label and the one-line note for a key, or null when nobody described it. */
+function labelOf(kind, key) {
+  return LABELS[kind]?.[key] || LABELS._shared?.[key] || null;
+}
+
+/** Which child kind renders a nested value. `slotMap` means the value is an object of objects. */
+const NESTED = {
+  card: { post_rite: "settlement" },
+  rite: {
+    cards_slot: "slotMap",
+    open_conditions: "riteOpenCondition",
+    from_pins: "riteFromPin",
+    random_text_up: "riteRandomTextUp",
+    tag_tips_up: "riteTagTipsUp",
+    settlement_prior: "settlement",
+    settlement: "settlement",
+    settlement_extre: "settlement",
+    waiting_round_end_action: "settlement",
+  },
+  event: { settlement: "settlement" },
+  loot: { item: "lootItem" },
+  quest: { target: "questTargetItem" },
+  over: { text_extra: "settlement" },
+  afterStory: { prior: "afterStoryExtra", extra: "afterStoryExtra" },
+  init: { difficulty: "initDifficulty" },
+  upgrade: {},
+  tag: {},
+};
+
+/** Render any value compactly: strings plain, numbers bare, objects as one code line. */
+function fmt(value) {
+  if (value === undefined || value === null) return "（无）";
+  if (typeof value === "string") return value ? esc(value) : "（空）";
+  if (typeof value === "number" || typeof value === "boolean") return esc(String(value));
+  if (Array.isArray(value)) {
+    if (!value.length) return "（空）";
+    return value.map((v) => fmt(v)).join("、");
+  }
+  return `<code>${esc(JSON.stringify(value))}</code>`;
+}
+
+/** One label/value row, with the note as a dim line under the value. */
+function fieldRow(label, valueHtml, note) {
+  const tip = note ? `<div class="note" style="margin:2px 0 0">${esc(note)}</div>` : "";
+  return `<div class="row"><div class="lbl">${esc(label)}</div><div class="val">${valueHtml}${tip}</div></div>`;
+}
+
+/** Columns to show for a child table: the live keys of that kind, in reader order. */
+function columnsFor(kind, rows) {
+  const order = FIELDS[kind]?.fields || [];
+  const present = new Set();
+  for (const row of rows) if (row && typeof row === "object") for (const k of Object.keys(row)) present.add(k);
+  return order.filter((k) => present.has(k));
+}
+
+/** A table of nested records, with each column headed by that key's label. */
+function tableFor(kind, value) {
+  const head = (cols, extra) =>
+    `<tr>${extra}${cols.map((c) => `<th>${esc(labelOf(kind, c)?.label || c)}</th>`).join("")}</tr>`;
+  if (Array.isArray(value)) {
+    if (!value.length) return '<div style="color:#8a7a60">（空）</div>';
+    if (value.every((v) => !v || typeof v !== "object")) return `<div>${value.map((v) => fmt(v)).join("、")}</div>`;
+    const cols = columnsFor(kind, value);
+    const rows = value
+      .map((row) => `<tr>${cols.map((c) => `<td>${fmt(row?.[c])}</td>`).join("")}</tr>`)
+      .join("");
+    return `<table>${head(cols, "")}${rows}</table>`;
+  }
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value);
+    if (!entries.length) return '<div style="color:#8a7a60">（空）</div>';
+    const cols = columnsFor(kind, entries.map(([, v]) => v));
+    const rows = entries
+      .map(([name, row]) => `<tr><td><code>${esc(name)}</code></td>${cols.map((c) => `<td>${fmt(row?.[c])}</td>`).join("")}</tr>`)
+      .join("");
+    return `<table>${head(cols, "<th>名称</th>")}${rows}</table>`;
+  }
+  return `<div>${fmt(value)}</div>`;
+}
+
+/**
+ * Every live key of the record as a label/value row, then one table per nested kind.
+ * Returns the keys the game does not read and the live keys nobody has described, so the
+ * caller can say so instead of dropping them silently.
+ */
+function recordBody(kind, record) {
+  const nested = NESTED[kind] || {};
+  const rows = [];
+  const tables = [];
+  const unknown = [];
+  const undescribed = [];
+
+  for (const [key, value] of Object.entries(record)) {
+    if (key in nested) continue;
+    if (!(FIELDS[kind]?.fields || []).includes(key)) {
+      unknown.push(key);
+      continue;
+    }
+    const info = labelOf(kind, key);
+    if (!info) undescribed.push(key);
+    // `tag` is a map of Chinese tag name to number: it has its own table on the card page.
+    const shown = value && typeof value === "object" && !Array.isArray(value) && kind === "card" && key === "tag"
+      ? `${Object.entries(value).map(([k, v]) => `${k} ${v}`).join(" · ") || "（空）"}`
+      : fmt(value);
+    rows.push(fieldRow(info?.label || key, shown, info?.note));
+  }
+
+  for (const [key, childKind] of Object.entries(nested)) {
+    const value = record[key];
+    if (value === undefined) continue;
+    const info = labelOf(kind, key);
+    if (!info) undescribed.push(key);
+    const title = `${info?.label || key} · ${key}`;
+    const note = info?.note ? `<div class="note">${esc(info.note)}</div>` : "";
+    tables.push(`<h2>${esc(title)}</h2><div class="panel">${note}${tableFor(childKind, value)}</div>`);
+  }
+
+  return { rows: rows.join("\n"), tables: tables.join("\n"), unknown, undescribed };
+}
+
+/** The keys nobody described must stop the page: a label-less row is an English field name. */
+function assertDescribed(kind, undescribed) {
+  if (!undescribed.length) return;
+  throw new ModelError(
+    `${kind}: no label for ${undescribed.map((k) => JSON.stringify(k)).join(", ")}. ` +
+      `Add them to schema/field-labels.json; a page that prints the raw key teaches the player nothing.`,
+  );
+}
+
+function unknownSection(unknown) {
+  if (!unknown.length) return "";
+  const rows = unknown.map((k) => `<tr><td><code>${esc(k)}</code></td></tr>`).join("");
+  return `<h2>游戏不读这些键</h2>
+<div class="panel">
+<div class="note">下面这些键不在 <code>schema/fields.json</code> 里，游戏不会读它们。删掉，或先查清楚它该写在哪。</div>
+<table><tr><th>键</th></tr>${rows}</table>
+</div>`;
+}
+
+/** A card page: the composed card face, the fields as labels, the tag tables, the art subject. */
 function cardBody(record, modDir) {
   const subject = composeSubject(record);
+  const body = recordBody("card", record);
+  assertDescribed("card", body.undescribed);
+
   const tags = Object.entries(record.tag || {});
-  // A marker tag is present or absent: every vanilla use is exactly 1. A stat tag carries a
-  // number and has an observed range. Rendering both as numbers invites a value the game never sees.
   const markerRows = tags
     .filter(([name]) => TAG_ROLES.marker[name])
-    .map(
-      ([name]) => `<tr>
-  <td>${esc(name)}</td>
-  <td class="num">有</td>
-</tr>`,
-    )
+    .map(([name]) => `<tr><td>${esc(name)}</td><td class="num">有</td></tr>`)
     .join("\n");
   const statRows = tags
     .filter(([name]) => !TAG_ROLES.marker[name])
@@ -107,26 +257,9 @@ function cardBody(record, modDir) {
   ${artInline(modDir, record.id, record.rare, record.name, record.type, fontFace().family) || '<div class="cardface">472 × 1028<br>卡面图放这里<br><span style="opacity:.6">只替换内部画面，边框由游戏画</span></div>'}
   <div class="grow">
     <div class="panel">
-      <div class="row"><div class="lbl">名字</div><div class="val">${esc(record.name)}</div></div>
-      <div class="row"><div class="lbl">副标题</div><div class="val">${esc(record.title || "（无）")}</div></div>
-      <div class="row"><div class="lbl">类别</div><div class="val">${esc(record.type)}</div></div>
-      <div class="row"><div class="lbl">稀有度</div><div class="val">${esc(record.rare)} · ${["石块", "铜", "银", "金"][record.rare - 1] || "?"}</div></div>
-      <div class="row"><div class="lbl">说明</div><div class="val" style="white-space:pre-wrap">${esc(record.text || "（无）")}</div></div>
-      <div class="row"><div class="lbl">可装备槽</div><div>${record.type === "char"
-        ? `<div class="val">${SLOTS.map((slot) => {
-            const n = (record.equips || []).filter((x) => x === slot).length;
-            return n ? `${esc(slot)} ×${n}` : "";
-          }).filter(Boolean).join("、") || "（无）"}</div>`
-        : `<div class="note" style="margin:0">这张卡不是角色，没有槽位。物品能不能穿、穿到哪，由标签决定：<b>装备</b>=1 加 <b>武器</b>/<b>服装</b>/<b>饰品</b>/<b>驯兽</b> 之一。</div>`}</div></div>
-      <div class="row"><div class="lbl">唯一</div><div class="val">${record.is_only ? "只能有一张" : "可以有多个"}</div></div>
+${body.rows}
     </div>
   </div>
-</div>
-
-<h2>画面 · 你想让图画成什么</h2>
-<div class="panel">
-<div class="note" style="margin-top:0">只写主体：画谁、画什么、什么神态。构图、风格、透明底这些我按游戏要求自动补，不用你管。</div>
-<div class="val" style="white-space:pre-wrap">${esc(subject)}</div>
 </div>
 
 <h2>标记 · 有或没有</h2>
@@ -147,11 +280,14 @@ ${statRows || '<tr><td colspan="3" style="color:#8a7a60">没有属性</td></tr>'
 <div class="note">标签用的是<b>中文显示名</b>，不是 code。改名会让引用它的所有条件失效。</div>
 </div>
 
-<h2>当前记录</h2>
+${body.tables}
+
+<h2>画面 · 这张图画成什么</h2>
 <div class="panel">
-<div><span class="pill">id ${esc(record.id)}</span><span class="pill">type ${esc(record.type)}</span><span class="pill">rare ${esc(record.rare)}</span><span class="pill">resource ${esc(Array.isArray(record.resource) ? record.resource.join(", ") : record.resource)}</span></div>
-<div class="note">名字在卡面上会被<b>宽度裁切</b>，长名字请写进说明。</div>
-</div>`;
+<div class="note" style="margin-top:0">只写主体：画谁、画什么、什么神态。构图、风格、透明底由生成配方补，不用写在这里。</div>
+<div class="val" style="white-space:pre-wrap">${esc(subject)}</div>
+</div>
+${unknownSection(body.unknown)}`;
 }
 
 /**
@@ -320,19 +456,10 @@ function nameFont(name) {
   return n <= 2 ? 56 : Math.min(46, Math.floor(200 / n));
 }
 
+/** A rite page: the fields as labels, the slot table, then the settlement branches. */
 function riteBody(record) {
-  const slots = Object.entries(record.cards_slot || {})
-    .map(([name, slot]) => {
-      const cond = slot.condition && Object.keys(slot.condition).length ? JSON.stringify(slot.condition) : "任意卡";
-      return `<tr>
-  <td><code>${esc(name)}</code></td>
-  <td>${esc(slot.text || "")}</td>
-  <td>${esc(cond)}</td>
-  <td class="num">${slot.is_empty ? "可空" : "必填"}</td>
-</tr>`;
-    })
-    .join("\n");
-
+  const body = recordBody("rite", record);
+  assertDescribed("rite", body.undescribed);
   const branches = (record.settlement || [])
     .map((b, i) => {
       const cond = b.condition && Object.keys(b.condition).length ? JSON.stringify(b.condition, null, 1) : "（无条件是兜底，必须放最后）";
@@ -349,20 +476,11 @@ function riteBody(record) {
   return `
 <h2>仪式</h2>
 <div class="panel">
-  <div class="row"><div class="lbl">名字</div><div class="val">${esc(record.name)}</div></div>
-  <div class="row"><div class="lbl">地点</div><div class="val">${esc(record.location)}</div></div>
-  <div class="row"><div class="lbl">持续回合</div><div class="val">${esc(record.round_number)}</div></div>
-  <div class="row"><div class="lbl">说明</div><div class="val" style="white-space:pre-wrap">${esc(record.text || "（无）")}</div></div>
+${body.rows}
 </div>
 <div class="note">地点格式必须是 <code>地区:[最小,最大]</code>。</div>
 
-<h2>槽位</h2>
-<div class="panel">
-<table>
-<tr><th>槽</th><th>提示文字</th><th>只接受</th><th>空缺</th></tr>
-${slots || '<tr><td colspan="4" style="color:#8a7a60">还没有槽位</td></tr>'}
-</table>
-</div>
+${body.tables}
 
 <h2>结果分支</h2>
 <div class="panel">
@@ -373,28 +491,23 @@ ${branches || '<div style="color:#8a7a60">还没有分支</div>'}
 <h2>当前记录</h2>
 <div class="panel">
 <div><span class="pill">id ${esc(record.id)}</span><span class="pill">mapping ${esc(record.mapping_id ?? "未设置")}</span><span class="pill">等待 ${esc(record.waiting_round)} 回合</span><span class="pill">${Object.keys(record.cards_slot || {}).length} 槽</span></div>
-</div>`;
+</div>
+${unknownSection(body.unknown)}`;
 }
 
 /**
- * An event page, in the shape the rite page already uses: the facts that matter, read-only
- * branch list, then the feedback box the player writes into.
- *
- * An event is not a rite: it has no slots and its settlement is a sequence, not a choice.
- * 1866 of 1867 events carry exactly one branch, and all matching branches run in order —
- * branching happens inside `action` (option / case:opN / success / failed).
+ * An event page. An event is not a rite: it has no slots, and its settlement is a sequence,
+ * not a choice — every branch runs, in order, and no branch condition is consulted.
  */
 function eventBody(record) {
-  const on = Object.entries(record.on || {})
-    .map(([k, v]) => `<span class="pill">${esc(k)} = ${esc(Array.isArray(v) ? v.join(", ") : v)}</span>`)
-    .join("") || '<span style="color:#8a7a60">没有触发</span>';
-  const cond = record.condition && Object.keys(record.condition).length ? JSON.stringify(record.condition) : "无条件";
+  const body = recordBody("event", record);
+  assertDescribed("event", body.undescribed);
   const branches = (record.settlement || [])
     .map((b, i) => {
       const ops = Object.keys(b.result || {});
       const act = Object.keys(b.action || {});
       return `<div class="branch">
-  <div class="when">第 ${i + 1} 条${b.condition && Object.keys(b.condition).length ? " · 有条件" : " · 无条件"}</div>
+  <div class="when">第 ${i + 1} 条${b.condition && Object.keys(b.condition).length ? " · 有条件（不会被执行）" : " · 无条件"}</div>
   <div><b>${esc(b.result_title || "（无标题）")}</b></div>
   <div style="color:#cfc0a2">${esc(b.result_text || "")}</div>
   <div class="note">结果：${ops.map((o) => `<code>${esc(o)}</code>`).join(" ") || "无"}</div>
@@ -406,31 +519,53 @@ function eventBody(record) {
   return `
 <h2>事件</h2>
 <div class="panel">
-  <div class="row"><div class="lbl">备注明</div><div class="val">${esc(record.text || "（无）")}</div></div>
-  <div class="row"><div class="lbl">触发</div><div>${on}</div></div>
-  <div class="row"><div class="lbl">条件</div><div><code>${esc(cond)}</code></div></div>
-  <div class="row"><div class="lbl">可重复</div><div class="val">${record.is_replay ? "每回合可以再触发" : "只触发一次"}</div></div>
-  <div class="row"><div class="lbl">启动即检查</div><div class="val">${record.start_trigger ? "一开始就检查条件" : "等时机到再检查"}</div></div>
+${body.rows}
 </div>
 <div class="note">事件的结算分支是<b>顺序全部执行</b>，不是首条命中。分支选择发生在 <code>action</code> 里（option / case:opN / success / failed）。</div>
+
+${body.tables}
 
 <h2>结算分支</h2>
 <div class="panel">
 ${branches || '<div style="color:#8a7a60">还没有分支</div>'}
 </div>
-
-<h2>当前记录</h2>
-<div class="panel">
-<div><span class="pill">id ${esc(record.id)}</span><span class="pill">${(record.settlement || []).length} 条分支</span><span class="pill">${Object.keys(record.on || {}).length} 个触发</span></div>
-</div>`;
+${unknownSection(body.unknown)}`;
 }
+
+/** The kinds this page knows how to lay out, in the order the CLI help lists them. */
+const PAGE_KINDS = ["card", "rite", "event", "loot", "quest", "over", "afterStory", "upgrade", "tag", "init"];
+
+/** Every other supported kind is a list of labelled fields plus whatever nests inside it. */
+function genericBody(kind, record) {
+  const body = recordBody(kind, record);
+  assertDescribed(kind, body.undescribed);
+  return `
+<h2>${esc(kind)}</h2>
+<div class="panel">
+${body.rows}
+</div>
+
+${body.tables}
+${unknownSection(body.unknown)}`;
+}
+
+function bodyFor(kind, record, modDir) {
+  if (kind === "card") return cardBody(record, modDir);
+  if (kind === "rite") return riteBody(record);
+  if (kind === "event") return eventBody(record);
+  return genericBody(kind, record);
+}
+
 
 function main() {
   const argv = process.argv.slice(2);
   const kind = argv[0];
   const args = parseArgs(argv.slice(1));
-  if (!["card", "rite", "event"].includes(kind) || !args.mod || !args.id) {
-    process.stderr.write("usage: node tools/page.mjs <card|rite|event> --mod <dir> --id <id> [--spec <file|->] [--out <file>]\n");
+  if (args.labels) useLabels(args.labels);
+  if (!PAGE_KINDS.includes(kind) || !args.mod || !args.id) {
+    process.stderr.write(
+      `usage: node tools/page.mjs <${PAGE_KINDS.join("|")}> --mod <dir> --id <id> [--spec <file|->] [--out <file>] [--labels <file>]\n`,
+    );
     return 2;
   }
   // Opening the editor is the moment the art is first needed, so that is when it is built.
@@ -466,8 +601,11 @@ function main() {
     }
     throw e;
   }
+  const idForTitle = record.id ?? args.id;
   const title =
-    kind === "card" ? record.name || `卡 ${record.id}` : kind === "rite" ? record.name || `仪式 ${record.id}` : `事件 ${record.id}`;
+    kind === "card" || kind === "rite"
+      ? record.name || `${kind} ${idForTitle}`
+      : record.name || record.title || `${kind} ${idForTitle}`;
   const mark = proposal ? "提案 · 尚未写入 mod · " : "";
   const sub =
     kind === "card"
@@ -475,11 +613,17 @@ function main() {
       : kind === "rite"
         ? `仪式 · id ${record.id} · ${Object.keys(record.cards_slot || {}).length} 个槽 · ${(record.settlement || []).length} 条结果`
         : `事件 · id ${record.id} · ${Object.keys(record.on || {}).length} 个触发 · ${(record.settlement || []).length} 条分支`;
-  const html = pageHtml({
-    title,
-    sub,
-    body: kind === "card" ? cardBody(record, mod.dir) : kind === "rite" ? riteBody(record) : eventBody(record),
-  });
+  let body;
+  try {
+    body = bodyFor(kind, record, mod.dir);
+  } catch (e) {
+    if (e instanceof ModelError) {
+      process.stdout.write(`FAIL  ${e.message}\n`);
+      return 1;
+    }
+    throw e;
+  }
+  const html = pageHtml({ title, sub, body });
   const out = args.out || path.join(mod.dir, ".preview", `${kind}-${args.id}.modpage.html`);
   mkdirSync(path.dirname(out), { recursive: true });
   writeFileSync(out, html);
