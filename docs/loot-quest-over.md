@@ -2,48 +2,6 @@
 
 一个 mod 还能提供四样东西：掉落表、任务、结局与后日谈。游戏读取这四种记录时，只读本文列出的字段。其他字段一律忽略。
 
-## 动手前要守的规则
-
-**一个 mod 提供的是数据。** mod 是一组 JSONC 数据文件，没有编译，没有脚本，也没有插件接口。游戏只从下面这份清单里读文件。这份清单是完整的。mod 少给哪一项，加载器就为哪一项写一行 `file not exists`。所以这份清单从任何一个 mod 的日志里都能读出来。
-
-```
-config/game.json          config/tag.json            config/cards.json
-config/init               config/over.json           config/rite
-config/event              config/loot                config/dt
-config/after_story        config/wizard              config/upgrade.json
-config/quest.json         config/rite_template       config/rite_template_mappings.json
-config/sfx_config.json    config/over_music_config.json
-config/sfx_npc_role_dub.json                         config/sfx_settle_card_new.json
-```
-
-下面这些文件游戏自己也读，但不可 mod。玩家要求改这些文件时，直接说作为 mod 做不到：
-
-`achievement.json` `credits.json` `gallery_cards.json` `gallery_cg.json` `imagestyle.json`
-`mobile_help.json` `textstyle.json` `ui.json` `variable.json`
-
-一个 mod 能提供的只有上面清单里的条目。只交一份文件很正常，也是对的。
-
-**表条目按 key 合并。** `cards.json`、`upgrade.json`、`tag.json`、`quest.json`、`over.json`、`rite_template_mappings.json` 与 `sfx_*` 文件都是字典。mod 里只写要新增或修改的那几条记录，其余条目留给原版。`tag.json` 的 key 是标签的 code 字符串，不是 `id`。
-
-**目录条目一个文件一条记录。** `event/`、`rite/`、`loot/`、`init/`、`rite_template/`、`after_story/`、`dt/` 与 `wizard/` 都是这种形状。新增一条记录就是新增一个文件。目录条目里，文件名必须等于 `id`。`rite` 这一条是关键的：游戏用 id 拼路径（字面量 `rite/{0}.json`），名字对不上的文件根本不会被读。其余目录在现存每一个 mod 里都是同样的行为。
-
-**改一条原版记录，要用整文件重述。** 目录条目没有字段级合并，所以改一条原版记录，等于把那个文件整份照抄过来再改。下一次游戏更新会挪动原版文件，后来的人必须能照着重新应用改动。
-
-**JSONC 规则。** 游戏读取器接受 `//`、`/* */`、尾逗号与 BOM。按原版的写法写。不要跑严格的 JSON 格式化器。也不要重排原版文件的排版：缩进、对齐、换行、空行都不要碰，只改要改的那个值。排版一变，diff 就变成整个文件，下一个游戏版本更新时无法对照。
-
-**重复键是追加，不是笔误。** `"event_on"` 写八十次就是加八十个事件：
-
-```jsonc
-"success": {
-    "event_on": [5300300, 5300301],
-    "event_on": 5300066
-}
-```
-
-这样写等于加三个事件。绝不要用 JSON 库把配置文件读成对象再写回：字典只保留最后一个值。`settlement` 数组是重复键出现的另一处，在 `result` 里面。
-
-**每个新 id 是自己的责任。** 挑 id 之前先查原版和每一个已安装的 mod：`node tools/lint.mjs --mod-root <ModRoot>` 两处都查。
-
 ## 掉落表
 
 掉落表是目录条目，位置是 `config/loot/<id>.json`，一个文件一张表。文件名必须等于 `id`。

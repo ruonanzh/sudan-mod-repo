@@ -1,7 +1,5 @@
 # 仪式
 
-一个 mod 只是数据：JSONC 文件，加 PNG 与音频。没有编译步骤，也没有代码。仪式是这类记录里的一种：玩家把卡放进仪式的槽位，仪式按这些卡结算。
-
 ## 写一个仪式
 
 ### 一条记录一个文件
@@ -20,21 +18,7 @@
 
 这份清单是完整的。mod 少给哪一项，加载器就为哪一项写一行 `file not exists`，所以任何一个 mod 的日志里都能读出这个集合。
 
-```text
-config/game.json          config/tag.json            config/cards.json
-config/init               config/over.json           config/rite
-config/event              config/loot                config/dt
-config/after_story        config/wizard              config/upgrade.json
-config/quest.json         config/rite_template       config/rite_template_mappings.json
-config/sfx_config.json    config/over_music_config.json
-config/sfx_npc_role_dub.json                         config/sfx_settle_card_new.json
-```
-
 一个 mod 只交一份 `config/rite/<id>.json` 很正常，也是对的。
-
-注意：游戏自己也读 `variable.json`、`ui.json` 这一类文件，但这些文件**不可 mod**。玩家要求改这些文件时，直接说作为 mod 做不到。不可 mod 的清单是 `achievement.json`、`credits.json`、`gallery_cards.json`、`gallery_cg.json`、`imagestyle.json`、`mobile_help.json`、`textstyle.json`、`ui.json`、`variable.json`。
-
-### JSONC 规则
 
 游戏的读取器接受 `//`、`/* */`、尾逗号与 BOM。按原版的写法写。
 
@@ -252,3 +236,4 @@ config/sfx_npc_role_dub.json                         config/sfx_settle_card_new.
 | `hand_have.<filter>` | 有一张卡在手上。带 `own`、`adherent` 或 `player` 标签的卡算在手上（`CardExtensions.IsHandCard`，字面量 `0x33796C8` / `0x3374D00` / `0x3379970`） |
 
 过滤器是一个 7 位卡 id 或一个标签名。两者都可以省掉。比较符写在键尾：`have.2000005.幽秘的爱意<`。前面加 `!` 或 `~` 对整个条件取反。
+

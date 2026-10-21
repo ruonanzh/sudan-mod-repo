@@ -11,55 +11,11 @@
 - 修改一条原版事件，先把原版那一份整份复制出来，再改要改的值。
 - mod 里只放你要动的那几条记录，其余记录归原版。
 
-表条目不一样。`config/cards.json`、`config/upgrade.json`、`config/tag.json`、`config/quest.json`、`config/over.json`、`config/rite_template_mappings.json` 与 `config/sfx_*` 都是字典。这些文件按 key 合并。表条目里只写你要新增或修改的那几条记录。
-
 ## 先读原版，再动原版
 
 原版数据是 mod 配置格式唯一完整的描述。开发者在原版文件里留了中文 `//` 注释，逐个解释字段。改一个事件之前，先读那个事件文件。
 
 `config/event/5300000.json` 是教学局的开场，也是一个事件最好的单一样例文件。这个文件就地写明了 `confirm`、`option`、`success` 与 `failed`，短写与长写两种形状并排给出。
-
-原版目录是本机的安装位置，随机器与平台变化。这份文档不写死原版目录的路径。`node tools/setup.mjs --check` 打印原版目录的路径。
-
-## JSONC 规则
-
-游戏的读取器在 JSON 之外还接受四样东西：`//` 注释、`/* */` 注释、尾逗号与 BOM。按原版的写法写。
-
-注意：**重复键是追加，不是笔误。** 同一个键写两次，读取器把两次的值都记下来：
-
-```jsonc
-"success": {
-    "event_on": [5300300, 5300301],
-    "event_on": 5300066
-}
-```
-
-这样写等于加三个事件。
-
-修改记录要按文本改。不要用 JSON 库把文件读成对象再写回。字典只保留最后一个值，两个 `event_on` 会合成一个。
-
-不要动排版。整份照抄原版文件时，保留原版的缩进、对齐与注释，只改你要改的那个值。也不要跑严格的 JSON 格式化器。
-
-## mod 能提供什么
-
-允许 mod 提供的 `config` 条目就是这份清单：
-
-```
-config/game.json          config/tag.json            config/cards.json
-config/init               config/over.json           config/rite
-config/event              config/loot                config/dt
-config/after_story        config/wizard              config/upgrade.json
-config/quest.json         config/rite_template       config/rite_template_mappings.json
-config/sfx_config.json    config/over_music_config.json
-config/sfx_npc_role_dub.json                         config/sfx_settle_card_new.json
-```
-
-这份清单少给哪一项，加载器就为哪一项写一行 `file not exists`。一个 mod 只交一份文件很正常，也是对的。
-
-下面这些文件游戏自己也读，但不可 mod。玩家要求改这些文件时，直接说作为 mod 做不到：
-
-`achievement.json` `credits.json` `gallery_cards.json` `gallery_cg.json` `imagestyle.json`
-`mobile_help.json` `textstyle.json` `ui.json` `variable.json`
 
 ## 一个事件文件
 
@@ -87,7 +43,7 @@ config/sfx_npc_role_dub.json                         config/sfx_settle_card_new.
 
 ## 字段清单从哪来
 
-每种节点类型的字段清单在 `schema/fields.json` 里。`tools/lint.mjs` 把 `schema/fields.json` 读作 `NODE_FIELDS`。这份清单从反编译出来的 `*_JsonHandler` 类型里读出，并且对着每一个随包文件核对过。节点没有注册的键永远不被读，所以 `node tools/lint.mjs` 把这种键报成 `UNKNOWN_FIELD`。逐键的证据是读取器序号、字段偏移与语料计数。这些证据写在设计仓的 `docs/sudan-game/fields/21-handler-keys.md`。
+每种节点类型的字段清单在 `schema/fields.json` 里。`tools/lint.mjs` 把 `schema/fields.json` 读作 `NODE_FIELDS`。
 
 `inspect_game_code` 读反编译出来的 dump。`action=search` 在 `dump.cs` 里找类型或成员。`action=type` 打印类型的字段、偏移、属性与签名。`action=body member=<name>` 打印那个方法的 ISIL 与反汇编。`action=strings` 搜字符串字面量。
 
@@ -152,3 +108,4 @@ dump 在 `~/.gamer-agent-pi/decompiled/sudan-mod-repo/`。这份 dump 覆盖游�
 ## `success` 与 `failed`
 
 `success` 与 `failed` 把 `confirm`、`option` 或骰子检定之后的分支包起来。`case:opN` 选第 N 个选项那一条分支。
+
