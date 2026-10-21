@@ -175,7 +175,7 @@ function laneLayout(cy, lanes, gap, headerH) {
     lane.keys.forEach(function (k) { nodes = nodes.union(cy.getElementById(k)); });
     // dagre needs the lane's own edges: a collection of bare nodes has no ranks to assign.
     var eles = nodes.union(nodes.edgesWith(nodes));
-    eles.layout({ name: "dagre", rankDir: "TB", nodeSep: 18, rankSep: 46, animate: false, fit: false, padding: 0 }).run();
+    eles.layout({ name: "dagre", rankDir: "TB", nodeSep: 26, rankSep: 84, animate: false, fit: false, padding: 0 }).run();
     var bb = eles.boundingBox();
     var dx = x - bb.x1, dy = headerH - bb.y1;
     nodes.forEach(function (n) { var p = n.position(); n.position({ x: p.x + dx, y: p.y + dy }); });
