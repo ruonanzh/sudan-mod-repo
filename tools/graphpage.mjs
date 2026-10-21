@@ -1,11 +1,27 @@
 #!/usr/bin/env node
 /**
- * graphpage.mjs — render the story graph as one page: a list on the left, a canvas on the
- * right, a category switcher in the top right, and a node that opens its own editor.
+ * graphpage.mjs — render the story graph as one page: a list on the left, the selected
+ * node's neighbourhood on the right, a category switcher in the top right, and a node that
+ * opens its own editor.
  *
  *   node tools/graphpage.mjs --out .preview/graph/graph.html [--mod your_mods/x]
  *
- * Positions are computed here, in Node, not in the browser: the canvas only reads them.
+ * The page draws with Cytoscape.js + dagre, inlined from tools/vendor/ so that it opens from
+ * `file://` with no network. Nothing is positioned here: the browser lays out the subgraph.
+ *
+ * Size and time, measured on the vanilla corpus (5490 nodes, 12148 edges, macOS, node 24):
+ *
+ *   graph.html         2 826 476 bytes = 2.70 MiB   (482 kB of it the two inlined libraries)
+ *   graph.detail.js   10 648 321 bytes = 10.16 MiB  (the panel's text, loaded on demand)
+ *   before the split    8 130 000 bytes = 7.76 MiB  one file, everything inline
+ *   build + write      ~1.77 s (buildGraph 1.72 s of it), page script compiles in 16 ms
+ *
+ * A depth-1 view draws ~60 nodes, so the picture is no longer what makes the file big: the
+ * panel's narration and rite branches are. They are 10.2 MiB and only ever read for one node,
+ * so they move to graph.detail.js next to the page, fetched when a panel first opens. A page
+ * copied without that file still draws and still opens panels; it says which file is missing.
+ * Open time in a browser cannot be measured from here; the 16 ms compile and the 23 ms it
+ * takes to read both files are the only numbers this side of the DOM can give.
  */
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import os from "node:os";
@@ -15,11 +31,45 @@ import { esc, pageHtml } from "./html.mjs";
 import { DEFAULT_VANILLA } from "./model.mjs";
 import { vanillaRequirement } from "./paths.mjs";
 
-const ROW_H = 26;
+const HERE = path.dirname(new URL(import.meta.url).pathname);
+
+/** The two UMD builds the page draws with. See tools/vendor/README.md for provenance. */
+const VENDOR = [
+  { file: "cytoscape.min.js", version: "3.34.4" },
+  { file: "cytoscape-dagre.min.js", version: "4.0.1" },
+];
+
+/**
+ * The vendored scripts, as text, to be inlined before the page's own script. A missing file is
+ * an installation error, not an empty graph: say which file and what to do about it.
+ */
+export function vendorScripts() {
+  return VENDOR.map((v) => {
+    const file = path.join(HERE, "vendor", v.file);
+    let text;
+    try {
+      text = readFileSync(file, "utf8");
+    } catch {
+      throw new Error(`missing tools/vendor/${v.file} (${v.version}). NEXT: restore it from tools/vendor/README.md, then re-run this tool.`);
+    }
+    // The whole point is inlining: a `</script>` inside the text would end the tag early.
+    if (/<\/script|<!--/i.test(text)) {
+      throw new Error(`tools/vendor/${v.file} contains a sequence that cannot be inlined. NEXT: re-download the file and check it is the dist build.`);
+    }
+    return { ...v, text };
+  });
+}
+
+/** The three script blocks a page needs, in load order: cytoscape, dagre, the page itself. */
+function scriptBlocks(pageScript) {
+  const libs = vendorScripts().map(
+    (v) => `<script>/* ${v.file.replace(".min.js", "")} ${v.version} (MIT) - tools/vendor/${v.file} */\n${v.text}\n</script>`
+  );
+  // A browser needs no id; the tests use it to pick the page's own script out of the three.
+  return libs.join("\n") + `\n<script id="pagejs">${pageScript}</script>\n`;
+}
+
 const EDGE_CAP = 40;
-const COL_W = 268;
-const VIEW_H = 880; // one screenful: the plan's "column height = one screen"
-const PER_COL = Math.floor(VIEW_H / ROW_H);
 
 /**
  * The group a node falls into on the canvas. Categories are for events (and, by majority vote,
@@ -28,54 +78,32 @@ const PER_COL = Math.floor(VIEW_H / ROW_H);
  */
 const groupOf = (n) => (n.t === "card" ? "card" : n.t === "rite" ? "rite" : n.t === "event" ? "other" : n.t);
 
-/** Assign a column and a y for every node, per category, in a stable order. */
-export function layout(g) {
-  const order = ["unused", "reputation", "ending", "guide", "achievement", "daily", "periodic", "other", "rite", "card", "loot", "quest", "over", "afterStory", "riteTemplate"];
-  const groups = new Map();
-  for (const n of g.nodes) {
-    const cat = n.cat || groupOf(n);
-    if (!groups.has(cat)) groups.set(cat, []);
-    groups.get(cat).push(n);
-  }
-  // deterministic grouping key inside a category, so the layout never jitters
-  const groupKey = (n) => {
-    if (n.t === "event") return String(n.id).slice(0, 5);
-    if (n.t === "rite") return String(Math.floor(Number(n.id) / 1000));
-    return n.t;
+/**
+ * The fields the panel needs and the drawing does not: narration, rite branches, the paragraph,
+ * the switches, the conditions. They are 10 MB of the corpus as JSON and are only ever read
+ * for the one node a reader opened, so they travel in their own file (graph.detail.js) and the page
+ * pulls that file in when a panel first opens. Splitting the difference here, in one place,
+ * is what keeps the two halves from drifiting.
+ */
+const DETAIL_FIELDS = ["nr", "dl", "ri", "fl", "on", "cond", "oc"];
+
+/** One node's detail, in the shape the panel reads. */
+function detailOf(n) {
+  return {
+    nr: n.nr || null,
+    dl: n.dl || null,
+    ri: n.ri || null,
+    fl: n.fl || null,
+    on: n.on || null,
+    cond: n.cond || null,
+    oc: n.oc || null,
   };
-  for (const [, list] of groups) {
-    list.sort((a, b) => (groupKey(a) < groupKey(b) ? -1 : groupKey(a) > groupKey(b) ? 1 : Number(a.id) - Number(b.id)));
-  }
-  const cats = [...groups.keys()].sort((a, b) => {
-    const ia = order.indexOf(a);
-    const ib = order.indexOf(b);
-    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b);
-  });
-  let col = 0;
-  for (const cat of cats) {
-    const list = groups.get(cat);
-    let i = 0;
-    let currentKey = null;
-    let used = PER_COL; // force a new column at the start of a category
-    for (const n of list) {
-      const key = groupKey(n);
-      if (key !== currentKey || used >= PER_COL) {
-        if (used >= PER_COL) {
-          col += key === currentKey ? 0 : 1;
-          used = 0;
-        }
-        currentKey = key;
-      }
-      n.col = col;
-      n.y = used * ROW_H;
-      used++;
-    }
-    col += 1; // a category always starts a fresh column
-  }
-  return g;
 }
 
-/** The payload the page needs: nodes and edges only, with labels in all four languages. */
+/**
+ * The payload the page carries: structure for every node (ids, labels in four languages,
+ * categories, badges) and every edge. No panel text: see DETAIL_FIELDS.
+ */
 export function payload(g) {
   const index = new Map(g.nodes.map((n, i) => [n.k, i]));
   return {
@@ -87,25 +115,15 @@ export function payload(g) {
       c: n.cat || groupOf(n),
       o: n.o,
       l: n.l,
-      x: (n.col || 0) * COL_W,
-      y: n.y || 0,
       ch: Boolean(n.chain),
       cs: n.compSize || 0,
       tr: n.tr || { en: false, ja: false, zhTW: false },
-      nr: n.nr || null,
       nt: n.note || "",
-      fl: n.fl || null,
-      ri: n.ri || null,
-      dl: n.dl || null,
-      on: n.on || null,
-      cond: n.cond || null,
-      oc: n.oc || null,
       b: (() => {
         const levels = (n.badges || []).map((x) => x.level);
         return levels.includes("FAIL") ? "FAIL" : levels.includes("WARN") ? "WARN" : levels.includes("INFO") ? "INFO" : null;
       })(),
       bm: (n.badges || []).map((x) => x.code),
-      d: 0,
     })),
     edges: g.edges.filter((e) => index.has(e.f) && index.has(e.t)).map((e) => [index.get(e.f), index.get(e.t), e.r]),
     counts: g.counts,
@@ -115,18 +133,76 @@ export function payload(g) {
   };
 }
 
+/** The panel's half of the graph, keyed by the node's index in payload().nodes. */
+export function detailPayload(g) {
+  const out = {};
+  g.nodes.forEach((n, i) => {
+    out[i] = detailOf(n);
+  });
+  return out;
+}
+
+/** graph.detail.js: one assignment, so the page can pull it in with a <script> tag. */
+export function detailScript(g) {
+  return (
+    "// graph.detail.js - the node panel's text for the story graph page. Generated by tools/graphpage.mjs.\n" +
+    "// Copy it beside graph.html; without it the page still draws, and panels say the file is missing.\n" +
+    `window.__GRAPH_DETAIL__ = ${JSON.stringify(detailPayload(g))};\n`
+  );
+}
+
+/** The name the detail file gets, derived from the page's own name: graph.html -> graph.detail.js */
+export function detailName(htmlPath) {
+  return path.basename(String(htmlPath)).replace(/\.html?$/i, "") + ".detail.js";
+}
 
 
-const SCRIPT = (payloadJson, editable) => `
+
+/**
+ * Lane layout, kept as source: the page is a string, so its layout has to be one too. Each
+ * lane runs its own dagre pass (top to bottom, the way the old columns read), then the whole
+ * lane slides along x. Lane titles ride above their band.
+ *
+ * Exported so the tests can run this exact source against a headless cytoscape: two
+ * implementations of "where does a node go" would drift apart, and the picture is the point.
+ */
+export const LANE_LAYOUT_JS = `
+function laneLayout(cy, lanes, gap, headerH) {
+  var x = 0;
+  lanes.forEach(function (lane) {
+    var nodes = cy.collection();
+    lane.keys.forEach(function (k) { nodes = nodes.union(cy.getElementById(k)); });
+    // dagre needs the lane's own edges: a collection of bare nodes has no ranks to assign.
+    var eles = nodes.union(nodes.edgesWith(nodes));
+    eles.layout({ name: "dagre", rankDir: "TB", nodeSep: 18, rankSep: 46, animate: false, fit: false, padding: 0 }).run();
+    var bb = eles.boundingBox();
+    var dx = x - bb.x1, dy = headerH - bb.y1;
+    nodes.forEach(function (n) { var p = n.position(); n.position({ x: p.x + dx, y: p.y + dy }); });
+    var head = cy.getElementById("lane:" + lane.cat);
+    if (head.length) head.position({ x: x + bb.w / 2, y: headerH - 26 });
+    x += bb.w + gap;
+  });
+  return x;
+}
+`;
+
+const SCRIPT = (payloadJson, editable, detailUrl) => `
 const DATA = ${payloadJson};
+// The panel's text (narration, branches, switches) lives in this file and is pulled in the
+// first time a node is opened: 10 MB on disk that a page drawing a neighbourhood never needs.
+const DETAIL_URL = ${JSON.stringify(detailUrl)};
 // A save must land in a mod, so the page needs to know whether one was named at startup.
 const EDITABLE = ${editable ? "true" : "false"};
-const ROW_H = ${ROW_H}, COL_W = ${COL_W}, EDGE_CAP = ${EDGE_CAP};
-const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+const EDGE_CAP = ${EDGE_CAP};
+const cyEl = document.getElementById("cy");
 const listEl = document.getElementById("list"), qEl = document.getElementById("q");
-const wrap = document.getElementById("cwrap"), spacer = document.getElementById("spacer");
-let lang = "zh", cat = null, chainOnly = false, zoom = 1, selected = null, showEdges = false;
-let nodes = [], cols = 0, per = 30;
+const capEl = document.getElementById("cap");
+let lang = "zh", cat = null, chainOnly = false, selected = null, depth = 1;
+// A lane is a column: gap between columns, headroom for the lane title above them.
+const LANE_GAP = 44, LANE_HEAD = 44;
+// The libraries are inlined ahead of this script and land on the window object. Without them
+// the list and the panel still work; only the drawing is missing, and the caption says so.
+const cytoscape = typeof window.cytoscape === "function" ? window.cytoscape : null;
 
 const CAT_COLOR = {
   unused: "#6b6257", reputation: "#b07a4a", ending: "#c96f5a", guide: "#7f9e8a",
@@ -179,10 +255,7 @@ function escHtml(s) {
   return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
-// ---------------------------------------------------------------- layout
-// One column is one screenful. The page keeps a real scrollbar by sizing a spacer to the
-// whole content and drawing only the visible slice onto a viewport-sized canvas: a 53 000 px
-// wide canvas was the reason the first version crawled.
+// ---------------------------------------------------------------- graph model
 // 仪式 and 事件 are not event categories: they cut the graph by node type, so a reader can
 // take all of one kind. Everything else compares against the category the layout used.
 function inCat(n) {
@@ -196,137 +269,355 @@ function visible() {
   return DATA.nodes.filter((n) => inCat(n) && (!chainOnly || n.ch));
 }
 
-function relayout() {
-  nodes = visible();
-  per = Math.max(6, Math.floor(wrap.clientHeight / ROW_H));
-  nodes.forEach((n, i) => {
-    n.vx = Math.floor(i / per) * COL_W;
-    n.vy = (i % per) * ROW_H;
-  });
-  cols = Math.ceil(nodes.length / per) || 1;
-  spacer.style.width = Math.round(cols * COL_W * zoom) + "px";
-  spacer.style.height = Math.round(Math.max(per * ROW_H, 320) * zoom) + "px";
-  draw();
-}
-
+// The page walks the graph itself: an inline script cannot import tools/graph.mjs, and the
+// depth control recomputes the walk on every move. tools/graph.mjs carries the same rules
+// (neighbours / subgraph) for Node — change one and change the other.
 const byKey = new Map(DATA.nodes.map((n) => [n.k, n]));
-const OUT = new Map(), IN = new Map();
-DATA.edges.forEach(([a, b, r]) => {
-  const ka = DATA.nodes[a].k, kb = DATA.nodes[b].k;
-  if (!OUT.has(ka)) OUT.set(ka, []);
-  if (!IN.has(kb)) IN.set(kb, []);
-  OUT.get(ka).push([kb, r]);
-  IN.get(kb).push([ka, r]);
-});
+const idxOf = new Map(DATA.nodes.map((n, i) => [n.k, i]));
 
-let frame = 0;
-function schedule() {
-  if (frame) return;
-  frame = requestAnimationFrame(() => { frame = 0; draw(); });
+// ---------------------------------------------------------------- panel text on demand
+// The page is one file plus graph.detail.js. A page copied without it still draws and still
+// opens a panel; the panel then says which file is missing instead of going blank.
+let detailState = "idle"; // idle | loading | ready | missing
+const detailWaiters = [];
+
+function graphDetail() {
+  const d = window.__GRAPH_DETAIL__;
+  return d && typeof d === "object" ? d : null;
 }
 
+function detailOf(key) {
+  const d = graphDetail();
+  const i = idxOf.get(key);
+  return d && i != null && d[i] ? d[i] : {};
+}
+
+// The node as the panel wants it: what the page carries, plus what the detail file has.
+function nodeOf(key) {
+  const core = byKey.get(key);
+  return core ? Object.assign({}, core, detailOf(key)) : null;
+}
+
+function missingDetailText() {
+  return "没有找到 " + DETAIL_URL + "，这一页只画了结构和连线。把 " + DETAIL_URL + " 和页面放在同一个目录，描述、结算分支和开关就会出现。";
+}
+
+function ensureDetail(done) {
+  if (graphDetail()) {
+    detailState = "ready";
+    return done(true);
+  }
+  if (detailState === "missing") return done(false);
+  detailWaiters.push(done);
+  if (detailState === "loading") return;
+  detailState = "loading";
+  const tag = document.createElement("script");
+  tag.src = DETAIL_URL;
+  tag.onload = () => {
+    const ok = Boolean(graphDetail());
+    detailState = ok ? "ready" : "missing";
+    if (!ok && window.console) console.warn(DETAIL_URL + " loaded but defines no window.__GRAPH_DETAIL__; panels show structure only.");
+    detailWaiters.splice(0).forEach((fn) => fn(ok));
+  };
+  tag.onerror = () => {
+    detailState = "missing";
+    if (window.console) console.warn(DETAIL_URL + " is not next to the page; panels show structure only. Copy it beside the page.");
+    detailWaiters.splice(0).forEach((fn) => fn(false));
+  };
+  document.head.appendChild(tag);
+}
+
+// Adjacency is built at the first draw, not at load: 12 000 edges are the price of a picture
+// nobody has asked for yet.
+let adjCache = null;
+function adj() {
+  if (adjCache) return adjCache;
+  const out = new Map(), inc = new Map();
+  DATA.edges.forEach(([a, b, r]) => {
+    if (!out.has(a)) out.set(a, []);
+    if (!inc.has(b)) inc.set(b, []);
+    out.get(a).push([b, r]);
+    inc.get(b).push([a, r]);
+  });
+  adjCache = { out: out, inc: inc };
+  return adjCache;
+}
+
+const DEPTH_MIN = 1, DEPTH_MAX = 5;
+function clampDepth(d) {
+  const n = Math.round(Number(d));
+  return Number.isFinite(n) ? Math.min(DEPTH_MAX, Math.max(DEPTH_MIN, n)) : DEPTH_MIN;
+}
+
+// The walk behind one selection: breadth first, both directions, depth hops out. A page
+// cannot import, so this is the browser half of tools/graph.mjs subgraph(); the two must
+// clamp, walk and sort the same way.
+function walkFrom(key, d) {
+  const start = idxOf.get(key);
+  const dep = clampDepth(d);
+  const hops = new Map();
+  if (start == null) return { centre: -1, depth: dep, hops: hops };
+  hops.set(start, 0);
+  let frontier = [start];
+  const a = adj();
+  for (let step = 1; step <= dep && frontier.length; step++) {
+    const next = [];
+    for (const i of frontier) {
+      for (const [to] of (a.out.get(i) || []).concat(a.inc.get(i) || [])) {
+        if (hops.has(to)) continue;
+        hops.set(to, step);
+        next.push(to);
+      }
+    }
+    frontier = next;
+  }
+  return { centre: start, depth: dep, hops: hops };
+}
+
+// A lane is a category. The order is fixed, so the same node lands in the same column on
+// every redraw and a reader can learn where to look.
+const LANE_ORDER = ["unused", "reputation", "ending", "guide", "achievement", "daily", "periodic", "other", "rite", "card", "loot", "quest", "over", "afterStory", "riteTemplate"];
+const laneName = (c) => CAT_NAME[c] || KIND_NAME[c] || c;
+
+// When a hub has more edges than the cap, the strongest relations are the ones worth ink.
+const REL_WEIGHT = (r) => (String(r).indexOf("trigger.") === 0 ? 3 : String(r).indexOf("action.") === 0 ? 2 : String(r).indexOf("condition.") === 0 ? 1 : 0);
+
+// EDGE_CAP is per node, not per graph: 俺寻思 has 59 references and drawing all of them turns
+// the picture into a cat's cradle. What did not fit is counted on the node as +N.
+function clampEdges(list) {
+  const degree = new Map(), over = new Map(), kept = [];
+  list
+    .slice()
+    .sort((x, y) => REL_WEIGHT(y[2]) - REL_WEIGHT(x[2]) || x[0] - y[0] || x[1] - y[1])
+    .forEach((e) => {
+      const a = e[0], b = e[1];
+      if ((degree.get(a) || 0) >= EDGE_CAP || (degree.get(b) || 0) >= EDGE_CAP) {
+        over.set(a, (over.get(a) || 0) + 1);
+        over.set(b, (over.get(b) || 0) + 1);
+        return;
+      }
+      degree.set(a, (degree.get(a) || 0) + 1);
+      degree.set(b, (degree.get(b) || 0) + 1);
+      kept.push(e);
+    });
+  return { kept: kept, over: over };
+}
+
+function nodeLabel(n, over) {
+  const text = n.id + "  " + dispLabel(n);
+  return over ? text + "  +" + over : text;
+}
+
+// Every relation as the node's own neighbour list, in the shape the panel reads.
+function outOf(key) {
+  const i = idxOf.get(key);
+  return (adj().out.get(i) || []).map(([j, r]) => [DATA.nodes[j].k, r]);
+}
+function inOf(key) {
+  const i = idxOf.get(key);
+  return (adj().inc.get(i) || []).map(([j, r]) => [DATA.nodes[j].k, r]);
+}
+
+// ---------------------------------------------------------------- renderer
+// curve-style: taxi is the point of the library choice: a layered graph draws its edges as
+// right-angled runs instead of a pile of bezier curves.
+const CY_STYLE = [
+  {
+    selector: "node",
+    style: {
+      "background-color": "data(fill)",
+      "border-width": 1,
+      "border-color": "#57452c",
+      shape: "round-rectangle",
+      width: 150,
+      height: 30,
+      label: "data(label)",
+      "font-family": 'ui-monospace, Menlo, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", monospace',
+      "font-size": 11,
+      color: "#d7c9ab",
+      "text-valign": "center",
+      "text-halign": "center",
+      "text-wrap": "wrap",
+      "text-max-width": 138,
+      "text-overflow-wrap": "anywhere",
+      "text-background-color": "#1d1710",
+      "text-background-opacity": 0.9,
+      "text-background-padding": 3,
+      "text-background-shape": "roundrectangle",
+      "overlay-opacity": 0,
+    },
+  },
+  { selector: "node.centre", style: { "border-width": 3, "border-color": "#c9a227", "background-color": "#3a2f1e", color: "#fff4d0", "font-size": 13, width: 180, "z-index": 20 } },
+  { selector: "node.hot", style: { "border-width": 2, "border-color": "#e0c46a", color: "#fff4d0" } },
+  { selector: "node.dim", style: { opacity: 0.3 } },
+  {
+    selector: "node.lane",
+    style: {
+      "background-opacity": 0,
+      "border-width": 0,
+      shape: "round-rectangle",
+      width: 170,
+      height: 24,
+      "font-size": 13,
+      color: "#c9a227",
+      "text-halign": "center",
+      "text-valign": "center",
+      "text-wrap": "none",
+      "text-background-opacity": 0,
+      "overlay-opacity": 0,
+    },
+  },
+  {
+    selector: "edge",
+    style: {
+      "curve-style": "taxi",
+      "taxi-direction": "vertical",
+      "taxi-turn": "50%",
+      "taxi-turn-min-distance": 8,
+      "line-color": "#5a4a33",
+      width: 1.2,
+      "target-arrow-shape": "triangle",
+      "target-arrow-color": "#8a7a60",
+      "arrow-scale": 0.8,
+      label: "data(rel)",
+      "font-size": 9,
+      color: "#9a8d78",
+      "text-rotation": "autorotate",
+      "text-background-color": "#17120c",
+      "text-background-opacity": 0.85,
+      "text-background-padding": 1,
+      "text-margin-y": -3,
+      "overlay-opacity": 0,
+    },
+  },
+  { selector: "edge.hotedge", style: { "line-color": "#c9a227", "target-arrow-color": "#c9a227", width: 2.2, "z-index": 10 } },
+  { selector: "node:selected", style: { "border-width": 3, "border-color": "#c9a227" } },
+];
+
+let cy = null;
+function renderer() {
+  if (cy || !cytoscape) return cy;
+  cy = cytoscape({
+    container: cyEl,
+    style: CY_STYLE,
+    elements: [],
+    minZoom: 0.1,
+    maxZoom: 2.5,
+    boxSelectionEnabled: false,
+    selectionType: "single",
+  });
+  // A click on a node is the same gesture as a row in the list: select, draw, open the panel.
+  cy.on("tap", "node", (e) => {
+    const k = e.target.data("k");
+    if (k) focusNode(k);
+  });
+  // Hover says which lines belong to the node under the pointer; a hub owns dozens.
+  cy.on("mouseover", "node", (e) => {
+    const n = e.target;
+    if (n.data("isLane")) return;
+    n.addClass("hot");
+    n.connectedEdges().addClass("hotedge");
+  });
+  cy.on("mouseout", "node", (e) => {
+    e.target.removeClass("hot");
+    e.target.connectedEdges().removeClass("hotedge");
+  });
+  return cy;
+}
+
+// What one selection draws: the elements, and the node and edge sets they came from.
+function graphElements(key, d) {
+  const walk = walkFrom(key, d);
+  // Both ends inside the walk: an edge to a node that is not drawn hangs in the air.
+  const within = DATA.edges.filter(([a, b]) => walk.hops.has(a) && walk.hops.has(b));
+  const capped = clampEdges(within);
+  const idxs = [...walk.hops.keys()].sort((x, y) => x - y);
+  const lanes = lanesOf(idxs);
+  const elements = [];
+  // 结局 is both an event category and the over table's own name, so a title that repeats
+  // carries the raw key: a reader must be able to tell the two columns apart.
+  const titles = lanes.map((l) => laneName(l.cat));
+  for (const lane of lanes) {
+    const title = laneName(lane.cat);
+    const named = titles.filter((t) => t === title).length > 1 ? title + " (" + lane.cat + ")" : title;
+    elements.push({ data: { id: "lane:" + lane.cat, isLane: true, c: lane.cat, fill: "#2c241c", label: named + " · " + lane.idxs.length } });
+  }
+  for (const lane of lanes) {
+    for (const i of lane.idxs) {
+      const n = DATA.nodes[i];
+      const over = capped.over.get(i) || 0;
+      elements.push({ data: { id: n.k, k: n.k, c: lane.cat, fill: CAT_COLOR[lane.cat] || "#8a7a60", label: nodeLabel(n, over), over: over } });
+    }
+  }
+  // An edge label per line is readable on a neighbourhood and noise on a crowd.
+  const labelEdges = capped.kept.length <= 60;
+  for (const [a, b, r] of capped.kept) {
+    elements.push({ data: { id: "edge:" + a + ">" + b + ">" + r, source: DATA.nodes[a].k, target: DATA.nodes[b].k, rule: r, rel: labelEdges ? REL_OUT[r] || r : "" } });
+  }
+  return {
+    walk: walk,
+    nodes: idxs.map((i) => DATA.nodes[i].k),
+    edges: capped.kept,
+    lanes: lanes.map((l) => ({ cat: l.cat, keys: l.idxs.map((i) => DATA.nodes[i].k) })),
+    elements: elements,
+  };
+}
+
+/** The lanes of one walk: one per category, in the fixed order, each a column of nodes. */
+function lanesOf(idxs) {
+  const by = new Map();
+  for (const i of idxs) {
+    const c = DATA.nodes[i].c || "other";
+    if (!by.has(c)) by.set(c, []);
+    by.get(c).push(i);
+  }
+  return [...by.keys()]
+    .sort((a, b) => {
+      const ia = LANE_ORDER.indexOf(a), ib = LANE_ORDER.indexOf(b);
+      return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || String(a).localeCompare(String(b));
+    })
+    .map((c) => ({ cat: c, idxs: by.get(c) }));
+}
+
+// How a node is named in a caption. Same spelling as the list row: id, then the label.
+function labelOf(key) {
+  const n = byKey.get(key);
+  return n ? n.id + " " + dispLabel(n) : key;
+}
+
+let lastGen = null;
+
+// The one entry point: take the selection's subgraph, and hand it to the renderer.
 function draw() {
-  const w = wrap.clientWidth, h = wrap.clientHeight;
-  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
-  const sx = wrap.scrollLeft, sy = wrap.scrollTop;
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.clearRect(0, 0, w, h);
-  ctx.setTransform(zoom, 0, 0, zoom, -sx, -sy);
-  ctx.font = (zoom < 0.7 ? "11px" : "12px") + " ui-monospace, Menlo, monospace";
-  ctx.textBaseline = "middle";
-
-  // The visible slice is a contiguous run: node i sits in column floor(i/per). Slicing beats
-  // filtering 6601 nodes on every scroll frame.
-  const firstCol = Math.max(0, Math.floor(sx / zoom / COL_W) - 1);
-  const lastCol = Math.floor((sx + w) / zoom / COL_W) + 1;
-  const from = Math.min(nodes.length, firstCol * per);
-  const to = Math.min(nodes.length, (lastCol + 1) * per);
-  const shown = nodes.slice(from, to);
-
-  // Edges: the selected node's own lines, or every line when the reader asks for them.
-  // Only both-ends-on-screen edges are drawn, and a hub is capped: 俺寻思 has 59 references
-  // and drawing all of them turns the page into a cat's cradle.
-  if (showEdges || selected) {
-    const visible = new Set(shown);
-    const curve = (from, to, colour) => {
-      const ax = from.vx + COL_W - 24, ay = from.vy + ROW_H / 2;
-      const bx = to.vx, by = to.vy + ROW_H / 2;
-      const mid = (ax + bx) / 2;
-      ctx.strokeStyle = colour;
-      ctx.beginPath();
-      ctx.moveTo(ax, ay);
-      ctx.bezierCurveTo(mid, ay, mid, by, bx, by);
-      ctx.stroke();
-    };
-    ctx.lineWidth = 1 / zoom;
-    if (selected) {
-      const self = byKey.get(selected);
-      let n = 0;
-      if (self && visible.has(self)) {
-        for (const [to] of OUT.get(selected) || []) {
-          const b = byKey.get(to);
-          if (!b || !visible.has(b) || n >= EDGE_CAP) continue;
-          curve(self, b, "rgba(201,162,39,0.5)"); n++;
-        }
-        for (const [from] of IN.get(selected) || []) {
-          const a = byKey.get(from);
-          if (!a || !visible.has(a) || n >= EDGE_CAP) continue;
-          curve(a, self, "rgba(151,196,255,0.5)"); n++;
-        }
-      }
-    } else if (showEdges) {
-      for (const [from, list] of OUT) {
-        const a = byKey.get(from);
-        if (!a || !visible.has(a)) continue;
-        for (const [to] of list) {
-          const b = byKey.get(to);
-          if (!b || !visible.has(b)) continue;
-          curve(a, b, "rgba(201,162,39,0.18)");
-        }
-      }
-    }
-  }
-
-  // column headers: the category every column belongs to
-  let lastCat = null;
-  for (const n of shown) {
-    if (n.vx !== lastColOfCat(n) && n.vy > 0) continue;
-    void n;
-  }
-  for (const n of shown) {
-    if (n.vy !== 0) continue;
-    ctx.fillStyle = "#8a7a60";
-    ctx.fillText((CAT_NAME[n.c] || KIND_NAME[n.c] || n.c) + " · " + n.id, n.vx, n.vy - 12);
-  }
-
-  const maxW = COL_W - 46;
-  for (const n of shown) {
-    const hot = selected === n.k;
-    if (hot) {
-      ctx.fillStyle = "rgba(201,162,39,0.16)";
-      ctx.fillRect(n.vx, n.vy + 1, COL_W - 10, ROW_H - 2);
-    }
-    ctx.fillStyle = hot ? "#c9a227" : CAT_COLOR[n.c] || "#8a7a60";
-    ctx.fillRect(n.vx, n.vy + 6, 3, ROW_H - 12);
-    ctx.fillStyle = hot ? "#fff4d0" : n.o === "mod" ? "#ffd9a0" : "#d7c9ab";
-    // Trim to the column, by measured width: a fixed character count still overflows
-    // because a Chinese glyph is twice as wide as a digit.
-    const text = dispLabel(n);
-    let label = n.id + "  " + text;
-    while (label.length > 4 && ctx.measureText(label).width > maxW) label = label.slice(0, -2);
-    if (label !== n.id + "  " + text) label += "…";
-    ctx.fillText(label, n.vx + 10, n.vy + ROW_H / 2);
-    if (n.o === "mod") { ctx.fillStyle = "#c9a227"; ctx.fillText("mod", n.vx + 214, n.vy + ROW_H / 2); }
-    if (n.b) {
-      ctx.fillStyle = n.b === "FAIL" ? "#b4543f" : n.b === "WARN" ? "#c9a227" : "#7f9e8a";
-      ctx.beginPath();
-      ctx.arc(n.vx + 250, n.vy + ROW_H / 2, 3.5, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
+  const gen = selected ? graphElements(selected, depth) : null;
+  lastGen = gen;
+  // The caption is the page's own record of what is on screen, so it is written even when
+  // the renderer is missing: then the numbers still say what would have been drawn.
+  capEl.textContent = gen
+    ? "以 " + labelOf(selected) + " 为中心 · " + gen.walk.depth + " 层 · " + gen.nodes.length + " 个节点"
+    : "点左边或图上的节点，从这里开始画";
+  const live = renderer();
+  if (!live) return gen;
+  live.elements().remove();
+  if (!gen) return gen;
+  live.add(gen.elements);
+  laneLayout(live, gen.lanes, LANE_GAP, LANE_HEAD);
+  live.getElementById(selected).addClass("centre");
+  markFilter();
+  live.fit(undefined, 40);
+  live.center(live.getElementById(selected));
+  return gen;
 }
 
-function lastColOfCat() { return -1; }
+// The pill and the checkboxes narrow what the reader is looking for; they fade the other
+// lanes instead of removing them, because an edge to a node that is not drawn hangs in the air.
+function markFilter() {
+  if (!cy) return;
+  cy.nodes().forEach((n) => {
+    const rec = byKey.get(n.data("k"));
+    if (rec) n.toggleClass("dim", !inCat(rec));
+  });
+}
 
 // What a node is called on the canvas, in the list and in a link. An event's designer note is
 // the name the panel prints, so the same string is used here: a row must read like the page it
@@ -357,19 +648,13 @@ function listRows() {
   document.getElementById("count").textContent = rows.length + " / " + DATA.nodes.length;
 }
 
+// One gesture, one place: a row, a drawn node and a link in the panel all land here.
 function focusNode(key) {
+  if (!byKey.has(key)) return;
   selected = key;
-  const n = byKey.get(key);
-  if (n && nodes.includes(n)) {
-    wrap.scrollTo({
-      left: Math.max(0, n.vx * zoom - wrap.clientWidth / 2),
-      top: Math.max(0, n.vy * zoom - wrap.clientHeight / 2),
-      behavior: "smooth",
-    });
-  }
-  window.__openNode(key);
+  draw();
   listRows();
-  schedule();
+  window.__openNode(key);
 }
 
 function cats() {
@@ -388,7 +673,7 @@ function cats() {
     " <b>" + n + "</b></button>"
   ).join("");
   box.querySelectorAll("button").forEach((b) => {
-    b.onclick = () => { cat = b.dataset.c || null; cats(); listRows(); relayout(); };
+    b.onclick = () => { cat = b.dataset.c || null; cats(); listRows(); markFilter(); };
   });
 }
 
@@ -615,8 +900,8 @@ function riteFacts(n) {
 }
 
 function panelHtml(n) {
-  const out = (OUT.get(n.k) || []).slice(0, 30);
-  const inc = (IN.get(n.k) || []).slice(0, 30);
+  const out = outOf(n.k).slice(0, 30);
+  const inc = inOf(n.k).slice(0, 30);
   const nb = descBlock(n);
   const title = dispLabel(n);
   const sec = (t, body) => "<h3>" + escHtml(t) + "</h3>" + body;
@@ -764,15 +1049,17 @@ async function fillSource(key) {
 }
 
 window.__openNode = (key) => {
-  const n = byKey.get(key);
-  if (!n) return;
+  if (!byKey.has(key)) return;
+  ensureDetail((ok) => {
   const box = document.getElementById("modal-body");
   // Left: what the node says now. Right: the file it says it in, so a change can be read
   // beside the current values instead of across two views.
   if (box.classList) box.classList.add("wide");
   box.innerHTML =
     '<div class="editsplit">' +
-    '<div class="editview" id="panelview">' + panelHtml(n) + "</div>" +
+    '<div class="editview" id="panelview">' +
+    (ok ? "" : '<div class="note bad">' + escHtml(missingDetailText()) + "</div>") +
+    panelHtml(nodeOf(key)) + "</div>" +
     '<div class="editsrc" id="srcpane"></div>' +
     "</div>";
   const modal = document.getElementById("modal");
@@ -788,34 +1075,41 @@ window.__openNode = (key) => {
     };
   });
   fillSource(key);
+  });
 };
 
 // ---------------------------------------------------------------- wiring
 document.onkeydown = (e) => { if (e.key === "Escape") document.getElementById("modal").hidden = true; };
 qEl.oninput = listRows;
-document.getElementById("chain").onchange = (e) => { chainOnly = e.target.checked; listRows(); relayout(); };
-document.getElementById("lang").onchange = (e) => { lang = e.target.value; listRows(); draw(); };
-document.getElementById("edges").onchange = (e) => { showEdges = e.target.checked; schedule(); };
-wrap.onscroll = schedule;
-window.onresize = relayout;
-cv.onwheel = (e) => {
-  e.preventDefault();
-  const next = Math.min(2, Math.max(0.4, zoom * (e.deltaY < 0 ? 1.1 : 0.9)));
-  if (next === zoom) return;
-  zoom = next;
-  document.getElementById("z").textContent = Math.round(zoom * 100) + "%";
-  relayout();
+document.getElementById("chain").onchange = (e) => { chainOnly = e.target.checked; listRows(); };
+// Same selection, wider walk: the depth control never changes what is centred.
+document.getElementById("depth").onchange = (e) => { depth = clampDepth(e.target.value); draw(); };
+// The label is data in cytoscape, so a language switch rewrites it instead of relaying out.
+document.getElementById("lang").onchange = (e) => {
+  lang = e.target.value;
+  if (cy) cy.nodes().forEach((n) => { const i = idxOf.get(n.data("k")); if (i != null) n.data("label", nodeLabel(DATA.nodes[i], n.data("over") || 0)); });
+  listRows();
 };
-cv.onclick = (e) => {
-  const x = (e.offsetX + wrap.scrollLeft) / zoom, y = (e.offsetY + wrap.scrollTop) / zoom;
-  const hit = nodes.find((n) => x >= n.vx && x < n.vx + COL_W && y >= n.vy && y < n.vy + ROW_H);
-  if (hit) { selected = hit.k; listRows(); window.__openNode(hit.k); schedule(); }
-};
-cats(); listRows(); relayout();
+cats(); listRows(); draw();
+
+// The lane layout is shared source: the page and the tests run the same text.
+${LANE_LAYOUT_JS}
+
+// The page's script is one string, so a test can only meet it here: the state a click leaves
+// behind, and the elements that click built. Both are read-only views of the same draw().
+window.__graphState = () => ({
+  selected: selected,
+  depth: depth,
+  caption: capEl.textContent,
+  nodes: lastGen ? lastGen.nodes : [],
+  edges: lastGen ? lastGen.edges : [],
+});
+window.__elements = () => (lastGen ? lastGen.elements : []);
+window.__select = (key) => focusNode(key);
 window.__draw = draw;
 `;
 
-export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable = true, modNote = "" } = {}) {
+export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable = true, modNote = "", detailUrl = "graph.detail.js" } = {}) {
   const body = `
 <div class="gwrap">
   <div class="gtop">
@@ -824,20 +1118,20 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
       <span class="ctl">
         <input id="q" type="text" placeholder="搜索 ID / 名字 / 任意语言">
         <label><input id="chain" type="checkbox"> 只看剧情链</label>
-        <label><input id="edges" type="checkbox"> 显示全部连线</label>
+        <label>层数 <select id="depth"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label>
         <select id="lang">
           <option value="zh">简中</option><option value="en">en</option><option value="ja">ja</option><option value="zhTW">zhTW</option>
         </select>
-        <span id="z" class="note" style="margin:0">100%</span>
       </span>
     </div>
     <span id="cats" class="cats"></span>
   </div>
   <div class="gmain">
     <div class="glist" id="list"></div>
-    <div class="gcanvas" id="cwrap"><div id="spacer"></div><canvas id="cv"></canvas></div>
+    <div class="gcanvas"><div id="cy"></div></div>
   </div>
-  <div class="note">滚轮缩放 40%–200%，点节点打开编辑页。<span id="count"></span></div>
+  <div class="note" id="cap">点左边或图上的节点，从这里开始画</div>
+  <div class="note">滚轮缩放、拖动平移，点节点打开编辑页。<span id="count"></span></div>
 </div>
 <div id="modal" class="modal" hidden><div class="modal-body" id="modal-body"></div></div>
 `;
@@ -855,9 +1149,8 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
 .glist .row:hover { background: #35291c; }
 .glist .id { color: var(--dim); font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
 .glist .nm { font-size: 13px; }
-.gcanvas { overflow: auto; border: 1px solid var(--rule); background: #17120c; position: relative; }
-.gcanvas canvas { position: sticky; top: 0; left: 0; display: block; }
-#spacer { position: absolute; top: 0; left: 0; }
+.gcanvas { border: 1px solid var(--rule); background: #17120c; position: relative; min-height: 0; }
+#cy { position: absolute; inset: 0; }
 .row.sel { background: #3a2f1e; }
 .row.sel .id { color: var(--gold); }
 .toless { color: #7a6f5e; font-size: 10px; border: 1px solid #4a4238; border-radius: 2px; padding: 0 3px; margin-left: 4px; }
@@ -900,7 +1193,7 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
 .editsrc .src .dead i { color: #b4543f; font-style: normal; }
 @media (max-width: 900px) { .editsplit { grid-template-columns: 1fr; } .editview { border-right: 0; padding-right: 0; } }
 `;
-  // The script goes after the shell: it reads DOM ids that only exist once the body is parsed.
+  // The scripts go after the shell: they read DOM ids that only exist once the body is parsed.
   return (
     pageHtml({
       title,
@@ -908,7 +1201,7 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
       body,
       wide: true,
       extraCss: css,
-    }) + `<script>${SCRIPT(JSON.stringify(payload(g)), editable)}</script>\n`
+    }) + scriptBlocks(SCRIPT(JSON.stringify(payload(g)), editable, detailUrl))
   );
 }
 
@@ -922,6 +1215,24 @@ function parseArgs(argv) {
   }
   return out;
 }
+
+/**
+ * Write the page and the panel's detail file beside it. Both are needed for a complete page;
+ * the page alone still draws and still opens panels, and says which file is missing.
+ */
+export function writePage(g, outPath, opts = {}) {
+  const file = path.resolve(String(outPath).replace(/^~/, os.homedir()));
+  const detail = path.join(path.dirname(file), detailName(file));
+  mkdirSync(path.dirname(file), { recursive: true });
+  const html = renderPage(g, { ...opts, detailUrl: detailName(file) });
+  const script = detailScript(g);
+  writeFileSync(file, html);
+  writeFileSync(detail, script);
+  // Bytes, not characters: the page is full of CJK, where the two differ by a factor of three.
+  return { file, bytes: Buffer.byteLength(html), detail, detailBytes: Buffer.byteLength(script) };
+}
+
+const megabytes = (n) => (n / 1048576).toFixed(2) + " MB";
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
@@ -938,11 +1249,11 @@ function main() {
     return 1;
   }
   const g = buildGraph({ configDir: requirement.dir, modDir: args.modDir });
-  const html = renderPage(g);
-  const file = path.resolve(String(args.out).replace(/^~/, os.homedir()));
-  mkdirSync(path.dirname(file), { recursive: true });
-  writeFileSync(file, html);
-  process.stdout.write(`PASS  wrote ${file}  (${(html.length / 1048576).toFixed(1)} MB, ${g.nodes.length} nodes)\n`);
+  const written = writePage(g, args.out);
+  // Two files, and the second one is named: a page copied on its own still draws, but its
+  // panels have no text, so whoever hands the preview over has to hand over both.
+  process.stdout.write(`PASS  wrote ${written.file}  (${megabytes(written.bytes)}, ${g.nodes.length} nodes)\n`);
+  process.stdout.write(`PASS  wrote ${written.detail}  (${megabytes(written.detailBytes)}, the node panel's text; copy it beside the page)\n`);
   return 0;
 }
 

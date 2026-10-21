@@ -6,12 +6,13 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import os from "node:os";
+import { createRequire } from "node:module";
 import { buildGraph } from "./graph.mjs";
-import { renderPage, payload } from "./graphpage.mjs";
+import { renderPage, payload, LANE_LAYOUT_JS, detailPayload, detailScript, detailName, writePage } from "./graphpage.mjs";
 import { openMod, DEFAULT_VANILLA } from "./model.mjs";
 import { readNodeSource } from "./editor.mjs";
 
@@ -45,8 +46,12 @@ function el(id, onHtml) {
   });
 }
 
-/** Run the page script and hand back the window plus the elements it wrote to. */
-function mount(g, { editable = true } = {}) {
+/**
+ * Run the page script and hand back the window plus the elements it wrote to.
+ * `detail: "full"` hands the page the panel text up front, the way a browser that loaded
+ * graph.detail.js has it; `detail: null` leaves it out, so the page has to ask for the file.
+ */
+function mount(g, { editable = true, detail = "full" } = {}) {
   const els = new Map();
   // A textarea read back through `.value` is how the save button gets its text, so the shim
   // turns the markup the page wrote into that value, the way a browser does.
@@ -56,11 +61,20 @@ function mount(g, { editable = true } = {}) {
     if (!els.has("ed")) els.set("ed", el("ed"));
     els.get("ed").value = decode(m[1]);
   };
+  // The page asks for graph.detail.js by inserting a script tag; the shim keeps them so a
+  // test can play the browser and fail the load.
+  const scripts = [];
   const document = {
     getElementById: (id) => {
       if (!els.has(id)) els.set(id, el(id, syncText));
       return els.get(id);
     },
+    createElement: (tag) => {
+      const s = { tag, src: "", onload: null, onerror: null };
+      scripts.push(s);
+      return s;
+    },
+    head: { appendChild: () => {} },
     onkeydown: null,
   };
   const win = {};
@@ -79,7 +93,8 @@ function mount(g, { editable = true } = {}) {
     }
     throw new Error(`unexpected ${url}`);
   };
-  const script = renderPage(g, { editable }).match(/<script>([\s\S]*)<\/script>/)[1];
+  // Three script blocks in the page; the page's own one is the tagged last block.
+  const script = renderPage(g, { editable }).match(/<script id="pagejs">([\s\S]*?)<\/script>/)[1];
   new Function("document", "window", "location", "requestAnimationFrame", "fetch", script)(
     document,
     win,
@@ -87,7 +102,8 @@ function mount(g, { editable = true } = {}) {
     (fn) => { if (fn) fn(); return 0; },
     fetch
   );
-  return { win, els, document, posts };
+  if (detail === "full") win.__GRAPH_DETAIL__ = detailPayload(g);
+  return { win, els, document, posts, scripts };
 }
 
 const graph = () => buildGraph({});
@@ -272,4 +288,186 @@ test("a read-only page still shows the source, without 编辑", { skip }, async 
   assert.match(right, /<pre id="srcpre"/, "reading needs no mod");
   assert.doesNotMatch(right, /id="editbtn"/);
   assert.match(right, /只读：启动时没带 --mod/);
+});
+
+// ---------------------------------------------------------------- vendored renderer
+// The page must open from file:// with no network, so both libraries are inlined as bytes.
+// A floor per file, not one number: cytoscape's dist is 436 kB and the dagre extension 46 kB,
+// dagre core included. A tiny file is an HTML error page saved under a .js name.
+const VENDOR = [
+  { file: "cytoscape.min.js", version: "3.34.4", marker: /cytoscape/, min: 400000 },
+  { file: "cytoscape-dagre.min.js", version: "4.0.1", marker: /dagre/, min: 40000 },
+];
+
+test("the page inlines both vendored libraries, and nothing is fetched", { skip }, () => {
+  const html = renderPage(graph());
+  for (const v of VENDOR) {
+    const text = readFileSync(new URL(`./vendor/${v.file}`, import.meta.url), "utf8");
+    assert.ok(text.length > v.min, `${v.file} is a real build (${text.length} bytes), not an error page`);
+    assert.match(text, v.marker, `${v.file} names its own library`);
+    assert.ok(html.includes(text), `${v.file} is inlined byte for byte`);
+    assert.match(html, new RegExp(`/\\* ${v.file.replace(".min.js", "")} ${v.version.replace(/\./g, "\\.")} \\(MIT\\)`), `${v.file} ${v.version} is named`);
+  }
+  assert.doesNotMatch(html, /<script[^>]*\ssrc=/i, "no external script tag");
+});
+
+// ---------------------------------------------------------------- step 1: the renderer
+const pageScript = (g, opts) => {
+  const html = renderPage(g, opts);
+  const m = html.match(/<script id="pagejs">([\s\S]*?)<\/script>/);
+  assert.ok(m, "the page carries its own script block");
+  return m[1];
+};
+
+test("the page's own script parses, because a broken string is a blank page", { skip }, () => {
+  const script = pageScript(graph());
+  assert.doesNotThrow(() => new Function(script), "the generated inline script must be valid JS");
+  assert.match(script, /cytoscape\(/, "the renderer is cytoscape");
+  // A hyphenated style key is written with quotes, so the pattern allows either spelling.
+  assert.match(script, /"?curve-style"?\s*:\s*"taxi"/, "layered edges are drawn as taxi lines");
+  assert.match(script, /"?text-overflow-wrap"?\s*:\s*"anywhere"/, "CJK labels wrap anywhere");
+  assert.match(script, /text-background-opacity/, "labels sit on a pill");
+  assert.match(script, /PingFang SC|Microsoft YaHei/, "the label font stack is CJK-friendly");
+});
+
+test("selecting a node draws one element per node, and none is lost", { skip }, () => {
+  const { win } = mount(graph());
+  win.__select("event:5300090");
+  const state = win.__graphState();
+  const els = win.__elements();
+  assert.equal(state.selected, "event:5300090", "clicking a node sets the selection");
+  const drawn = els.filter((e) => !e.data.source && !e.data.isLane).map((e) => e.data.k);
+  assert.equal(drawn.length, state.nodes.length, "one element per drawn node");
+  assert.deepEqual(drawn.slice().sort(), state.nodes.slice().sort(), "and the two agree on which");
+  assert.equal(els.filter((e) => e.data.source).length, state.edges.length, "one element per drawn edge");
+  const laneHeads = els.filter((e) => e.data.isLane);
+  assert.ok(laneHeads.length >= 1, "every category on screen is named by a lane title");
+});
+
+// ---------------------------------------------------------------- step 2: one node at a time
+test("the page draws nothing until a node is picked", { skip }, () => {
+  const { win } = mount(graph());
+  const state = win.__graphState();
+  assert.equal(state.nodes.length, 0, "no graph on load");
+  assert.equal(win.__elements().length, 0, "and no elements built");
+  assert.match(state.caption, /点左边或图上的节点/, "the caption says what to do");
+});
+
+test("picking a node draws it with its neighbours", { skip }, () => {
+  const { win } = mount(graph());
+  win.__select("event:5300090");
+  const state = win.__graphState();
+  assert.ok(state.nodes.includes("event:5300090"), "the centre is drawn");
+  assert.ok(state.nodes.length > 1, "and so is what it touches");
+  assert.ok(state.nodes.length < 100, "but not the whole graph");
+});
+
+test("the depth control redraws a wider walk", { skip }, () => {
+  const { win, document } = mount(graph());
+  win.__select("event:5300090");
+  const one = win.__graphState().nodes.length;
+  document.getElementById("depth").onchange({ target: { value: "3" } });
+  const three = win.__graphState();
+  assert.equal(three.depth, 3, "the control sets the depth");
+  assert.ok(three.nodes.length >= one, "three hops cannot be fewer nodes than one");
+  document.getElementById("depth").onchange({ target: { value: "9" } });
+  assert.equal(win.__graphState().depth, 5, "and the depth is clamped to what the page offers");
+});
+
+test("the caption states the centre, the depth and the count", { skip }, () => {
+  const { win } = mount(graph());
+  win.__select("event:5300090");
+  const state = win.__graphState();
+  assert.match(state.caption, /^以 5300090 浴场移除提示 为中心 · 1 层 · \d+ 个节点$/);
+  const n = state.nodes.length;
+  assert.equal(state.caption.endsWith(`· ${n} 个节点`), true, "the number is the drawn node count");
+});
+
+// ---------------------------------------------------------------- step 3: lanes
+// The lane layout runs on a real cytoscape core with no browser: dagre is arithmetic, and the
+// same source the page inlines is what these tests execute.
+const require = createRequire(import.meta.url);
+const cytoscape = require("./vendor/cytoscape.min.js");
+require("./vendor/cytoscape-dagre.min.js")(cytoscape);
+const laneLayout = new Function(LANE_LAYOUT_JS + "\nreturn laneLayout;")();
+
+const LANES = [
+  { cat: "other", keys: ["e1", "e2", "e3"] },
+  { cat: "card", keys: ["c1", "c2"] },
+];
+
+/** Two lanes, joined by one cross-lane edge, the way a subgraph arrives. */
+function laneCy() {
+  const elements = [];
+  for (const lane of LANES) {
+    elements.push({ data: { id: `lane:${lane.cat}`, isLane: true, c: lane.cat, label: lane.cat } });
+    for (const k of lane.keys) elements.push({ data: { id: k, k, c: lane.cat, label: k } });
+  }
+  elements.push({ data: { id: "e1e2", source: "e1", target: "e2" } });
+  elements.push({ data: { id: "e2c1", source: "e2", target: "c1" } });
+  return cytoscape({ headless: true, styleEnabled: false, elements });
+}
+
+const laneXs = (cy, lane) => lane.keys.map((k) => cy.getElementById(k).position("x"));
+
+test("each lane is laid out on its own and keeps to one x band", () => {
+  const cy = laneCy();
+  laneLayout(cy, LANES, 60, 40);
+  assert.ok(
+    Math.max(...laneXs(cy, LANES[0])) < Math.min(...laneXs(cy, LANES[1])),
+    "the first lane ends before the second begins, so a lane is a column"
+  );
+  const header = cy.getElementById("lane:other").position();
+  const top = Math.min(...LANES[0].keys.map((k) => cy.getElementById(k).position("y")));
+  assert.ok(header.y < top, "the lane title sits above its nodes");
+});
+
+test("two layouts of the same lanes put every node in the same place", () => {
+  const snap = () => {
+    const cy = laneCy();
+    laneLayout(cy, LANES, 60, 40);
+    return cy.nodes().map((n) => `${n.id()}:${n.position("x").toFixed(3)},${n.position("y").toFixed(3)}`).join(" ");
+  };
+  assert.equal(snap(), snap(), "a redraw must not move the picture under the reader");
+});
+
+// ---------------------------------------------------------------- step 4: two files
+test("the panel's text travels in its own file, not in the page", { skip }, () => {
+  const g = graph();
+  const html = renderPage(g);
+  // A rite's paragraph is panel text; its label ("荣耀回归") stays, because the list shows it.
+  assert.ok(!html.includes("你已经拿到了盖斯家的世袭头衔"), "the panel text is not in the page");
+  assert.match(html, /"graph\.detail\.js"/, "the page names the file it will ask for on demand");
+  const detail = detailScript(g);
+  assert.ok(detail.includes("你已经拿到了盖斯家的世袭头衔"), "the panel text is in the detail file");
+  assert.match(detail, /^\/\/ graph\.detail\.js/, "the file says what it is");
+  assert.match(detail, /window\.__GRAPH_DETAIL__ = \{/, "and one assignment is the whole interface");
+  assert.equal(detailName("/a/b/graph.html"), "graph.detail.js", "the name is derived from the page's");
+  assert.equal(detailName("preview.htm"), "preview.detail.js");
+});
+
+test("writePage puts both files in one directory and says where", { skip }, () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "graphpage-"));
+  const written = writePage(graph(), path.join(dir, "graph.html"));
+  assert.equal(written.detail, path.join(dir, "graph.detail.js"));
+  assert.ok(written.bytes > 0 && written.detailBytes > written.bytes / 2, "the detail file is the bigger half");
+  assert.match(readFileSync(written.file, "utf8"), /"graph\.detail\.js"/, "the page asks for the name it was given");
+  assert.match(readFileSync(written.detail, "utf8"), /__GRAPH_DETAIL__/, "and the detail file defines it");
+});
+
+test("a page copied without its detail file still draws, and names what is missing", { skip }, async () => {
+  const { win, els, scripts } = mount(graph(), { detail: null });
+  win.__select("event:5300090");
+  assert.ok(win.__graphState().nodes.length > 1, "the graph draws without the detail file");
+  win.__openNode("event:5300090");
+  assert.equal(scripts.length, 1, "the page asks for the detail file, once");
+  assert.equal(scripts[0].src, "graph.detail.js", "with the name the page was given");
+  scripts[0].onerror(); // the browser found no such file
+  const html = els.get("modal-body").innerHTML;
+  assert.match(html, /没有找到 graph\.detail\.js/, "the panel names the missing file");
+  assert.doesNotMatch(html, /<h3>描述<\/h3>/, "and does not pretend to have the text");
+  assert.match(html, /<h3>结果<\/h3>/, "the structure is still there");
+  win.__openNode("event:5300090");
+  assert.equal(scripts.length, 1, "a second open does not ask again");
+  assert.match(els.get("modal-body").innerHTML, /没有找到 graph\.detail\.js/, "and still says so");
 });

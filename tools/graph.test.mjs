@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { buildGraph, classify } from "./graph.mjs";
+import { buildGraph, classify, graphIndex, neighbours, subgraph } from "./graph.mjs";
 import { DEFAULT_VANILLA } from "./model.mjs";
 import os from "node:os";
 
@@ -237,4 +237,59 @@ test("the panel can read a node's own conditions", { skip }, () => {
   const rite = g.nodes.find((n) => n.k === "rite:5000104");
   assert.ok(Array.isArray(rite.oc) && rite.oc.length > 0, "a rite carries the tips of its open conditions");
   assert.ok(rite.oc[0].includes("权势"), "the tip is the designer's own sentence");
+});
+
+// ---------------------------------------------------------------- the walk a page draws
+// A hand-built index keeps these tests independent of the corpus: the walk is arithmetic on
+// ids, and the game's own data is too tangled to read a distance off.
+const chain = () =>
+  graphIndex({
+    nodes: ["a", "b", "c", "d", "e", "f", "x", "y"].map((k) => ({ k })),
+    edges: [
+      { f: "a", t: "b", r: "action.event" },
+      { f: "b", t: "c", r: "action.event" },
+      { f: "c", t: "d", r: "action.event" },
+      { f: "d", t: "e", r: "action.event" },
+      { f: "e", t: "f", r: "action.event" },
+      { f: "y", t: "x", r: "action.event" },
+    ],
+  });
+
+test("depth 1 is the direct neighbours and nothing further", () => {
+  assert.deepEqual(subgraph(chain(), "a", 1).nodes, ["a", "b"]);
+  assert.deepEqual(subgraph(chain(), "b", 1).nodes, ["a", "b", "c"], "both ends of b are neighbours");
+  assert.deepEqual(neighbours(chain(), "b"), ["a", "c"]);
+});
+
+test("depth 5 walks five hops, and depth 4 stops one short", () => {
+  assert.deepEqual(subgraph(chain(), "a", 4).nodes, ["a", "b", "c", "d", "e"]);
+  assert.deepEqual(subgraph(chain(), "a", 5).nodes, ["a", "b", "c", "d", "e", "f"], "five hops reach f");
+  assert.equal(neighbours(chain(), "f").length, 1);
+});
+
+test("a node nothing connects to stays out of the walk", () => {
+  const seen = subgraph(chain(), "a", 5).nodes;
+  assert.ok(!seen.includes("x") && !seen.includes("y"), "a separate pair is not drawn");
+  assert.deepEqual(subgraph(chain(), "x", 1).nodes, ["x", "y"], "and it keeps its own neighbourhood");
+});
+
+test("the walk follows edges in both directions", () => {
+  // c is reached from a by following a->b->c forward; a is reached from c by following back.
+  assert.ok(subgraph(chain(), "c", 2).nodes.includes("a"), "an incoming edge is a way back");
+  assert.deepEqual(subgraph(chain(), "d", 1).nodes, ["c", "d", "e"], "one in, one out");
+});
+
+test("the depth is clamped to the range the page offers", () => {
+  assert.equal(subgraph(chain(), "a", 0).depth, 1, "0 hops is not a picture");
+  assert.equal(subgraph(chain(), "a", -3).depth, 1);
+  assert.equal(subgraph(chain(), "a", 99).depth, 5, "5 is the ceiling");
+  assert.equal(subgraph(chain(), "a", "3").depth, 3, "a control hands over a string");
+  assert.equal(subgraph(chain(), "a", 3.6).depth, 4, "and a fraction rounds");
+});
+
+test("an id the index does not know draws nothing, instead of throwing", () => {
+  const empty = subgraph(chain(), "nope", 2);
+  assert.deepEqual(empty.nodes, []);
+  assert.equal(empty.centre, "nope");
+  assert.deepEqual(neighbours(chain(), "nope"), []);
 });

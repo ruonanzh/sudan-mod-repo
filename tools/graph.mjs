@@ -617,6 +617,64 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
   };
 }
 
+// ---------------------------------------------------------------- walking the graph
+// A page draws one node's neighbourhood, so the walk has to be the same arithmetic in Node
+// and in the browser. This is the Node half; tools/graphpage.mjs carries the browser half in
+// its inline script, because a page cannot import a module.
+
+/**
+ * The adjacency a walk needs: id -> ids, outgoing and incoming. Only `nodes` and `edges` are
+ * read, so a hand-built `{nodes, edges}` is a valid index and a test can use one.
+ */
+export function graphIndex(g) {
+  const out = new Map();
+  const inc = new Map();
+  for (const n of g.nodes) {
+    out.set(n.k, []);
+    inc.set(n.k, []);
+  }
+  for (const e of g.edges) {
+    if (!out.has(e.f) || !inc.has(e.t)) continue; // a dangling edge is reported by lint, not walked
+    out.get(e.f).push(e.t);
+    inc.get(e.t).push(e.f);
+  }
+  return { out, inc };
+}
+
+const walkDepth = (depth) => {
+  const n = Math.round(Number(depth));
+  return Number.isFinite(n) ? Math.min(5, Math.max(1, n)) : 1;
+};
+
+/** Direct neighbours of `id`, in both directions, sorted so two runs answer the same. */
+export function neighbours(index, id) {
+  return [...new Set([...(index.out.get(id) || []), ...(index.inc.get(id) || [])])].sort();
+}
+
+/**
+ * Every node within `depth` hops of `id`, following edges both ways. The depth is clamped to
+ * 1..5: 0 would be "the node alone", which is not a picture, and 5 is what the page offers.
+ */
+export function subgraph(index, id, depth = 1) {
+  const d = walkDepth(depth);
+  const hops = new Map();
+  if (!index.out.has(id)) return { centre: id, depth: d, nodes: [] };
+  hops.set(id, 0);
+  let frontier = [id];
+  for (let step = 1; step <= d && frontier.length; step++) {
+    const next = [];
+    for (const at of frontier) {
+      for (const to of [...(index.out.get(at) || []), ...(index.inc.get(at) || [])]) {
+        if (hops.has(to)) continue;
+        hops.set(to, step);
+        next.push(to);
+      }
+    }
+    frontier = next;
+  }
+  return { centre: id, depth: d, nodes: [...hops.keys()].sort() };
+}
+
 function countBy(list, fn) {
   const out = {};
   for (const x of list) {

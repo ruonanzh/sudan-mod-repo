@@ -22,7 +22,7 @@ import path from "node:path";
 import { openMod, locate, validateRecord, ModelError } from "./model.mjs";
 import { parseJsonc } from "./lint.mjs";
 import { buildGraph } from "./graph.mjs";
-import { renderPage, payload } from "./graphpage.mjs";
+import { renderPage, payload, detailScript, writePage } from "./graphpage.mjs";
 import { DEFAULT_VANILLA } from "./model.mjs";
 
 const KIND_OF = { event: "event", rite: "rite", card: "card", loot: "loot", quest: "quest", afterStory: "afterStory", riteTemplate: "riteTemplate", over: "over" };
@@ -164,10 +164,12 @@ function main() {
 
   if (args.static) {
     const g = buildGraph({ configDir: vanilla, modDir: mod ? mod.dir : null });
-    const html = renderPage(g, { editable: false, modNote: mod ? `mod ${path.relative(process.cwd(), mod.dir)}` : "只读（未指定 --mod）" });
-    mkdirSync(path.dirname(path.resolve(args.static)), { recursive: true });
-    writeFileSync(path.resolve(args.static), html);
-    process.stdout.write(`PASS  wrote ${args.static} (${g.nodes.length} nodes, read-only)\n`);
+    // Both files: the page draws without the detail one, but its panels have no text then.
+    const written = writePage(g, args.static, {
+      editable: false,
+      modNote: mod ? `mod ${path.relative(process.cwd(), mod.dir)}` : "只读（未指定 --mod）",
+    });
+    process.stdout.write(`PASS  wrote ${written.file} + ${written.detail} (${g.nodes.length} nodes, read-only)\n`);
     return 0;
   }
 
@@ -176,10 +178,13 @@ function main() {
     cache ??= buildGraph({ configDir: vanilla, modDir: mod ? mod.dir : null });
     return cache;
   };
+  // The page pulls its panel text from this route on the first node it opens.
+  const DETAIL_ROUTE = "/graph.detail.js";
   const page = () =>
     renderPage(graph(), {
       editable: Boolean(mod),
       modNote: mod ? `mod ${path.relative(process.cwd(), mod.dir)}` : "只读（未指定 --mod）",
+      detailUrl: DETAIL_ROUTE,
     });
 
   const send = (res, code, type, body) => {
@@ -193,6 +198,9 @@ function main() {
     try {
       if (req.method === "GET" && url.pathname === "/") {
         return send(res, 200, "text/html; charset=utf-8", page());
+      }
+      if (req.method === "GET" && url.pathname === DETAIL_ROUTE) {
+        return send(res, 200, "application/javascript; charset=utf-8", detailScript(graph()));
       }
       if (req.method === "GET" && url.pathname === "/api/index") {
         return json(res, 200, payload(graph()));
