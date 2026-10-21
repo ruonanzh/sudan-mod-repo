@@ -24,6 +24,10 @@ description: >
 
 提案走 `--spec -` 从标准输入读 JSON；也可以给 `--spec <文件>`。写进 mod 的记录直接读 `your_mods/<ModName>/config/`，读不到就打 `FAIL  no <kind> <id> in this mod`，并提示可以用 `--spec` 先看提案。
 
+**提案只做 JSON 解析，不做字段校验。** 键名对不对、值合不合法，要等写进 mod 之后跑 `node tools/lint.mjs` 才知道。所以提案阶段只能保证「结构能渲染」，不能保证「游戏会读」。
+
+**页面是生成物，不要手改。** 脚本一次生成完整 HTML，样式和卡面图都内嵌好了；你改过的内容下次重新生成就没了。要调整的是**记录或提案**，然后重新生成。要改样式（颜色、字号、面板形状），改 `tools/html.mjs` 的 `CSS`——全仓页面共用那一份。
+
 **这个 HTML 页面是只读的，意见在聊天里回。** 苏丹仓没有配页面编辑器，页面上的控件收不到任何值，所以 `page.mjs` 只印文字。
 
 ## 什么时候写页面
@@ -48,7 +52,7 @@ your_mods/<ModName>/.preview/<主题>.modpage.html
 - 用 `node tools/page.mjs card --mod your_mods/<ModName> --id <卡 id>` 生成，`rite`、`event` 同理；还没写进 mod 的提案加上 `--spec -`。默认就写到这个路径，文件名按内容起。
 - 页面是**只读**的：值都印成文字，没有输入框。卡页面还会把卡面拼出来给你看（原版底板 + 卡图 + 卡名），合成图直接内嵌。
 - `.preview/` 不属于 mod：它被 git 忽略，也不要装进游戏。
-- 后缀 `.modpage.html` 是 `tools/page.mjs` 的默认值，沿用即可；它现在只表示「这是说明页」。
+- 后缀 `.modpage.html` 只是 `tools/page.mjs` 的默认命名，**不是必需**：现在没有编辑器按后缀匹配，改成 `.html` 一样能打开。沿用默认值即可，别在别处依赖这个后缀。
 
 ## 页面必须是怎样
 
