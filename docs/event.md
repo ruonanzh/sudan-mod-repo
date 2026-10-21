@@ -41,15 +41,9 @@
 }
 ```
 
-## 字段清单从哪来
-
-每种节点类型的字段清单在 `schema/fields.json` 里。`tools/lint.mjs` 把 `schema/fields.json` 读作 `NODE_FIELDS`。
-
-`inspect_game_code` 读反编译出来的 dump。`action=search` 在 `dump.cs` 里找类型或成员。`action=type` 打印类型的字段、偏移、属性与签名。`action=body member=<name>` 打印那个方法的 ISIL 与反汇编。`action=strings` 搜字符串字面量。
-
-dump 在 `~/.gamer-agent-pi/decompiled/sudan-mod-repo/`。这份 dump 覆盖游戏的八个程序集。要增加一个程序集，把程序集名写进 `.pi/lib/decompile.json`，再跑 `action=dump assemblies=<name>`。字段偏移是十进制，`[r14+40]` 就是 `0x28`。反汇编偏移是十六进制，`+58h` 就是 `88`。本仓只提供数据，所以读 dump 是为了确认一个键或一个类型，不是为了写代码。
-
 ## 历史键
+
+**历史键**指的是原版文件里写着、但现在这一版游戏不读的键。权威清单是 `schema/fields.json` 里每种记录自己的 `legacy` 数组；`node tools/lint.mjs` 见到历史键会报 `LEGACY_FIELD`。
 
 `EventNode` 没有 `auto_start` 字段。原版有 1520 个事件文件带着 `auto_start`。这个键什么都不做。`auto_start` 在 `schema/fields.json` 的 `legacy` 列表里，是历史键。真正的字段是 `auto_start_init`。
 
