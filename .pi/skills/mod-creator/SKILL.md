@@ -13,16 +13,13 @@ description: >
 
 ## 动手前必须先读什么
 
-原版数据是这个格式唯一完整的描述，而且带注释。先读你要改的那个文件，再动它：
+原版数据是这个格式唯一完整的描述，而且带注释。先读你要改的那个文件，再动它。
 
-```
-macOS    ~/Library/Application Support/Steam/steamapps/common/Sultan's Game/Sultan's Game.app/Contents/Resources/Data/StreamingAssets/config/
-Windows  <steam>\\steamapps\\common\\Sultan's Game\\Sultan's Game_Data\\StreamingAssets\\config\\
-```
+**原版目录的位置不写在这里。** 它是本机安装位置，会随机器和平台变，写法与取法在 `setup-workspace` 那份 SKILL 里（`node tools/setup.mjs --check` 也会打印出来）。要读原版文件却不知道目录在哪时，去读 `setup-workspace`，不要在别处猜路径。
 
 开发者在这些文件里留了中文 `//` 注释，逐个解释字段。`config/event/5300000.json` 是教学局的开场，就地写明了 `confirm`、`option`、`success` 与 `failed`，短写与长写两种形状并排给出。它是最好的单一样例文件。
 
-改动需要图片时，再读 `card-art`。需要玩家先就某个范围或某个值达成一致时，答案是页面：读 `mod-page`。写完之后，`mod-installer` 负责把它装进游戏并读回日志。
+要改卡面图，或者改动需要图片时，读 `card-art`。需要玩家先就某个范围或某个值达成一致时，答案是页面：读 `mod-page`。写完之后，`mod-installer` 负责把它装进游戏并读回日志。
 
 ## mod 布局
 
