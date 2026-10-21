@@ -46,7 +46,7 @@ input[type=text], input[type=number], textarea, select {
 }
 textarea { min-height: 84px; resize: vertical; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
-th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #362c21; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #362c21; vertical-align: top; word-break: break-word; }
 th { color: var(--dim); font-weight: normal; font-size: 12px; letter-spacing: .08em; }
 td.num { width: 92px; }
 .cardface {
@@ -67,7 +67,13 @@ td.num { width: 92px; }
 .note { color: var(--dim); font-size: 12.5px; margin-top: 10px; }
 .branch { border-left: 2px solid var(--rule); padding: 8px 0 8px 14px; margin-bottom: 12px; }
 .branch .when { color: var(--gold); font-size: 12px; letter-spacing: .06em; }
-code { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; color: #d9c9a3; }
+code { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; color: #d9c9a3; word-break: break-all; }
+details { margin-top: 4px; }
+summary { cursor: pointer; color: var(--dim); font-size: 12px; }
+details[open] summary { color: var(--ink); }
+table.sub { margin-top: 6px; background: #262019; border: 1px solid #3c3227; }
+table.sub th, table.sub td { font-size: 12.5px; padding: 4px 6px; border-bottom: 1px dotted #3c3227; }
+table.sub th { width: 42%; color: var(--dim); }
 .fb { min-height: 120px; }
 `;
 

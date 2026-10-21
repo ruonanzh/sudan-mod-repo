@@ -79,6 +79,7 @@ const SLOTS = ["武器", "服装", "饰品", "驯兽"];
 
 let LABELS = JSON.parse(readFileSync(new URL("../schema/field-labels.json", import.meta.url), "utf8"));
 let FIELDS = JSON.parse(readFileSync(new URL("../schema/fields.json", import.meta.url), "utf8"));
+const OP_WORDS = JSON.parse(readFileSync(new URL("../schema/op-words.json", import.meta.url), "utf8"));
 
 /** Point the page at another label table (used by the tests). */
 export function useLabels(file) {
@@ -118,20 +119,84 @@ const NESTED = {
   tag: {},
 };
 
-/** Render any value compactly: strings plain, numbers bare, objects as one code line. */
-function fmt(value) {
+
+/**
+ * The first word of an action or a condition, in the player's words.
+ *
+ * `counter+7100005` is the syntax the author types, and it has to stay visible, but on its own it
+ * is a wall of code. So: name the thing in Chinese, then show the syntax that follows it.
+ * Tag names and card ids are already Chinese or numeric, so they pass through untouched.
+ */
+export function opPhrase(key) {
+  if (/^[\u4e00-\u9fff]/.test(key)) return esc(key);
+  if (OP_WORDS._skip?.[key]) return `${esc(key)} <span style="color:#8a7a60">（${esc(OP_WORDS._skip[key])}）</span>`;
+  const m = /^([~!]?)([a-z_]+|s\d+)([.:+=<>!~-].*)?$/.exec(key);
+  if (!m) return `<code>${esc(key)}</code>`;
+  const [, neg, base, rest = ""] = m;
+  const word =
+    OP_WORDS.operations[base] ||
+    OP_WORDS.conditions[base] ||
+    (/^s\d+$/.test(base) ? `槽位 ${base.slice(1)}` : null) ||
+    (/^r\d+$/.test(base) ? `第 ${base.slice(1)} 次骰子检定` : null);
+  if (!word) {
+    const generic = OP_WORDS.generic?.[key];
+    return generic ? esc(generic) : `<code>${esc(key)}</code>`;
+  }
+
+  let body = rest.replace(/^[.:+=<>!~-]+/, "");
+  let mark = "";
+  const sep = rest[0];
+  if (sep === "+" || sep === "-" || sep === "=") mark = { "+": "加", "-": "减", "=": "设为" }[sep];
+  else {
+    const cmp = /(>=|<=|<|>)$/.exec(body);
+    if (cmp) {
+      mark = { ">=": "大于等于", "<=": "小于等于", "<": "小于", ">": "大于" }[cmp[1]];
+      body = body.slice(0, -cmp[1].length);
+    }
+  }
+  const tailHtml = !body ? "" : /[\u4e00-\u9fff]/.test(body) ? ` ${esc(body)}` : ` <code>${esc(body)}</code>`;
+  const markHtml = mark ? ` <span style="color:#8a7a60">${mark}</span>` : "";
+  return `${neg === "!" ? "非 " : ""}${esc(word)}${markHtml}${tailHtml}`;
+}
+
+/**
+ * Render a value the way a player reads it.
+ *
+ * Objects open into a two-column sub-table (名字 / 内容) with each inner name labelled when the
+ * research has a label for it, instead of a one-line JSON dump: the dump widens the column and
+ * says nothing. Arrays of objects become the child table for that kind; scalars join with 、.
+ */
+function fmt(value, kind) {
   if (value === undefined || value === null) return "（无）";
-  if (typeof value === "string") return value ? esc(value) : "（空）";
+  if (typeof value === "string") {
+    if (!value) return "（空）";
+    // The game writes rich text as <size=50>确定</size>; the player sees 确定, so show that.
+    return esc(value.replace(/<\s*\/?\s*(size|b|i|color)[^>]*>/gi, ""));
+  }
   if (typeof value === "number" || typeof value === "boolean") return esc(String(value));
   if (Array.isArray(value)) {
     if (!value.length) return "（空）";
-    return value.map((v) => fmt(v)).join("、");
+    if (value.every((v) => !v || typeof v !== "object")) return value.map((v) => fmt(v)).join("、");
+    return tableFor(kind, value);
   }
-  // A whole nested object in one row would push everything else off the page; fold it.
-  const text = esc(JSON.stringify(value));
-  const count = Object.keys(value || {}).length;
-  if (text.length <= 60) return `<code>${text}</code>`;
-  return `<details><summary>${count} 项，点开看</summary><div><code>${text}</code></div></details>`;
+  const entries = Object.entries(value || {});
+  if (!entries.length) return "（空）";
+  const rows = entries
+    .map(([key, v]) => {
+      const label = kind ? labelOf(kind, key)?.label : null;
+      const name = label ? esc(label) : opPhrase(key);
+      return `<tr><th>${name}</th><td>${fmt(v)}</td></tr>`;
+    })
+    .join("");
+  return `<table class="sub">${rows}</table>`;
+}
+
+/** The same table, folded behind a summary, for values that sit inside a long table. */
+function folded(value, kind) {
+  if (!value || typeof value !== "object") return fmt(value, kind);
+  const count = Array.isArray(value) ? value.length : Object.keys(value).length;
+  if (!count) return '<span style="color:#8a7a60">（空）</span>';
+  return `<details><summary>${count} 项，点开看</summary>${fmt(value, kind)}</details>`;
 }
 
 /** One label/value row, with the note as a dim line under the value. */
@@ -159,7 +224,8 @@ function tableFor(kind, value) {
     if (!value.length) return '<div style="color:#8a7a60">这一项没写内容。</div>';
     if (value.every((v) => !v || typeof v !== "object")) return `<div>${value.map((v) => fmt(v)).join("、")}</div>`;
     const cols = columnsFor(kind, value);
-    const rowHtml = (row) => `<tr>${cols.map((c) => `<td>${fmt(row?.[c])}</td>`).join("")}</tr>`;
+    const cell = (v) => `<td>${v && typeof v === "object" ? folded(v, kind) : fmt(v, kind)}</td>`;
+    const rowHtml = (row) => `<tr>${cols.map((c) => cell(row?.[c])).join("")}</tr>`;
     // A 180-row table buries everything after it; show a screenful and fold the rest.
     const shown = value.slice(0, TABLE_FOLD);
     const rest = value.slice(TABLE_FOLD);
@@ -172,7 +238,7 @@ function tableFor(kind, value) {
     if (!entries.length) return '<div style="color:#8a7a60">这一项没写内容。</div>';
     const cols = columnsFor(kind, entries.map(([, v]) => v));
     const rows = entries
-      .map(([name, row]) => `<tr><td><code>${esc(name)}</code></td>${cols.map((c) => `<td>${fmt(row?.[c])}</td>`).join("")}</tr>`)
+      .map(([name, row]) => `<tr><td><code>${esc(name)}</code></td>${cols.map((c) => `<td>${fmt(row?.[c], kind)}</td>`).join("")}</tr>`)
       .join("");
     return `<table>${head(cols, "<th>名称</th>")}${rows}</table>`;
   }
@@ -235,7 +301,7 @@ function recordBody(kind, record) {
     // `tag` is a map of Chinese tag name to number: it has its own table on the card page.
     const shown = value && typeof value === "object" && !Array.isArray(value) && kind === "card" && key === "tag"
       ? `${Object.entries(value).map(([k, v]) => `${k} ${v}`).join(" · ") || "（空）"}`
-      : fmt(value);
+      : fmt(value, kind);
     rows.push(fieldRow(info?.label || key, shown, info?.note));
   }
 
