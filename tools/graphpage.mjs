@@ -522,6 +522,10 @@ function renderer() {
   // A click on a node is the same gesture as a row in the list: select, draw, open the panel.
   cy.on("tap", "node", (e) => {
     const k = e.target.data("k");
+    if (k) selectOnly(k);
+  });
+  cy.on("dbltap", "node", (e) => {
+    const k = e.target.data("k");
     if (k) focusNode(k);
   });
   // Hover says which lines belong to the node under the pointer; a hub owns dozens.
@@ -685,7 +689,14 @@ function listRows() {
     escHtml(dispLabel(n).slice(0, 40)) +
     (n.t !== "event" && lang !== "zh" && n.tr && !n.tr[lang] ? ' <span class="toless">无' + lang + "</span>" : "") + "</span></div>"
   ).join("") || '<div class="note">没有匹配</div>';
-  listEl.querySelectorAll(".row").forEach((el) => { el.onclick = () => focusNode(el.dataset.k); });
+  listEl.onclick = (e) => {
+    const row = e.target.closest(".row");
+    if (row) selectOnly(row.dataset.k);
+  };
+  listEl.ondblclick = (e) => {
+    const row = e.target.closest(".row");
+    if (row) focusNode(row.dataset.k);
+  };
   document.getElementById("count").textContent = rows.length + " / " + DATA.nodes.length;
 }
 
@@ -695,6 +706,25 @@ function focusNode(key) {
   selected = key;
   draw();
   listRows();
+  window.__openNode(key);
+}
+
+// A single click says which node you are reading; a double click changes what is drawn. The
+// panel follows the single click, because reading a node is the common move and throwing the
+// current picture away is not.
+function selectOnly(key) {
+  if (!byKey.has(key)) return;
+  selected = key;
+  if (cy) {
+    cy.nodes().unselect();
+    const n = cy.getElementById(key);
+    if (n && n.length) n.select();
+  }
+  // Only the highlight, never a re-render: rebuilding the list between the two clicks of a
+  // double click replaces the element under the pointer, and the second click lands nowhere.
+  listEl.querySelectorAll(".row.sel").forEach((el) => el.classList.remove("sel"));
+  const row = listEl.querySelector('.row[data-k="' + key + '"]');
+  if (row) row.classList.add("sel");
   window.__openNode(key);
 }
 
