@@ -538,6 +538,8 @@ function graphElements(key, d) {
   // Both ends inside the walk: an edge to a node that is not drawn hangs in the air.
   const within = DATA.edges.filter(([a, b]) => walk.hops.has(a) && walk.hops.has(b));
   const capped = clampEdges(within);
+  // Cards are not drawn: a card is a thing a condition mentions, not a step in the story, and a
+  // 卡牌 lane full of leaves is what made the picture unreadable. The panel still names them.
   const idxs = [...walk.hops.keys()].sort((x, y) => x - y);
   const lanes = lanesOf(idxs);
   const elements = [];
@@ -700,7 +702,7 @@ function cats() {
     .concat([["仪式", "仪式", countOf((n) => n.t === "rite")], ["事件", "事件", countOf((n) => n.t === "event")]])
     .concat(Object.keys(DATA.categoryCounts).map((c) => [c, CAT_NAME[c] || c, countOf((n) => n.c === c)]));
   box.innerHTML = all.map(([v, label, n]) =>
-    '<button class="pill' + (v === cat ? " on" : "") + '" data-c="' + v + '">' + label +
+    '<button class="pill' + ((v || null) === (cat || null) ? " on" : "") + '" data-c="' + v + '">' + label +
     " <b>" + n + "</b></button>"
   ).join("");
   box.querySelectorAll("button").forEach((b) => {
@@ -1178,7 +1180,12 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
 </div>
 `;
   const css = `
-.gshell { display: flex; align-items: flex-start; gap: 12px; }
+.gshell { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+@media (max-width: 1180px) {
+  .gshell { flex-direction: column; }
+  .modal { flex: 1 1 auto; position: static; width: 100%; max-height: none; }
+  .gshell:has(#modal:not([hidden])) .gmain { height: 62vh; }
+}
 .gwrap { display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; min-width: 0; }
 .gtop { display: flex; flex-direction: column; gap: 8px; }
 .grow-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
