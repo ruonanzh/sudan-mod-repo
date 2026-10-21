@@ -485,7 +485,8 @@ const CY_STYLE = [
     style: {
       "curve-style": "taxi",
       "taxi-direction": "vertical",
-      "taxi-turn": "50%",
+      "taxi-turn": "data(turn)",
+      "taxi-radius": 10,
       "taxi-turn-min-distance": 8,
       "line-color": "#5a4a33",
       width: 1.2,
@@ -572,8 +573,18 @@ function graphElements(key, d) {
   }
   // An edge label per line is readable on a neighbourhood and noise on a crowd.
   const labelEdges = capped.kept.length <= 60;
+  // Parallel edges between the same two columns would run down one vertical line. Each edge gets
+  // a fixed turn point instead, spread across 34%..66% of its length, so a bundle reads as a
+  // bundle instead of a single thick stroke. Deterministic: the same edge lands in the same place
+  // every time the page is rebuilt.
+  const turnOf = (id) => {
+    let h = 0;
+    for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 997;
+    return 34 + (h % 5) * 8 + "%";
+  };
   for (const [a, b, r] of capped.kept) {
-    elements.push({ data: { id: "edge:" + a + ">" + b + ">" + r, source: DATA.nodes[a].k, target: DATA.nodes[b].k, rule: r, rel: labelEdges ? REL_OUT[r] || r : "" } });
+    const id = "edge:" + a + ">" + b + ">" + r;
+    elements.push({ data: { id: id, turn: turnOf(id), source: DATA.nodes[a].k, target: DATA.nodes[b].k, rule: r, rel: labelEdges ? REL_OUT[r] || r : "" } });
   }
   return {
     walk: walk,
