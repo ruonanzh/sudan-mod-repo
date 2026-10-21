@@ -73,15 +73,29 @@ description: >
 
 这份清单是完整的。mod 少给哪一项，加载器就为哪一项写一行 `file not exists`，所以这个集合从任何一个 mod 的日志里都能读出来。
 
-```
-config/game.json          config/tag.json            config/cards.json
-config/init               config/over.json           config/rite
-config/event              config/loot                config/dt
-config/after_story        config/wizard              config/upgrade.json
-config/quest.json         config/rite_template       config/rite_template_mappings.json
-config/sfx_config.json    config/over_music_config.json
-config/sfx_npc_role_dub.json                         config/sfx_settle_card_new.json
-```
+| 条目 | 是什么 | 常用 |
+|---|---|---|
+| `config/cards.json` | 全部卡，1294 条 | **常改**：加卡、改卡数值 |
+| `config/rite/` | 仪式，一个 `id` 一个文件，1498 条 | **常改**：加事件线、加仪式 |
+| `config/event/` | 事件，一个 `id` 一个文件，1867 条 | **常改**：加剧情触发 |
+| `config/upgrade.json` | 命运商店条目，50 条 | **常改**：让玩家拿到新卡 |
+| `config/tag.json` | 标签（状态与属性），444 条 | 常改：新卡要用新状态时 |
+| `config/loot/` | 战利品表，一个 `id` 一个文件，193 条 | 常改：仪式或事件的奖励 |
+| `config/over.json` | 结局，159 条 | 少改：通常只在做新结局时 |
+| `config/after_story/` | 后日谈段落，一个 `id` 一个文件，66 条 | 少改 |
+| `config/quest.json` | 任务，161 条 | 少改：多数 mod 用事件代替 |
+| `config/init/` | 开局（难度、起始卡），2 个文件 | 少改：改开局规则时 |
+| `config/wizard/` | 开场向导对话，2 个文件 | 少改 |
+| `config/dt/` | 对话树，9 个文件 | 少改：要连续多段对话时 |
+| `config/rite_template/` | 仪式面板模板，252 条 | 少改：只影响外观 |
+| `config/rite_template_mappings.json` | 仪式到模板的映射 | 少改：只影响外观 |
+| `config/game.json` | 全局开关与派生规则 | 少改 |
+| `config/sfx_config.json` | 音乐与音效配置 | 少改：`mod-audio` 用 |
+| `config/sfx_npc_role_dub.json` | 角色配音映射 | 少改 |
+| `config/over_music_config.json` | 结局音乐映射 | 少改 |
+| `config/sfx_settle_card_new.json` | 结算新卡音效映射 | 少改 |
+
+五种常用的放在前六行：加卡看 `cards.json`，加剧情看 `event/`，加玩法看 `rite/`，让玩家拿到看 `upgrade.json`，奖励看 `loot/`。这五项之外的条目，先确认真的需要再写。
 
 下面这些游戏自己也读，但**不可 mod**。玩家要求改这些时，直接说作为 mod 做不到：
 
