@@ -15,7 +15,14 @@ description: >
 
 **一个给玩家看的 HTML 页面，不是文档。** 它把一条已经写进 mod 的配置记录摆出来——取值、结构、卡面合成结果——让玩家一眼看懂「要做什么、长什么样、哪些还没定」，然后回话。
 
-**它出现在写配置记录之后、安装之前。** 这条配置记录就是 `your_mods/<ModName>/config/` 里的那一条；`tools/page.mjs` 从 mod 里读它，读不到就打 `FAIL  no <kind> <id> in this mod`，所以先把记录写进去。
+**它可以出现在写配置记录之前，也可以之后。** 两种来源：
+
+| 来源 | 命令 | 写盘吗 |
+|---|---|---|
+| 提案：还没写进 mod | `node tools/page.mjs card --mod your_mods/<ModName> --id <卡 id> --spec - < 提案.json` | **不写**，页面副标题会标「提案 · 尚未写入 mod」 |
+| 已写进 mod 的记录 | `node tools/page.mjs card --mod your_mods/<ModName> --id <卡 id>` | 不写，只读 |
+
+提案走 `--spec -` 从标准输入读 JSON；也可以给 `--spec <文件>`。写进 mod 的记录直接读 `your_mods/<ModName>/config/`，读不到就打 `FAIL  no <kind> <id> in this mod`，并提示可以用 `--spec` 先看提案。
 
 **这个 HTML 页面是只读的，意见在聊天里回。** 苏丹仓没有配页面编辑器，页面上的控件收不到任何值，所以 `page.mjs` 只印文字。
 
@@ -38,7 +45,7 @@ description: >
 your_mods/<ModName>/.preview/<主题>.modpage.html
 ```
 
-- 用 `node tools/page.mjs card --mod your_mods/<ModName> --id <卡 id>` 生成，`rite`、`event` 同理。默认就写到这个路径，文件名按内容起。
+- 用 `node tools/page.mjs card --mod your_mods/<ModName> --id <卡 id>` 生成，`rite`、`event` 同理；还没写进 mod 的提案加上 `--spec -`。默认就写到这个路径，文件名按内容起。
 - 页面是**只读**的：值都印成文字，没有输入框。卡页面还会把卡面拼出来给你看（原版底板 + 卡图 + 卡名），合成图直接内嵌。
 - `.preview/` 不属于 mod：它被 git 忽略，也不要装进游戏。
 - 后缀 `.modpage.html` 是 `tools/page.mjs` 的默认值，沿用即可；它现在只表示「这是说明页」。

@@ -5,7 +5,12 @@
  *
  *   node tools/page.mjs card --mod your_mods/x --id 2100900
  *   node tools/page.mjs rite --mod your_mods/x --id 5010901
+ *   node tools/page.mjs card --mod your_mods/x --id 2100900 --spec - < proposal.json
  *   node tools/page.mjs card --mod your_mods/x --id 2100900 --out /tmp/x.html
+ *
+ * `--spec <file|->` renders a proposal that is not in the mod yet: the JSON comes from that file,
+ * or from stdin when the value is `-`. Nothing is written to the mod, so the player can approve a
+ * shape before it becomes a record.
  *
  * The page is read-only on purpose. There is no page editor wired for this game, so a form
  * control would collect a value nobody reads: the player answers in chat and the agent
@@ -425,17 +430,35 @@ function main() {
   const kind = argv[0];
   const args = parseArgs(argv.slice(1));
   if (!["card", "rite", "event"].includes(kind) || !args.mod || !args.id) {
-    process.stderr.write("usage: node tools/page.mjs <card|rite|event> --mod <dir> --id <id> [--out <file>]\n");
+    process.stderr.write("usage: node tools/page.mjs <card|rite|event> --mod <dir> --id <id> [--spec <file|->] [--out <file>]\n");
     return 2;
   }
   // Opening the editor is the moment the art is first needed, so that is when it is built.
   ensureReference();
 
   let mod;
-  let got;
+  let record;
+  let proposal = false;
   try {
     mod = openMod(args.mod);
-    got = mod.get(kind, args.id);
+    if (args.spec) {
+      // A proposal: the JSON is given here, the mod is only used for the palette and the art.
+      const text = args.spec === "-" ? readFileSync(0, "utf8") : readFileSync(args.spec, "utf8");
+      try {
+        record = JSON.parse(text);
+      } catch (e) {
+        process.stdout.write(`FAIL  --spec is not valid JSON: ${e.message}\n`);
+        return 1;
+      }
+      proposal = true;
+    } else {
+      const got = mod.get(kind, args.id);
+      if (!got) {
+        process.stdout.write(`FAIL  no ${kind} ${args.id} in this mod (to preview one that is not written yet, pass --spec)\n`);
+        return 1;
+      }
+      record = toPlain(got.doc, got.node);
+    }
   } catch (e) {
     if (e instanceof ModelError) {
       process.stdout.write(`FAIL  ${e.message}\n`);
@@ -443,16 +466,12 @@ function main() {
     }
     throw e;
   }
-  if (!got) {
-    process.stdout.write(`FAIL  no ${kind} ${args.id} in this mod\n`);
-    return 1;
-  }
-  const record = toPlain(got.doc, got.node);
   const title =
     kind === "card" ? record.name || `卡 ${record.id}` : kind === "rite" ? record.name || `仪式 ${record.id}` : `事件 ${record.id}`;
+  const mark = proposal ? "提案 · 尚未写入 mod · " : "";
   const sub =
     kind === "card"
-      ? `卡牌 · id ${record.id} · ${record.type} · 稀有度 ${record.rare}`
+      ? `${mark}卡牌 · id ${record.id} · ${record.type} · 稀有度 ${record.rare}`
       : kind === "rite"
         ? `仪式 · id ${record.id} · ${Object.keys(record.cards_slot || {}).length} 个槽 · ${(record.settlement || []).length} 条结果`
         : `事件 · id ${record.id} · ${Object.keys(record.on || {}).length} 个触发 · ${(record.settlement || []).length} 条分支`;
@@ -465,7 +484,11 @@ function main() {
   mkdirSync(path.dirname(out), { recursive: true });
   writeFileSync(out, html);
   process.stdout.write(`PASS  wrote ${out}\n`);
-  process.stdout.write(`NEXT  show it to the player, then change the record from what they answer in chat\n`);
+  process.stdout.write(
+    proposal
+      ? `NEXT  show it to the player; nothing was written. Write the record only after they agree\n`
+      : `NEXT  show it to the player, then change the record from what they answer in chat\n`,
+  );
   return 0;
 }
 
