@@ -470,8 +470,8 @@ const CY_STYLE = [
       "border-width": 0,
       shape: "round-rectangle",
       width: 170,
-      height: 24,
-      "font-size": 13,
+      height: 18,
+      "font-size": 12,
       color: "#c9a227",
       "text-halign": "center",
       "text-valign": "center",
@@ -561,7 +561,7 @@ function graphElements(key, d) {
   for (const lane of lanes) {
     const title = laneName(lane.cat);
     const named = titles.filter((t) => t === title).length > 1 ? title + " (" + lane.cat + ")" : title;
-    elements.push({ data: { id: "lane:" + lane.cat, isLane: true, c: lane.cat, fill: "#2c241c", label: named + " · " + lane.idxs.length } });
+    elements.push({ classes: "lane", data: { id: "lane:" + lane.cat, isLane: true, c: lane.cat, fill: "#2c241c", label: named + " · " + lane.idxs.length } });
   }
   for (const lane of lanes) {
     for (const i of lane.idxs) {
