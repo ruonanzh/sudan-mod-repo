@@ -522,10 +522,6 @@ function renderer() {
   // A click on a node is the same gesture as a row in the list: select, draw, open the panel.
   cy.on("tap", "node", (e) => {
     const k = e.target.data("k");
-    if (k) selectOnly(k);
-  });
-  cy.on("dbltap", "node", (e) => {
-    const k = e.target.data("k");
     if (k) focusNode(k);
   });
   // Hover says which lines belong to the node under the pointer; a hub owns dozens.
@@ -689,33 +685,15 @@ function listRows() {
     escHtml(dispLabel(n).slice(0, 40)) +
     (n.t !== "event" && lang !== "zh" && n.tr && !n.tr[lang] ? ' <span class="toless">无' + lang + "</span>" : "") + "</span></div>"
   ).join("") || '<div class="note">没有匹配</div>';
-  listEl.querySelectorAll(".row").forEach((el) => {
-    el.onclick = () => selectOnly(el.dataset.k);
-    el.ondblclick = () => focusNode(el.dataset.k);
-  });
+  listEl.querySelectorAll(".row").forEach((el) => { el.onclick = () => focusNode(el.dataset.k); });
   document.getElementById("count").textContent = rows.length + " / " + DATA.nodes.length;
 }
 
 // One gesture, one place: a row, a drawn node and a link in the panel all land here.
-// A double click changes what is drawn; a single click only says which node you are looking at.
-// The panel follows the single click because reading a node's text is the common move, while
-// throwing away the current picture is not.
 function focusNode(key) {
   if (!byKey.has(key)) return;
   selected = key;
   draw();
-  listRows();
-  window.__openNode(key);
-}
-
-function selectOnly(key) {
-  if (!byKey.has(key)) return;
-  selected = key;
-  if (cy) {
-    cy.nodes().unselect();
-    const n = cy.getElementById(key);
-    if (n && n.length) n.select();
-  }
   listRows();
   window.__openNode(key);
 }
