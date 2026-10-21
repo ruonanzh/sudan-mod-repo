@@ -43,6 +43,27 @@ description: >
 
 一句话就能答的问题，直接回复就够。
 
+## `ModName` 还没定？
+
+页面要一个 mod 目录，所以先建 mod 骨架：目录 `your_mods/<ModName>/` 加一份 `info.json`。没有专门的建目录工具，用文件工具写 `info.json` 时父目录会自动建出来，或者 `mkdir -p`。
+
+最小可用的一份：
+
+```json
+{
+  "name": "断刃",
+  "description": "一张新武器卡，和它的三个数值方案。",
+  "tags": ["Utilities"],
+  "version": "1.0.0"
+}
+```
+
+- `name` 是 mod 面板上显示的名字（中文可以），`description` 写给玩家看。
+- `tags` 从创意工坊的分类里选，`Utilities` 最安全。
+- 建完先跑一次 `node tools/lint.mjs your_mods/<ModName>`，它会检查 `info.json` 的必填项与长度限制。
+
+`info.json` 的完整规则见 `mod-creator` 的 `## info.json` 一节。**`ModName` 一旦用过就别再改**：mod 根目录里的文件夹名、玩家的启用记录、日志里的名字都按它来。
+
 ## 页面放在哪
 
 ```
