@@ -93,15 +93,15 @@ node tools/art.mjs gen --mod your_mods/<ModName> --id <卡 id> --subject "<画�
 node tools/art.mjs gen --mod your_mods/<ModName> --id <卡 id> --prompt "<整段提示词>"
 ```
 
-`--prompt` 会把整段提示词换成你写的那句，`mode` 打 `verbatim`。**头部与尾部都不再加**，只有参考图那句仍会追加。所以这条不要拿来「微调」——它是「不要游戏的画风」。
+`--prompt` 会把整段提示词换成你写的那句，`gen` 打印的第一行是 `mode    verbatim`。**头部与尾部都不再加**，只有参考图那句仍会追加。所以这条不要拿来「微调」——它是「不要游戏的画风」。
 
-用这条时必须自己写全六件事：
+用这条时必须自己写全：先写画面，再接上下面的「尾部常量」整段。格式就是这两段拼起来：
 
 ```
-<这张卡画什么>，flat engraved illustration, warm muted palette of ochre, oxblood and bone, visible ink linework, folk woodcut influence, vertical composition with the subject filling the full height and centred, subject only, isolated on a FULLY TRANSPARENT background, leave the TOP FIFTH of the image completely empty as blank transparency (the game draws the card name and a divider row there), no backdrop, no plate, no frame, no border, no floor, no cast shadow, no vignette, no text, game card art
+<这张卡画什么>，<尾部常量>
 ```
 
-把最前面那句换成具体画面，后面原样保留。结尾的 `game card art` 是一句类别提示，告诉模型这张图属于游戏卡面美术；它不是文件名、也不是指令，跟着常量一起保留，不要删。**整段常量不加句号**：它是一串用逗号分开的短语，不是句子。**玩家说「就要照片感 / 不要游戏那种画风」时才用这条**，并提前说明画面会和其它卡不一致。
+把最前面那句换成具体画面，后面的常量原样复制。**玩家说「就要照片感 / 不要游戏那种画风」时才用这条**，并提前说明画面会和其它卡不一致。
 
 ### 参考图：检查与替换
 
@@ -131,7 +131,7 @@ node tools/art.mjs check --file your_mods/<ModName>/image/cards/<名字>.png
 
 不像就改 `--subject` / `--add` 再来一次，每次都很便宜。**玩家确认这张图之前，不要往下走。** `gen` 已经把这张卡的 `resource` 字段设成 `["cards/<卡 id>"]`，不用再改；确认之后按 `script/prompt-standard.md` §5.3 的七步继续。
 
-### 提示词怎么拼出来的
+#### 提示词怎么拼出来的
 
 省略 `--prompt` 时，`composePrompt()` 拼三段：
 
@@ -151,7 +151,7 @@ A <品级> tier <类型> card: <类型样板>, <构图倾向>. <卡名>，<副�
 
 ### 尾部常量（照抄，不要改写）
 
-这一段是给图像模型的，保持英文：
+这一段是给图像模型的，保持英文。结尾的 `game card art` 是类别提示：告诉模型这是游戏卡面美术。
 
 ```
 flat engraved illustration, warm muted palette of ochre, oxblood and bone, visible ink linework, folk woodcut influence, vertical composition with the subject filling the full height and centred, subject only, isolated on a FULLY TRANSPARENT background, leave the TOP FIFTH of the image completely empty as blank transparency, because the game draws the card name and a divider row there; the subject may run to the bottom edge, where the frame band is drawn over it, no backdrop, no plate, no frame, no border, no floor, no cast shadow, no vignette, no text, game card art
