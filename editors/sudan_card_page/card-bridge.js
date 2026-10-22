@@ -594,6 +594,24 @@
       start(data);
     } else if (data.type === "editor:theme") {
       applyTheme(data);
+    } else if (data.type === "editor:fileChanged") {
+      // The page was rewritten on disk (the agent regenerated it). Reload only when nothing is at
+      // stake: a reload would throw away edits the player has not saved.
+      if (!state.dirty) {
+        location.reload();
+        return;
+      }
+      var bar = document.getElementById("reload-bar");
+      if (!bar) {
+        bar = document.createElement("div");
+        bar.id = "reload-bar";
+        bar.className = "note bad";
+        bar.style.margin = "0 0 12px";
+        bar.innerHTML = '这一页在磁盘上被重写过。你有还没保存的改动。' +
+          '<button id="reload-now" class="pill" style="margin-left:10px">重新载入（放弃我的改动）</button>';
+        document.body.insertBefore(bar, document.body.firstChild);
+        document.getElementById("reload-now").addEventListener("click", function () { location.reload(); });
+      }
     } else if (data.type === "editor:fileContent" || data.type === "editor:saved" || data.type === "editor:sent" || data.type === "editor:error") {
       if (settle(data.requestId, data)) return;
       if (data.type === "editor:error") setStatus(saveError(data), "error");
