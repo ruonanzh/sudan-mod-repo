@@ -40,7 +40,7 @@
  *
  * Exit codes: 0 when every required location is OK, 1 otherwise, 2 for a usage mistake.
  */
-import { accessSync, constants, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { accessSync, constants, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -185,7 +185,11 @@ function markerOf(install, platform) {
 export function installOf(dir, platform = process.platform) {
   if (!dir) return null;
   let current = path.resolve(dir);
-  for (let up = 0; up < 6; up++) {
+  // A caller may paste the vanilla config directory: it is six levels below the install, so the
+  // walk needs the extra room, and its own sentinel says where it belongs.
+  const isConfig = existsSync(path.join(current, "cards.json")) && existsSync(path.join(current, "rite"));
+  if (isConfig) current = path.dirname(current);
+  for (let up = 0; up < 8; up++) {
     if (markerOf(current, platform)) return current;
     const parent = path.dirname(current);
     if (parent === current) return null;
@@ -318,8 +322,9 @@ function judgeModInstallDir(dir) {
   const beside = path.dirname(dir);
   const log = path.join(beside, "ModLog", "__mod.log");
   const baseNamed = path.basename(beside).toLowerCase() === "sultansgame";
+  const baseExists = existsSync(beside);
   if (!existsSync(dir)) {
-    if (baseNamed) return row("modInstallDir", "MISS", dir, "not created yet; the game creates it on first launch (SultansGame/ exists)");
+    if (baseNamed) return row("modInstallDir", "MISS", dir, baseExists ? "not created yet; the game creates it on first launch" : "not created yet; the MyDocuments base is not there either");
     return row("modInstallDir", "MISS", dir, "nothing confirms this base: no SultansGame/ beside it and no ModLog/__mod.log");
   }
   if (!existsSync(log) && !baseNamed) return row("modInstallDir", "FAIL", dir, "no ModLog/__mod.log beside it and its parent is not SultansGame/");
@@ -381,6 +386,28 @@ function readRaw(file) {
 }
 
 /**
+ * The same file, but a broken one is an error instead of an empty object. A writer that treated
+ * `{` as `{}` would drop every key it does not own — `runtime` included — and still report PASS.
+ */
+function readRawForWrite(file) {
+  if (!file || !existsSync(file)) return {};
+  const text = readFileSync(file, "utf8");
+  if (!text.trim()) return {};
+  let raw;
+  try {
+    raw = JSON.parse(text);
+  } catch {
+    throw new Error(
+      `state file is not valid JSON: ${file}. Fix or delete it; this run wrote nothing.`,
+    );
+  }
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new Error(`state file is not a JSON object: ${file}. Fix or delete it; this run wrote nothing.`);
+  }
+  return raw;
+}
+
+/**
  * The state file, read as the three keys this module owns. Absent is normal and reads as
  * empty; invalid JSON is reported rather than thrown, because every tool imports this module.
  * `present` says whether the file existed, so a report can say "nothing recorded yet" instead
@@ -430,10 +457,13 @@ export function recordOf(rows) {
  * `vanillaDir` is dropped so the file cannot claim a config the game no longer has.
  */
 export function writeRecord(rows, file = pathsFile()) {
-  const { vanillaDir: _retired, ...raw } = readRaw(file);
+  const { vanillaDir: _retired, ...raw } = readRawForWrite(file);
   const body = recordOf(rows);
   mkdirSync(path.dirname(file), { recursive: true });
-  writeFileSync(file, `${JSON.stringify({ ...raw, ...body }, null, 2)}\n`);
+  // Atomic replace: another writer (state.ts) may read this file while we write it.
+  const tmp = `${file}.tmp-${process.pid}`;
+  writeFileSync(tmp, `${JSON.stringify({ ...raw, ...body }, null, 2)}\n`);
+  renameSync(tmp, file);
   return body;
 }
 
@@ -545,12 +575,15 @@ export function ensureGameDir(opts = {}) {
   const judged = judge({ gameDir: install, file: null, platform, home, env, cfg });
   const body = recordOf(judged.rows);
   const same = Object.keys(body).every((key) => saved[key] === body[key]);
-  if (status === "already" && same) {
+  // Nothing was discovered when the recorded game directory still holds the game: only the keys
+  // derived from it changed. Reporting "discovered" there would say a search ran when none did.
+  if (status === "already" && !same) status = "derived";
+  if (status === "already") {
     return { status, recorded: install, ...derivedPaths(judged.rows), warnings: derivedWarnings(judged.rows) };
   }
   writeRecord(judged.rows, file);
   return {
-    status: "recorded",
+    status,
     recorded: install,
     ...derivedPaths(judged.rows),
     warnings: derivedWarnings(judged.rows),
@@ -655,12 +688,29 @@ function printRows(rows) {
   }
 }
 
+/** Flags with a value. Anything else is a usage error, not something to ignore. */
+const VALUED = new Set(["game-dir", "workshop", "mod-install", "paths"]);
+
 function parseArgs(argv) {
   const out = { _: [] };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a.startsWith("--")) out[a.slice(2)] = argv[++i];
-    else out._.push(a);
+    if (!a.startsWith("--")) {
+      out._.push(a);
+      continue;
+    }
+    const eq = a.indexOf("=");
+    const name = (eq === -1 ? a.slice(2) : a.slice(2, eq)).trim();
+    if (!VALUED.has(name)) throw new Error(`unknown flag --${name}`);
+    let value;
+    if (eq !== -1) value = a.slice(eq + 1);
+    else {
+      value = argv[i + 1];
+      if (value === undefined || value.startsWith("--")) throw new Error(`--${name} needs a value`);
+      i++;
+    }
+    if (!value.trim()) throw new Error(`--${name} needs a value`);
+    out[name] = value;
   }
   return out;
 }
@@ -718,9 +768,26 @@ function set(args) {
 function main() {
   const argv = process.argv.slice(2);
   const cmd = argv[0] && !argv[0].startsWith("--") ? argv[0] : "check";
-  const args = parseArgs(cmd === "check" ? argv : argv.slice(1));
-  if (cmd === "check") return check(args);
-  if (cmd === "set") return set(args);
+  let args;
+  try {
+    args = parseArgs(cmd === "check" ? argv : argv.slice(1));
+  } catch (error) {
+    // Exit 2 is the promise in the file header: a usage error must not fall back to discovery.
+    process.stderr.write(`paths: ${error instanceof Error ? error.message : String(error)}\n`);
+    process.stderr.write(
+      "usage: node tools/paths.mjs check [--game-dir <dir>] [--workshop <dir>] [--mod-install <dir>] [--paths <file>]\n" +
+        "       node tools/paths.mjs set [--game-dir <dir>] [--paths <file>]\n",
+    );
+    return 2;
+  }
+  try {
+    if (cmd === "check") return check(args);
+    if (cmd === "set") return set(args);
+  } catch (error) {
+    // A broken state file or an unwritable path: one line, exit 2, no stack trace to read past.
+    process.stderr.write(`paths: ${error instanceof Error ? error.message : String(error)}\n`);
+    return 2;
+  }
   process.stderr.write(
     "usage: node tools/paths.mjs check [--game-dir <dir>] [--workshop <dir>] [--mod-install <dir>] [--paths <file>]\n" +
       "       node tools/paths.mjs set [--game-dir <dir>] [--paths <file>]\n",
