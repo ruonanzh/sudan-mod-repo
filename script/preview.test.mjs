@@ -1,8 +1,9 @@
 /**
  * tools/preview.mjs is one command an agent runs inside a mod directory. These tests run it
  * the way the agent does: a throwaway mod in a temp directory, the real CLI, and the files it
- * leaves behind. The card page and the story graph are written by their own tools, so a green
- * run here also says those two CLIs still write what their own tests say they do.
+ * leaves behind. The story graph is written by its own tool, and the card table gets no page at
+ * all — the app's editor tool edits it — so a green run here also says the preview pointed the
+ * player at that tool instead of writing a page that could only be read.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -63,17 +64,21 @@ test("a mod with no records passes and writes no empty page", () => {
   assert.equal(r.stdout.includes("FAIL"), false);
 });
 
-test("a mod of only cards gets a card page, and the index links it and nothing else", { skip }, () => {
+test("a mod of only cards writes no card page, and the index sends the player to the app editor", () => {
   const dir = mod({ "config/cards.json": { 9000001: CARD } });
-  const r = run(["--mod", dir]);
+  // No usable --vanilla: a cards-only preview must not need the game's config, because the app
+  // opens the card file and nothing here draws the story.
+  const r = run(["--mod", dir, "--vanilla", path.join(tmpdir(), "no-such-vanilla")]);
   assert.equal(r.status, 0, r.stdout + r.stderr);
   const out = path.join(dir, ".preview");
-  assert.equal(existsSync(path.join(out, "cards.html")), true, "the card page is where the index will look");
+  assert.equal(existsSync(path.join(out, "cards.html")), false, "a read-only page could only be looked at");
   assert.equal(existsSync(path.join(out, "graph.html")), false, "a mod with no story record gets no story graph");
   const index = read(path.join(out, "index.html"));
-  assert.match(index, /cards\.html/, "the index links the card page");
-  assert.doesNotMatch(index, /graph\.html/, "and not a page that was not written");
-  assert.match(read(path.join(out, "cards.html")), /"defaultCat":"mod"/, "the card page opens on the mod's own records");
+  assert.match(index, /config\/cards\.json/, "the index names the file to open in the app");
+  assert.match(index, /苏丹的卡牌编辑器/, "and the editor tool the app opens it with");
+  assert.match(index, /data-record="card:9000001"/, "the card is still a row");
+  assert.doesNotMatch(index, /cards\.html/, "nothing links a page that was not written");
+  assert.match(r.stdout, /no page is written/, "the run says what it did instead of writing a page");
 });
 
 test("a mod of only events gets one story graph that opens on the record named by --focus", { skip }, () => {
@@ -104,8 +109,10 @@ test("the index lists every record the mod carries, one row each", { skip }, () 
   for (const key of ["card:9000001", "event:9000001", "event:9000002", "rite:9000003"]) {
     assert.ok(index.includes(`data-record="${key}"`), `the index names ${key}`);
   }
-  assert.match(index, /cards\.html/, "card rows link the card page");
   assert.match(index, /graph\.html/, "story rows link the story graph");
+  const cardRow = index.split("\n").find((line) => line.includes('data-record="card:9000001"'));
+  assert.match(cardRow, /config\/cards\.json/, "the card row says where a card is edited");
+  assert.doesNotMatch(index, /cards\.html/, "no record links a card page");
 });
 
 test("--out decides where the pages land, and the default directory is left alone", { skip }, () => {

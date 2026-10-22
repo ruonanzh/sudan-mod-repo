@@ -4,10 +4,8 @@
  *
  *   node tools/preview.mjs --mod your_mods/<ModName> [--focus kind:id] [--out <dir>]
  *
- * A mod is data, and a page is how a player checks that data before installing it. Two views,
- * because a record reads two ways:
+ * A mod is data, and a page is how a player checks that data before installing it:
  *
- *   cards.html   the card editor's page, for a card's numbers, rarity and tags
  *   graph.html   the story graph, for a rite's or an event's place in the story around it
  *   index.html   every record the mod carries, one row each, linked to the page that shows it
  *
@@ -16,9 +14,11 @@
  * Everything lands in <mod>/.preview/ unless --out says otherwise, and a mod with no records
  * writes nothing: an empty page is worse than an honest line.
  *
- * The two pages are written by the tools that own them, not re-rendered here: editor.mjs for
- * cards, graphpage.mjs for the story graph. `--focus` is handed to whichever page holds that
- * record, so the preview opens on the thing it was run for.
+ * The card table gets no page. A static page can be read and not saved, and the app already
+ * ships an editor tool for that file (`editors/sudan_cards`): it saves into the original text,
+ * so comments and field order survive. index.html names the editor and the file to open in the
+ * app instead. The story graph is still written by graphpage.mjs, which owns that view, and
+ * `--focus` is handed to it so the preview opens on the thing it was run for.
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
@@ -31,6 +31,11 @@ import { shorten, vanillaRequirement } from "./paths.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const LAYOUT = JSON.parse(readFileSync(new URL("../schema/layout.json", import.meta.url), "utf8"));
+/** The app editor tool that opens `config/cards.json`; the index names it by its own name. */
+const CARD_EDITOR = JSON.parse(
+  readFileSync(new URL("../editors/sudan_cards/.editor.tool.json", import.meta.url), "utf8")
+);
+const CARD_TABLE = LAYOUT.table.card.file;
 
 /** Kinds the story graph draws. The rest of a mod is listed in the index and has no page. */
 const GRAPH_KINDS = new Set(["event", "rite", "loot", "quest", "over", "afterStory", "riteTemplate"]);
@@ -100,9 +105,7 @@ export function modRecords(modDir) {
 
 /** The page a record is shown on, or null when no view shows this kind. */
 function pageOf(record, pages) {
-  if (record.kind === "card") return pages.card;
-  if (GRAPH_KINDS.has(record.kind)) return pages.graph;
-  return null;
+  return GRAPH_KINDS.has(record.kind) ? pages.graph : null;
 }
 
 /**
@@ -115,22 +118,33 @@ function indexHtml({ modName, records, pages }) {
   const summary = [...counts.entries()]
     .map(([kind, n]) => `<span class="pill on">${esc(KIND_LABEL[kind] || kind)} ${n}</span>`)
     .join(" ");
+  const hasCards = records.some((r) => r.kind === "card");
   const rows = records
     .map((r) => {
       const page = pageOf(r, pages);
+      const action =
+        r.kind === "card"
+          ? `在 app 里打开 <code>${esc(CARD_TABLE)}</code>`
+          : page
+            ? `<a href="${esc(page)}">打开</a>`
+            : '<span class="note">这类记录没有预览页</span>';
       return (
         `<tr data-record="${esc(r.kind)}:${esc(r.id)}">` +
         `<td>${esc(KIND_LABEL[r.kind] || r.kind)}</td>` +
         `<td><code>${esc(r.id)}</code></td>` +
         `<td class="txt">${esc(r.name)}</td>` +
-        `<td>${page ? `<a href="${esc(page)}">打开</a>` : '<span class="note">这类记录没有预览页</span>'}</td>` +
+        `<td>${action}</td>` +
         "</tr>"
       );
     })
     .join("\n");
+  const cardNote = hasCards
+    ? `<p class="note">卡用 app 的编辑器「${esc(CARD_EDITOR.name)}」改：在 app 里打开 <code>${esc(CARD_TABLE)}</code> 就是它。保存只改你动过的那几个值。</p>`
+    : "";
   const body = `
 <div class="panel">
 <p class="note" style="margin-top:0">这些页只说明改动长什么样。能不能加载，要把它装进游戏、在游戏内的面板里启用之后才知道。</p>
+${cardNote}
 <p>${summary}</p>
 <table>
 <tr><th>类型</th><th>id</th><th>名字</th><th></th></tr>
@@ -210,8 +224,14 @@ function main() {
     return 0;
   }
 
-  const requirement = vanillaRequirement(args.vanilla);
-  if (!requirement.dir) {
+  const cards = records.filter((r) => r.kind === "card");
+  const story = records.filter((r) => GRAPH_KINDS.has(r.kind));
+
+  // Only the story graph reads the game's own config. A mod of cards needs nothing but its file,
+  // and the app opens that file with the editor tool, so requiring an install here would refuse
+  // a preview that can be built.
+  const requirement = story.length ? vanillaRequirement(args.vanilla) : { dir: null };
+  if (story.length && !requirement.dir) {
     process.stdout.write(`FAIL  ${requirement.message}\n`);
     process.stdout.write(`NEXT  ${requirement.next}\n`);
     return 1;
@@ -219,7 +239,7 @@ function main() {
 
   // Without --focus the page would open on an empty canvas. Point it at the first record the mod
   // carries in the story graph, so opening the page always lands on something to look at.
-  const storyFirst = records.find((r) => r.kind !== "card");
+  const storyFirst = story[0];
   const focus = args.focus ? String(args.focus) : storyFirst ? `${storyFirst.kind}:${storyFirst.id}` : null;
   const picked = focus ? records.find((r) => `${r.kind}:${r.id}` === focus) : null;
   if (focus && !picked) {
@@ -236,28 +256,13 @@ function main() {
     `PASS  ${shorten(modDir)}  (records ${records.length}: ${[...counts.entries()].map(([k, n]) => `${k} ${n}`).join(", ")})\n`
   );
 
-  const pages = { card: null, graph: null };
-  const cards = records.filter((r) => r.kind === "card");
-  const story = records.filter((r) => GRAPH_KINDS.has(r.kind));
+  const pages = { graph: null };
   const focusFlag = picked ? ["--focus", `${picked.kind}:${picked.id}`] : [];
 
   if (cards.length) {
-    const file = path.join(outDir, "cards.html");
-    const tool = runTool("editor.mjs", [
-      "--static",
-      file,
-      "--mod",
-      modDir,
-      "--vanilla",
-      requirement.dir,
-      ...(picked && picked.kind === "card" ? focusFlag : []),
-    ]);
-    if (!tool.ok) {
-      toolFailed("editor.mjs", file, tool.output);
-      return 1;
-    }
-    pages.card = path.basename(file);
-    process.stdout.write(`PASS  wrote ${shorten(file)}\n`);
+    process.stdout.write(
+      `PASS  ${cards.length} card(s) in ${CARD_TABLE}: the app editor ${CARD_EDITOR.id} edits them, no page is written\n`
+    );
   }
 
   if (story.length) {
@@ -283,6 +288,9 @@ function main() {
   writeFileSync(index, indexHtml({ modName, records, pages }));
   process.stdout.write(`PASS  wrote ${shorten(index)}\n`);
   process.stdout.write(`NEXT  open ${shorten(index)} in a browser\n`);
+  if (cards.length) {
+    process.stdout.write(`NEXT  to change a card, open ${CARD_TABLE} in the app: it opens with ${CARD_EDITOR.id}\n`);
+  }
   return 0;
 }
 

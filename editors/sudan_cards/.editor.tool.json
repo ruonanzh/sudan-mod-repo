@@ -1,0 +1,9 @@
+{
+  "apiVersion": 1,
+  "id": "sudan_cards",
+  "name": "苏丹的卡牌编辑器",
+  "match": ["your_mods/*/config/cards.json"],
+  "entry": "index.html",
+  "mode": "edit",
+  "description": "改这个 mod 的 `config/cards.json`：卡面名称、副标题、稀有度、`tag` 的数值。保存只改你动过的那几个值，注释和字段顺序不动。"
+}
