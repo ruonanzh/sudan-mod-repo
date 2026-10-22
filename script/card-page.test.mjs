@@ -309,7 +309,7 @@ test("a many-option field renders a text input with a live matching list", () =>
   assert.ok(stats, "the stat table has its own list");
   const statNames = [...stats[1].matchAll(/<option value="([^"]+)"/g)].map((match) => match[1]);
   assert.deepEqual(statNames, Object.keys(TAG_ROLES.stat), "every stat name, and nothing else");
-  assert.match(stats[1], new RegExp(`value="体魄" data-kind="stat" data-min="${TAG_ROLES.stat.体魄.min}"`));
+  assert.match(stats[1], new RegExp(`value="体魄" data-kind="stat"`));
 });
 
 test("every visible row shows its raw key and its Chinese label", () => {
@@ -344,8 +344,10 @@ test("a marker tag is a checkbox, and a stat tag a number input with its vanilla
   assert.ok(stat, "体魄 has a control");
   assert.match(stat[0], /type="number"/);
   assert.match(stat[0], /value="3"/);
-  assert.match(stat[0], new RegExp(`min="${TAG_ROLES.stat.体魄.min}"`));
-  assert.match(stat[0], new RegExp(`max="${TAG_ROLES.stat.体魄.max}"`));
+  // The vanilla range is advice: the input must not clamp a value outside it.
+  assert.doesNotMatch(stat[0], /\bmin="/);
+  assert.doesNotMatch(stat[0], /\bmax="/);
+  assert.ok(html.includes("原版范围"), "the range column is still there as advice");
   assert.match(html, new RegExp(`${TAG_ROLES.stat.体魄.min} … ${TAG_ROLES.stat.体魄.max}`), "the range is printed too");
 
   assert.doesNotMatch(html, /data-tag-row="主角"/, "a tag the card does not carry has no row at all");
@@ -404,8 +406,9 @@ test("picking a name from a datalist adds a row to that table", () => {
   pick("stat", "魅力");
   assert.equal(rowsIn("#tag-stats")[0].getAttribute("data-tag-row"), "魅力");
   const built = rowsIn("#tag-stats")[0].children[1].children[0];
-  assert.equal(built.min, String(TAG_ROLES.stat.魅力.min), "the new row carries the vanilla range");
-  assert.equal(built.max, String(TAG_ROLES.stat.魅力.max));
+  // The range advises, it does not clamp; the row must not carry min/max attributes.
+  assert.equal(built.getAttribute("min"), null, "the new row must not clamp to the vanilla range");
+  assert.equal(built.getAttribute("max"), null);
 
   // 加标记 offers every name in tag.json, so a stat typed there must not become a marker.
   pick("marker", "智慧");

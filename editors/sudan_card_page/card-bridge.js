@@ -237,8 +237,8 @@
       control = document.createElement("input");
       control.type = "number";
       control.value = "1";
-      var min = option.getAttribute("data-min");
-      var max = option.getAttribute("data-max");
+      var min = null;
+      var max = null;
       if (min !== null) control.min = min;
       if (max !== null) control.max = max;
       range = min !== null ? min + " … " + max : "不在原版 tag 表";
@@ -279,16 +279,38 @@
     if (empty) body.removeChild(empty.parentNode);
     body.appendChild(buildTagRow(name, kind, option));
     markDirty();
+    refreshSummary();
+  }
+
+
+  /**
+   * The summary row above the tables reads the same controls the save reads, so the two can never
+   * disagree while the player edits. Call it on every change and after adding a row.
+   */
+  function refreshSummary() {
+    var el = document.getElementById("tag-summary");
+    if (!el) return;
+    var tag = (collect(document) || {}).tag || {};
+    var names = Object.keys(tag || {});
+    if (!names.length) {
+      el.textContent = "没有标签";
+      return;
+    }
+    el.textContent = names.map(function (n) { return n + " " + tag[n]; }).join("、");
   }
 
   function wire(root) {
     if (!root || root.getAttribute("data-card-wired") === "1") return;
     root.setAttribute("data-card-wired", "1");
-    root.addEventListener("input", markDirty);
+    root.addEventListener("input", function () {
+      markDirty();
+      refreshSummary();
+    });
     root.addEventListener("change", function (event) {
       var target = event.target;
       if (target && target.getAttribute && target.getAttribute("data-tag-add") !== null) return;
       markDirty();
+      refreshSummary();
     });
     root.querySelectorAll("[data-tag-add]").forEach(function (input) {
       input.addEventListener("change", function () {

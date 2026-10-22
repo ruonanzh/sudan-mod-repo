@@ -507,7 +507,8 @@ function markerCell(name, level) {
 /** A stat row is always a name `tag.json` carries, so its cell is the name alone. */
 function statCell(name, level) {
   const range = TAG_ROLES.stat[name];
-  const attrs = range ? ` min="${range.min}" max="${range.max}"` : "";
+  // The vanilla range is advice, not a limit: a mod may want 12 体魄 on a boss card.
+  const attrs = "";
   const input = `<input type="number" data-tag-level="${esc(name)}" data-tag-kind="stat" value="${esc(level)}"${attrs}>`;
   return `<tr data-tag-row="${esc(name)}"><td><code>${esc(name)}</code></td><td class="num">${input}</td><td>${
     range ? `${range.min} … ${range.max}` : "不在原版 tag 表"
