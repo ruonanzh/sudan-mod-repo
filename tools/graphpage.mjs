@@ -4,7 +4,7 @@
  * node's neighbourhood on the right, a category switcher in the top right, and the node the
  * reader picked in a column of its own beside them, so the picture is never covered.
  *
- *   node tools/graphpage.mjs --out .preview/graph/graph.html [--mod your_mods/x] [--focus rite:5010901]
+ *   node tools/graphpage.mjs --out editors/.preview/graph/graph.html [--mod your_mods/x] [--focus rite:5010901]
  *
  * `--mod` merges the mod's records into the picture and adds one more filter pill, `mod`, which
  * is selected on open: the page starts on what the mod touched, with everything else faded.

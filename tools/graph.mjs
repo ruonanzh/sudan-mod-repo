@@ -3,7 +3,7 @@
  * graph.mjs — build the story graph from the game's own config.
  *
  *   node tools/graph.mjs --check
- *   node tools/graph.mjs --out .preview/graph/index.json [--mod your_mods/x] [--lang zh]
+ *   node tools/graph.mjs --out editors/.preview/graph/index.json [--mod your_mods/x] [--lang zh]
  *
  * The rules live in schema/edges.json and schema/categories.json; this file only executes
  * them. Counts are printed, never stored in prose: they depend on the counting method
