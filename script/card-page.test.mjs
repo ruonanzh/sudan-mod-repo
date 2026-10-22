@@ -611,7 +611,12 @@ test("only the values that differ are pending, and strings compare as the page r
 
 test("the page and the tool only reach the host over the message bridge", () => {
   const pageHtml = page();
-  const files = [...filesUnder(path.join(REPO, "editors")), path.join(REPO, "tools/preview.mjs")];
+  // Generated output lives under `editors/.preview/`; it embeds vendored libraries, so it is not
+  // source and must not be scanned here.
+  const files = [
+    ...filesUnder(path.join(REPO, "editors")).filter((f) => !f.includes(`${path.sep}.preview${path.sep}`)),
+    path.join(REPO, "tools/preview.mjs"),
+  ];
   assert.ok(files.length > 0, "the editor tree is not empty");
   for (const file of files) {
     const text = readFileSync(file, "utf8");
