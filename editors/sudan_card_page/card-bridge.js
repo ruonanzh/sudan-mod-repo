@@ -195,9 +195,17 @@
     return null;
   }
 
-  /** Build the row a newly picked tag needs, in the table its kind belongs to. */
-  function buildTagRow(name, option) {
-    var kind = kindOf(option);
+  /** What the page says about a name `tag.json` does not carry yet: the row appears anyway. */
+  var UNKNOWN_TAG_NOTE = "这个名字还不在 tag.json 里，要让 agent 先建这条";
+  /** Its range cell: `tag.json` carries the range, so the cell waits for the tag to exist. */
+  var UNKNOWN_TAG_RANGE = "待建标签后确定";
+
+  /**
+   * Build the row a newly named tag needs. A name `tag.json` does not carry has no kind and no
+   * range to bound, so it becomes a marker row — the shape whose only state is the checkbox —
+   * and the row itself says the name is the thing to build.
+   */
+  function buildTagRow(name, kind, option) {
     var row = document.createElement("tr");
     row.setAttribute("data-tag-row", name);
 
@@ -205,23 +213,35 @@
     var code = document.createElement("code");
     code.textContent = name;
     nameCell.appendChild(code);
+    if (!option) {
+      var warning = document.createElement("div");
+      warning.className = "note bad";
+      warning.setAttribute("data-tag-warning", name);
+      warning.textContent = UNKNOWN_TAG_NOTE;
+      nameCell.appendChild(warning);
+    }
     row.appendChild(nameCell);
 
     var valueCell = document.createElement("td");
     valueCell.className = "num";
     var control;
+    var range;
     if (kind === "marker") {
       // A marker is present or absent, the same box a regenerated page carries.
       control = document.createElement("input");
       control.type = "checkbox";
       control.value = "1";
       control.checked = true;
+      range = option ? "1 或不存在" : UNKNOWN_TAG_RANGE;
     } else {
       control = document.createElement("input");
       control.type = "number";
       control.value = "1";
-      if (option.getAttribute("data-min") !== null) control.min = option.getAttribute("data-min");
-      if (option.getAttribute("data-max") !== null) control.max = option.getAttribute("data-max");
+      var min = option.getAttribute("data-min");
+      var max = option.getAttribute("data-max");
+      if (min !== null) control.min = min;
+      if (max !== null) control.max = max;
+      range = min !== null ? min + " … " + max : "不在原版 tag 表";
     }
     control.setAttribute("data-tag-kind", kind);
     control.setAttribute("data-tag-level", name);
@@ -229,10 +249,7 @@
     row.appendChild(valueCell);
 
     var rangeCell = document.createElement("td");
-    if (kind === "marker") rangeCell.textContent = "1 或不存在";
-    else if (option.getAttribute("data-min") !== null) {
-      rangeCell.textContent = option.getAttribute("data-min") + " … " + option.getAttribute("data-max");
-    } else rangeCell.textContent = "不在原版 tag 表";
+    rangeCell.textContent = range;
     row.appendChild(rangeCell);
     return row;
   }
@@ -241,15 +258,13 @@
     var name = (input.value || "").trim();
     if (!name) return;
     input.value = "";
+    var wanted = input.getAttribute("data-tag-add") === "marker" ? "marker" : "stat";
     var option = tagOption(name);
-    if (!option) {
-      setStatus("没有这个标签名：" + name, "error");
-      return;
-    }
-    var wanted = input.getAttribute("data-tag-add");
-    var kind = kindOf(option);
-    // 加标记 lists every name in tag.json, so a stat typed there lands in the other table.
-    if ((wanted === "marker" || wanted === "stat") && wanted !== kind) {
+    // A name `tag.json` does not carry has no kind to check: it goes to 标记, the table a
+    // regenerated page would put it in, and its own row says the name has to be built.
+    var kind = option ? kindOf(option) : "marker";
+    // 加标记 lists every name in tag.json, so a stat typed there points at the other table.
+    if (option && kind !== wanted) {
       setStatus("「" + name + "」是" + (kind === "marker" ? "标记，用「加标记」" : "数值属性，用「加属性」"), "error");
       return;
     }
@@ -262,7 +277,7 @@
     var body = table.tBodies[0] || table;
     var empty = body.querySelector(".empty");
     if (empty) body.removeChild(empty.parentNode);
-    body.appendChild(buildTagRow(name, option));
+    body.appendChild(buildTagRow(name, kind, option));
     markDirty();
   }
 

@@ -26,6 +26,18 @@ const FIELDS = JSON.parse(readFileSync(new URL("../schema/fields.json", import.m
 const LABELS = JSON.parse(readFileSync(new URL("../schema/field-labels.json", import.meta.url), "utf8"));
 const TAG_ROLES = JSON.parse(readFileSync(new URL("../schema/tag-roles.json", import.meta.url), "utf8"));
 
+/** Every name `tag.json` defines, whichever table carries it. A tag outside this set is to build. */
+const KNOWN_TAG_NAMES = new Set([
+  ...Object.keys(TAG_ROLES.marker),
+  ...Object.keys(TAG_ROLES.stat),
+  ...(TAG_ROLES.allTagNames?.names || []).map((tag) => tag.name),
+]);
+
+/** What the page says about a name `tag.json` does not carry yet. `card-bridge.js` says the same. */
+const UNKNOWN_TAG_NOTE = "这个名字还不在 tag.json 里，要让 agent 先建这条";
+/** The range cell of that row: `tag.json` carries the range, so the cell waits for the tag. */
+const UNKNOWN_TAG_RANGE = "待建标签后确定";
+
 const BRIDGE_SOURCE = readFileSync(new URL("../editors/sudan_card_page/card-bridge.js", import.meta.url), "utf8").trimEnd();
 
 /** The id of the `<script type="application/json">` block that carries the page's values. */
@@ -78,6 +90,8 @@ const CARD_PAGE_CSS = `
 .tag-add-lbl { color: var(--ink); white-space: nowrap; font-size: 13px; }
 .tag-add input { flex: 1 1 auto; min-width: 0; }
 .tags .empty { color: #8a7a60; }
+.tags td .note { margin-top: 5px; }
+.tags td .note.bad { color: var(--bad); }
 .readonly { padding-top: 4px; }
 `;
 
@@ -472,16 +486,25 @@ function tagAddControl(kind) {
 </div>`;
 }
 
-/** A marker is present or absent, so a row is a checked box: unchecking drops the key. */
+/**
+ * A marker is present or absent, so a row is a checked box: unchecking drops the key. A name
+ * `tag.json` does not carry gets the same box, says what is missing, and has no range to print.
+ */
 function markerCell(name, level) {
   const current = Number(level);
   const value = Number.isFinite(current) && current !== 0 ? current : 1;
   const odd = value !== 1;
-  const range = `1 或不存在${odd ? `；这张卡写的是 ${esc(level)}` : ""}`;
+  const known = KNOWN_TAG_NAMES.has(name);
+  const note = known
+    ? ""
+    : `<div class="note bad" data-tag-warning="${esc(name)}">${esc(UNKNOWN_TAG_NOTE)}</div>`;
+  // 1 或不存在 is read off the vanilla uses of this name, so building the tag is what settles it.
+  const range = known ? `1 或不存在${odd ? `；这张卡写的是 ${esc(level)}` : ""}` : UNKNOWN_TAG_RANGE;
   const box = `<input type="checkbox" data-tag-level="${esc(name)}" data-tag-kind="marker" value="${esc(value)}" checked>`;
-  return `<tr data-tag-row="${esc(name)}"><td><code>${esc(name)}</code></td><td class="num">${box}</td><td>${range}</td></tr>`;
+  return `<tr data-tag-row="${esc(name)}"><td><code>${esc(name)}</code>${note}</td><td class="num">${box}</td><td>${range}</td></tr>`;
 }
 
+/** A stat row is always a name `tag.json` carries, so its cell is the name alone. */
 function statCell(name, level) {
   const range = TAG_ROLES.stat[name];
   const attrs = range ? ` min="${range.min}" max="${range.max}"` : "";
@@ -493,8 +516,11 @@ function statCell(name, level) {
 
 function tagSections(values) {
   const entries = Object.entries(values.tag || {});
-  const markers = entries.filter(([name]) => TAG_ROLES.marker[name]);
-  const stats = entries.filter(([name]) => !TAG_ROLES.marker[name]);
+  // A name `tag.json` does not carry has no role to split on: it goes to 标记, the table whose row
+  // is a checkbox, so the player can see, uncheck and re-add it. Its row says what is missing.
+  const isMarkerRow = ([name]) => Boolean(TAG_ROLES.marker[name]) || !KNOWN_TAG_NAMES.has(name);
+  const markers = entries.filter(isMarkerRow);
+  const stats = entries.filter((entry) => !isMarkerRow(entry));
   return `<h2>标记 · 有或没有</h2>
 <div class="panel">
 <table class="tags" id="tag-markers">

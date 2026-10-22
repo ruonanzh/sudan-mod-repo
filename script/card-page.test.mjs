@@ -45,6 +45,9 @@ const LABELS = JSON.parse(readFileSync(path.join(REPO, "schema/field-labels.json
 const TAG_ROLES = JSON.parse(readFileSync(path.join(REPO, "schema/tag-roles.json"), "utf8"));
 const TOOL_DIR = path.join(REPO, "editors/sudan_card_page");
 
+/** What the page says about a tag name `tag.json` does not carry yet. */
+const UNKNOWN_TAG_NOTE = "这个名字还不在 tag.json 里，要让 agent 先建这条";
+
 /** One record with every kind of card field: enums, text, numbers, lists, tags, objects. */
 const CARD = {
   id: 9000001,
@@ -96,6 +99,11 @@ function rowsOf(html) {
     }
   }
   return out;
+}
+
+/** One tag table's markup: from its `id` to the `</table>` that closes it. */
+function tableOf(html, id) {
+  return html.slice(html.indexOf(`id="${id}"`), html.indexOf("</table>", html.indexOf(`id="${id}"`)));
 }
 
 /** The app's `match` rule: `*` stops at `/`, `**` crosses directories. */
@@ -350,11 +358,10 @@ test("the tag row summarises the tags, so it cannot say 「no tags」 over a ful
   assert.ok(summary, "the tag row carries a summary");
   assert.equal(summary[1], "体魄 3、魅力 2、男性 1", "all three tags are named with their values");
 
-  const section = (id) => html.slice(html.indexOf(`id="${id}"`), html.indexOf("</table>", html.indexOf(`id="${id}"`)));
-  const rowsIn = (id) => [...section(id).matchAll(/<tr data-tag-row="([^"]+)"/g)].map((match) => match[1]);
+  const rowsIn = (id) => [...tableOf(html, id).matchAll(/<tr data-tag-row="([^"]+)"/g)].map((match) => match[1]);
   assert.deepEqual(rowsIn("tag-markers"), ["男性"], "the marker table carries the marker");
   assert.deepEqual(rowsIn("tag-stats"), ["体魄", "魅力"], "the stat table carries both stats");
-  assert.match(section("tag-stats"), /data-tag-level="魅力"[^>]*value="2"/, "and the number the summary shows");
+  assert.match(tableOf(html, "tag-stats"), /data-tag-level="魅力"[^>]*value="2"/, "and the number the summary shows");
 
   // A card with no tags says so in both places, rather than an empty box beside two empty tables.
   const bare = page({ ...CARD, tag: {} });
@@ -404,6 +411,86 @@ test("picking a name from a datalist adds a row to that table", () => {
   pick("marker", "智慧");
   assert.equal(rowsIn("#tag-markers").length, 1, "a stat does not become a marker");
   assert.match(status.textContent, /加属性/, "the page says which table to use");
+
+  // A name tag.json does carry needs no explanation: only an unknown one is marked.
+  assert.equal(rowsIn("#tag-markers")[0].children[0].children.length, 1, "a known marker gets no warning");
+  assert.equal(rowsIn("#tag-stats")[0].children[0].children.length, 1, "a known stat gets no warning");
+
+  // The same rule the other way: a marker typed into 加属性 points at 加标记.
+  pick("stat", "贵族");
+  assert.equal(rowsIn("#tag-stats").length, 1, "a marker does not become a stat");
+  assert.match(status.textContent, /加标记/, "the page says which table to use");
+});
+
+test("a name tag.json does not carry is a 标记 row that says to build the tag", () => {
+  const UNKNOWN = "测试新标签";
+  const html = page({ ...CARD, tag: { 体魄: 3, 男性: 1, 测试新标签: 1 } });
+
+  const markers = tableOf(html, "tag-markers");
+  const rowsIn = (table) => [...table.matchAll(/<tr data-tag-row="([^"]+)"/g)].map((match) => match[1]);
+  assert.deepEqual(rowsIn(markers), ["男性", "测试新标签"], "the unknown name is a row like any marker");
+  assert.ok(
+    markers.includes(`data-tag-warning="${UNKNOWN}">${UNKNOWN_TAG_NOTE}</div>`),
+    "the row says what is missing, in the page's red note style",
+  );
+  assert.match(markers, /1 或不存在/, "a known marker keeps the range read off the vanilla uses");
+  assert.match(markers, /待建标签后确定/, "the unknown name's range waits for the tag to be built");
+
+  const box = /<input[^>]*data-tag-level="测试新标签"[^>]*>/.exec(html)[0];
+  assert.match(box, /type="checkbox"/, "a name with no range is present or absent, so it is a box");
+  assert.match(box, /\schecked/, "the row exists only while the card carries the tag, so it is checked");
+  assert.match(box, /value="1"/, "and it carries the level the card stores");
+  const two = /<input[^>]*data-tag-level="测试新标签"[^>]*>/.exec(page({ ...CARD, tag: { 测试新标签: 2 } }))[0];
+  assert.match(two, /value="2"/, "a level the card wrote is what the box keeps");
+
+  assert.doesNotMatch(tableOf(html, "tag-stats"), new RegExp(`data-tag-level="${UNKNOWN}"`), "it is not a stat row");
+  assert.match(html, /id="tag-summary">体魄 3、男性 1、测试新标签 1</, "the summary still names it");
+
+  const { bridge, root, controlOf } = bridgeOf(html);
+  assert.equal(bridge.collect(root).tag.测试新标签, 1, "the box's state is what the page saves");
+  controlOf(UNKNOWN).checked = false;
+  assert.equal(bridge.collect(root).tag.测试新标签, undefined, "unchecking it removes the tag, like any marker");
+});
+
+test("adding a name tag.json does not carry saves it, applies it, and re-renders the same row", () => {
+  const record = { ...CARD, tag: { 体魄: 3, 男性: 1 } };
+  const html = page(record);
+  const { bridge, root, tables, status, pick } = bridgeOf(html);
+  const rowsIn = (id) => tables.get(id).tBodies[0].rows;
+
+  pick("marker", "新标记甲");
+  pick("stat", "新属性乙");
+  assert.deepEqual(
+    rowsIn("#tag-markers").map((row) => row.getAttribute("data-tag-row")),
+    ["新标记甲", "新属性乙"],
+    "a name tag.json does not carry goes to 标记, whichever box it was typed into",
+  );
+  assert.equal(rowsIn("#tag-stats").length, 0, "nothing lands in 数值");
+  for (const row of rowsIn("#tag-markers")) {
+    assert.equal(row.children[0].children[1].textContent, UNKNOWN_TAG_NOTE, "the row says the name has to be built");
+    assert.equal(row.children[1].children[0].type, "checkbox", "there is no number to type for it yet");
+    assert.equal(row.children[2].textContent, "待建标签后确定", "and no range to print");
+  }
+  assert.doesNotMatch(status.textContent, /没有这个标签名/, "an unknown name is never refused");
+  assert.equal(bridge.collect(root).tag.新标记甲, 1, "a checked box is present, so it is 1");
+  assert.equal(bridge.collect(root).tag.新属性乙, 1);
+
+  const values = readPageValues(writePageValues(html, "9000001", bridge.collect(root))).values;
+  assert.equal(values.tag.新标记甲, 1, "the saved block keeps the name instead of dropping it");
+  assert.equal(values.tag.新属性乙, 1, "and the one typed into 加属性 with it");
+  const diff = pendingValues(record, values);
+  assert.deepEqual(diff.fields.tag, { 新标记甲: 1, 新属性乙: 1 }, "apply writes both, so lint can report them");
+  assert.deepEqual(diff.removedTags, [], "and neither is read as a removal");
+
+  // Regenerating the page from that block prints the same rows, so a reload loses nothing.
+  const regenerated = page({ ...record, tag: values.tag });
+  assert.match(regenerated, /<tr data-tag-row="新标记甲">/);
+  assert.match(regenerated, /<tr data-tag-row="新属性乙">/);
+  assert.ok(
+    regenerated.includes(`data-tag-warning="新标记甲">${UNKNOWN_TAG_NOTE}</div>`),
+    "the regenerated row says it too",
+  );
+  assert.doesNotMatch(tableOf(regenerated, "tag-stats"), /新属性乙|待建标签后确定/, "both rows are markers again");
 });
 
 test("the value block round-trips, and a value cannot close it", () => {
