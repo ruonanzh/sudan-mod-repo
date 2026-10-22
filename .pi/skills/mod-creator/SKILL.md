@@ -144,6 +144,16 @@ description: >
 
 ## 验收
 
+**第一步必须做：调 `validate_mod`。** 参数是 `modDir`（例如 `your_mods/<ModName>`），可选 `vanilla`（原版 `config` 目录）。它跑的就是同一个 linter，但把 FAIL、WARN、INFO 分类报回来。这一步不做，不许说 mod 写完了。
+
+看它的状态词再往下：
+
+- `FAIL`：有硬错误，按消息改。
+- `PARTIAL`：跑过的规则全过，但**没找到原版 `config`**，所以 id 冲突与标签检查没跑。先跑 `check_game_paths` 看缺哪一项，补上 `vanilla` 再验一次，不许当 `PASS` 用。
+- `PASS`：规则全过。它不证明游戏会加载这个 mod，安装与实机验收另算。
+
+没有工具时才用命令行，输出是一样的：
+
 ```
 node tools/lint.mjs your_mods/<ModName>
 ```

@@ -147,9 +147,10 @@ test("each tool registers the name the skill tells the agent to use", async () =
     assert.equal(def.name, name, file);
     assert.ok(skill.includes(name), `the skill must name ${name}`);
   }
-  // validate_mod is not named in any skill yet; that gap is reported to the maintainer, not
-  // papered over by dropping the assertion for one tool.
+  // validate_mod is a mandatory step in mod-creator; a tool no skill names is a tool no agent calls.
+  const creator = readFileSync(path.join(REPO, ".pi/skills/mod-creator/SKILL.md"), "utf8");
   assert.equal((await tool("mod-lint.ts")).name, "validate_mod");
+  assert.ok(creator.includes("validate_mod"), "mod-creator must name validate_mod");
 });
 
 test("the declared parameters are the ones execute reads", async () => {
