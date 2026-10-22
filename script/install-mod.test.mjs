@@ -9,7 +9,7 @@
  */
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { cleanupAll, fakeModRoot, makeMod, tmpDir } from "./lib/fixture.mjs";
 import { loadExtension } from "./lib/load-extension.mjs";
@@ -65,7 +65,7 @@ test("install_mod refuses a folder with no info.json", async () => {
   const cwd = workspace(root);
   const bare = tmpDir("install-bare-");
   writeFileSync(path.join(bare, "config.json"), "{}");
-  await assert.rejects(run(await get(), { modDir: bare }, cwd), /INVALID_MOD/);
+  await assert.rejects(run(await get(), { modDir: bare }, cwd), /has no info\.json/);
 });
 
 test("install_mod refuses malformed info.json", async () => {
@@ -73,7 +73,7 @@ test("install_mod refuses malformed info.json", async () => {
   const cwd = workspace(root);
   const mod = makeMod({});
   writeFileSync(path.join(mod, "info.json"), "{ not json");
-  await assert.rejects(run(await get(), { modDir: mod }, cwd), /INVALID_MOD/);
+  await assert.rejects(run(await get(), { modDir: mod }, cwd), /is not valid JSON/);
 });
 
 test("install_mod reports PARTIAL when no mod directory is recorded", async () => {
@@ -116,6 +116,72 @@ test("install_mod never edits the mod it installs", async () => {
   assert.equal(readFileSync(path.join(mod, "config/cards.json"), "utf8"), before);
 });
 
+
+test("install_mod aligns the file count with what actually lands", async () => {
+  const root = modRoot();
+  const cwd = workspace(root);
+  const mod = makeMod({ "config/cards.json": "{}\n" });
+  mkdirSync(path.join(mod, ".preview"), { recursive: true });
+  writeFileSync(path.join(mod, ".preview/card-1.modpage.html"), "<html></html>");
+  writeFileSync(path.join(mod, ".DS_Store"), "x");
+  writeFileSync(path.join(mod, "._junk"), "x");
+
+  const result = await run(await get(), { modDir: mod }, cwd);
+  const target = path.join(root, path.basename(mod));
+  assert.equal(existsSync(path.join(target, ".preview")), false, "a mod page is not part of the mod");
+  assert.equal(existsSync(path.join(target, ".DS_Store")), false);
+  assert.equal(existsSync(path.join(target, "._junk")), false);
+  assert.equal(result.details.files, 2, "info.json and config/cards.json only");
+});
+
+test("install_mod refuses a symlink that points at its own source", async (t) => {
+  const root = modRoot();
+  const cwd = workspace(root);
+  const mod = makeMod({});
+  const link = path.join(root, path.basename(mod));
+  try {
+    symlinkSync(mod, link, "dir");
+  } catch {
+    t.skip("this platform does not allow directory symlinks without privileges");
+    return;
+  }
+  await assert.rejects(run(await get(), { modDir: link }, cwd), /UNSAFE_TARGET/);
+  assert.ok(existsSync(path.join(mod, "info.json")), "the source must survive the refusal");
+});
+
+test("install_mod refuses a folder that contains its own target", async () => {
+  const root = modRoot();
+  const cwd = workspace(root);
+  // <root>/MyMod/MyMod: the target is <root>/MyMod, which holds the source.
+  const outer = path.join(root, "MyMod");
+  const inner = path.join(outer, "MyMod");
+  mkdirSync(inner, { recursive: true });
+  writeFileSync(path.join(inner, "info.json"), JSON.stringify({ name: "MyMod" }));
+  await assert.rejects(run(await get(), { modDir: inner }, cwd), /UNSAFE_TARGET/);
+  assert.ok(existsSync(path.join(inner, "info.json")));
+});
+
+test("install_mod reports FAIL, not PARTIAL, when a recorded folder is not the mod folder", async () => {
+  const cwd = workspace(tmpDir("install-wrong-root-"));
+  const mod = makeMod({});
+  const result = await run(await get(), { modDir: mod }, cwd);
+  const text = textOf(result);
+  assert.equal(result.details.status, "FAIL", text);
+  assert.match(text, /^NEXT: run try_set_game_dir/m, "a wrong folder is fixed by finding the game again");
+});
+
+test("install_mod replaces the bytes, not just the file names", async () => {
+  const root = modRoot();
+  const cwd = workspace(root);
+  const mod = makeMod({ "config/cards.json": '{"v":1}\n' });
+  await run(await get(), { modDir: mod }, cwd);
+  writeFileSync(path.join(mod, "config/cards.json"), '{"v":2}\n');
+  const result = await run(await get(), { modDir: mod }, cwd);
+  const landed = path.join(root, path.basename(mod), "config/cards.json");
+  assert.equal(result.details.status, "PASS", textOf(result));
+  assert.equal(readFileSync(landed, "utf8"), '{"v":2}\n', "a copy that is not refreshed must fail here");
+  assert.match(textOf(result), /refresh the mod list/, "an update is not an enable");
+});
 test("install_mod declares the parameter it reads, and mod-installer names it", async () => {
   const def = await get();
   const keys = Object.keys(def.parameters.properties || def.parameters.schema?.properties || {});

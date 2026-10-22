@@ -38,7 +38,9 @@ Windows  %USERPROFILE%\Documents\DoubleCross\SultansGame\Mod\
 
 ## 更新
 
-覆盖文件夹后，让玩家刷新 mod 列表。如果新版删掉了某些文件，旧版留下的那些文件要手动删除：游戏不会清理 mod 目录。
+再调一次 `install_mod`，然后让玩家刷新 mod 列表。工具把整个文件夹换掉，旧版多出来的文件不会留下。
+
+手工复制时游戏不会清理 mod 目录：新版删掉的文件要自己从安装目录里删。
 
 ## 移除
 

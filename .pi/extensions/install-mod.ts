@@ -8,7 +8,7 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
-import { cpSync, existsSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import { cpSync, existsSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 import { judge, pathsFile, shorten } from "../../tools/paths.mjs";
@@ -18,25 +18,47 @@ const absolute = (cwd: string, p: string): string => {
   return path.isAbsolute(expanded) ? expanded : path.resolve(cwd, expanded);
 };
 
-/** Every file under `dir`, relative, so the count and the list agree. */
+/**
+ * What the game never loads, and what nobody wants in the install folder: the page tool's
+ * output, git metadata, and the Finder's litter. `tools/lint.mjs` skips the same names.
+ */
+const SKIP = (name: string): boolean => name === ".preview" || name === ".git" || name === ".DS_Store" || name.startsWith("._");
+
+/** Every file under `dir`, relative, so the count and the list agree with what lands. */
 function walk(dir: string, base = dir): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    if (SKIP(entry.name)) return [];
     const full = path.join(dir, entry.name);
     return entry.isDirectory() ? walk(full, base) : [path.relative(base, full)];
   });
 }
+
+/** `realpath`, or the input unchanged when it does not exist yet (the target often does not). */
+const real = (p: string): string => {
+  try {
+    return realpathSync(p);
+  } catch {
+    return p;
+  }
+};
+
+/** The mod folder a real install would create, with every path spelled one way. */
+const identity = (p: string): string => {
+  const resolved = path.resolve(p);
+  return path.join(real(path.dirname(resolved)), path.basename(resolved));
+};
 
 export default function (pi: ExtensionAPI) {
   pi.registerTool({
     name: "install_mod",
     label: "Install Mod",
     description:
-      "Copy one mod folder from the workspace into the game's mod install directory. The directory comes from .gamer-agent.local.json; when it is missing the tool reports PARTIAL instead of guessing. An existing copy of the same folder is replaced as a whole, so files dropped from the new version do not stay behind. It does not enable the mod, does not edit game records, and does not start the game.",
+      "Copy one mod folder from the workspace into the game's mod install directory. The directory is the recorded modInstallDir, or the one derived from MyDocuments when nothing is recorded; a missing folder reports PARTIAL and a wrong folder reports FAIL, never a guess. An existing copy of the same folder is replaced as a whole, so files dropped from the new version do not stay behind. This tool skips .preview, .git, .DS_Store and ._* files. It does not enable the mod, does not edit game records, and does not start the game.",
     promptSnippet: "Copy a mod folder into the game's mod directory",
     promptGuidelines: [
       "Use install_mod after validate_mod reports PASS, and pass modDir=<your_mods/ModName>. Do not copy the folder with a shell command: the tool replaces the whole folder and reports the install directory it used.",
       "install_mod never enables the mod. After it reports PASS, tell the player to enable the mod in the game's mod panel (title screen), then read ModLog/<mod name>_local.log for a `read mod` line before claiming the mod works.",
-      "A PARTIAL from install_mod means the mod install directory is missing. Start the game once so it creates the folder, then run install_mod again; do not create the folder by hand.",
+      "A PARTIAL from install_mod means the mod folder does not exist yet: start the game once so it creates the folder, then install again. A FAIL means the recorded folder is wrong: run try_set_game_dir. Do not create the folder by hand.",
     ],
     parameters: Type.Object({
       modDir: Type.String({
@@ -60,30 +82,50 @@ export default function (pi: ExtensionAPI) {
           `INVALID_MOD: ${source} has no info.json. The game only loads a folder with a valid info.json; fix the mod first.`,
         );
       }
-      let info: { name?: string };
+      let info: { name?: unknown };
       try {
         info = JSON.parse(readFileSync(infoFile, "utf8")) as typeof info;
       } catch (error) {
-        throw new Error(`INVALID_MOD: info.json is not valid JSON (${(error as Error).message}).`);
+        throw new Error(`INVALID_MOD: ${infoFile} is not valid JSON (${(error as Error).message}). Fix info.json first.`);
       }
-      const name = info.name?.trim() || path.basename(source);
+      if (info.name !== undefined && typeof info.name !== "string") {
+        throw new Error(`INVALID_MOD: info.json has a non-string "name". Give it a display name, then retry.`);
+      }
+      const name = (info.name as string | undefined)?.trim() || path.basename(source);
       const files = walk(source);
 
-      const rows = judge({ file: pathsFile(cwd) }).rows as Array<{ name: string; status: string; path: string | null; reason?: string }>;
+      const rows = judge({ file: pathsFile(cwd) }).rows as Array<{
+        name: string;
+        status: string;
+        path: string | null;
+        reason?: string;
+      }>;
       const root = rows.find((row) => row.name === "modInstallDir");
       if (!root?.path || root.status !== "OK") {
+        // MISS: the folder does not exist yet (the game creates it on first run).
+        // FAIL: a recorded folder exists but is not the game's mod folder; starting the game
+        // again will not fix that, so the two cases get different next steps.
+        const missing = root?.status === "MISS";
         const why = root?.reason ? ` (${root.reason})` : "";
         return {
           content: [
             {
               type: "text",
               text: [
-                `PARTIAL: the mod install directory is not available${why}.`,
-                "NEXT: start the game once so it creates the mod folder, then run install_mod again. Do not create the folder by hand; the game also creates it from the mod panel button.",
+                `${missing ? "PARTIAL" : "FAIL"}: the mod install directory is not available${why}.`,
+                missing
+                  ? "NEXT: start the game once so it creates the mod folder, then run install_mod again. Do not create the folder by hand; the game also creates it from the mod panel button."
+                  : "NEXT: run try_set_game_dir to find the game again, or set_game_dir with the real install folder, then run install_mod again. Do not create the folder by hand.",
               ].join("\n"),
             },
           ],
-          details: { ok: false, status: "PARTIAL", wroteState: false, installed: false, target: null },
+          details: {
+            ok: false,
+            status: missing ? "PARTIAL" : "FAIL",
+            wroteState: false,
+            installed: false,
+            target: null,
+          },
         };
       }
 
@@ -95,13 +137,49 @@ export default function (pi: ExtensionAPI) {
           `UNSAFE_TARGET: ${target} is not inside the mod install directory ${root.path}. Refusing to copy.`,
         );
       }
-      if (target === source || source.startsWith(`${target}${path.sep}`)) {
-        throw new Error(`UNSAFE_TARGET: ${source} is already the install directory. Refusing to copy onto itself.`);
+      // Compare real paths, not spellings: a symlink or a `..` in the argument would otherwise
+      // pass the string test and let the copy delete its own source.
+      const sourceId = identity(source);
+      const targetId = identity(target);
+      if (
+        sourceId === targetId ||
+        sourceId.startsWith(`${targetId}${path.sep}`) ||
+        targetId.startsWith(`${sourceId}${path.sep}`)
+      ) {
+        throw new Error(
+          `UNSAFE_TARGET: ${source} and ${target} are the same folder (or one holds the other). Refusing to copy.`,
+        );
       }
 
       const replaced = existsSync(target);
-      if (replaced) rmSync(target, { recursive: true, force: true });
-      cpSync(source, target, { recursive: true });
+      const staging = `${target}.installing-${process.pid}`;
+      const backup = `${target}.replaced-${process.pid}`;
+      let movedOld = false;
+      try {
+        rmSync(staging, { recursive: true, force: true });
+        const skip = (entry: string): boolean => !SKIP(path.basename(entry));
+        cpSync(source, staging, { recursive: true, filter: skip });
+        if (replaced) {
+          rmSync(backup, { recursive: true, force: true });
+          renameSync(target, backup);
+          movedOld = true;
+        }
+        renameSync(staging, target);
+        if (movedOld) rmSync(backup, { recursive: true, force: true });
+      } catch (error) {
+        rmSync(staging, { recursive: true, force: true });
+        if (movedOld) {
+          try {
+            rmSync(target, { recursive: true, force: true });
+            renameSync(backup, target);
+          } catch {
+            // The old copy could not be put back; report the original failure rather than this one.
+          }
+        }
+        throw new Error(
+          `INSTALL_FAILED: could not write ${target} (${(error as Error).message}). The previous copy, if there was one, is still in place. Close the game if it is running and run install_mod again.`,
+        );
+      }
 
       return {
         content: [
@@ -109,7 +187,9 @@ export default function (pi: ExtensionAPI) {
             type: "text",
             text: [
               `PASS: installed ${name} to ${shorten(target)} (${files.length} files${replaced ? ", the previous copy was replaced" : ""}).`,
-              "NEXT: tell the player to enable the mod in the game's mod panel (title screen), then read ModLog/<mod name>_local.log and confirm a `read mod` line for each file you changed. Installing does not prove the game loads it.",
+              replaced
+                ? "NEXT: tell the player to refresh the mod list in the game's mod panel, then read ModLog/<mod name>_local.log and confirm a `read mod` line for each file you changed. Installing does not prove the game loads it."
+                : "NEXT: tell the player to enable the mod in the game's mod panel (title screen), then read ModLog/<mod name>_local.log and confirm a `read mod` line for each file you changed. Installing does not prove the game loads it.",
             ].join("\n"),
           },
         ],
