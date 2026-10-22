@@ -63,6 +63,7 @@ test("a failed check tells the agent to find the game, not to start it", async (
   );
   const text = textOf(result);
   assert.match(text, /FAIL: gameDir/, text);
+  assert.equal((text.match(/^NEXT:/gm) || []).length, 1, "exactly one next step, or the agent has to choose");
   assert.match(text, /NEXT: run try_set_game_dir/, "the path failure must name the discovery tool");
   assert.equal(result.details.wroteState, false);
 });
