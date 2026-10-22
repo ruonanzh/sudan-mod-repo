@@ -74,8 +74,9 @@ const CARD_PAGE_CSS = `
 #card-pending { border-left: 2px solid var(--gold); padding-left: 10px; }
 .savebar { display: flex; align-items: center; gap: 12px; }
 .savebar #card-status { margin: 0; }
-.tag-add { margin-top: 10px; }
-.tag-add input { width: 100%; }
+.tag-add { margin-top: 10px; display: flex; align-items: center; gap: 8px; }
+.tag-add-lbl { color: var(--ink); white-space: nowrap; font-size: 13px; }
+.tag-add input { flex: 1 1 auto; min-width: 0; }
 .tags .empty { color: #8a7a60; }
 .readonly { padding-top: 4px; }
 `;
@@ -388,8 +389,8 @@ function cardRow({ key, record, values }) {
       extra = "这一页只读这一项。";
       break;
     case "tag":
-      control = tagAddControl();
-      extra = "标记只有「有」或「没有」；数值型的范围见下面的表。";
+      control = `<div class="readonly" id="tag-summary">${esc(tagSummary(value))}</div>`;
+      extra = "标记只有「有」或「没有」；数值型的范围见下面的表。改标签用下面两张表。";
       break;
     default:
       control = `<div class="readonly">${fmt(value, "card", key)}</div>`;
@@ -418,7 +419,7 @@ function fieldRows({ record, values }) {
 }
 
 /** The live tags a new tag can be picked from: the whole of tag.json, marked by how it is used. */
-function tagOptionsHtml() {
+function tagNameOptions() {
   const names = TAG_ROLES.allTagNames?.names || [];
   return names
     .map((tag) => {
@@ -436,28 +437,49 @@ function tagOptionsHtml() {
     .join("\n");
 }
 
-function tagAddControl() {
-  return `<div class="tag-add">
-<input type="text" data-tag-add list="tag-name-options" autocomplete="off" placeholder="加一个标签：输入名字，匹配列表会实时过滤">
-<datalist id="tag-name-options">
-${tagOptionsHtml()}
-</datalist>
-</div>
-<div class="note" style="margin:6px 0 0">原版 tag.json 定义了 ${TAG_ROLES.allTagNames?.count ?? 0} 个标签；输入会从这 ${TAG_ROLES.allTagNames?.names?.length ?? 0} 个名字里过滤。</div>`;
+/** The stat tags `数值` takes, with the range its number input must carry. */
+function statNameOptions() {
+  return Object.entries(TAG_ROLES.stat)
+    .map(([name, range]) => `<option value="${esc(name)}" data-kind="stat" data-min="${range.min}" data-max="${range.max}"></option>`)
+    .join("\n");
 }
 
+/** The matching list `加标记` / `加属性` filter as the player types. */
+function tagDatalists() {
+  return `<datalist id="tag-name-options">
+${tagNameOptions()}
+</datalist>
+<datalist id="tag-stat-options">
+${statNameOptions()}
+</datalist>`;
+}
+
+/**
+ * One add control per table. `加标记` offers every name in tag.json and refuses a stat; `加属性`
+ * offers only the stat names, so its list is short enough to read.
+ */
+function tagAddControl(kind) {
+  const marker = kind === "marker";
+  const count = marker ? TAG_ROLES.allTagNames?.names?.length ?? 0 : Object.keys(TAG_ROLES.stat).length;
+  const label = marker ? "加标记" : "加属性";
+  const placeholder = marker
+    ? `输入标记名，从 ${count} 个原版标签里匹配`
+    : `输入属性名，从 ${count} 个原版属性里匹配`;
+  const list = marker ? "tag-name-options" : "tag-stat-options";
+  return `<div class="tag-add">
+<label class="tag-add-lbl" for="tag-add-${kind}">${esc(label)}</label>
+<input id="tag-add-${kind}" type="text" data-tag-add="${kind}" list="${list}" autocomplete="off" placeholder="${esc(placeholder)}">
+</div>`;
+}
+
+/** A marker is present or absent, so a row is a checked box: unchecking drops the key. */
 function markerCell(name, level) {
   const current = Number(level);
-  const odd = current !== 0 && current !== 1;
-  const option = (value, text, selected) =>
-    `<option value="${value}"${selected ? " selected" : ""}>${text}</option>`;
-  const extra = odd ? option(String(level), `${esc(level)}（原版只用 1）`, true) : "";
-  const select = `<select data-tag-level="${esc(name)}" data-tag-kind="marker">${extra}${option(
-    "1",
-    "1 · 有",
-    current === 1,
-  )}${option("0", "0 · 没有", current === 0)}</select>`;
-  return `<tr data-tag-row="${esc(name)}"><td><code>${esc(name)}</code></td><td class="num">${select}</td><td>1 或不存在</td></tr>`;
+  const value = Number.isFinite(current) && current !== 0 ? current : 1;
+  const odd = value !== 1;
+  const range = `1 或不存在${odd ? `；这张卡写的是 ${esc(level)}` : ""}`;
+  const box = `<input type="checkbox" data-tag-level="${esc(name)}" data-tag-kind="marker" value="${esc(value)}" checked>`;
+  return `<tr data-tag-row="${esc(name)}"><td><code>${esc(name)}</code></td><td class="num">${box}</td><td>${range}</td></tr>`;
 }
 
 function statCell(name, level) {
@@ -481,7 +503,8 @@ function tagSections(values) {
 ${markers.map(([name, level]) => markerCell(name, level)).join("\n") || '<tr><td colspan="3" class="empty">没有标记</td></tr>'}
 </tbody>
 </table>
-<div class="note">这些标签在游戏里只可能是 1（有）或不存在。1294 张卡里没有一张用过别的值。</div>
+${tagAddControl("marker")}
+<div class="note">这些标签在游戏里只可能是 1（有）或不存在。取消勾选就去掉这个标记。</div>
 </div>
 
 <h2>数值 · 这张卡的属性</h2>
@@ -492,8 +515,18 @@ ${markers.map(([name, level]) => markerCell(name, level)).join("\n") || '<tr><td
 ${stats.map(([name, level]) => statCell(name, level)).join("\n") || '<tr><td colspan="3" class="empty">没有属性</td></tr>'}
 </tbody>
 </table>
+${tagAddControl("stat")}
 <div class="note">标签用的是<b>中文显示名</b>，不是 code。改名会让引用它的所有条件失效。</div>
-</div>`;
+</div>
+
+${tagDatalists()}`;
+}
+
+/** The tags as one line — `体魄 3、男性 1` — or 「没有标签」 when the card carries none. */
+function tagSummary(tag) {
+  const entries = Object.entries(tag && typeof tag === "object" && !Array.isArray(tag) ? tag : {});
+  if (!entries.length) return "没有标签";
+  return entries.map(([name, level]) => `${name} ${level}`).join("、");
 }
 
 function cardFace({ id, record, values, modDir }) {

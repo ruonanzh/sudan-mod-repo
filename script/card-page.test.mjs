@@ -8,21 +8,27 @@
  *
  *   1. it is the card page tools/page.mjs renders, so it reuses `tools/html.mjs` CSS and the
  *      same wrapper and row classes instead of inventing a second look;
- *   2. its controls follow the field shape — an enum is a `<select>`, a tag name is a text
- *      input with a live matching list — and every row prints the raw key next to its Chinese
- *      label from schema/field-labels.json;
+ *   2. its controls follow the field shape — an enum is a `<select>`, a marker tag is a
+ *      checkbox, a stat tag a number input, and a new tag name is picked from a live matching
+ *      list — and every row prints the raw key next to its Chinese label from
+ *      schema/field-labels.json;
  *   3. its values round-trip through the JSON block the app save writes, without ever letting
  *      a value close the block or reach the network.
  *
  * The wrapper and its manifest get the same checks `script/editor-tool.test.mjs` applies to
  * `editors/sudan_cards`: the app discovers it, it loads one external script, and the generated
  * pages work inside it because they carry that same script verbatim.
+ *
+ * The tag tables are what a player edits, so these tests run the real `card-bridge.js` over the
+ * generated markup with a stand-in root instead of a browser: what the controls collect is what
+ * the page saves.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import vm from "node:vm";
 import { REPO } from "./lib/fixture.mjs";
 import { CSS, esc } from "../tools/html.mjs";
 import { parseDoc, toPlain } from "../tools/jsonc.mjs";
@@ -36,6 +42,7 @@ import {
 
 const FIELDS = JSON.parse(readFileSync(path.join(REPO, "schema/fields.json"), "utf8"));
 const LABELS = JSON.parse(readFileSync(path.join(REPO, "schema/field-labels.json"), "utf8"));
+const TAG_ROLES = JSON.parse(readFileSync(path.join(REPO, "schema/tag-roles.json"), "utf8"));
 const TOOL_DIR = path.join(REPO, "editors/sudan_card_page");
 
 /** One record with every kind of card field: enums, text, numbers, lists, tags, objects. */
@@ -107,6 +114,147 @@ function globToRegExp(glob) {
   return new RegExp(`^${out}$`);
 }
 
+// ---------------------------------------------------------------- the bridge, without a browser
+
+/** `type="checkbox" checked` → the attributes the markup carries; a bare name reads as "". */
+function attrsOf(text) {
+  const attrs = new Map();
+  for (const match of String(text).matchAll(/([A-Za-z][\w-]*)(?:="([^"]*)")?/g)) {
+    attrs.set(match[1], match[2] === undefined ? "" : match[2]);
+  }
+  return attrs;
+}
+
+/**
+ * One element as the bridge reads it: the attributes the generator wrote, the value a browser
+ * would report, and the four methods the bridge calls. `type` and `checked` are plain
+ * properties on purpose — the bridge assigns them when it builds a row.
+ */
+function elementOf(tagName, attrs, value) {
+  const map = attrsOf(attrs);
+  const element = {
+    tagName: tagName.toUpperCase(),
+    type: map.get("type") || (tagName === "select" ? "select-one" : "text"),
+    value,
+    checked: map.has("checked"),
+    multiple: false,
+    children: [],
+    listeners: {},
+    getAttribute: (name) => (map.has(name) ? map.get(name) : null),
+    setAttribute: (name, shown) => map.set(name, String(shown)),
+    addEventListener: (type, handler) => (element.listeners[type] ||= []).push(handler),
+    appendChild: (child) => element.children.push(child),
+  };
+  return element;
+}
+
+/** Every input, select and textarea the page carries, in document order. */
+function controlsOf(html) {
+  const parts = [
+    ...[...html.matchAll(/<input\b([^>]*)>/gi)].map((m) => ({ at: m.index, tag: "input", attrs: m[1], inner: "" })),
+    ...[...html.matchAll(/<select\b([^>]*)>([\s\S]*?)<\/select>/gi)].map((m) => ({ at: m.index, tag: "select", attrs: m[1], inner: m[2] })),
+    ...[...html.matchAll(/<textarea\b([^>]*)>([\s\S]*?)<\/textarea>/gi)].map((m) => ({ at: m.index, tag: "textarea", attrs: m[1], inner: m[2] })),
+  ].sort((a, b) => a.at - b.at);
+
+  return parts.map((part) => {
+    if (part.tag === "textarea") return elementOf("textarea", part.attrs, part.inner);
+    if (part.tag === "select") {
+      const options = [...part.inner.matchAll(/<option\b([^>]*)>/g)].map((m) => attrsOf(m[1]));
+      const chosen = options.find((option) => option.has("selected")) || options[0];
+      return elementOf("select", part.attrs, chosen ? chosen.get("value") ?? "" : "");
+    }
+    const attrs = attrsOf(part.attrs);
+    return elementOf("input", part.attrs, attrs.has("value") ? attrs.get("value") : "");
+  });
+}
+
+/** A `<datalist>` as the bridge reads it: `options[i].value` and each option's attributes. */
+function datalistOf(html, id) {
+  const block = new RegExp(`<datalist id="${id}">([\\s\\S]*?)</datalist>`).exec(html);
+  if (!block) return null;
+  return {
+    options: [...block[1].matchAll(/<option\b([^>]*)>/g)].map((m) => {
+      const attrs = attrsOf(m[1]);
+      return elementOf("option", m[1], attrs.get("value") ?? "");
+    }),
+  };
+}
+
+/**
+ * Run the real `card-bridge.js` over the page's own markup. No browser: the root answers the
+ * selectors the bridge walks, the two tables collect the rows it appends, and the document hands
+ * out that root, the value block, the datalists and the status line.
+ */
+function bridgeOf(html) {
+  const controls = controlsOf(html);
+  /** A row the bridge builds joins the page, so the next collect reads it like a browser would. */
+  const adopt = (node) => {
+    if (node.getAttribute && node.getAttribute("data-tag-level") !== null) controls.push(node);
+    for (const child of node.children || []) adopt(child);
+  };
+
+  const tables = new Map();
+  for (const id of ["#tag-markers", "#tag-stats"]) {
+    const body = {
+      rows: [],
+      querySelector: () => null,
+      removeChild: () => {},
+      appendChild: (row) => {
+        body.rows.push(row);
+        adopt(row);
+      },
+    };
+    tables.set(id, { id, tBodies: [body] });
+  }
+
+  const find = (selector) => {
+    if (tables.has(selector)) return [tables.get(selector)];
+    const name = /^\[([\w-]+)\]$/.exec(selector)?.[1];
+    return name ? controls.filter((element) => element.getAttribute(name) !== null) : [];
+  };
+  const root = {
+    handlers: {},
+    getAttribute: () => null,
+    setAttribute: () => {},
+    addEventListener: (type, handler) => (root.handlers[type] ||= []).push(handler),
+    querySelectorAll: find,
+    querySelector: (selector) => find(selector)[0] || null,
+  };
+
+  const status = { textContent: "", setAttribute: () => {} };
+  const block = /<script type="application\/json" id="card-values">([\s\S]*?)<\/script>/.exec(html);
+  const document = {
+    readyState: "complete",
+    getElementById(id) {
+      if (id === "card-values") return block ? { textContent: block[1] } : null;
+      if (id === "card-status") return status;
+      if (id === "tag-name-options" || id === "tag-stat-options") return datalistOf(html, id);
+      return null;
+    },
+    querySelector: (selector) => (selector === "[data-card-page]" ? root : null),
+    createElement: (tagName) => elementOf(tagName, "", ""),
+    addEventListener: () => {},
+  };
+  const window = { addEventListener: () => {}, parent: null };
+  vm.runInNewContext(readFileSync(path.join(TOOL_DIR, "card-bridge.js"), "utf8"), {
+    window,
+    document,
+    setTimeout: () => {},
+  });
+
+  /** The one control that edits this tag, found the way the page shows it. */
+  const controlOf = (name) =>
+    root.querySelectorAll("[data-tag-level]").find((element) => element.getAttribute("data-tag-level") === name);
+  /** Type into an add box and fire the handler the page wires for it. */
+  const pick = (kind, name) => {
+    const input = root.querySelectorAll("[data-tag-add]").find((element) => element.getAttribute("data-tag-add") === kind);
+    input.value = name;
+    input.listeners.change.forEach((handler) => handler());
+  };
+
+  return { bridge: window.cardPageBridge, root, tables, status, controlOf, pick };
+}
+
 test("the page is the shared page shell, not a second look", () => {
   const html = page();
   assert.ok(html.includes(CSS), "the page reuses tools/html.mjs CSS byte for byte");
@@ -138,7 +286,7 @@ test("an enum and a small range render a select", () => {
 
 test("a many-option field renders a text input with a live matching list", () => {
   const html = page();
-  assert.match(html, /<input type="text" data-tag-add list="tag-name-options"/);
+  assert.match(html, /<input id="tag-add-marker" type="text" data-tag-add="marker" list="tag-name-options"/);
   const list = /<datalist id="tag-name-options">([\s\S]*?)<\/datalist>/.exec(html);
   assert.ok(list, "the datalist is what filters as the player types");
   const names = [...list[1].matchAll(/<option value="([^"]+)"/g)].map((match) => match[1]);
@@ -146,6 +294,14 @@ test("a many-option field renders a text input with a live matching list", () =>
   assert.ok(names.includes("体魄"), "a stat tag is there");
   assert.match(list[1], /data-kind="stat"/);
   assert.match(list[1], /data-kind="marker"/);
+
+  // 加属性 offers the stat names only, so its list is short enough to read.
+  assert.match(html, /<input id="tag-add-stat" type="text" data-tag-add="stat" list="tag-stat-options"/);
+  const stats = /<datalist id="tag-stat-options">([\s\S]*?)<\/datalist>/.exec(html);
+  assert.ok(stats, "the stat table has its own list");
+  const statNames = [...stats[1].matchAll(/<option value="([^"]+)"/g)].map((match) => match[1]);
+  assert.deepEqual(statNames, Object.keys(TAG_ROLES.stat), "every stat name, and nothing else");
+  assert.match(stats[1], new RegExp(`value="体魄" data-kind="stat" data-min="${TAG_ROLES.stat.体魄.min}"`));
 });
 
 test("every visible row shows its raw key and its Chinese label", () => {
@@ -163,9 +319,91 @@ test("every visible row shows its raw key and its Chinese label", () => {
     assert.ok(row.html.includes(esc(label.note)), `${key}: the note is the dim text under the control`);
   }
   const tags = rows.find((item) => item.key === "tag");
-  assert.match(tags.html, /data-tag-add/, "the tag row carries the live matching input");
+  assert.doesNotMatch(tags.html, /<input|<select/, "the tag row is read-only: the tables below own the controls");
   assert.match(html, /id="tag-markers"/, "the marker table is on the page");
   assert.match(html, /id="tag-stats"/, "and so is the stat table");
+});
+
+test("a marker tag is a checkbox, and a stat tag a number input with its vanilla range", () => {
+  const html = page();
+  const marker = /<input[^>]*data-tag-level="男性"[^>]*>/.exec(html);
+  assert.ok(marker, "男性 has a control");
+  assert.match(marker[0], /type="checkbox"/, "a marker is present or absent, so it is a box");
+  assert.match(marker[0], /\schecked/, "the row exists only while the card carries the tag, so it is checked");
+  assert.match(marker[0], /value="1"/, "and its value is 1, the only level the game writes");
+
+  const stat = /<input[^>]*data-tag-level="体魄"[^>]*>/.exec(html);
+  assert.ok(stat, "体魄 has a control");
+  assert.match(stat[0], /type="number"/);
+  assert.match(stat[0], /value="3"/);
+  assert.match(stat[0], new RegExp(`min="${TAG_ROLES.stat.体魄.min}"`));
+  assert.match(stat[0], new RegExp(`max="${TAG_ROLES.stat.体魄.max}"`));
+  assert.match(html, new RegExp(`${TAG_ROLES.stat.体魄.min} … ${TAG_ROLES.stat.体魄.max}`), "the range is printed too");
+
+  assert.doesNotMatch(html, /data-tag-row="主角"/, "a tag the card does not carry has no row at all");
+});
+
+test("the tag row summarises the tags, so it cannot say 「no tags」 over a full table", () => {
+  const tagged = { ...CARD, tag: { 体魄: 3, 魅力: 2, 男性: 1 } };
+  const html = page(tagged);
+  const summary = /id="tag-summary">([^<]*)</.exec(html);
+  assert.ok(summary, "the tag row carries a summary");
+  assert.equal(summary[1], "体魄 3、魅力 2、男性 1", "all three tags are named with their values");
+
+  const section = (id) => html.slice(html.indexOf(`id="${id}"`), html.indexOf("</table>", html.indexOf(`id="${id}"`)));
+  const rowsIn = (id) => [...section(id).matchAll(/<tr data-tag-row="([^"]+)"/g)].map((match) => match[1]);
+  assert.deepEqual(rowsIn("tag-markers"), ["男性"], "the marker table carries the marker");
+  assert.deepEqual(rowsIn("tag-stats"), ["体魄", "魅力"], "the stat table carries both stats");
+  assert.match(section("tag-stats"), /data-tag-level="魅力"[^>]*value="2"/, "and the number the summary shows");
+
+  // A card with no tags says so in both places, rather than an empty box beside two empty tables.
+  const bare = page({ ...CARD, tag: {} });
+  assert.match(bare, /id="tag-summary">没有标签</);
+  assert.match(bare, /class="empty">没有标记/);
+  assert.match(bare, /class="empty">没有属性/);
+});
+
+test("the controls compose the tag object the page saves", () => {
+  const html = page();
+  const { bridge, root, controlOf } = bridgeOf(html);
+  /** The bridge runs in its own realm, so spread what it returns back into this one. */
+  const tagsOf = () => ({ ...bridge.collect(root).tag });
+  const savedTag = (values) => readPageValues(writePageValues(html, "9000001", values)).values.tag;
+
+  assert.deepEqual(tagsOf(), { 体魄: 3, 男性: 1, 不在原版标签: 2 }, "the controls are what the page shows");
+
+  controlOf("男性").checked = false;
+  const withoutMarker = bridge.collect(root);
+  assert.deepEqual({ ...withoutMarker.tag }, { 体魄: 3, 不在原版标签: 2 }, "an unchecked marker leaves the tag map");
+  assert.deepEqual(savedTag(withoutMarker), { 体魄: 3, 不在原版标签: 2 }, "and the saved block drops the key");
+
+  controlOf("体魄").value = "5";
+  const edited = bridge.collect(root);
+  assert.equal(edited.tag.体魄, 5, "a stat carries the number typed");
+  assert.equal(savedTag(edited).体魄, 5, "the saved block carries it too");
+  assert.equal(savedTag(edited).男性, undefined, "and the marker stays removed");
+});
+
+test("picking a name from a datalist adds a row to that table", () => {
+  const html = page();
+  const { bridge, root, tables, status, pick } = bridgeOf(html);
+  const rowsIn = (id) => tables.get(id).tBodies[0].rows;
+
+  pick("marker", "主角");
+  assert.equal(rowsIn("#tag-markers").length, 1, "the row lands in the marker table");
+  assert.equal(rowsIn("#tag-markers")[0].getAttribute("data-tag-row"), "主角");
+  assert.equal(bridge.collect(root).tag.主角, 1, "a picked marker is present, so it is 1");
+
+  pick("stat", "魅力");
+  assert.equal(rowsIn("#tag-stats")[0].getAttribute("data-tag-row"), "魅力");
+  const built = rowsIn("#tag-stats")[0].children[1].children[0];
+  assert.equal(built.min, String(TAG_ROLES.stat.魅力.min), "the new row carries the vanilla range");
+  assert.equal(built.max, String(TAG_ROLES.stat.魅力.max));
+
+  // 加标记 offers every name in tag.json, so a stat typed there must not become a marker.
+  pick("marker", "智慧");
+  assert.equal(rowsIn("#tag-markers").length, 1, "a stat does not become a marker");
+  assert.match(status.textContent, /加属性/, "the page says which table to use");
 });
 
 test("the value block round-trips, and a value cannot close it", () => {

@@ -154,8 +154,14 @@
     root.querySelectorAll("[data-tag-level]").forEach(function (element) {
       var name = element.getAttribute("data-tag-level");
       var kind = element.getAttribute("data-tag-kind");
-      // A marker is present or absent; "0 · 没有" means the key leaves the tag map.
-      if (kind === "marker" && element.value === "0") return;
+      // A marker is present or absent: an unchecked box drops the key, and a checked one carries
+      // the level the page found (1, unless the record wrote something else). A page generated
+      // before the checkbox still has the select, where "0 · 没有" means the same removal.
+      if (kind === "marker") {
+        if (element.type === "checkbox") {
+          if (!element.checked) return;
+        } else if (element.value === "0") return;
+      }
       var level = Number(element.value);
       tag[name] = Number.isFinite(level) ? level : 0;
     });
@@ -163,13 +169,22 @@
     return values;
   }
 
+  /** The names a tag can be picked from: every name in tag.json, then the stat-only list. */
   function tagOption(name) {
-    var list = byId("tag-name-options");
-    if (!list) return null;
-    for (var i = 0; i < list.options.length; i += 1) {
-      if (list.options[i].value === name) return list.options[i];
+    var lists = [byId("tag-name-options"), byId("tag-stat-options")];
+    for (var i = 0; i < lists.length; i += 1) {
+      var list = lists[i];
+      if (!list) continue;
+      for (var j = 0; j < list.options.length; j += 1) {
+        if (list.options[j].value === name) return list.options[j];
+      }
     }
     return null;
+  }
+
+  /** `marker` or `stat`, from the kind the datalist marks a name with. */
+  function kindOf(option) {
+    return option.getAttribute("data-kind") === "marker" ? "marker" : "stat";
   }
 
   function tagControl(name) {
@@ -182,7 +197,7 @@
 
   /** Build the row a newly picked tag needs, in the table its kind belongs to. */
   function buildTagRow(name, option) {
-    var kind = option.getAttribute("data-kind") === "marker" ? "marker" : "stat";
+    var kind = kindOf(option);
     var row = document.createElement("tr");
     row.setAttribute("data-tag-row", name);
 
@@ -196,14 +211,11 @@
     valueCell.className = "num";
     var control;
     if (kind === "marker") {
-      control = document.createElement("select");
-      [["1", "1 · 有"], ["0", "0 · 没有"]].forEach(function (pair) {
-        var choice = document.createElement("option");
-        choice.value = pair[0];
-        choice.textContent = pair[1];
-        control.appendChild(choice);
-      });
+      // A marker is present or absent, the same box a regenerated page carries.
+      control = document.createElement("input");
+      control.type = "checkbox";
       control.value = "1";
+      control.checked = true;
     } else {
       control = document.createElement("input");
       control.type = "number";
@@ -234,11 +246,17 @@
       setStatus("没有这个标签名：" + name, "error");
       return;
     }
+    var wanted = input.getAttribute("data-tag-add");
+    var kind = kindOf(option);
+    // 加标记 lists every name in tag.json, so a stat typed there lands in the other table.
+    if ((wanted === "marker" || wanted === "stat") && wanted !== kind) {
+      setStatus("「" + name + "」是" + (kind === "marker" ? "标记，用「加标记」" : "数值属性，用「加属性」"), "error");
+      return;
+    }
     if (tagControl(name)) {
       setStatus("这张卡已经有这个标签了。", "dirty");
       return;
     }
-    var kind = option.getAttribute("data-kind") === "marker" ? "marker" : "stat";
     var table = state.root.querySelector(kind === "marker" ? "#tag-markers" : "#tag-stats");
     if (!table) return;
     var body = table.tBodies[0] || table;
