@@ -67,6 +67,8 @@ const IS_ONLY_OPTIONS = [
 ];
 
 const CARD_PAGE_CSS = `
+.leftcol { flex: 0 1 300px; display: flex; flex-direction: column; gap: 14px; }
+.leftcol h2 { margin-top: 0; }
 .lbl code { display: block; }
 .lbl .key-zh { display: block; color: var(--ink); }
 #card-pending { border-left: 2px solid var(--gold); padding-left: 10px; }
@@ -561,7 +563,14 @@ ${saveBar}
 
 <h2>卡面</h2>
 <div class="split">
+  <div class="leftcol">
   ${cardFace({ id, record, values, modDir })}
+<h2>画面 · 这张图画成什么</h2>
+<div class="panel">
+<div class="note" style="margin-top:0">只写主体：画谁、画什么、什么神态。构图、风格、透明底由生成配方补，不用写在这里。</div>
+<div class="val" style="white-space:pre-wrap">${esc(subject)}</div>
+</div>
+  </div>
   <div class="grow">
     <div class="panel">
 ${fieldRows({ record, values })}
@@ -569,17 +578,13 @@ ${fieldRows({ record, values })}
   </div>
 </div>
 
+
 ${tagSections(values)}
 
 ${postRiteSection(record)}
 ${legacySection(legacy)}
 ${unknownSection(unknown)}
-
-<h2>画面 · 这张图画成什么</h2>
-<div class="panel">
-<div class="note" style="margin-top:0">只写主体：画谁、画什么、什么神态。构图、风格、透明底由生成配方补，不用写在这里。</div>
-<div class="val" style="white-space:pre-wrap">${esc(subject)}</div>
-</div>`;
+`;
 
   return pageHtml({
     title,
