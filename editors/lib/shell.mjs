@@ -1,7 +1,7 @@
 /**
  * Shared HTML shell for every page this repo generates.
  *
- * `tools/page.mjs`, `tools/graphpage.mjs` and `editors/card/page.mjs` all need the same
+ * `editors/page/page.mjs`, `editors/graph/graphpage.mjs` and `editors/card/page.mjs` all need the same
  * escaping, the same palette and the same panel shapes. Keeping one copy here is the only way
  * they cannot drift apart.
  */

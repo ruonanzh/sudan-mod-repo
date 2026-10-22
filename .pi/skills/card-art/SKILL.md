@@ -173,7 +173,7 @@ flat engraved illustration, warm muted palette of ochre, oxblood and bone, visib
 
 游戏的画风是平涂、带刻线、暖色调，配色有限，线条可见。柔和渐变、光晕、冷色调的渲染放到棋盘上会显得格格不入。生成任何图之前，先拉两张原版卡面看一遍。原版贴图打在 Unity 资源包里，所以不能随本仓分发。
 
-`node tools/setup.mjs` 从玩家自己的安装里提取这些图；第一次打开编辑器时，`tools/page.mjs` 会自己跑一次，带进度条。应用记过路径时，它从 `.gamer-agent.local.json` 读 `gameDir`。提取出来三组东西：四张品级底板（`reference/plates/card-*.png`）、卡面标题字体（`reference/fonts/`），以及每个类型每个品级一张参考卡（`reference/cards/{char,item,sudan}-{1..4}.png`）。
+`node tools/setup.mjs` 从玩家自己的安装里提取这些图；第一次打开编辑器时，`editors/page/page.mjs` 会自己跑一次，带进度条。应用记过路径时，它从 `.gamer-agent.local.json` 读 `gameDir`。提取出来三组东西：四张品级底板（`reference/plates/card-*.png`）、卡面标题字体（`reference/fonts/`），以及每个类型每个品级一张参考卡（`reference/cards/{char,item,sudan}-{1..4}.png`）。
 
 `node tools/art.mjs refs` 报告十二张参考卡是否齐全。这十二张不是装饰：齐全时生成走图生图，画风才贴得住。
 

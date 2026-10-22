@@ -9,7 +9,7 @@
  * A mod is data, and a page is how a player checks that data before installing it:
  *
  *   graph.html          the story graph, for a rite's or an event's place in the story around it
- *   <id>.card.html      one page per card: the card page tools/page.mjs renders, as controls
+ *   <id>.card.html      one page per card: the card page editors/page/page.mjs renders, as controls
  *   index.html          every record the mod carries, one row each, linked to its page
  *
  * Which records exist is read from schema/layout.json — the table model.mjs reads and a test
@@ -22,7 +22,7 @@
  * values that differ from config/cards.json, and `--apply` writes only those keys back with
  * tools/jsonc.mjs, so comments and field order survive. Regenerating a page keeps the values it
  * already carries, because an edit waiting to be applied must not be lost to a layout refresh.
- * The story graph is still written by graphpage.mjs, which owns that view, and `--focus` is
+ * The story graph is still written by editors/graph/graphpage.mjs, which owns that view, and `--focus` is
  * handed to it so the preview opens on the thing it was run for.
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";

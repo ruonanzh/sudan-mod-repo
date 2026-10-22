@@ -306,7 +306,7 @@ const VENDOR = [
 test("the page inlines both vendored libraries, and nothing is fetched", { skip }, () => {
   const html = renderPage(graph());
   for (const v of VENDOR) {
-    const text = readFileSync(new URL(`./vendor/${v.file}`, import.meta.url), "utf8");
+    const text = readFileSync(new URL(`../editors/graph/vendor/${v.file}`, import.meta.url), "utf8");
     assert.ok(text.length > v.min, `${v.file} is a real build (${text.length} bytes), not an error page`);
     assert.match(text, v.marker, `${v.file} names its own library`);
     assert.ok(html.includes(text), `${v.file} is inlined byte for byte`);
@@ -446,8 +446,8 @@ test("a mod node is drawn with a gold border and the same box", { skip }, () => 
 // The lane layout runs on a real cytoscape core with no browser: dagre is arithmetic, and the
 // same source the page inlines is what these tests execute.
 const require = createRequire(import.meta.url);
-const cytoscape = require("./vendor/cytoscape.min.js");
-require("./vendor/cytoscape-dagre.min.js")(cytoscape);
+const cytoscape = require("../editors/graph/vendor/cytoscape.min.js");
+require("../editors/graph/vendor/cytoscape-dagre.min.js")(cytoscape);
 const laneLayout = new Function(LANE_LAYOUT_JS + "\nreturn laneLayout;")();
 
 const LANES = [

@@ -1,4 +1,4 @@
-# tools/vendor — third-party scripts inlined into a generated page
+# editors/graph/vendor — third-party scripts inlined into a generated page
 
 The story graph page draws with Cytoscape.js and lays out with dagre. A page must open from
 `file://` with no network, so both UMD builds are committed here and inlined into the HTML as
@@ -15,6 +15,6 @@ what that release ships. The dagre core is bundled inside the extension's dist, 
 third file.
 
 **To update:** replace the file with the new upstream URL, keep the file name, then refresh the
-version and sha256 rows here (`shasum -a 256 tools/vendor/*`) and run
+version and sha256 rows here (`shasum -a 256 editors/graph/vendor/*`) and run
 `node script/run-tests.mjs graphpage` — the suite pins the inlined bytes and the versions the
 page prints.

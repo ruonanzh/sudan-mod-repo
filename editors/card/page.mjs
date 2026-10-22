@@ -1,7 +1,7 @@
 /**
  * page.mjs — the per-card page `tools/preview.mjs` writes, and the values it carries.
  *
- * A card is one node in a table, so the page for it is the card page `tools/page.mjs` already
+ * A card is one node in a table, so the page for it is the card page `editors/page/page.mjs` already
  * renders (card face, labelled rows, tag tables, the art subject), turned into controls. Every
  * row prints the raw key in code style next to its Chinese label, so a reader who edits the
  * record still sees which key they are touching.
@@ -20,7 +20,7 @@ import path from "node:path";
 import { esc, pageHtml } from "../lib/shell.mjs";
 import { requireLabel } from "../lib/labels.mjs";
 import { composeSubject } from "../../tools/art.mjs";
-import { artInline, fontFace, fmt, legacySection, tableFor, unknownSection } from "../../tools/page.mjs";
+import { artInline, fontFace, fmt, legacySection, tableFor, unknownSection } from "../page/page.mjs";
 import { findEntries, literal, parseDoc, toPlain } from "../../tools/jsonc.mjs";
 
 const FIELDS = JSON.parse(readFileSync(new URL("../../schema/fields.json", import.meta.url), "utf8"));
@@ -59,7 +59,7 @@ export const EDITABLE_FIELDS = [
   "sfx",
 ];
 
-/** Keys `tools/page.mjs` renders as a nested table instead of a row, so this page does too. */
+/** Keys `editors/page/page.mjs` renders as a nested table instead of a row, so this page does too. */
 const NESTED_CARD = new Set(["post_rite"]);
 
 const TYPE_OPTIONS = [

@@ -619,7 +619,7 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
 
 // ---------------------------------------------------------------- walking the graph
 // A page draws one node's neighbourhood, so the walk has to be the same arithmetic in Node
-// and in the browser. This is the Node half; tools/graphpage.mjs carries the browser half in
+// and in the browser. This is the Node half; editors/graph/graphpage.mjs carries the browser half in
 // its inline script, because a page cannot import a module.
 
 /**

@@ -21,7 +21,7 @@ import path from "node:path";
 import { REPO } from "./lib/fixture.mjs";
 import { DEFAULT_VANILLA } from "../tools/model.mjs";
 import { parseDoc, toPlain } from "../tools/jsonc.mjs";
-import { opPhrase } from "../tools/page.mjs";
+import { opPhrase } from "../editors/page/page.mjs";
 
 const WORDS = JSON.parse(readFileSync(path.join(REPO, "schema/op-words.json"), "utf8"));
 const VANILLA = DEFAULT_VANILLA.replace(/^~/, homedir());

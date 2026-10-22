@@ -6,7 +6,7 @@
  *
  * The page has three jobs, and each one fails silently when it breaks:
  *
- *   1. it is the card page tools/page.mjs renders, so it reuses `editors/lib/shell.mjs` CSS and
+ *   1. it is the card page editors/page/page.mjs renders, so it reuses `editors/lib/shell.mjs` CSS and
  *      the same wrapper and row classes instead of inventing a second look;
  *   2. its controls follow the field shape — an enum is a `<select>`, a marker tag is a
  *      checkbox, a stat tag a number input, and a new tag name is picked from a live matching
@@ -611,10 +611,16 @@ test("only the values that differ are pending, and strings compare as the page r
 
 test("the page and the tool only reach the host over the message bridge", () => {
   const pageHtml = page();
-  // Generated output lives under `editors/.preview/`; it embeds vendored libraries, so it is not
-  // source and must not be scanned here.
+  // Scanned: the card page, the shell and the record page it reuses, and the preview command.
+  // Not scanned: `editors/graph/` (the graph page and its vendored builds) and `editors/editor/`
+  // (the local server). Those are the other half — they talk to that server over
+  // `fetch("/api/...")`, which this assertion would misread as a network call.
+  const notCardPage = (file) =>
+    file.includes(`${path.sep}.preview${path.sep}`) ||
+    file.includes(`${path.sep}graph${path.sep}`) ||
+    file.includes(`${path.sep}editor${path.sep}`);
   const files = [
-    ...filesUnder(path.join(REPO, "editors")).filter((f) => !f.includes(`${path.sep}.preview${path.sep}`)),
+    ...filesUnder(path.join(REPO, "editors")).filter((f) => !notCardPage(f)),
     path.join(REPO, "tools/preview.mjs"),
   ];
   assert.ok(files.length > 0, "the editor tree is not empty");

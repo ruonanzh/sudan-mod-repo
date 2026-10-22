@@ -143,7 +143,7 @@ node tools/setup.mjs --check
 node tools/setup.mjs
 ```
 
-它读玩家自己的游戏，需要带 UnityPy 的 Python。首次会建 `.setup-venv/` 并在里面装 UnityPy。pip 源按这个顺序试，直到成功：`--index` → `SUDAN_PIP_INDEX` → 清华 → 阿里 → 默认 PyPI（`tools/setup.mjs:190`）。它只写 `reference/` 与 `.setup-venv/`。`tools/page.mjs` 第一次打开编辑器时也会跑同一次提取。
+它读玩家自己的游戏，需要带 UnityPy 的 Python。首次会建 `.setup-venv/` 并在里面装 UnityPy。pip 源按这个顺序试，直到成功：`--index` → `SUDAN_PIP_INDEX` → 清华 → 阿里 → 默认 PyPI（`tools/setup.mjs:190`）。它只写 `reference/` 与 `.setup-venv/`。`editors/page/page.mjs` 第一次打开编辑器时也会跑同一次提取。
 
 ## 完成标准
 
