@@ -6,7 +6,7 @@
     <title>苏丹的卡页</title>
     <!--
       The app opens this wrapper for a matched `*.card.html` and passes the file path in
-      `editor:init`. card-bridge.js reads that file over `editor:readFile`, mounts the card page
+      `editor:init`. bridge.js reads that file over `editor:readFile`, mounts the card page
       and saves edits back into the page's own value block over `editor:save`. The wrapper holds
       no inline script: the editor frame's CSP allows scripts only from this directory.
     -->
@@ -88,6 +88,6 @@
       <code>node tools/preview.mjs --apply --mod your_mods/&lt;ModName&gt;</code>，只写你改过的键。
     </p>
     <main id="card-host"></main>
-    <script src="card-bridge.js"></script>
+    <script src="bridge.js"></script>
   </body>
 </html>

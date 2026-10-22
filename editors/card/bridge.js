@@ -1,11 +1,11 @@
 /**
- * card-bridge.js — the one script a card page runs.
+ * bridge.js — the one script a card page runs.
  *
  * Two homes, one file:
  *
- * - `tools/cardpage.mjs` inlines this source into every generated `*.card.html`, so a page
+ * - `editors/card/page.mjs` inlines this source into every generated `*.card.html`, so a page
  *   opened from disk renders, filters tag names and says values can only be saved in the app.
- * - `editors/sudan_card_page/index.html` loads it as the tool's only script. The app opens the
+ * - `editors/card/index.html` loads it as the tool's only script. The app opens the
  *   wrapper, the wrapper reads the matched card page over `editor:readFile`, mounts the page and
  *   saves the edited values back into the page's JSON block over `editor:save`.
  *
@@ -113,7 +113,7 @@
     };
   }
 
-  /** The same block replacement `tools/cardpage.mjs` performs, so both writers agree. */
+  /** The same block replacement `editors/card/page.mjs` performs, so both writers agree. */
   function withValues(html, id, values, artPrompt) {
     var parsed = readBlockFromHtml(String(html || ""));
     var prompt = typeof artPrompt === "string" ? artPrompt : parsed ? parsed.artPrompt : "";

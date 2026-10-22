@@ -6,8 +6,8 @@
  *
  * The page has three jobs, and each one fails silently when it breaks:
  *
- *   1. it is the card page tools/page.mjs renders, so it reuses `tools/html.mjs` CSS and the
- *      same wrapper and row classes instead of inventing a second look;
+ *   1. it is the card page tools/page.mjs renders, so it reuses `editors/lib/shell.mjs` CSS and
+ *      the same wrapper and row classes instead of inventing a second look;
  *   2. its controls follow the field shape — an enum is a `<select>`, a marker tag is a
  *      checkbox, a stat tag a number input, and a new tag name is picked from a live matching
  *      list — and every row prints the raw key next to its Chinese label from
@@ -15,11 +15,12 @@
  *   3. its values round-trip through the JSON block the app save writes, without ever letting
  *      a value close the block or reach the network.
  *
- * The wrapper and its manifest get the same checks `script/editor-tool.test.mjs` applies to
- * `editors/sudan_cards`: the app discovers it, it loads one external script, and the generated
- * pages work inside it because they carry that same script verbatim.
+ * `editors/card` is the app editor tool: the app discovers it from `.editor.tool.json`, serves
+ * the directory in a sandboxed iframe, and the generated pages work inside it because they
+ * carry the tool's own `bridge.js` verbatim. The manifest, the single external script and the
+ * bridge messages are asserted here, so the promise survives the tree moving.
  *
- * The tag tables are what a player edits, so these tests run the real `card-bridge.js` over the
+ * The tag tables are what a player edits, so these tests run the real `bridge.js` over the
  * generated markup with a stand-in root instead of a browser: what the controls collect is what
  * the page saves.
  *
@@ -30,13 +31,13 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import vm from "node:vm";
 import { REPO } from "./lib/fixture.mjs";
 import { composeSubject } from "../tools/art.mjs";
-import { CSS, esc } from "../tools/html.mjs";
+import { CSS, esc } from "../editors/lib/shell.mjs";
 import { parseDoc, toPlain } from "../tools/jsonc.mjs";
 import {
   applyCardValues,
@@ -44,12 +45,12 @@ import {
   pendingValues,
   readPageValues,
   writePageValues,
-} from "../tools/cardpage.mjs";
+} from "../editors/card/page.mjs";
 
 const FIELDS = JSON.parse(readFileSync(path.join(REPO, "schema/fields.json"), "utf8"));
 const LABELS = JSON.parse(readFileSync(path.join(REPO, "schema/field-labels.json"), "utf8"));
 const TAG_ROLES = JSON.parse(readFileSync(path.join(REPO, "schema/tag-roles.json"), "utf8"));
-const TOOL_DIR = path.join(REPO, "editors/sudan_card_page");
+const TOOL_DIR = path.join(REPO, "editors/card");
 
 /** What the page says about a tag name `tag.json` does not carry yet. */
 const UNKNOWN_TAG_NOTE = "这个标签还没有。agent 会为你在 `tag.json` 里新建一条。";
@@ -195,7 +196,7 @@ function datalistOf(html, id) {
 }
 
 /**
- * Run the real `card-bridge.js` over the page's own markup. No browser: the root answers the
+ * Run the real `bridge.js` over the page's own markup. No browser: the root answers the
  * selectors the bridge walks, the two tables collect the rows it appends, and the document hands
  * out that root, the value block, the datalists, the two notify buttons and the status lines.
  * `posts` is what the bridge sent the app; `deliver` is the app answering.
@@ -274,7 +275,7 @@ function bridgeOf(html) {
       if (type === "message") listeners.push(handler);
     },
   };
-  vm.runInNewContext(readFileSync(path.join(TOOL_DIR, "card-bridge.js"), "utf8"), {
+  vm.runInNewContext(readFileSync(path.join(TOOL_DIR, "bridge.js"), "utf8"), {
     window,
     document,
     setTimeout: () => {},
@@ -319,12 +320,20 @@ function bridgeOf(html) {
   };
 }
 
+/** Every file under a directory, recursively: the network check must cover the whole editor tree. */
+function filesUnder(dir) {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = path.join(dir, entry.name);
+    return entry.isDirectory() ? filesUnder(full) : [full];
+  });
+}
+
 /** Let the promise chains a request hands back run. */
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 
 test("the page is the shared page shell, not a second look", () => {
   const html = page();
-  assert.ok(html.includes(CSS), "the page reuses tools/html.mjs CSS byte for byte");
+  assert.ok(html.includes(CSS), "the page reuses editors/lib/shell.mjs CSS byte for byte");
   assert.match(html, /<div class="wrap" data-card-page="9000001">/, "the same .wrap, marked with its card");
   assert.match(html, /<h2>卡面<\/h2>/);
   assert.match(html, /class="panel"/);
@@ -602,17 +611,13 @@ test("only the values that differ are pending, and strings compare as the page r
 
 test("the page and the tool only reach the host over the message bridge", () => {
   const pageHtml = page();
-  const files = [
-    path.join(REPO, "tools/cardpage.mjs"),
-    path.join(REPO, "tools/preview.mjs"),
-    path.join(TOOL_DIR, "card-bridge.js"),
-    path.join(TOOL_DIR, "index.html"),
-  ];
+  const files = [...filesUnder(path.join(REPO, "editors")), path.join(REPO, "tools/preview.mjs")];
+  assert.ok(files.length > 0, "the editor tree is not empty");
   for (const file of files) {
     const text = readFileSync(file, "utf8");
-    assert.doesNotMatch(text, /\bfetch\s*\(/, `${path.basename(file)}: the editor frame has no network`);
-    assert.doesNotMatch(text, /XMLHttpRequest|WebSocket|EventSource/, `${path.basename(file)}: no network call`);
-    assert.doesNotMatch(text, /https?:\/\//, `${path.basename(file)}: no URL`);
+    assert.doesNotMatch(text, /\bfetch\s*\(/, `${path.relative(REPO, file)}: the editor frame has no network`);
+    assert.doesNotMatch(text, /XMLHttpRequest|WebSocket|EventSource/, `${path.relative(REPO, file)}: no network call`);
+    assert.doesNotMatch(text, /https?:\/\//, `${path.relative(REPO, file)}: no URL`);
   }
   assert.doesNotMatch(pageHtml, /\bfetch\s*\(/);
   assert.doesNotMatch(pageHtml, /https?:\/\//);
@@ -775,7 +780,7 @@ function frontmatterOf(text) {
 }
 
 test("each button's command has a prompt template, and the template names the tools to run", () => {
-  const bridge = readFileSync(path.join(TOOL_DIR, "card-bridge.js"), "utf8");
+  const bridge = readFileSync(path.join(TOOL_DIR, "bridge.js"), "utf8");
   const expected = [
     ["card-edited", ["tools/preview.mjs", "--collect", "--apply", "config/tag.json"]],
     ["card-art-edited", ["tools/art.mjs", "image/cards/"]],
@@ -813,11 +818,11 @@ test("the manifest is what the app discovers, and it matches a generated card pa
 test("the wrapper loads one external script, and the page carries that same script", () => {
   const wrapper = readFileSync(path.join(TOOL_DIR, "index.html"), "utf8");
   assert.equal((wrapper.match(/<script/g) || []).length, 1, "one script tag");
-  assert.match(wrapper, /<script src="card-bridge\.js"><\/script>/, "an external script: the CSP forbids inline ones");
+  assert.match(wrapper, /<script src="bridge\.js"><\/script>/, "an external script: the CSP forbids inline ones");
   assert.match(wrapper, /id="card-host"/, "the wrapper has a place for the card page");
   assert.match(wrapper, /id="card-save"/);
 
-  const bridge = readFileSync(path.join(TOOL_DIR, "card-bridge.js"), "utf8");
+  const bridge = readFileSync(path.join(TOOL_DIR, "bridge.js"), "utf8");
   assert.match(bridge, /"editor:readFile"/);
   assert.match(bridge, /"editor:save"/);
   assert.match(bridge, /DOMParser/, "the wrapper mounts the page it read");

@@ -24,7 +24,7 @@ import { vanillaRequirement } from "./paths.mjs";
 import { toPlain } from "./jsonc.mjs";
 import { decodePng, encodePng, cropCover, overlay, solid, nineSlice, tint } from "./png.mjs";
 import { composePrompt, composeSubject, composeBoilerplate } from "./art.mjs";
-import { esc, CSS, pageHtml as shellPage } from "./html.mjs";
+import { esc, CSS, pageHtml as shellPage } from "../editors/lib/shell.mjs";
 
 const TAG_ROLES = JSON.parse(readFileSync(new URL("../schema/tag-roles.json", import.meta.url), "utf8"));
 const CARD_ART = JSON.parse(readFileSync(new URL("../schema/card-art.json", import.meta.url), "utf8"));

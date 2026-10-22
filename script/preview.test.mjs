@@ -15,7 +15,7 @@ import { spawnSync } from "node:child_process";
 import { DEFAULT_VANILLA } from "../tools/model.mjs";
 import { modRecords } from "../tools/preview.mjs";
 import { parseDoc, toPlain } from "../tools/jsonc.mjs";
-import { readPageValues, writePageValues } from "../tools/cardpage.mjs";
+import { readPageValues, writePageValues } from "../editors/card/page.mjs";
 
 const PREVIEW = fileURLToPath(new URL("../tools/preview.mjs", import.meta.url));
 const VANILLA = String(DEFAULT_VANILLA).replace(/^~/, os.homedir());
@@ -79,7 +79,7 @@ test("a mod of only cards writes one page per card, and the index links them", (
   const index = read(path.join(out, "index.html"));
   assert.match(index, /href="9000001\.card\.html"/, "the index links the first card page");
   assert.match(index, /href="9000002\.card\.html"/);
-  assert.match(index, /苏丹的卡牌编辑器/, "the whole-table editor is still named as an option");
+  assert.match(index, /「苏丹的卡页」/, "the card page editor is named as the way to edit a card");
   assert.match(index, /--apply/, "and the index says how values get back into cards.json");
   assert.match(r.stdout, /2 card page\(s\)/, "the run says how many pages it wrote");
 });

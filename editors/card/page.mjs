@@ -1,5 +1,5 @@
 /**
- * cardpage.mjs — the per-card page `tools/preview.mjs` writes, and the values it carries.
+ * page.mjs — the per-card page `tools/preview.mjs` writes, and the values it carries.
  *
  * A card is one node in a table, so the page for it is the card page `tools/page.mjs` already
  * renders (card face, labelled rows, tag tables, the art subject), turned into controls. Every
@@ -11,20 +11,20 @@
  * `config/cards.json`, and an apply replaces only the value spans that changed, so comments,
  * key order and every field this page does not show survive (`tools/jsonc.mjs`).
  *
- * `editors/sudan_card_page/card-bridge.js` is inlined into every page and is the same script the
- * tool's wrapper loads. It speaks the app protocol (`editor:readFile` / `editor:save`), and when
- * the page is opened straight from disk the visible line says values can only be saved in the app.
+ * `bridge.js` beside this file is inlined into every page and is the same script the tool's
+ * wrapper loads. It speaks the app protocol (`editor:readFile` / `editor:save`), and when the
+ * page is opened straight from disk the visible line says values can only be saved in the app.
  */
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { esc, pageHtml } from "./html.mjs";
-import { composeSubject } from "./art.mjs";
-import { artInline, fontFace, fmt, legacySection, tableFor, unknownSection } from "./page.mjs";
-import { findEntries, literal, parseDoc, toPlain } from "./jsonc.mjs";
+import { esc, pageHtml } from "../lib/shell.mjs";
+import { requireLabel } from "../lib/labels.mjs";
+import { composeSubject } from "../../tools/art.mjs";
+import { artInline, fontFace, fmt, legacySection, tableFor, unknownSection } from "../../tools/page.mjs";
+import { findEntries, literal, parseDoc, toPlain } from "../../tools/jsonc.mjs";
 
-const FIELDS = JSON.parse(readFileSync(new URL("../schema/fields.json", import.meta.url), "utf8"));
-const LABELS = JSON.parse(readFileSync(new URL("../schema/field-labels.json", import.meta.url), "utf8"));
-const TAG_ROLES = JSON.parse(readFileSync(new URL("../schema/tag-roles.json", import.meta.url), "utf8"));
+const FIELDS = JSON.parse(readFileSync(new URL("../../schema/fields.json", import.meta.url), "utf8"));
+const TAG_ROLES = JSON.parse(readFileSync(new URL("../../schema/tag-roles.json", import.meta.url), "utf8"));
 
 /** Every name `tag.json` defines, whichever table carries it. A tag outside this set is to build. */
 const KNOWN_TAG_NAMES = new Set([
@@ -33,12 +33,12 @@ const KNOWN_TAG_NAMES = new Set([
   ...(TAG_ROLES.allTagNames?.names || []).map((tag) => tag.name),
 ]);
 
-/** What the page says about a name `tag.json` does not carry yet. `card-bridge.js` says the same. */
+/** What the page says about a name `tag.json` does not carry yet. `bridge.js` says the same. */
 const UNKNOWN_TAG_NOTE = "这个标签还没有。agent 会为你在 `tag.json` 里新建一条。";
 /** The range cell of that row: `tag.json` carries the range, so the cell waits for the tag. */
 const UNKNOWN_TAG_RANGE = "待建标签后确定";
 
-const BRIDGE_SOURCE = readFileSync(new URL("../editors/sudan_card_page/card-bridge.js", import.meta.url), "utf8").trimEnd();
+const BRIDGE_SOURCE = readFileSync(new URL("./bridge.js", import.meta.url), "utf8").trimEnd();
 
 /** The id of the `<script type="application/json">` block that carries the page's values. */
 export const CARD_VALUES_ID = "card-values";
@@ -331,19 +331,6 @@ export function applyCardValues(text, changes) {
 
 // ---------------------------------------------------------------- the page
 
-function labelOf(key) {
-  return LABELS.card?.[key] || null;
-}
-
-/** A page may not print a raw key and no Chinese; fail the way tools/page.mjs fails. */
-function requireLabel(key) {
-  const info = labelOf(key);
-  if (!info) {
-    throw new Error(`card: no label for ${JSON.stringify(key)}. Add it to schema/field-labels.json.`);
-  }
-  return info;
-}
-
 function rowHtml({ key, label, note, control }) {
   const tip = note ? `<div class="note" style="margin:5px 0 0">${esc(note)}</div>` : "";
   return `<div class="row" data-key="${esc(key)}">
@@ -376,7 +363,7 @@ const listText = (value) => (Array.isArray(value) ? value.join(", ") : value ===
 
 /** One editable row, or one read-only row for a key the page must not change. */
 function cardRow({ key, record, values }) {
-  const info = requireLabel(key);
+  const info = requireLabel("card", key);
   const value = key in values ? values[key] : record[key];
   let control;
   let extra = "";
@@ -595,7 +582,7 @@ function cardFace({ id, record, values, modDir }) {
 function postRiteSection(record) {
   const value = record.post_rite;
   if (!Array.isArray(value) || !value.length) return "";
-  const info = requireLabel("post_rite");
+  const info = requireLabel("card", "post_rite");
   return `<h2>${esc(info.label)}</h2>
 <div class="panel">
 ${info.note ? `<div class="note" style="margin-top:0">${esc(info.note)}</div>` : ""}

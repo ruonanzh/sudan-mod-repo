@@ -1,8 +1,9 @@
 /**
  * Shared HTML shell for every page this repo generates.
  *
- * page.mjs and graphpage.mjs both need the same escaping, the same palette and the same
- * panel shapes. Keeping one copy here is the only way they cannot drift apart.
+ * `tools/page.mjs`, `tools/graphpage.mjs` and `editors/card/page.mjs` all need the same
+ * escaping, the same palette and the same panel shapes. Keeping one copy here is the only way
+ * they cannot drift apart.
  */
 
 /** Escape text for an HTML text node or a double-quoted attribute. */

@@ -33,7 +33,7 @@ import { existsSync, mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { buildGraph } from "./graph.mjs";
-import { esc, pageHtml } from "./html.mjs";
+import { esc, pageHtml } from "../editors/lib/shell.mjs";
 import { DEFAULT_VANILLA } from "./model.mjs";
 import { vanillaRequirement } from "./paths.mjs";
 

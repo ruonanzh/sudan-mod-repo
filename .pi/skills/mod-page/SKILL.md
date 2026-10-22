@@ -92,7 +92,7 @@ node tools/page.mjs <kind> --mod your_mods/<ModName> --id <id> --out your_mods/<
 4. **对象点开在下一行展开**：点「3 项」，当前行下面出现整行宽的缩进小表，不挤在单元格里。
 5. **游戏不认识的键单独一节**：活键没有中文标签时页面直接失败，`FAIL` 里点名是哪个键、要加到哪个文件。
 
-版式由 `tools/page.mjs` 与 `tools/html.mjs` 决定。你只管把记录或提案写对。
+版式由 `tools/page.mjs` 与 `editors/lib/shell.mjs` 决定。你只管把记录或提案写对。
 
 ## 要对比几个方案
 
@@ -115,7 +115,7 @@ node tools/page.mjs <kind> --mod your_mods/<ModName> --id <id> --out your_mods/<
 
 ## 不要做的事
 
-- **不要手写 HTML 或 CSS**。页面上出现什么由脚本决定；要改版式就改 `tools/page.mjs`，要改配色字号就改 `tools/html.mjs`。
+- **不要手写 HTML 或 CSS**。页面上出现什么由脚本决定；要改版式就改 `tools/page.mjs`，要改配色字号就改 `editors/lib/shell.mjs`。
 - **不要改生成出来的页面**。每次运行都按当前记录整份重渲染，同一个 `--out` 会被整份覆盖。
 - **不要在卡页里让玩家改 `id`。** `id` 是卡表的键，改它等于另建一张卡。
 - **不要把 `.preview/` 装进 mod。** 它只是给玩家看的页面，不属于 mod 包。

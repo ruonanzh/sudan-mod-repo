@@ -1,6 +1,6 @@
 {
   "apiVersion": 1,
-  "id": "sudan_card_page",
+  "id": "card",
   "name": "苏丹的卡页",
   "match": ["your_mods/*/.preview/*.card.html"],
   "entry": "index.html",

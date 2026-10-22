@@ -18,7 +18,7 @@
  * writes nothing: an empty page is worse than an honest line.
  *
  * A card page edits itself, not the mod: its values live in a JSON block at the end of its own
- * `<body>`, written by the app editor tool `editors/sudan_card_page`. `--collect` prints the
+ * `<body>`, written by the app editor tool `editors/card`. `--collect` prints the
  * values that differ from config/cards.json, and `--apply` writes only those keys back with
  * tools/jsonc.mjs, so comments and field order survive. Regenerating a page keeps the values it
  * already carries, because an edit waiting to be applied must not be lost to a layout refresh.
@@ -31,19 +31,15 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseJsonc } from "./lint.mjs";
-import { esc, pageHtml } from "./html.mjs";
+import { esc, pageHtml } from "../editors/lib/shell.mjs";
 import { shorten, vanillaRequirement } from "./paths.mjs";
-import { applyCardValues, cardPageHtml, missingValues, pendingValues, readPageValues } from "./cardpage.mjs";
+import { applyCardValues, cardPageHtml, missingValues, pendingValues, readPageValues } from "../editors/card/page.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const LAYOUT = JSON.parse(readFileSync(new URL("../schema/layout.json", import.meta.url), "utf8"));
-/** The app editor tool that opens `config/cards.json`; the index names it by its own name. */
-const CARD_EDITOR = JSON.parse(
-  readFileSync(new URL("../editors/sudan_cards/.editor.tool.json", import.meta.url), "utf8")
-);
 /** The app editor tool that opens one `*.card.html`; the index names it too. */
 const CARD_PAGE_EDITOR = JSON.parse(
-  readFileSync(new URL("../editors/sudan_card_page/.editor.tool.json", import.meta.url), "utf8")
+  readFileSync(new URL("../editors/card/.editor.tool.json", import.meta.url), "utf8")
 );
 const CARD_TABLE = LAYOUT.table.card.file;
 
@@ -147,7 +143,7 @@ function indexHtml({ modName, records, pages }) {
     })
     .join("\n");
   const cardNote = hasCards
-    ? `<p class="note">卡页可以在 app 里用「${esc(CARD_PAGE_EDITOR.name)}」打开：保存只写入那一页自己的值块。写回 <code>${esc(CARD_TABLE)}</code> 用 <code>node tools/preview.mjs --apply --mod your_mods/&lt;ModName&gt;</code>，只写改过的键。整份卡表也可以用「${esc(CARD_EDITOR.name)}」直接改。</p>`
+    ? `<p class="note">卡页可以在 app 里用「${esc(CARD_PAGE_EDITOR.name)}」打开：保存只写入那一页自己的值块。写回 <code>${esc(CARD_TABLE)}</code> 用 <code>node tools/preview.mjs --apply --mod your_mods/&lt;ModName&gt;</code>，只写改过的键。</p>`
     : "";
   const body = `
 <div class="panel">
