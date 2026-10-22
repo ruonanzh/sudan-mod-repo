@@ -34,7 +34,7 @@ const KNOWN_TAG_NAMES = new Set([
 ]);
 
 /** What the page says about a name `tag.json` does not carry yet. `card-bridge.js` says the same. */
-const UNKNOWN_TAG_NOTE = "这个名字还不在 tag.json 里，要让 agent 先建这条";
+const UNKNOWN_TAG_NOTE = "这个标签还没有。agent 会为你在 `tag.json` 里新建一条。";
 /** The range cell of that row: `tag.json` carries the range, so the cell waits for the tag. */
 const UNKNOWN_TAG_RANGE = "待建标签后确定";
 

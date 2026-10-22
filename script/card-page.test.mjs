@@ -46,7 +46,7 @@ const TAG_ROLES = JSON.parse(readFileSync(path.join(REPO, "schema/tag-roles.json
 const TOOL_DIR = path.join(REPO, "editors/sudan_card_page");
 
 /** What the page says about a tag name `tag.json` does not carry yet. */
-const UNKNOWN_TAG_NOTE = "这个名字还不在 tag.json 里，要让 agent 先建这条";
+const UNKNOWN_TAG_NOTE = "这个标签还没有。agent 会为你在 `tag.json` 里新建一条。";
 
 /** One record with every kind of card field: enums, text, numbers, lists, tags, objects. */
 const CARD = {
