@@ -9,4 +9,4 @@ argument-hint: "[卡页路径]"
 3. `node tools/art.mjs gen --mod your_mods/<ModName> --id <卡 id> --subject "<那一句>"` 生成卡面图。头尾不动，风格留在游戏这边；玩家另外给了参考图时，按 `card-art` 方式二加 `--ref-add <图>`。
 4. `gen` 把图写到 `image/cards/<卡 id>.png`（472x1028），并把这张卡的 `resource` 指向它，`resource` 不用再手改。`gen` 打印的第一行 `PASS` 与图片路径都告诉玩家。
 5. `node tools/preview.mjs --mod your_mods/<ModName>` 重建页面，页面会自己重新载入，玩家马上能看到新图。
-6. 玩家说不像时改 `--subject` 再来一次。玩家确认这张图之前，不要往下走。
+6. 报告里给两个链接：卡页 `your_mods/<ModName>/.preview/<卡 id>.card.html`，清单 `your_mods/<ModName>/.preview/index.html`。玩家说不像时改 `--subject` 再来一次。玩家确认这张图之前，不要往下走。
