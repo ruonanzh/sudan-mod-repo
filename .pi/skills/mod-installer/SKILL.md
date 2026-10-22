@@ -23,7 +23,7 @@ Windows  %USERPROFILE%\Documents\DoubleCross\SultansGame\Mod\
 
 ## 安装
 
-把 `your_mods/<ModName>/` 复制到 `<ModRoot>/<ModName>/`。要复制，不要移动：仓库里的那一份是源文件。
+调 `install_mod`，参数 `modDir=your_mods/<ModName>`。它把整个文件夹复制到 `<ModRoot>/<ModName>/`；遇到旧副本时先删掉再复制，所以旧版多出来的文件不会残留。仓库里的那一份是源文件，工具只读不写。没有工具时才手工复制：要复制，不要移动。
 
 文件夹名与 `info.json` 的 `name` 字段互不相干。文件夹名出现在文件路径里，`name` 字段是 mod 面板上显示的名字。
 

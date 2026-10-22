@@ -151,6 +151,9 @@ test("each tool registers the name the skill tells the agent to use", async () =
   const creator = readFileSync(path.join(REPO, ".pi/skills/mod-creator/SKILL.md"), "utf8");
   assert.equal((await tool("mod-lint.ts")).name, "validate_mod");
   assert.ok(creator.includes("validate_mod"), "mod-creator must name validate_mod");
+  const installer = readFileSync(path.join(REPO, ".pi/skills/mod-installer/SKILL.md"), "utf8");
+  assert.equal((await tool("install-mod.ts")).name, "install_mod");
+  assert.ok(installer.includes("install_mod"), "mod-installer must name install_mod");
 });
 
 test("the declared parameters are the ones execute reads", async () => {
