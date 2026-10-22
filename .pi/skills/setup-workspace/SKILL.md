@@ -15,13 +15,13 @@ description: 苏丹的游戏 mod 工作区的环境准备。先记下游戏目�
 | 键 | 含义 | 来源 | 谁用 |
 |---|---|---|---|
 | `gameDir` | 游戏安装目录（macOS 上含 `Sultan's Game.app` 的那一层，Windows 上含 `Sultan's Game_Data` 的那一层）| 玩家给的，或 `try_set_game_dir` 自动发现 | 派生 `vanillaDir` 与 `workshopDir`；`inspect_game_code` 从 `gameDir` 读游戏 |
-| `workshopDir` | 创意工坊内容目录（`<Steam 库>/steamapps/workshop/content/3117820`）| **由 `gameDir` 派生**；目录不存在时记 `null`，`EMPTY` 不是错误 | **只读参考**：读工坊里现成 mod 的 `info.json`。**不参与安装** |
+| `workshopDir` | 创意工坊内容目录（`<Steam 库>/steamapps/workshop/content/3117820`）| **由 `gameDir` 按路径派生并记录**，不检查目录是否存在；目录为空时报 `EMPTY`，不是错误 | **只读参考**：读工坊里现成 mod 的 `info.json`。**不参与安装** |
 | `modInstallDir` | mod 安装目录（`<MyDocuments>/DoubleCross/SultansGame/Mod`）| **由 `MyDocuments` 现算，不由 `gameDir` 派生** | 安装 mod 复制到此 |
 | `runtime` | dotnet 可执行文件路径与版本 | `check_runtime` 探测后写入 | `inspect_game_code action=dump` 重建 dump 时定位 dotnet |
 
 **原版配置目录不是键**：`vanillaDir` 每次由 `gameDir` 现算，写进文件只会过期。写文件时会顺手把旧的 `vanillaDir` 删掉。
 `tools/paths.mjs` 只读写 `gameDir`、`workshopDir`、`modInstallDir` 三个键：读整个文件，按 key 合并，写回。`runtime` 与其他工具写的键原样保留。
-写进文件的 `~` 用 `os.homedir()` 展开，不读 `HOME`：Windows 没有这个变量。
+文件里存**绝对路径**。报告里的 `~` 只是打印用的缩写，读回来时先展开再判断。展开用 `os.homedir()`，不读 `HOME`：Windows 没有这个变量。
 
 ## 派生关系与「不得只设 `gameDir` 就收工」
 
@@ -43,7 +43,7 @@ macOS 的 `MyDocuments` 是 `$HOME`，Windows 的是 `%USERPROFILE%\Documents`�
 
 报证据，不报感觉。按实际做过的分支报：
 
-1. 必需：`node tools/paths.mjs check` 打出 `PASS`，或三个位置各一行 `OK`。`modInstallDir` 的证据也可以是游戏写出的 `<mod>_local.log`。
+1. 必需：`node tools/paths.mjs check` 打出 `PASS`，或三个位置各一行 `OK`。`modInstallDir` 的证据是同级 `ModLog/__mod.log`，或父目录名为 `SultansGame` 且目录已存在。
 2. 做了 A：`status` 的 `PASS` 或 `PARTIAL` 行，加 `action=setup` 的 `PASS` 或 `SKIP`。没做就明说「不需要 dump 代码」。
 3. 做了 B：`--check` 说参考集完整。没做就明说 `reference/` 不用。
 
@@ -63,7 +63,7 @@ macOS 的 `MyDocuments` 是 `$HOME`，Windows 的是 `%USERPROFILE%\Documents`�
 - **要安装 mod 或读原版数据，而路径未知或已变化**：跑 `try_set_game_dir`（无参，确保就绪）。已记录且仍有效时不必每轮重复检查。
 - **只想知道缺哪一项**：跑 `check_game_paths`。`check_game_paths` 也能接 `gameDir`、`workshopDir`、`modInstallDir` 三个参数，只验那几条，不记录。三个都不传时才验已记录的那几条；一条都没记录就报 `FAIL: nothing to check`。
 - **玩家给了路径**：用 `set_game_dir`。路径里没有游戏自己的文件时，`set_game_dir` 先自己找；找到了就报 `WARN` 并说明现在用的是哪条，找不到才报 `FAIL` 并**什么都没写**。
-- **同一件事的命令行做法**：`node tools/paths.mjs check` 相当于 `check_game_paths`；`node tools/paths.mjs set --game-dir <游戏安装目录>` 相当于 `set_game_dir`。`check` 的退出码为 0，才继续往下做。
+- **同一件事的命令行做法**：`node tools/paths.mjs check` 相当于 `check_game_paths`；`node tools/paths.mjs set --game-dir <游戏安装目录>` 相当于 `set_game_dir`；不带 `--game-dir` 的 `node tools/paths.mjs set` 相当于 `try_set_game_dir`。`check` 的退出码为 0，才继续往下做；参数写错时退出码是 2。
 - **要 dump 代码而 SDK 未知**：跑 `check_runtime`。缺 SDK 时取 `install_runtime` 的安装指引，装好后**再检查一次**确认，再谈 dump。
 
 ## 失败阶梯
@@ -74,12 +74,12 @@ macOS 的 `MyDocuments` 是 `$HOME`，Windows 的是 `%USERPROFILE%\Documents`�
 |---|---|
 | `gameDir` | 目录里有**游戏自己的文件**：macOS 是 `Sultan's Game.app/Contents/Frameworks/GameAssembly.dylib` 或 `Sultan's Game.app/Contents/Resources/Data/il2cpp_data`（二者之一即可）；Windows 是 `Sultan's Game_Data/GameAssembly.dll` 与 `Sultan's Game_Data/il2cpp_data` 两个都要（未在 Windows 机器上实测）|
 | `vanilla` | 由 `gameDir` 现算，目录里同时有 `cards.json` 与 `rite/` |
-| `modInstallDir` | 同级有 `ModLog/__mod.log`，或父目录名是 `SultansGame`；目录要可写 |
+| `modInstallDir` | 同级有 `ModLog/__mod.log`；没有日志时，父目录名为 `SultansGame` 且目录已存在也算；目录要可写 |
 | `workshopDir` | 每个工坊条目目录里有 `info.json` |
 
 `steamapps/appmanifest_3117820.acf` **只是发现线索**：它说游戏在哪个库里，本身不算证据。清单在、目录里却没有游戏自己的文件时，`gameDir` 照样报 `FAIL`。
 
-状态词只有四个。`OK` 表示过了哨兵。`MISS` 表示候选位置一个都没过。`FAIL` 表示指定或记录的路径在、哨兵不过。`EMPTY` 只出现在 `workshopDir`，不是错误。
+状态词只有四个。`OK` 表示过了哨兵。`MISS` 表示目录不存在或候选位置一个都没过。`FAIL` 表示目录在、哨兵不过。`EMPTY` 只出现在 `workshopDir`，不是错误。
 `modInstallDir` 在全新机器上由游戏创建。父目录是 `SultansGame` 而 `Mod` 不存在时，它报 `MISS`，先启动一次游戏。
 
 1. `try_set_game_dir` 自己会找。它按平台找 Steam 根（Windows 用 `ProgramFiles` 与常见盘符下的 `SteamLibrary`，macOS 读 `~/Library/Application Support/Steam`），再读各库的 `config/libraryfolders.vdf`，每个候选都过 `gameDir` 的哨兵。
