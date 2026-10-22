@@ -632,7 +632,7 @@ export function cardPageHtml({ id, record, modDir, previous = null }) {
   const pendingNote = pending
     ? `<p class="note" id="card-pending">这些值还没写回 <code>cards.json</code>。这一页保存时只写这一页；写回要跑 <code>node tools/preview.mjs --apply --mod &lt;ModName&gt;</code>。</p>`
     : "";
-  const noHost = `<p class="note" id="card-no-host">这些值只能在 app 里保存：直接在浏览器打开这一页时，改了不会写回 <code>cards.json</code>。「改好了，通知 agent」与「换卡面图，通知 agent」两个按钮也用不了：它们要 app 把消息发进会话。</p>`;
+  const noHost = `<p class="note" id="card-no-host">这些值只能在 app 里保存：直接在浏览器打开这一页时，改了不会写回 <code>cards.json</code>。「改好了，通知 agent」与「修改卡面图，通知 agent」两个按钮也用不了：它们要 app 把消息发进会话。</p>`;
   const saveBar = `<div class="panel" id="card-savebar" hidden>
 <div class="savebar">
 <span class="note" id="card-status">已保存</span>
@@ -663,7 +663,7 @@ ${notifyBar}
 <label class="art-lbl" for="card-art-prompt">卡面图的提示词</label>
 <textarea id="card-art-prompt" data-art-prompt="1">${esc(artPrompt)}</textarea>
 <div class="savebar" style="margin-top:10px">
-<button class="exp" id="card-art-notify" type="button" disabled>换卡面图，通知 agent</button>
+<button class="exp" id="card-art-notify" type="button" disabled>修改卡面图，通知 agent</button>
 <span class="note" id="card-art-status"></span>
 </div>
 </div>

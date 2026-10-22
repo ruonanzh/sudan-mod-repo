@@ -395,7 +395,7 @@
           commandFor("/card-art-edited") + "\n卡面图的提示词：「" + prompt + "」",
           "/card-art-edited",
           "card-art-status",
-          "已通知 agent，它按这句提示词换卡面图。这一页可以一直开着。"
+          "已通知 agent，它按这句提示词修改卡面图。这一页可以一直开着。"
         );
       });
     }

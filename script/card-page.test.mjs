@@ -655,7 +655,7 @@ test("the page carries both agent buttons and the prompt field under 画面", ()
     "the values button ships disabled: only the app can send",
   );
   assert.match(section, /<label class="art-lbl" for="card-art-prompt">卡面图的提示词<\/label>/, "the prompt is labelled");
-  assert.match(section, /<button class="exp" id="card-art-notify" type="button" disabled>换卡面图，通知 agent<\/button>/);
+  assert.match(section, /<button class="exp" id="card-art-notify" type="button" disabled>修改卡面图，通知 agent<\/button>/);
   const field = /<textarea id="card-art-prompt"[^>]*>([\s\S]*?)<\/textarea>/.exec(section);
   assert.ok(field, "the prompt is a textarea, so the player can rewrite it");
   assert.equal(field[1], esc(COMPOSED), "prefilled with the sentence this record composes");
@@ -676,7 +676,7 @@ test("「改好了，通知 agent」 asks the app to send /card-edited with this
   assert.match(statuses["card-notify-status"].textContent, /这一页可以一直开着/, "the page says it can stay open");
 });
 
-test("「换卡面图，通知 agent」 sends the prompt the player typed into 画面", async () => {
+test("「修改卡面图，通知 agent」 sends the prompt the player typed into 画面", async () => {
   const { posts, statuses, deliver, click, promptField } = bridgeOf(page());
   deliver(hostInit());
 
@@ -692,7 +692,7 @@ test("「换卡面图，通知 agent」 sends the prompt the player typed into �
 
   deliver({ type: "editor:sent", requestId: sent.requestId });
   await tick();
-  assert.match(statuses["card-art-status"].textContent, /换卡面图/);
+  assert.match(statuses["card-art-status"].textContent, /修改卡面图/);
 
   // Nothing typed is not a picture: say so instead of sending a command with no subject in it.
   promptField().value = "   ";
