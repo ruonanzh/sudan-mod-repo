@@ -493,7 +493,7 @@ ${body.rows}
   </div>
 </div>
 
-<h2>标记 · 有或没有</h2>
+<h2>开关标签 · 有或没有</h2>
 <div class="panel">
 <table>
 <tr><th>标记</th><th>状态</th></tr>
@@ -502,7 +502,7 @@ ${markerRows || '<tr><td colspan="2" style="color:#8a7a60">没有标记</td></tr
 <div class="note">这些标签在游戏里只可能是 1（有）或不存在。1294 张卡里没有一张用过别的值。</div>
 </div>
 
-<h2>数值 · 这张卡的属性</h2>
+<h2>数值标签 · 这张卡的属性</h2>
 <div class="panel">
 <table>
 <tr><th>属性</th><th>数值</th><th>原版范围</th></tr>

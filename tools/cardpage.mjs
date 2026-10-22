@@ -522,7 +522,7 @@ function tagSections(values) {
   const isMarkerRow = ([name]) => Boolean(TAG_ROLES.marker[name]) || !KNOWN_TAG_NAMES.has(name);
   const markers = entries.filter(isMarkerRow);
   const stats = entries.filter((entry) => !isMarkerRow(entry));
-  return `<h2>标记 · 有或没有</h2>
+  return `<h2>开关标签 · 有或没有</h2>
 <div class="panel">
 <table class="tags" id="tag-markers">
 <thead><tr><th>标记</th><th>状态</th><th>原版范围</th></tr></thead>
@@ -534,7 +534,7 @@ ${tagAddControl("marker")}
 <div class="note">这些标签在游戏里只可能是 1（有）或不存在。取消勾选就去掉这个标记。</div>
 </div>
 
-<h2>数值 · 这张卡的属性</h2>
+<h2>数值标签 · 这张卡的属性</h2>
 <div class="panel">
 <table class="tags" id="tag-stats">
 <thead><tr><th>属性</th><th>数值</th><th>原版范围</th></tr></thead>
