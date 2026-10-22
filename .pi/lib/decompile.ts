@@ -208,7 +208,7 @@ export function findIl2CppDumper(cwd: string): ToolRef {
   const bundled = join(cwd, "tools/il2cppdumper/Il2CppDumper.dll");
   const dll = existsSync(bundled) ? bundled : join(toolsDir(), "il2cppdumper/Il2CppDumper.dll");
   if (!existsSync(dll)) {
-    throw new Error(`IL2CPPDUMPER_MISSING: expected ${bundled}. This is the tool that produces signatures.`);
+    throw new Error(`IL2CPPDUMPER_MISSING: expected ${bundled}. This is the tool that produces signatures.\nNEXT: restore tools/il2cppdumper/ (it is part of the repository).`);
   }
   // No version probe: the tool targets net7 and its only self-report needs a
   // console. The sha256 below is the identity that matters.

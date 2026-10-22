@@ -1,5 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { probeDotnet } from "../lib/dotnet";
 import { serialize } from "../lib/proc";
 import { readModRepoConfig, writeState, expandHome, platformKey } from "../lib/state";
 import {
@@ -96,9 +97,100 @@ export default function (pi: ExtensionAPI) {
       const hint = readModRepoConfig(cwd).game?.installDirHint?.[platformKey()] ?? null;
       const game = resolveGame(cwd, hint, params.game ? expandHome(params.game) : undefined);
 
+      const freshness = checkFreshness(cwd, cfg, game);
+
+      // The order a rebuild fails in: runtime, its tools, the game, then the dump.
+      // Only actions that need the dump consult it: a current dump is read without these probes.
+      interface Rung {
+        name: string;
+        state: "ok" | "missing" | "unknown";
+        detail: string;
+        message?: string;
+        next?: string;
+      }
+      let ladder: Rung[] | null = null;
+      const rungs = (): Rung[] => {
+        if (ladder) return ladder;
+        const items: Rung[] = [];
+        const add = (rung: Rung): void => {
+          const blocked = items.some((r) => r.state === "missing");
+          items.push(blocked ? { name: rung.name, state: "unknown", detail: "not checked until the step above is ready" } : rung);
+        };
+        const dotnet = probeDotnet();
+        if (!dotnet.found || (dotnet.major ?? 0) < 8) {
+          add(
+            dotnet.found
+              ? {
+                  name: "dotnet",
+                  state: "missing",
+                  detail: `dotnet ${dotnet.version} (need >= 8)`,
+                  message: `DOTNET_TOO_OLD: dotnet ${dotnet.version} cannot run the dump tools (need >= 8).`,
+                  next: "NEXT: run install_runtime, then check_runtime.",
+                }
+              : {
+                  name: "dotnet",
+                  state: "missing",
+                  detail: "not found",
+                  message: "DOTNET_MISSING: the dump tools need the .NET SDK.",
+                  next: "NEXT: run check_runtime, then install_runtime.",
+                },
+          );
+        } else {
+          add({ name: "dotnet", state: "ok", detail: `dotnet ${dotnet.version}` });
+        }
+        const cpp2il = cpp2ilPath();
+        if (!cpp2il) {
+          add({
+            name: "cpp2il",
+            state: "missing",
+            detail: `no build for ${process.platform} ${process.arch}`,
+            message: `CPP2IL_UNSUPPORTED_PLATFORM: no Cpp2IL build for ${process.platform} ${process.arch}.`,
+          });
+        } else if (!existsSync(cpp2il)) {
+          add({
+            name: "cpp2il",
+            state: "missing",
+            detail: "not installed",
+            message: `CPP2IL_MISSING: expected ${cpp2il}. This is the tool that produces method bodies.`,
+            next: "NEXT: run action=setup, which downloads and verifies it.",
+          });
+        } else {
+          add({ name: "cpp2il", state: "ok", detail: cpp2il });
+        }
+        const dumper = join(cwd, "tools/il2cppdumper/Il2CppDumper.dll");
+        if (!existsSync(dumper)) {
+          add({
+            name: "dumper",
+            state: "missing",
+            detail: `${dumper} is absent`,
+            message: `IL2CPPDUMPER_MISSING: expected ${dumper}. This is the tool that produces signatures.`,
+            next: "NEXT: restore tools/il2cppdumper/ (it is part of the repository).",
+          });
+        } else {
+          add({ name: "dumper", state: "ok", detail: "tools/il2cppdumper (bundled)" });
+        }
+        if (!game) {
+          add({
+            name: "game",
+            state: "missing",
+            detail: "not found",
+            message: "GAME_NOT_FOUND: the installed game was not found, so the dump cannot be rebuilt or compared.",
+            next: "NEXT: pass game=<path to the install> with action=status to record it. On this machine the install is not in a Steam library this tool knows.",
+          });
+        } else {
+          add({ name: "game", state: "ok", detail: game.gameDir });
+        }
+        ladder = items;
+        return items;
+      };
+      const firstProblem = (): Rung | undefined => rungs().find((r) => r.state === "missing");
+      const problemText = (r: Rung): string => [r.message, r.next].filter(Boolean).join("\n");
+
       // Rebuilding is serialised per dump: parallel calls in one turn must not
       // write the same folder twice.
       const rebuild = async (extra: string[]) => {
+        const problem = firstProblem();
+        if (problem) throw new Error(problemText(problem));
         if (!game) {
           throw new Error(
             "GAME_NOT_FOUND: the installed game was not found, so the dump cannot be rebuilt or compared.\nNEXT: pass game=<path to the install> with action=status to record it. On this machine the install is not in a Steam library this tool knows.",
@@ -120,8 +212,6 @@ export default function (pi: ExtensionAPI) {
           clearInterval(beat);
         }
       };
-
-      const freshness = checkFreshness(cwd, cfg, game);
 
       const dir = dumpDir(cwd);
       const wrap = (text: string, details: Record<string, unknown> = {}) => ({
@@ -168,12 +258,8 @@ export default function (pi: ExtensionAPI) {
       }
       const refreshNote = async (): Promise<string> => {
         if (freshness.state === "fresh") return "";
-        try {
-          const built = await rebuild([]);
-          return `# refreshed the dump in ${built.seconds.toFixed(1)}s (${freshness.reasons.join("; ")})\n`;
-        } catch (error) {
-          throw new Error(`DUMP_REBUILD_FAILED: ${(error as Error).message}`);
-        }
+        const built = await rebuild([]);
+        return `# refreshed the dump in ${built.seconds.toFixed(1)}s (${freshness.reasons.join("; ")})\n`;
       };
 
 
@@ -181,28 +267,26 @@ export default function (pi: ExtensionAPI) {
         if (params.action === "status") {
           const manifest = readManifest(dir);
           const size = folderBytes(dir);
+          const problem = firstProblem();
+          const dumpRung: Rung =
+            freshness.state === "fresh"
+              ? {
+                  name: "dump",
+                  state: "ok",
+                  detail: `current (${MB(size)}, ${String(
+                    (manifest?.contents?.["cpp2il/IsilDump"] as { typeFiles?: number } | undefined)?.typeFiles ?? "?",
+                  )} type files)`,
+                }
+              : freshness.state === "stale"
+                ? { name: "dump", state: "missing", detail: `stale: ${freshness.reasons.join("; ")}` }
+                : { name: "dump", state: "missing", detail: `absent (expected ${dir})` };
+          const table = [...rungs(), dumpRung].map((r) => {
+            const mark = r.state === "ok" ? "ok  " : r.state === "missing" ? "MISS" : "?   ";
+            return `  ${r.name.padEnd(7)} ${mark} ${r.detail}`;
+          });
           const coverage = (manifest?.pruning?.keptAssemblies ?? []).join(", ");
           const identity = manifest?.build?.binary?.sha256?.slice(0, 8) ?? "unknown";
           const meta = manifest?.build?.metadata?.sha256?.slice(0, 8) ?? "unknown";
-          if (freshness.state === "missing") {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text:
-                    `FAIL: no dump for this repository. Expected ${dir}.\n` +
-                    `NEXT: call action=dump. It needs the installed game and the .NET SDK (check_runtime says whether the SDK is there).`,
-                },
-              ],
-              details: { ok: false, reason: "MISSING", dir },
-            };
-          }
-          const head =
-            freshness.state === "fresh"
-              ? `PASS: the dump is current. ${dir} (${MB(size)}, ${String(
-                  (manifest?.contents?.["cpp2il/IsilDump"] as { typeFiles?: number } | undefined)?.typeFiles ?? "?",
-                )} type files)`
-              : `PARTIAL: the dump is stale.\n  - ${freshness.reasons.join("\n  - ")}`;
           // The dump records the tools that produced it. A newer tool does not
           // invalidate the artifacts, but the next rebuild will differ.
           const drift: string[] = [];
@@ -223,31 +307,33 @@ export default function (pi: ExtensionAPI) {
           ) {
             drift.push("Il2CppDumper changed since this dump");
           }
-          // When something is wrong, say what a rebuild would read. This is the
-          // question a reader asks first, and it replaces a separate dry run.
-          const resolved = freshness.state === "fresh"
-            ? []
-            : game
-              ? [
-                  `  game: ${game.gameDir}${game.universal ? " (universal binary; one slice is cut for Il2CppDumper)" : ""}`,
-                  `  binary: ${game.binary}`,
-                  `  metadata: ${game.metadata}`,
-                  `  tools: ${cpp2il ?? "cpp2il: none for this platform"} | ${dumper}`,
-                ]
-              : ["  game: not found (checked the recorded path, the mod-repo.json hint, and the Steam libraries)"];
-          const lines = [
-            head,
-            `  build: ${manifest?.build?.label ?? "unknown"}, game binary ${identity}, metadata ${meta}`,
-            `  coverage: ${coverage || "(nothing)"}`,
-            ...resolved,
-            drift.length ? `  warnings: ${drift.join("; ")}` : "",
-            freshness.state === "fresh"
+          const facts = manifest
+            ? [
+                `  build: ${manifest.build?.label ?? "unknown"}, game binary ${identity}, metadata ${meta}`,
+                `  coverage: ${coverage || "(nothing)"}`,
+              ]
+            : [];
+          const fresh = freshness.state === "fresh";
+          const head = !fresh && problem
+            ? `FAIL: the dump cannot be used yet. Expected ${dir}.`
+            : freshness.state === "missing"
+              ? `FAIL: no dump for this repository. Expected ${dir}.`
+              : !fresh
+                ? "PARTIAL: the dump is stale."
+                : problem
+                  ? `PARTIAL: the dump is current, but a rebuild would stop at ${problem.name}.`
+                  : `PASS: the dump is current. ${dir}`;
+          const next = problem
+            ? problemText(problem)
+            : fresh
               ? ""
-              : "NEXT: action=search/type/body rebuild it by themselves; action=dump rebuilds now.",
-          ];
-          return freshness.state === "fresh"
-            ? wrap(lines.filter(Boolean).join("\n"), { dir, freshness: freshness.state })
-            : failed(lines.filter(Boolean).join("\n"), { dir, freshness: freshness.state });
+              : "NEXT: action=search/type/body rebuild it by themselves; action=dump rebuilds now.";
+          const text = [head, ...table, ...facts, drift.length ? `  warnings: ${drift.join("; ")}` : "", next]
+            .filter(Boolean)
+            .join("\n");
+          return fresh && !problem
+            ? wrap(text, { dir, freshness: freshness.state })
+            : failed(text, { dir, freshness: freshness.state, reason: problem?.name ?? "DUMP" });
         }
 
         if (params.action === "dump") {
