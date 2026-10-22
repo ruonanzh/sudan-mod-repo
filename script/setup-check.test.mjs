@@ -24,15 +24,16 @@ const run = (args) => spawnSync(process.execPath, [SETUP, ...args], { cwd: REPO,
 /** The printed row for one location, in the `OK   <name> <path>` shape this check has always used. */
 const lineOf = (out, name) => out.split("\n").find((l) => new RegExp(`^(OK|MISS|\\s{4})\\s+${name}\\s`).test(l)) ?? "";
 
-/** A world where the game, its config and the mod root all exist. */
+/** A world where the game, its config and the mod root all exist, and a state file that names them. */
 function world() {
   const root = tmpDir("sudan-setup-");
   const lib = fakeLibrary(root);
-  const cfg = fakeVanilla(path.join(lib, "steamapps", "common", "Sultan's Game"));
+  const install = path.join(lib, "steamapps", "common", "Sultan's Game");
+  const cfg = fakeVanilla(install);
   const mods = fakeModRoot(root);
-  const file = path.join(tmpDir("sudan-pathfile-"), "paths.json");
-  writeFileSync(file, `${JSON.stringify({ steam: lib, vanilla: cfg, modRoot: mods }, null, 2)}\n`);
-  return { root, lib, cfg, mods, file };
+  const file = path.join(tmpDir("sudan-state-"), ".gamer-agent.local.json");
+  writeFileSync(file, `${JSON.stringify({ gameDir: install, vanillaDir: cfg, modInstallDir: mods }, null, 2)}\n`);
+  return { root, lib, install, cfg, mods, file };
 }
 
 test("--check reports the locations paths.mjs verified, in the existing OK/MISS shape", () => {
@@ -48,7 +49,7 @@ test("--check reports the locations paths.mjs verified, in the existing OK/MISS 
 
 test("--check MISSes a config that is gone and says the game is what is missing", () => {
   const w = world();
-  writeFileSync(w.file, `${JSON.stringify({ steam: w.lib, vanilla: path.join(w.root, "gone"), modRoot: w.mods }, null, 2)}\n`);
+  writeFileSync(w.file, `${JSON.stringify({ gameDir: w.install, vanillaDir: path.join(w.root, "gone"), modInstallDir: w.mods }, null, 2)}\n`);
   const r = run(["--check", "--paths", w.file]);
   assert.equal(r.status, 1, r.stdout + r.stderr);
   assert.match(lineOf(r.stdout, "vanilla"), /^MISS\s+vanilla\s/);

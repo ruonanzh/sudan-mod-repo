@@ -22,9 +22,9 @@ const FIELDS = JSON.parse(readFileSync(here("../schema/fields.json"), "utf8"));
 
 /**
  * The vanilla config on THIS machine, resolved by paths.mjs: an explicit argument, then
- * `.pi/paths.json`, then the game directory the app recorded, then discovery. It is null when
- * none of those holds a verified config, and a tool that needs the config must then print a FAIL
- * line instead of rendering an empty result.
+ * `.gamer-agent.local.json`, then discovery. It is null when none of those holds a verified
+ * config, and a tool that needs the config must then print a FAIL line instead of rendering
+ * an empty result.
  */
 export const DEFAULT_VANILLA = resolveVanilla();
 

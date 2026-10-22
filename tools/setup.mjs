@@ -12,7 +12,7 @@
  *   node tools/setup.mjs --game <path>   the install, or its Data directory
  *   node tools/setup.mjs --python <py>   the interpreter that has UnityPy
  *   node tools/setup.mjs --index <url>   a pip index, for a network that needs one
- *   node tools/setup.mjs --paths <file>  read .pi/paths.json from here instead
+ *   node tools/setup.mjs --paths <file>  read .gamer-agent.local.json from here instead
  *
  * The game is located by tools/paths.mjs, the same judgment every other tool uses: the Steam
  * library is the one whose `appmanifest_3117820.acf` names an existing install, and the library
@@ -54,7 +54,7 @@ function findGame(explicit, judgeOpts) {
     const found = dataDir(steam.install);
     if (found) return found;
   }
-  // A config recorded in .pi/paths.json can still name the install when discovery found none.
+  // A config recorded in .gamer-agent.local.json can still name the install when discovery found none.
   const vanilla = judged.rows.find((r) => r.name === "vanilla");
   if (vanilla.status === "OK") return dataDir(path.dirname(path.dirname(vanilla.path)));
   return null;

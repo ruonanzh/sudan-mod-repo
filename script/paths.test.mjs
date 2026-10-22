@@ -15,12 +15,13 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { REPO, cleanupAll, fakeLibrary, fakeModRoot, fakeVanilla, tmpDir } from "./lib/fixture.mjs";
-import { judge } from "../tools/paths.mjs";
+import { classify, judge } from "../tools/paths.mjs";
 
 const PATHS = path.join(REPO, "tools/paths.mjs");
 after(cleanupAll);
 
-const pathsFile = () => path.join(tmpDir("sudan-pathfile-"), "paths.json");
+/** A state file in a throwaway directory. `.gamer-agent.local.json` is what the tools write. */
+const stateFile = () => path.join(tmpDir("sudan-state-"), ".gamer-agent.local.json");
 
 const run = (args, env) =>
   spawnSync(process.execPath, [PATHS, ...args], { cwd: REPO, encoding: "utf8", env: env ?? process.env });
@@ -50,7 +51,7 @@ const env = {
   "ProgramFiles(x86)": process.env.SUDAN_TEST_PROGRAMFILES_X86,
 };
 const candidates = steamCandidates({ platform: "win32", home, env });
-const judged = judge({ platform: "win32", home, env, file: null, recorded: null });
+const judged = judge({ platform: "win32", home, env, file: null });
 process.stdout.write(
   JSON.stringify({
     home,
@@ -68,7 +69,7 @@ test("a fake library with the app manifest is OK and reports the fake location",
   const lib = fakeLibrary(root);
   const cfg = fakeVanilla(path.join(lib, "steamapps", "common", "Sultan's Game"));
   const mods = fakeModRoot(root);
-  const r = run(["check", "--steam", lib, "--vanilla", cfg, "--mod-root", mods, "--paths", pathsFile()]);
+  const r = run(["check", "--steam", lib, "--vanilla", cfg, "--mod-root", mods, "--paths", stateFile()]);
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(lineOf(r.stdout, "steam"), /^steam\s+OK\b/);
   assert.ok(lineOf(r.stdout, "steam").includes(lib), lineOf(r.stdout, "steam"));
@@ -80,7 +81,7 @@ test("a fake library with the app manifest is OK and reports the fake location",
 test("an app manifest whose installdir does not exist FAILs and names installdir", () => {
   const root = tmpDir();
   const lib = fakeLibrary(root, { install: false });
-  const r = run(["check", "--steam", lib, "--paths", pathsFile()]);
+  const r = run(["check", "--steam", lib, "--paths", stateFile()]);
   assert.equal(r.status, 1, r.stdout + r.stderr);
   assert.match(lineOf(r.stdout, "steam"), /^steam\s+FAIL\b/);
   assert.match(lineOf(r.stdout, "steam"), /installdir/);
@@ -89,7 +90,7 @@ test("an app manifest whose installdir does not exist FAILs and names installdir
 test("a library with no app manifest is not a game install", () => {
   const root = tmpDir();
   const lib = fakeLibrary(root, { manifest: false });
-  const r = run(["check", "--steam", lib, "--paths", pathsFile()]);
+  const r = run(["check", "--steam", lib, "--paths", stateFile()]);
   assert.equal(r.status, 1, r.stdout + r.stderr);
   assert.match(lineOf(r.stdout, "steam"), /^steam\s+FAIL\b/);
   assert.match(lineOf(r.stdout, "steam"), /appmanifest_3117820\.acf/);
@@ -98,7 +99,7 @@ test("a library with no app manifest is not a game install", () => {
 test("a vanilla config without cards.json FAILs and names the missing file", () => {
   const root = tmpDir();
   const cfg = fakeVanilla(root, { cards: false });
-  const r = run(["check", "--vanilla", cfg, "--paths", pathsFile()]);
+  const r = run(["check", "--vanilla", cfg, "--paths", stateFile()]);
   assert.equal(r.status, 1, r.stdout + r.stderr);
   assert.match(lineOf(r.stdout, "vanilla"), /^vanilla\s+FAIL\b/);
   assert.match(lineOf(r.stdout, "vanilla"), /cards\.json/);
@@ -107,7 +108,7 @@ test("a vanilla config without cards.json FAILs and names the missing file", () 
 test("a vanilla config without rite/ is refused too, and the NEXT line points at the checker", () => {
   const root = tmpDir();
   const cfg = fakeVanilla(root, { rite: false });
-  const r = run(["check", "--vanilla", cfg, "--paths", pathsFile()]);
+  const r = run(["check", "--vanilla", cfg, "--paths", stateFile()]);
   assert.equal(r.status, 1, r.stdout + r.stderr);
   assert.match(lineOf(r.stdout, "vanilla"), /rite/);
   assert.match(r.stdout, /^NEXT\s+\S/m);
@@ -117,7 +118,7 @@ test("a mod root nothing confirms is FAIL, not a guess", () => {
   const root = tmpDir();
   const mods = path.join(root, "elsewhere", "Mod");
   mkdirSync(mods, { recursive: true });
-  const r = run(["check", "--mod-root", mods, "--paths", pathsFile()]);
+  const r = run(["check", "--mod-root", mods, "--paths", stateFile()]);
   assert.equal(r.status, 1, r.stdout + r.stderr);
   assert.match(lineOf(r.stdout, "modRoot"), /^modRoot\s+FAIL\b/);
   assert.match(lineOf(r.stdout, "modRoot"), /ModLog/);
@@ -127,7 +128,7 @@ test("a mod root the game has not created yet is MISS, and says who creates it",
   const root = tmpDir();
   const base = path.join(root, "home");
   mkdirSync(path.join(base, "DoubleCross", "SultansGame"), { recursive: true });
-  const r = run(["check", "--mod-root", path.join(base, "DoubleCross", "SultansGame", "Mod"), "--paths", pathsFile()]);
+  const r = run(["check", "--mod-root", path.join(base, "DoubleCross", "SultansGame", "Mod"), "--paths", stateFile()]);
   assert.equal(r.status, 1, r.stdout + r.stderr);
   assert.match(lineOf(r.stdout, "modRoot"), /^modRoot\s+MISS\b/);
   assert.match(lineOf(r.stdout, "modRoot"), /first launch/);
@@ -135,7 +136,7 @@ test("a mod root the game has not created yet is MISS, and says who creates it",
 
 test("set refuses a location whose sentinel fails and writes nothing", () => {
   const root = tmpDir();
-  const file = pathsFile();
+  const file = stateFile();
   const r = run(["set", "--vanilla", path.join(root, "not-a-config"), "--paths", file]);
   assert.equal(r.status, 1, r.stdout + r.stderr);
   assert.equal(existsSync(file), false, "set must not record a directory it could not verify");
@@ -147,11 +148,14 @@ test("set records the locations that pass, and check then reads them back", () =
   const lib = fakeLibrary(root);
   const cfg = fakeVanilla(path.join(lib, "steamapps", "common", "Sultan's Game"));
   const mods = fakeModRoot(root);
-  const file = pathsFile();
+  const file = stateFile();
   const set = run(["set", "--steam", lib, "--vanilla", cfg, "--mod-root", mods, "--paths", file]);
   assert.equal(set.status, 0, set.stdout + set.stderr);
   const saved = JSON.parse(readFileSync(file, "utf8"));
-  assert.ok(saved.steam && saved.vanilla && saved.modRoot, JSON.stringify(saved));
+  assert.equal(saved.gameDir, path.join(lib, "steamapps", "common", "Sultan's Game"), JSON.stringify(saved));
+  assert.equal(saved.vanillaDir, cfg);
+  assert.equal(saved.modInstallDir, mods);
+  assert.equal(saved.workshopDir, path.join(lib, "steamapps", "workshop", "content", "3117820"));
 
   // No flags at all: everything comes from the recorded file.
   const check = run(["check", "--paths", file]);
@@ -188,7 +192,7 @@ test("a library on a second volume is found through libraryfolders.vdf", () => {
 test("an app manifest with no installdir key is FAIL and names installdir", () => {
   const root = tmpDir();
   const lib = fakeLibrary(root, { installdir: null, install: false });
-  const r = run(["check", "--steam", lib, "--paths", pathsFile()]);
+  const r = run(["check", "--steam", lib, "--paths", stateFile()]);
   assert.equal(r.status, 1, r.stdout + r.stderr);
   assert.match(lineOf(r.stdout, "steam"), /^steam\s+FAIL\b/);
   assert.match(lineOf(r.stdout, "steam"), /installdir/);
@@ -199,17 +203,17 @@ test("an empty workshop directory is EMPTY, and check still exits 0", () => {
   const lib = fakeLibrary(root);
   const cfg = fakeVanilla(path.join(lib, "steamapps", "common", "Sultan's Game"));
   mkdirSync(path.join(lib, "steamapps", "workshop", "content", "3117820"), { recursive: true });
-  const r = run(["check", "--steam", lib, "--vanilla", cfg, "--mod-root", fakeModRoot(root), "--paths", pathsFile()]);
+  const r = run(["check", "--steam", lib, "--vanilla", cfg, "--mod-root", fakeModRoot(root), "--paths", stateFile()]);
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(lineOf(r.stdout, "workshop"), /^workshop\s+EMPTY\b/);
 });
 
-test("--vanilla beats the recorded .pi/paths.json", () => {
+test("--vanilla beats the recorded vanillaDir", () => {
   const root = tmpDir();
   const lib = fakeLibrary(root);
   const recorded = fakeVanilla(path.join(lib, "steamapps", "common", "Sultan's Game"));
-  const file = path.join(tmpDir("sudan-pathfile-"), "paths.json");
-  writeFileSync(file, JSON.stringify({ vanilla: recorded }, null, 2));
+  const file = stateFile();
+  writeFileSync(file, JSON.stringify({ vanillaDir: recorded }, null, 2));
 
   const explicit = fakeVanilla(tmpDir("sudan-other-"));
   const r = run(["check", "--vanilla", explicit, "--paths", file]);
@@ -221,23 +225,25 @@ test("--vanilla beats the recorded .pi/paths.json", () => {
 test("a stale recorded location is reported, not skipped for discovery", () => {
   const root = tmpDir();
   const stale = path.join(root, "gone", "config");
-  const file = path.join(tmpDir("sudan-pathfile-"), "paths.json");
-  writeFileSync(file, JSON.stringify({ vanilla: stale }, null, 2));
+  const file = stateFile();
+  writeFileSync(file, JSON.stringify({ vanillaDir: stale }, null, 2));
   const r = run(["check", "--paths", file]);
   assert.equal(r.status, 1, r.stdout + r.stderr);
   assert.match(lineOf(r.stdout, "vanilla"), /^vanilla\s+MISS\b/);
   assert.ok(lineOf(r.stdout, "vanilla").includes(stale), "a recorded path that no longer exists must be named");
 });
 
-test("a paths file that is absent is tolerated, and one that is broken is reported", () => {
-  const missing = path.join(tmpDir("sudan-pathfile-"), "nothing.json");
+test("a state file that is absent is tolerated, and one that is broken is reported", () => {
+  const missing = path.join(tmpDir("sudan-state-"), "nothing.json");
   const clean = run(["check", "--paths", missing]);
   assert.ok(!/WARN/.test(clean.stdout), clean.stdout);
+  assert.equal(judge({ platform: "darwin", home: tmpDir(), env: {}, file: missing }).present, false);
 
-  const broken = path.join(tmpDir("sudan-pathfile-"), "paths.json");
+  const broken = stateFile();
   writeFileSync(broken, "{ not json ");
   const r = run(["check", "--paths", broken]);
   assert.match(r.stdout, /^WARN\s+.*not valid JSON/m);
+  assert.equal(judge({ platform: "darwin", home: tmpDir(), env: {}, file: broken }).present, true);
 });
 
 test("the Windows shape joins with a backslash and needs no HOME", () => {
@@ -277,22 +283,70 @@ test("the legacy steamapps/libraryfolders.vdf is read as well as config/", () =>
   assert.equal(steamRow.path, second);
 });
 
-test("an explicit argument beats the record, and the record beats discovery", () => {
+test("the state file beats discovery, and an explicit argument beats the state file", () => {
   const home = tmpDir("sudan-home-");
   const discoverable = fakeLibrary(path.join(home, "Library", "Application Support"));
   const recordedLib = fakeLibrary(tmpDir("sudan-recorded-"));
   const recorded = path.join(recordedLib, "steamapps", "common", "Sultan's Game");
   const pinned = fakeLibrary(tmpDir("sudan-pinned-"));
-  const file = path.join(tmpDir("sudan-pathfile-"), "paths.json");
-  writeFileSync(file, `${JSON.stringify({ steam: pinned }, null, 2)}\n`);
+  const file = stateFile();
+  writeFileSync(file, `${JSON.stringify({ gameDir: pinned }, null, 2)}\n`);
 
-  const fromRecord = judge({ platform: "darwin", home, env: {}, recorded, file: null });
-  assert.equal(fromRecord.rows.find((r) => r.name === "steam").path, recordedLib);
-  assert.notEqual(fromRecord.rows.find((r) => r.name === "steam").path, discoverable);
+  // Without a file, discovery finds the library under the fake home.
+  const discovered = judge({ platform: "darwin", home, env: {}, file: null });
+  assert.equal(discovered.rows.find((r) => r.name === "steam").path, discoverable);
 
-  const fromFile = judge({ platform: "darwin", home, env: {}, recorded, file });
+  // The recorded install wins over that discovery.
+  const fromFile = judge({ platform: "darwin", home, env: {}, file });
   assert.equal(fromFile.rows.find((r) => r.name === "steam").path, pinned);
 
-  const fromArgument = judge({ platform: "darwin", home, env: {}, recorded, file, steam: discoverable });
-  assert.equal(fromArgument.rows.find((r) => r.name === "steam").path, discoverable);
+  // An explicit game directory wins over the record, and the install it names is the
+  // gameDir that would be written.
+  const fromArgument = judge({ platform: "darwin", home, env: {}, file, steam: recorded });
+  const steamRow = fromArgument.rows.find((r) => r.name === "steam");
+  assert.equal(steamRow.path, recordedLib);
+  assert.equal(steamRow.install, recorded);
+});
+
+test("set writes every derived key and keeps the keys it does not own", () => {
+  const root = tmpDir();
+  const lib = fakeLibrary(root);
+  const cfg = fakeVanilla(path.join(lib, "steamapps", "common", "Sultan's Game"));
+  const mods = fakeModRoot(root);
+  const file = stateFile();
+  writeFileSync(file, `${JSON.stringify({ runtime: { dotnet: "/usr/local/bin/dotnet" }, note: "another tool" }, null, 2)}\n`);
+
+  const r = run(["set", "--steam", lib, "--vanilla", cfg, "--mod-root", mods, "--paths", file]);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const saved = JSON.parse(readFileSync(file, "utf8"));
+  assert.equal(saved.gameDir, path.join(lib, "steamapps", "common", "Sultan's Game"));
+  assert.equal(saved.vanillaDir, cfg);
+  assert.equal(saved.modInstallDir, mods);
+  assert.equal(saved.workshopDir, path.join(lib, "steamapps", "workshop", "content", "3117820"));
+  assert.deepEqual(saved.runtime, { dotnet: "/usr/local/bin/dotnet" }, "a write must not drop a key it does not own");
+  assert.equal(saved.note, "another tool");
+});
+
+test("--steam accepts the install folder, and the recorded gameDir is that install", () => {
+  const root = tmpDir();
+  const lib = fakeLibrary(root);
+  const install = path.join(lib, "steamapps", "common", "Sultan's Game");
+  fakeVanilla(install);
+  const file = stateFile();
+  const r = run(["set", "--steam", install, "--mod-root", fakeModRoot(root), "--paths", file]);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(JSON.parse(readFileSync(file, "utf8")).gameDir, install);
+});
+
+test("classify names the state-file key each sentinel belongs to", () => {
+  const root = tmpDir();
+  const lib = fakeLibrary(root);
+  const install = path.join(lib, "steamapps", "common", "Sultan's Game");
+  const cfg = fakeVanilla(install);
+  const mods = fakeModRoot(root);
+  assert.equal(classify(lib).key, "gameDir");
+  assert.equal(classify(install).key, "gameDir");
+  assert.equal(classify(cfg).key, "vanillaDir", "an exact vanilla config is not the game");
+  assert.equal(classify(mods).key, "modInstallDir");
+  assert.equal(classify(tmpDir()).key, null);
 });

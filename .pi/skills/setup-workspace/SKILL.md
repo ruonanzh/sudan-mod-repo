@@ -10,36 +10,35 @@ description: 苏丹的游戏 mod 工作区的环境准备。先记下三个位�
 
 ## 状态文件里有什么（本工作区的约定）
 
-`.pi/paths.json`（**本工作区目录下**）是路径记录的唯一来源，由 `.pi/extensions/` 的工具与 `tools/paths.mjs` 读写。字段：
+`.gamer-agent.local.json`（**本工作区目录下**，在 `.gitignore` 里）是路径记录的唯一来源，由 `.pi/extensions/` 的工具、`tools/paths.mjs` 与 `check_runtime` 读写。字段：
 
 | 键 | 含义 | 来源 | 谁用 |
 |---|---|---|---|
-| `steam` | Steam 库目录（`steamapps/` 所在的那一层）| 玩家给的，或 `try_set_game_dir` 自动发现 | 派生 `vanilla` 与 `workshop`；`tools/setup.mjs` 找游戏 |
-| `vanilla` | 原版配置目录（`.../StreamingAssets/config`，里面是 `cards.json` 与 `rite/`）| **由 `steam` 里的安装目录派生**（可以省略）| 校验与读原版数据 |
-| `modRoot` | mod 根目录（`<MyDocuments>/DoubleCross/SultansGame/Mod`）| **由 `MyDocuments` 现算，不由 `steam` 派生**（可以省略）| 安装 mod 复制到此 |
-| `workshop`（不记录） | Steam 创意工坊内容目录（`<steam>/steamapps/workshop/content/3117820`）| **由 `steam` 现算** | **只读参考**：读工坊里现成 mod 的 `info.json`。**不参与安装** |
-| `gameDir` | 游戏安装目录（macOS 上含 `Sultan's Game.app` 的那一层）| `inspect_game_code game=<路径>` 记在 `.gamer-agent.local.json` | dump 读游戏；`tools/paths.mjs` 的兜底输入 |
-| `runtime` | dotnet 可执行文件路径与版本 | `check_runtime` 探测后写进 `.gamer-agent.local.json` | `inspect_game_code action=dump` 重建 dump 时定位 dotnet |
+| `gameDir` | 游戏安装目录（macOS 上含 `Sultan's Game.app` 的那一层，Windows 上含 `Sultan's Game_Data` 的那一层）| 玩家给的，或 `try_set_game_dir` 自动发现 | 派生 `vanillaDir` 与 `workshopDir`；`inspect_game_code` 从 `gameDir` 读游戏 |
+| `vanillaDir` | 原版配置目录（`.../StreamingAssets/config`，里面是 `cards.json` 与 `rite/`）| **由 `gameDir` 派生** | 校验与读原版数据 |
+| `modInstallDir` | mod 根目录（`<MyDocuments>/DoubleCross/SultansGame/Mod`）| **由 `MyDocuments` 现算，不由 `gameDir` 派生** | 安装 mod 复制到此 |
+| `workshopDir` | 创意工坊内容目录（`<Steam 库>/steamapps/workshop/content/3117820`）| **由 `gameDir` 派生**；目录不存在也照记，`EMPTY` 不是错误 | **只读参考**：读工坊里现成 mod 的 `info.json`。**不参与安装** |
+| `runtime` | dotnet 可执行文件路径与版本 | `check_runtime` 探测后写入 | `inspect_game_code action=dump` 重建 dump 时定位 dotnet |
 
-`steam`、`vanilla`、`modRoot` 三个键写在 `.pi/paths.json`。`gameDir` 与 `runtime` 两个键写在 `.gamer-agent.local.json`。
-写进 `.pi/paths.json` 的 `~` 用 `os.homedir()` 展开，不读 `HOME`：Windows 没有这个变量。
+`tools/paths.mjs` 只读写前四个键：读整个文件，按 key 合并，写回。`runtime` 与其他工具写的键原样保留。
+写进文件的 `~` 用 `os.homedir()` 展开，不读 `HOME`：Windows 没有这个变量。
 
-注意：`.pi/paths.json` 目前会被提交进 git，`.gamer-agent.local.json` 在 `.gitignore` 里。这与「运行时状态不进 git」的约定冲突；把这几个键搬到 `.gamer-agent.local.json` 是后续单独一次代码改动。
+## 派生关系与「不得只设 `gameDir` 就收工」
 
-## 派生关系与「不得只设 `steam` 就收工」
-
-`vanilla` 与 `workshop` 都由 `steam` 派生：把 `steam` 弄对（`try_set_game_dir` 或 `set_game_dir`），这两项会在**当前平台**上一起算好。
-`modRoot` **不**由 `steam` 派生。游戏用 `Environment.GetFolderPath(MyDocuments)` 加 `Application.companyName`（`DoubleCross`）算 `modRoot`，与游戏装在哪无关。
+`vanillaDir` 与 `workshopDir` 都由 `gameDir` 派生：把 `gameDir` 弄对（`try_set_game_dir` 或 `set_game_dir`），这两项会在**当前平台**上一起算好。
+`modInstallDir` **不**由 `gameDir` 派生。游戏用 `Environment.GetFolderPath(MyDocuments)` 加 `Application.companyName`（`DoubleCross`）算 `modInstallDir`，与游戏装在哪无关。
 macOS 的 `MyDocuments` 是 `$HOME`，Windows 的是 `%USERPROFILE%\Documents`。`mod-repo.json` 的 `modInstall` 记着同一条推导。
-所以只把 `steam` 弄对，`modRoot` 仍可能是错的。
+所以只把 `gameDir` 弄对，`modInstallDir` 仍可能是错的。
 
-**必填与附加**：`steam`、`vanilla`、`modRoot` 都必填。任一项不正确就是 `FAIL`。
+报告里的三行仍叫 `steam`、`vanilla`、`modRoot`，它们分别对应 `gameDir`、`vanillaDir`、`modInstallDir`；命令行与工具读的是同一份判定，看哪一份都一样。
+
+**必填与附加**：`steam`、`vanilla`、`modRoot` 三行都必填。任一行不是 `OK` 就是失败。
 `workshop` 只是**只读参考**，**永不产 FAIL**。`EMPTY` 表示玩家没订阅任何工坊内容，不是错误。
 
 ## 完成标准
 
 **三个位置都能用才算准备好**：`steam`、`vanilla`、`modRoot` 三行都是 `OK`。`workshop` 要么 `OK`，要么明说「玩家没订阅工坊内容」。
-`vanilla` 与 `workshop` 由 `steam` 派生，把 `steam` 弄对就会一起算好。**不得设完 `steam` 就收工。**
+`vanillaDir` 与 `workshopDir` 由 `gameDir` 派生，把 `gameDir` 弄对就会一起算好。**不得设完 `gameDir` 就收工。**
 
 报证据，不报感觉。按实际做过的分支报：
 
@@ -51,9 +50,9 @@ macOS 的 `MyDocuments` 是 `$HOME`，Windows 的是 `%USERPROFILE%\Documents`�
 
 | 工具 | 做什么 | 副作用 |
 |---|---|---|
-| `try_set_game_dir` | **确保三个位置都已记录**（无参、幂等）。三个位置都过哨兵时只回报。没过时自己找，找到才记录三个键。| 写 `.pi/paths.json`（只在真的记下了新值时）|
-| `set_game_dir` | **记录一条路径**（玩家给的，或自己找到的）。先按哨兵判断这条路径是 `steam`、`vanilla`、`modRoot` 里的哪一个，再记录三个键。| 写 `.pi/paths.json` |
-| `check_game_paths` | **只验**（只读）：核对玩家给的或已记录的路径，逐行报判出 `OK`、`MISS`、`EMPTY`、`FAIL` 的那个哨兵。不写记录，不找游戏，不建目录。| 无 |
+| `try_set_game_dir` | **确保三个位置都已记录**（无参、幂等）。三行都过哨兵时只回报。没过时自己找，找到才记录能算出的四个键。| 写 `.gamer-agent.local.json`（只在真的记下了新值时）|
+| `set_game_dir` | **记录一条路径**（玩家给的，或自己找到的）。先按哨兵判断这条路径属于 `gameDir`、`vanillaDir`、`modInstallDir` 里的哪一个，再记录能算出的四个键。| 写 `.gamer-agent.local.json` |
+| `check_game_paths` | **只验**（只读）：核对玩家给的或已记录的路径，逐行报判出 `OK`、`MISS`、`EMPTY`、`FAIL` 的那个哨兵。状态文件还不存在时明说「还没记录过」。不写文件，不找游戏，不建目录。| 无 |
 | `check_runtime` | **只查 .NET SDK >= 8**，并记下 dotnet 路径。**不找游戏**。缺 SDK 时用 `install_runtime`：`install_runtime` 只打印安装步骤，不下载、不安装。| 写 `.gamer-agent.local.json` 的 `runtime` 段 |
 
 三个路径工具的判据是 `.pi/extensions/` 调用 `tools/paths.mjs` 的 `judge`、`classify` 与 `writeRecord`，所以命令行与工具不会对「哪个路径算合格」给出两种答案。
@@ -63,7 +62,7 @@ macOS 的 `MyDocuments` 是 `$HOME`，Windows 的是 `%USERPROFILE%\Documents`�
 - **要安装 mod 或读原版数据，而路径未知或已变化**：跑 `try_set_game_dir`（无参，确保就绪）。已记录且仍有效时不必每轮重复检查。
 - **只想知道缺哪一项**：跑 `check_game_paths`。`check_game_paths` 也能接 `steam`、`vanilla`、`modRoot` 三个参数，只验那一条，不记录。
 - **玩家给了路径**：用 `set_game_dir`。`set_game_dir` 先判哨兵再记录；哨兵全不过时报 `INVALID_GAME_PATH` 并拒绝，什么都没写。这条路径合格、另一个必填位置不合格时，`set_game_dir` 同样什么都没写，`NEXT` 指向 `check_game_paths`。
-- **同一件事的命令行做法**：`node tools/paths.mjs check` 相当于 `check_game_paths`；`node tools/paths.mjs set --steam <库> --vanilla <配置目录>` 相当于 `set_game_dir`。`check` 的退出码为 0，才继续往下做。
+- **同一件事的命令行做法**：`node tools/paths.mjs check` 相当于 `check_game_paths`；`node tools/paths.mjs set --steam <库或游戏安装目录> --vanilla <配置目录>` 相当于 `set_game_dir`。`check` 的退出码为 0，才继续往下做。
 - **要 dump 代码而 SDK 未知**：跑 `check_runtime`。缺 SDK 时取 `install_runtime` 的安装指引，装好后**再检查一次**确认，再谈 dump。
 
 ## 失败阶梯

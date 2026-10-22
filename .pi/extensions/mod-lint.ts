@@ -3,8 +3,8 @@
  *
  * The rules are the linter's, not this file's: one subprocess with `--json`, so the CLI and
  * the tool cannot drift. The vanilla config is resolved by `tools/paths.mjs` (explicit path,
- * then `.pi/paths.json`, then the app's gameDir, then the install), so a machine that never
- * recorded one gets PARTIAL instead of a crash or a silent skip.
+ * then `.gamer-agent.local.json`, then the install), so a machine that never recorded one
+ * gets PARTIAL instead of a crash or a silent skip.
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
@@ -12,7 +12,6 @@ import { existsSync, statSync } from "node:fs";
 import path from "node:path";
 import { pathsFile, vanillaRequirement } from "../../tools/paths.mjs";
 import { runAsync } from "../lib/proc";
-import { readState } from "../lib/state";
 
 /** The tool text shows this many messages; `details` carries every one. */
 const MESSAGE_LIMIT = 20;
@@ -34,7 +33,7 @@ export default function (pi: ExtensionAPI) {
     name: "validate_mod",
     label: "Validate Mod",
     description:
-      "Validate one mod folder with tools/lint.mjs and report FAIL, WARN and INFO counts plus the messages. A relative modDir uses the workspace root. It resolves the vanilla config through .pi/paths.json and reports PARTIAL when the config is missing, because id collision and tag checks were skipped. It does not edit files, install the mod, or run the game.",
+      "Validate one mod folder with tools/lint.mjs and report FAIL, WARN and INFO counts plus the messages. A relative modDir uses the workspace root. It resolves the vanilla config through .gamer-agent.local.json and reports PARTIAL when the config is missing, because id collision and tag checks were skipped. It does not edit files, install the mod, or run the game.",
     promptSnippet: "Lint a mod folder and report FAIL, WARN and INFO messages",
     promptGuidelines: [
       "Use validate_mod after writing or changing a mod, and before installing it. It runs the same linter as `node tools/lint.mjs`, so do not run the CLI for the same folder in the same turn.",
@@ -74,11 +73,7 @@ export default function (pi: ExtensionAPI) {
 
       const named = params.vanilla?.trim();
       const vanillaArg = named ? (path.isAbsolute(named) ? named : path.resolve(cwd, named)) : undefined;
-      const state = readState(cwd);
-      const known = vanillaRequirement(vanillaArg, {
-        file: pathsFile(cwd),
-        recorded: typeof state.gameDir === "string" ? state.gameDir : null,
-      }) as { dir: string | null; message?: string };
+      const known = vanillaRequirement(vanillaArg, { file: pathsFile(cwd) }) as { dir: string | null; message?: string };
 
       const args = [lint, modDir, "--json"];
       if (known.dir) args.push("--vanilla", known.dir);

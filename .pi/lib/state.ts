@@ -7,9 +7,11 @@
  * dotnet path that `check_runtime` resolved and the game directory the dump was
  * read from.
  *
- * Only `state.ts` writes that file. Every writer goes through `writeState`, which
- * replaces the file atomically (same-volume rename), so a crash cannot leave half
- * a JSON file behind.
+ * Two writers share that file: this module (`runtime`, and the `gameDir` a dump was
+ * read from) and `tools/paths.mjs` (the four path keys `gameDir`, `vanillaDir`,
+ * `modInstallDir` and `workshopDir`). Both merge: each reads the file and writes
+ * every key it does not own back unchanged. `writeState` replaces the file
+ * atomically (same-volume rename), so a crash cannot leave half a JSON file behind.
  */
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
@@ -28,6 +30,12 @@ export interface ModRepoConfig {
 export interface RuntimeState {
   /** Where the game is installed (the folder that holds the .app on macOS). */
   gameDir?: string | null;
+  /** `<gameDir>/.../StreamingAssets/config`, derived from `gameDir`. */
+  vanillaDir?: string | null;
+  /** `<MyDocuments>/DoubleCross/SultansGame/Mod`, derived from MyDocuments. */
+  modInstallDir?: string | null;
+  /** `<Steam library>/steamapps/workshop/content/3117820`, derived from `gameDir`. */
+  workshopDir?: string | null;
   runtime?: { dotnet?: string; dotnetVersion?: string } | null;
   [key: string]: unknown;
 }

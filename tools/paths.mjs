@@ -5,9 +5,9 @@
  *
  *   node tools/paths.mjs                 same as `check`
  *   node tools/paths.mjs check           one line per location: OK | MISS | EMPTY | FAIL
- *   node tools/paths.mjs set             record what was verified in .pi/paths.json
- *   node tools/paths.mjs check --steam <library> --vanilla <config dir> --mod-root <dir>
- *   node tools/paths.mjs check --paths <file>    read another record file (tests use this)
+ *   node tools/paths.mjs set             record what was verified in .gamer-agent.local.json
+ *   node tools/paths.mjs check --steam <library or install> --vanilla <config dir> --mod-root <dir>
+ *   node tools/paths.mjs check --paths <file>    read another state file (tests use this)
  *
  * Four locations, four sentinels. A directory that merely looks right is not accepted:
  *
@@ -16,10 +16,26 @@
  *   modRoot  ModLog/__mod.log sits beside it (or SultansGame/ does), and it is writable
  *   workshop <lib>/steamapps/workshop/content/3117820; empty means no subscriptions, not a failure
  *
- * The resolution order is one chain per location: an explicit argument, then `.pi/paths.json`,
- * then the game directory the app recorded in `.gamer-agent.local.json`, then discovery
- * (`appmanifest` plus `config/libraryfolders.vdf`). A value from an earlier step is judged and
- * reported even when it fails: a stale record must be loud, not skipped.
+ * The state file is `.gamer-agent.local.json` at the workspace root. It holds four keys this
+ * module owns and one it only keeps:
+ *
+ *   gameDir        the install, the folder holding Sultan's Game.app / Sultan's Game_Data
+ *   vanillaDir     <gameDir>/.../StreamingAssets/config, derived from gameDir
+ *   modInstallDir  <MyDocuments>/DoubleCross/SultansGame/Mod, derived from MyDocuments
+ *   workshopDir    <library>/steamapps/workshop/content/3117820, derived from gameDir
+ *   runtime        the dotnet path check_runtime resolved; never read or written here
+ *
+ * The report keeps its row names — steam, vanilla, modRoot, workshop — because the CLI and
+ * the setup-workspace skill print and read that shape. The rows map onto the keys: steam is
+ * gameDir, vanilla is vanillaDir, modRoot is modInstallDir, workshop is workshopDir. The
+ * steam row shows the library (that is the folder with the sentinel) and carries the install
+ * as `install`, which is the value recorded as gameDir.
+ *
+ * The resolution order is one chain per location: an explicit argument, then the state file,
+ * then discovery (`appmanifest` plus `config/libraryfolders.vdf`). A value from an earlier
+ * step is judged and reported even when it fails: a stale record must be loud, not skipped.
+ * The workshop directory is the exception: it is always derived from the resolved library,
+ * because no player hands us one.
  *
  * `~` is expanded with os.homedir(). process.env.HOME does not exist on Windows.
  *
@@ -120,14 +136,24 @@ function steamOf(gameDir) {
   }
 }
 
-function judgeSteam(lib) {
-  if (!lib) return row("steam", "MISS", null, "no Steam library in any known location");
-  if (!existsSync(lib)) return row("steam", "MISS", lib, "no such directory");
-  if (!existsSync(acfPath(lib))) return row("steam", "FAIL", lib, `no appmanifest_${APP_ID}.acf in steamapps/`);
+/**
+ * The `steam` row, given either the Steam library, the install inside it, the `.app` bundle,
+ * or any folder inside the install. All of them resolve to one library, one install and one
+ * verdict, so a player and the state file can name the game in different shapes.
+ */
+function judgeSteam(p) {
+  if (!p) return row("steam", "MISS", null, "no Steam library in any known location");
+  const dir = path.resolve(p);
+  if (!existsSync(dir)) return row("steam", "MISS", dir, "no such directory");
+  const lib = steamOf(dir);
+  if (!lib) return row("steam", "FAIL", dir, `no appmanifest_${APP_ID}.acf in steamapps/, nor in a folder above`);
   const name = installdirOf(lib);
   if (!name) return row("steam", "FAIL", lib, `appmanifest_${APP_ID}.acf has no installdir`);
   const install = path.join(lib, "steamapps", "common", name);
   if (!existsSync(install)) return row("steam", "FAIL", lib, `installdir "${name}" is not in steamapps/common/`);
+  if (dir !== lib && dir !== install && !dir.startsWith(install + path.sep)) {
+    return row("steam", "FAIL", dir, `appmanifest_${APP_ID}.acf names installdir "${name}", which is not this folder`);
+  }
   const r = row("steam", "OK", lib, `appmanifest_${APP_ID}.acf, installdir="${name}"`);
   return { ...r, install };
 }
@@ -161,7 +187,7 @@ function judgeVanilla(dir) {
 }
 
 // ---------------------------------------------------------------------------
-// The mod root, the dump and the venv
+// The mod root, the workshop, the dump and the venv
 // ---------------------------------------------------------------------------
 
 /**
@@ -200,6 +226,9 @@ function judgeModRoot(dir) {
   return row("modRoot", "OK", dir, existsSync(log) ? "ModLog/__mod.log present" : "SultansGame/ present");
 }
 
+/** The workshop content folder of a Steam library: derived, never asked for. */
+const workshopOf = (lib) => path.join(lib, "steamapps", "workshop", "content", APP_ID);
+
 function judgeWorkshop(dir) {
   if (!dir) return row("workshop", "MISS", null, "no Steam library, so no workshop content");
   if (!existsSync(dir)) return row("workshop", "MISS", dir, "no workshop content directory; nothing subscribed");
@@ -228,53 +257,73 @@ const venvPython = (platform = process.platform) =>
   path.join(venvDir(), platform === "win32" ? "Scripts" : "bin", platform === "win32" ? "python.exe" : "python");
 
 // ---------------------------------------------------------------------------
-// What is recorded, and what the app recorded
+// What is recorded
 // ---------------------------------------------------------------------------
 
-/** The record file. A tool that runs against another workspace root passes that root. */
-export const pathsFile = (repo = REPO) => path.join(repo, ".pi", "paths.json");
+/** The state file. A tool that runs against another workspace root passes that root. */
+export const pathsFile = (repo = REPO) => path.join(repo, ".gamer-agent.local.json");
+
+const text = (v) => (typeof v === "string" && v.trim() ? v : null);
+
+/** The file as authored, so a write can keep every key this module does not own. */
+function readRaw(file) {
+  if (!file || !existsSync(file)) return {};
+  try {
+    const raw = JSON.parse(readFileSync(file, "utf8"));
+    return raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  } catch {
+    return {};
+  }
+}
 
 /**
- * The record file. Absent is normal, so it reads as empty; invalid JSON is reported rather
- * than thrown, because this module is imported by every tool.
+ * The state file, read as the four keys this module owns. Absent is normal and reads as
+ * empty; invalid JSON is reported rather than thrown, because every tool imports this module.
+ * `present` says whether the file existed, so a report can say "nothing recorded yet" instead
+ * of implying that discovery failed.
  */
 export function readRecord(file = pathsFile()) {
-  const empty = { steam: null, vanilla: null, modRoot: null, problem: null };
+  const empty = { gameDir: null, vanillaDir: null, modInstallDir: null, workshopDir: null, present: false, problem: null };
   if (!file || !existsSync(file)) return empty;
   try {
     const raw = JSON.parse(readFileSync(file, "utf8"));
-    return { steam: raw.steam ?? null, vanilla: raw.vanilla ?? null, modRoot: raw.modRoot ?? null, problem: null };
+    return {
+      gameDir: text(raw.gameDir),
+      vanillaDir: text(raw.vanillaDir),
+      modInstallDir: text(raw.modInstallDir),
+      workshopDir: text(raw.workshopDir),
+      present: true,
+      problem: null,
+    };
   } catch (e) {
-    return { ...empty, problem: `${shorten(file)} is not valid JSON: ${e.message}` };
+    return { ...empty, present: true, problem: `${shorten(file)} is not valid JSON: ${e.message}` };
   }
 }
 
 /**
- * What a record holds for judged rows, without writing it. Callers judge first: a recorded
- * path that does not hold the game is worse than none.
+ * What judged rows put in the file, without writing it. Only the keys that can be computed
+ * are here: a caller judges first, so a path that does not hold the game is never recorded,
+ * and a derived location that does not exist yet is still recorded because it is derived.
  */
 export function recordOf(rows) {
-  const pick = (name) => shorten(rows.find((r) => r.name === name).path);
-  return { steam: pick("steam"), vanilla: pick("vanilla"), modRoot: pick("modRoot") };
+  const find = (name) => rows.find((r) => r.name === name);
+  const out = {};
+  const steam = find("steam");
+  if (steam?.status === "OK" && steam.install) out.gameDir = shorten(steam.install);
+  const vanilla = find("vanilla");
+  if (vanilla?.status === "OK") out.vanillaDir = shorten(vanilla.path);
+  const modRoot = find("modRoot");
+  if (modRoot?.status === "OK") out.modInstallDir = shorten(modRoot.path);
+  if (steam?.status === "OK" && steam.path) out.workshopDir = shorten(workshopOf(steam.path));
+  return out;
 }
 
-/** Write a judged record. `recordOf` is separate so a caller can compare before it writes. */
+/** Write the keys this module owns. The rest of the file is merged, never replaced. */
 export function writeRecord(rows, file = pathsFile()) {
   const body = recordOf(rows);
   mkdirSync(path.dirname(file), { recursive: true });
-  writeFileSync(file, `${JSON.stringify(body, null, 2)}\n`);
+  writeFileSync(file, `${JSON.stringify({ ...readRaw(file), ...body }, null, 2)}\n`);
   return body;
-}
-
-/** The game directory the app verified, recorded beside the repo. Absent outside the app. */
-function recordedGameDir(file = path.join(REPO, ".gamer-agent.local.json")) {
-  if (!existsSync(file)) return null;
-  try {
-    const dir = JSON.parse(readFileSync(file, "utf8")).gameDir;
-    return dir ? String(dir) : null;
-  } catch {
-    return null;
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -283,22 +332,22 @@ function recordedGameDir(file = path.join(REPO, ".gamer-agent.local.json")) {
 
 /**
  * Judge every location once. `opts` exists so a test can build a whole world in a temp
- * directory: pass `platform`, `home`, `env`, `file` or `recorded` to replace the real ones.
+ * directory: pass `platform`, `home`, `env` or `file` to replace the real ones.
  *
- * Returns `{ rows, ok, problem }`; `ok` is true when every required row is OK.
+ * Returns `{ rows, ok, problem, present }`; `ok` is true when every required row is OK, and
+ * `present` is false when the state file does not exist yet.
  */
 export function judge(opts = {}) {
   const platform = opts.platform ?? process.platform;
   const home = opts.home ?? os.homedir();
   const env = opts.env ?? process.env;
-  const saved = readRecord(opts.file === undefined ? pathsFile() : opts.file);
-  const recorded = "recorded" in opts ? opts.recorded : recordedGameDir();
+  const file = opts.file === undefined ? pathsFile() : opts.file;
+  const saved = readRecord(file);
 
-  // steam: explicit -> .pi/paths.json -> the app's gameDir -> discovery
-  const namedSteam = opts.steam ?? saved.steam;
+  // steam (gameDir): explicit -> the state file -> discovery
+  const namedSteam = opts.steam ?? saved.gameDir;
   let steam;
   if (namedSteam) steam = judgeSteam(expand(namedSteam));
-  else if (recorded && steamOf(recorded)) steam = judgeSteam(steamOf(recorded));
   else {
     const candidates = steamCandidates({ platform, home, env });
     steam =
@@ -306,19 +355,20 @@ export function judge(opts = {}) {
       row("steam", "MISS", null, `no library with appmanifest_${APP_ID}.acf in ${candidates.length} candidate(s)`, candidates);
   }
 
-  // vanilla: explicit -> recorded file -> app's gameDir -> the resolved install
-  const namedVanilla = opts.vanilla ?? saved.vanilla;
+  // vanilla (vanillaDir): explicit -> the state file -> the install the game row resolved
+  const namedVanilla = opts.vanilla ?? saved.vanillaDir;
   let vanilla;
   if (namedVanilla) vanilla = judgeVanilla(expand(namedVanilla));
-  else if (recorded) vanilla = judgeVanilla(vanillaFrom(recorded));
   else if (steam.install) vanilla = judgeVanilla(vanillaFrom(steam.install));
   else vanilla = judgeVanilla(null);
 
-  // modRoot: explicit -> recorded file -> the MyDocuments base for this platform
-  const namedModRoot = opts.modRoot ?? saved.modRoot;
+  // modRoot (modInstallDir): explicit -> the state file -> the MyDocuments base for this platform
+  const namedModRoot = opts.modRoot ?? saved.modInstallDir;
   const modRoot = judgeModRoot(namedModRoot ? expand(namedModRoot) : modRootFor({ platform, home }));
 
-  const workshop = judgeWorkshop(steam.path ? path.join(steam.path, "steamapps", "workshop", "content", APP_ID) : null);
+  // workshop (workshopDir): derived from the resolved library. No argument, no record read:
+  // the folder is fixed by the app id, so a recorded one could only be stale.
+  const workshop = judgeWorkshop(steam.path ? workshopOf(steam.path) : null);
 
   const dump = dumpDir();
   const python = venvPython(platform);
@@ -331,36 +381,30 @@ export function judge(opts = {}) {
     row("venv", "n/a", venvDir(), existsSync(python) ? "python present" : "not created; node tools/setup.mjs creates it"),
   ];
   const ok = REQUIRED.every((name) => rows.find((r) => r.name === name)?.status === "OK");
-  return { rows, ok, problem: saved.problem };
+  return { rows, ok, problem: saved.problem, present: saved.present };
 }
 
 /**
- * Which location a path is, by its sentinel. `set_game_dir` takes one path and must know
- * which of the three it is before it can record anything, so the decision lives here and
- * not in the tool.
+ * Which key a path belongs in, by its sentinel. `set_game_dir` takes one path and must know
+ * which of the three keys it is before it can record anything, so the decision lives here
+ * and not in the tool.
  *
- * An exact sentinel wins first. A path that is only *inside* the game falls back to the
- * Steam library above it (`steamapps/common/<install>` is the folder a player copies), then
- * to the vanilla config derived from an install shape below it.
+ * The vanilla and mod-root sentinels are exact: the folder itself either holds the files or
+ * it does not. The game sentinel accepts the library, the install, the `.app` and any folder
+ * inside the install, because all of them name the same game. Checking the two exact shapes
+ * first is what keeps `.../StreamingAssets/config` from being filed as the game.
  */
 export function classify(p) {
   const dir = expand(p);
-  if (!dir || !existsSync(dir)) return { name: null, reason: "no such directory" };
-  const exact = [
-    ["steam", judgeSteam(dir)],
-    ["vanilla", judgeVanilla(dir)],
-    ["modRoot", judgeModRoot(dir)],
+  if (!dir || !existsSync(dir)) return { key: null, reason: "no such directory" };
+  const candidates = [
+    ["vanillaDir", judgeVanilla(dir)],
+    ["modInstallDir", judgeModRoot(dir)],
+    ["gameDir", judgeSteam(dir)],
   ];
-  const hit = exact.find(([, r]) => r.status === "OK");
-  if (hit) return { name: hit[0], row: hit[1] };
-  const library = steamOf(dir);
-  if (library) {
-    const row = judgeSteam(library);
-    if (row.status === "OK") return { name: "steam", row };
-  }
-  const vanilla = judgeVanilla(vanillaFrom(dir));
-  if (vanilla.status === "OK") return { name: "vanilla", row: vanilla };
-  return { name: null, reason: "none of the three sentinels matched" };
+  const hit = candidates.find(([, r]) => r.status === "OK");
+  if (hit) return { key: hit[0], row: hit[1] };
+  return { key: null, reason: "none of the three sentinels matched" };
 }
 
 /**
@@ -429,7 +473,7 @@ function check(args) {
   emit("ASK", "Is the game installed through Steam on this machine? If it is on another disk, name that library folder.");
   emit(
     "NEXT",
-    "run `node tools/paths.mjs set --steam <library> --vanilla <config dir>`; the three sentinels are in .pi/skills/setup-workspace/SKILL.md",
+    "run `node tools/paths.mjs set --steam <library or game directory> --vanilla <config dir>`; the three sentinels are in .pi/skills/setup-workspace/SKILL.md",
   );
   return 1;
 }
@@ -461,7 +505,7 @@ function main() {
   if (cmd === "check") return check(args);
   if (cmd === "set") return set(args);
   process.stderr.write(
-    "usage: node tools/paths.mjs <check|set> [--steam <library>] [--vanilla <config dir>] [--mod-root <dir>] [--paths <file>]\n",
+    "usage: node tools/paths.mjs <check|set> [--steam <library or game directory>] [--vanilla <config dir>] [--mod-root <dir>] [--paths <file>]\n",
   );
   return 2;
 }

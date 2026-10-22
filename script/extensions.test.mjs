@@ -11,7 +11,7 @@
  */
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { REPO, cleanupAll, fakeLibrary, fakeModRoot, fakeVanilla, makeMod, tmpDir } from "./lib/fixture.mjs";
 import { loadExtension } from "./lib/load-extension.mjs";
@@ -28,10 +28,27 @@ async function tool(file) {
 const run = (definition, params, cwd) =>
   definition.execute("test-call", params, undefined, undefined, { cwd });
 
+/** The state file the path tools write in a workspace under test. */
+const stateOf = (cwd) => path.join(cwd, ".gamer-agent.local.json");
+
+/** The workshop content folder of a library: derived from the game, never passed in. */
+const workshopOf = (lib) => path.join(lib, "steamapps", "workshop", "content", "3117820");
+
+/** A recorded path under the home directory is written as `~/...`; expand it for comparison. */
+const expandHome = (p, home) => String(p).replace(/^~/, home);
+
 /** A whole world in a throwaway home: a Steam library, the install it names, the mod root. */
 function fakeWorld() {
   const home = tmpDir("sudan-ext-home-");
   const lib = fakeLibrary(home);
+  const install = path.join(lib, "steamapps", "common", "Sultan's Game");
+  return { home, lib, install, vanilla: fakeVanilla(install), modRoot: fakeModRoot(home) };
+}
+
+/** A home discovery can walk: the Steam root where macOS keeps it, plus the Documents base. */
+function discoverableWorld() {
+  const home = tmpDir("sudan-ext-home-");
+  const lib = fakeLibrary(path.join(home, "Library", "Application Support"));
   const install = path.join(lib, "steamapps", "common", "Sultan's Game");
   return { home, lib, install, vanilla: fakeVanilla(install), modRoot: fakeModRoot(home) };
 }
@@ -66,7 +83,7 @@ test("check_game_paths: a fake Steam library passes and derives the vanilla conf
   assert.match(text, /appmanifest_3117820\.acf/, text);
   assert.match(text, /^PASS: every required location is OK$/m, text);
   assert.equal(result.details.wroteState, false);
-  assert.equal(existsSync(path.join(cwd, ".pi", "paths.json")), false);
+  assert.equal(existsSync(stateOf(cwd)), false);
 });
 
 test("check_game_paths: a library without the app manifest fails and names the sentinel", async () => {
@@ -80,7 +97,7 @@ test("check_game_paths: a library without the app manifest fails and names the s
   assert.match(text, /^NEXT: /m, text);
   assert.ok(result.details.failed.includes("steam"), text);
   // A failed check is a business result: it changed nothing.
-  assert.equal(existsSync(path.join(cwd, ".pi", "paths.json")), false);
+  assert.equal(existsSync(stateOf(cwd)), false);
 });
 
 test("set_game_dir: a directory that is none of the three is refused and nothing is written", async () => {
@@ -94,7 +111,7 @@ test("set_game_dir: a directory that is none of the three is refused and nothing
     assert.match(error.message, /NEXT:/);
     return true;
   });
-  assert.equal(existsSync(path.join(cwd, ".pi", "paths.json")), false);
+  assert.equal(existsSync(stateOf(cwd)), false);
 });
 
 test("set_game_dir: a fake Steam library is recorded with the derived locations", async () => {
@@ -105,29 +122,30 @@ test("set_game_dir: a fake Steam library is recorded with the derived locations"
   assert.equal(result.details.ok, true, text);
   assert.match(text, /^PASS: recorded /m, text);
   assert.equal(result.details.wroteState, true);
-  const record = JSON.parse(readFileSync(path.join(cwd, ".pi", "paths.json"), "utf8"));
-  assert.equal(path.basename(record.steam), "Steam");
-  assert.equal(path.basename(record.vanilla), "config");
-  assert.equal(path.basename(record.modRoot), "Mod");
+  const record = JSON.parse(readFileSync(stateOf(cwd), "utf8"));
+  assert.equal(expandHome(record.gameDir, world.home), world.install);
+  assert.equal(expandHome(record.vanillaDir, world.home), world.vanilla);
+  assert.equal(expandHome(record.modInstallDir, world.home), world.modRoot);
+  assert.equal(expandHome(record.workshopDir, world.home), workshopOf(world.lib));
+  assert.deepEqual(readdirSync(cwd), [".gamer-agent.local.json"], "one state file, and no hidden folder left behind");
 });
 
 test("set_game_dir: a vanilla config and a mod root are classified, not guessed", async () => {
   const world = fakeWorld();
-  for (const [label, target] of [
-    ["vanilla", world.vanilla],
-    ["modRoot", world.modRoot],
+  for (const [key, target] of [
+    ["vanillaDir", world.vanilla],
+    ["modInstallDir", world.modRoot],
   ]) {
     const cwd = tmpDir("sudan-ext-ws-");
-    const file = path.join(cwd, ".pi", "paths.json");
-    mkdirSync(path.dirname(file), { recursive: true });
-    writeFileSync(file, `${JSON.stringify({ steam: world.lib, vanilla: null, modRoot: world.modRoot })}\n`);
+    const file = stateOf(cwd);
+    writeFileSync(file, `${JSON.stringify({ gameDir: world.install, modInstallDir: world.modRoot })}\n`);
 
     const result = await run(await tool("set-game-dir.ts"), { path: target }, cwd);
     const text = result.content[0].text;
-    assert.equal(result.details.ok, true, `${label}: ${text}`);
-    assert.match(text, new RegExp(`classified as ${label}`), text);
+    assert.equal(result.details.ok, true, `${key}: ${text}`);
+    assert.match(text, new RegExp(`classified as ${key}`), text);
     const record = JSON.parse(readFileSync(file, "utf8"));
-    assert.equal(path.basename(record[label]), label === "vanilla" ? "config" : "Mod", text);
+    assert.equal(path.basename(record[key]), key === "vanillaDir" ? "config" : "Mod", text);
   }
 });
 
@@ -141,16 +159,20 @@ test("try_set_game_dir: a failed discovery writes nothing", async () => {
   assert.match(text, /^FAIL: /m, text);
   assert.match(text, /^NEXT: /m, text);
   assert.equal(result.details.wroteState, false);
-  assert.equal(existsSync(path.join(cwd, ".pi", "paths.json")), false);
+  assert.equal(existsSync(stateOf(cwd)), false);
   assert.deepEqual(readdirSync(cwd).sort(), before);
 });
 
 test("try_set_game_dir: an already correct record is left untouched", async () => {
   const world = fakeWorld();
   const cwd = tmpDir("sudan-ext-ws-");
-  const file = path.join(cwd, ".pi", "paths.json");
-  mkdirSync(path.dirname(file), { recursive: true });
-  const body = { steam: world.lib, vanilla: world.vanilla, modRoot: world.modRoot };
+  const file = stateOf(cwd);
+  const body = {
+    gameDir: world.install,
+    vanillaDir: world.vanilla,
+    modInstallDir: world.modRoot,
+    workshopDir: workshopOf(world.lib),
+  };
   writeFileSync(file, `${JSON.stringify(body, null, 2)}\n`);
   const before = readFileSync(file, "utf8");
 
@@ -160,6 +182,47 @@ test("try_set_game_dir: an already correct record is left untouched", async () =
   assert.equal(result.details.status, "already", text);
   assert.match(text, /nothing written/, text);
   assert.equal(readFileSync(file, "utf8"), before);
+});
+
+test("try_set_game_dir: discovery writes every derived key", async () => {
+  const world = discoverableWorld();
+  const cwd = tmpDir("sudan-ext-ws-");
+  const result = await withHome(world.home, async () => run(await tool("try-set-game-dir.ts"), {}, cwd));
+  const text = result.content[0].text;
+  assert.equal(result.details.ok, true, text);
+  assert.equal(result.details.status, "recorded", text);
+  const record = JSON.parse(readFileSync(stateOf(cwd), "utf8"));
+  assert.equal(expandHome(record.gameDir, world.home), world.install);
+  assert.equal(expandHome(record.vanillaDir, world.home), world.vanilla);
+  assert.equal(expandHome(record.modInstallDir, world.home), world.modRoot);
+  assert.equal(expandHome(record.workshopDir, world.home), workshopOf(world.lib));
+});
+
+test("try_set_game_dir: a rewrite keeps runtime and any key it does not own", async () => {
+  const world = discoverableWorld();
+  const cwd = tmpDir("sudan-ext-ws-");
+  const file = stateOf(cwd);
+  const runtime = { dotnet: "/usr/local/share/dotnet/dotnet", dotnetVersion: "8.0.1" };
+  writeFileSync(file, `${JSON.stringify({ runtime, "some-other-tool": { keep: true } }, null, 2)}\n`);
+
+  const result = await withHome(world.home, async () => run(await tool("try-set-game-dir.ts"), {}, cwd));
+  assert.equal(result.details.ok, true, result.content[0].text);
+  const record = JSON.parse(readFileSync(file, "utf8"));
+  assert.deepEqual(record.runtime, runtime, "check_runtime owns this key");
+  assert.deepEqual(record["some-other-tool"], { keep: true });
+  assert.equal(expandHome(record.gameDir, world.home), world.install);
+  assert.equal(expandHome(record.modInstallDir, world.home), world.modRoot);
+});
+
+test("check_game_paths: a missing state file is said plainly, not reported as a failure", async () => {
+  const world = discoverableWorld();
+  const cwd = tmpDir("sudan-ext-ws-");
+  const result = await withHome(world.home, async () => run(await tool("check-game-paths.ts"), {}, cwd));
+  const text = result.content[0].text;
+  assert.equal(result.details.ok, true, text);
+  assert.equal(result.details.present, false, text);
+  assert.match(text, /does not exist yet/, text);
+  assert.equal(existsSync(stateOf(cwd)), false, "a check must not create the state file");
 });
 
 test("validate_mod: a missing vanilla config is PARTIAL with a next step", async () => {
