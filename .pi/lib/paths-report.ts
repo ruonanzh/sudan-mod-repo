@@ -45,8 +45,14 @@ export function summarize(ok: boolean, rows: PathRow[]): string {
 
 /** One line per derived location, as the recording tools report them after the verdict. */
 export function derivedLines(paths: DerivedPaths): string[] {
-  const line = (name: string, value: string | null) => `${name} (derived from gameDir) ${value ? shorten(value) : "(not found)"}`;
-  return [line("vanilla", paths.vanillaDir), line("modInstallDir", paths.modInstallDir), line("workshopDir", paths.workshopDir)];
+  const line = (name: string, source: string, value: string | null) =>
+    `${name} (${source}) ${value ? shorten(value) : "(not found)"}`;
+  return [
+    line("vanilla", "derived from gameDir", paths.vanillaDir),
+    // The mod root is NOT derived from the game directory in this game: it lives under MyDocuments.
+    line("modInstallDir", "from MyDocuments, not from gameDir", paths.modInstallDir),
+    line("workshopDir", "derived from gameDir", paths.workshopDir),
+  ];
 }
 
 /** What `setGameDirWithFallback` reports: the given path was used, replaced, or nothing was recorded. */

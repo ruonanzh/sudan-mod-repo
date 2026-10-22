@@ -12,11 +12,17 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import path from "node:path";
+import { homedir } from "node:os";
 import { judge, pathsFile, readRecord, shorten } from "../../tools/paths.mjs";
 import { failedNames, formatRows, summarize, type PathRow } from "../lib/paths-report";
 
 /** A relative path is relative to the workspace, which is where the tool runs. */
-const absolute = (cwd: string, p: string): string => (path.isAbsolute(p) ? p : path.resolve(cwd, p));
+const absolute = (cwd: string, p: string): string => {
+  // A path copied out of our own report starts with `~`; resolving that against the workspace
+  // would invent `<workspace>/~/...`, so expand it first.
+  const expanded = p.startsWith("~") ? path.join(homedir(), p.slice(1)) : p;
+  return path.isAbsolute(expanded) ? expanded : path.resolve(cwd, expanded);
+};
 
 export default function (pi: ExtensionAPI) {
   pi.registerTool({
@@ -44,9 +50,14 @@ export default function (pi: ExtensionAPI) {
       const cwd = ctx.cwd;
       const file = pathsFile(cwd);
       const recorded = readRecord(file);
-      // 传谁验谁：给了参数就用参数，没给的用已记录的那条；一个都没有 = 没有可验的。
-      const use = (given: string | undefined, saved: string | null): string | undefined =>
-        given?.trim() ? absolute(cwd, given.trim()) : (saved ?? undefined);
+      // Check only what was passed, or everything recorded when nothing was passed. Never fall
+      // back per-key: a stale recorded path would decide the verdict for a location the caller
+      // did not ask about, and judging a missing gameDir would start a discovery scan.
+      const anyGiven = Boolean(params.gameDir?.trim() || params.workshopDir?.trim() || params.modInstallDir?.trim());
+      const use = (given: string | undefined, saved: string | null): string | undefined => {
+        if (anyGiven) return given?.trim() ? absolute(cwd, given.trim()) : undefined;
+        return saved ? absolute(cwd, saved) : undefined;
+      };
 
       const targets = {
         gameDir: use(params.gameDir, recorded.gameDir),
@@ -77,8 +88,12 @@ export default function (pi: ExtensionAPI) {
       }
       lines.push(summarize(ok, judged));
       if (!ok) {
+        const failed = failedNames(judged);
+        const onlyModRoot = failed.length === 1 && failed[0] === "modInstallDir";
         lines.push(
-          "NEXT: run try_set_game_dir (no arguments) to find the game and record it. If that fails, ask the player which folder holds the game (the install folder), then pass that path to set_game_dir. Nothing was written.",
+          onlyModRoot
+            ? "NEXT: the game is fine; the mod root is missing. Start the game once so it creates DoubleCross/SultansGame/Mod, then check again. Nothing was written."
+            : "NEXT: run try_set_game_dir (no arguments) to find the game and record it. If that fails, ask the player which folder holds the game (the install folder), then pass that path to set_game_dir. Nothing was written.",
         );
       }
 

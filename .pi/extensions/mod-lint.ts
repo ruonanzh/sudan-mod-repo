@@ -130,7 +130,7 @@ export default function (pi: ExtensionAPI) {
         );
       } else if (status === "PARTIAL") {
         lines.push(
-          "NEXT: run check_game_paths to see which sentinel is missing, then record the vanilla config with set_game_dir, or pass vanilla=<config dir>. Without it, id collision and tag checks did not run.",
+          "NEXT: the vanilla config was not found, so id-collision and tag checks did not run. Run check_game_paths to see which sentinel is missing, then pass vanilla=<config dir> to validate_mod, or record the game directory with set_game_dir (vanilla is derived from it).",
         );
       } else {
         lines.push(

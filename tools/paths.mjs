@@ -163,7 +163,8 @@ export const GAME_MARKERS = {
     "Sultan's Game.app/Contents/Frameworks/GameAssembly.dylib",
     "Sultan's Game.app/Contents/Resources/Data/il2cpp_data",
   ],
-  windows: ["Sultan's Game_Data/GameAssembly.dll", "Sultan's Game_Data/il2cpp_data"],
+  // GameAssembly.dll sits in the install root; only il2cpp_data is inside _Data.
+  windows: ["GameAssembly.dll", "Sultan's Game_Data/il2cpp_data"],
 };
 
 const markersFor = (platform) => (platform === "win32" ? GAME_MARKERS.windows : GAME_MARKERS.mac);
@@ -413,14 +414,14 @@ export function recordOf(rows) {
   const out = {};
   const game = find("gameDir");
   if (game?.status === "OK" && game.path) {
-    out.gameDir = shorten(game.path);
+    out.gameDir = game.path;
     const workshop = workshopFrom(game.path);
-    out.workshopDir = workshop ? shorten(workshop) : null;
+    out.workshopDir = workshop || null;
   }
   // A mod install directory that fails its sentinel is not recorded: null says "not derived",
   // and an old value must not survive as if it still described this machine.
   const mod = find("modInstallDir");
-  out.modInstallDir = mod && mod.status !== "FAIL" && mod.path ? shorten(mod.path) : null;
+  out.modInstallDir = mod && mod.status !== "FAIL" && mod.path ? mod.path : null;
   return out;
 }
 
@@ -473,8 +474,9 @@ export function judge(opts = {}) {
   const namedMod = opts.modInstallDir ?? saved.modInstallDir;
   const modInstall = judgeModInstallDir(namedMod ? expandAt(namedMod, home) : modInstallDirFor({ platform, home, cfg }));
 
-  // workshopDir: explicit -> the state file -> derived from the install by path.
-  const namedWorkshop = opts.workshopDir ?? saved.workshopDir;
+  // workshopDir: explicit -> derived from a game directory that judged OK -> the state file. The
+  // derived value must win while gameDir is OK, or a stale record points at another library.
+  const namedWorkshop = opts.workshopDir ?? (game.status === "OK" ? null : saved.workshopDir);
   const workshop = judgeWorkshop(
     namedWorkshop ? expandAt(namedWorkshop, home) : workshopFrom(game.status === "OK" ? game.path : null),
   );

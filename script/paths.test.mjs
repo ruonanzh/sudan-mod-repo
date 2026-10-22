@@ -161,9 +161,23 @@ test("the install is accepted through the app bundle or a folder inside it", () 
   }
 });
 
-test("the Windows sentinel is both files, and is marked unverified in the module", () => {
-  // No Windows machine was measured, so the shape is asserted, not observed.
-  assert.deepEqual(GAME_MARKERS.windows, ["Sultan's Game_Data/GameAssembly.dll", "Sultan's Game_Data/il2cpp_data"]);
+test("the Windows sentinel is judged by walking a fake install, not by reading the constant", async () => {
+  // The shape used to be asserted against the constant, which proves nothing: the constant was
+  // wrong (GameAssembly.dll lives in the install root, not under _Data) and the test agreed with
+  // it. Judge real directories instead.
+  const { judgeGameDir } = await import(pathToFileURL(PATHS).href);
+
+  const right = tmpDir("sudan-win-ok-");
+  writeFileSync(path.join(right, "GameAssembly.dll"), "x");
+  mkdirSync(path.join(right, "Sultan's Game_Data", "il2cpp_data"), { recursive: true });
+  assert.equal(judgeGameDir(right, "win32").status, "OK", "install root with both files must pass");
+
+  const wrong = tmpDir("sudan-win-bad-");
+  mkdirSync(path.join(wrong, "Sultan's Game_Data"), { recursive: true });
+  writeFileSync(path.join(wrong, "Sultan's Game_Data", "GameAssembly.dll"), "x");
+  mkdirSync(path.join(wrong, "Sultan's Game_Data", "il2cpp_data"), { recursive: true });
+  assert.notEqual(judgeGameDir(wrong, "win32").status, "OK", "GameAssembly.dll under _Data is not the sentinel");
+
   const source = readFileSync(PATHS, "utf8");
   assert.match(source, /Windows UNVERIFIED/, "the Windows branch must say it was not measured");
 });
