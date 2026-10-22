@@ -86,6 +86,9 @@ const CARD_PAGE_CSS = `
 #card-pending { border-left: 2px solid var(--gold); padding-left: 10px; }
 .savebar { display: flex; align-items: center; gap: 12px; }
 .savebar #card-status { margin: 0; }
+button.exp:disabled { opacity: 0.45; cursor: default; }
+.art-lbl { display: block; color: var(--ink); font-size: 13px; margin: 12px 0 6px; }
+#card-art-prompt, #card-art-status, #card-notify-status { margin: 0; }
 .tag-add { margin-top: 10px; display: flex; align-items: center; gap: 8px; }
 .tag-add-lbl { color: var(--ink); white-space: nowrap; font-size: 13px; }
 .tag-add input { flex: 1 1 auto; min-width: 0; }
@@ -190,9 +193,18 @@ export function missingValues(record, values) {
 const blockRe = () =>
   new RegExp(`<script[^>]*\\sid="${CARD_VALUES_ID}"[^>]*>([\\s\\S]*?)</script>`, "i");
 
-/** Escape `<` so a value that contains a tag can never close the block. */
-const blockText = (id, values) =>
-  JSON.stringify({ version: 1, id: String(id), values }, null, 2).replace(/</g, "\\u003c");
+/**
+ * The block carries two kinds of state. `values` is the card fields a save writes into
+ * `config/cards.json`. `artPrompt` is the picture prompt the player typed on the page: it is
+ * page state and never a card field, so neither `--collect` nor `--apply` reads it.
+ *
+ * Escape `<` so a value that contains a tag can never close the block.
+ */
+const blockText = (id, values, artPrompt) => {
+  const payload = { version: 1, id: String(id), values };
+  if (typeof artPrompt === "string") payload.artPrompt = artPrompt;
+  return JSON.stringify(payload, null, 2).replace(/</g, "\\u003c");
+};
 
 /** The values a page carries, or null when it has no readable block. */
 export function readPageValues(html) {
@@ -206,13 +218,21 @@ export function readPageValues(html) {
   }
   if (!parsed || typeof parsed !== "object") return null;
   const values = parsed.values && typeof parsed.values === "object" && !Array.isArray(parsed.values) ? parsed.values : {};
-  return { id: String(parsed.id ?? ""), values };
+  return {
+    id: String(parsed.id ?? ""),
+    values,
+    artPrompt: typeof parsed.artPrompt === "string" ? parsed.artPrompt : undefined,
+  };
 }
 
-/** Replace the block, or put one at the end of `<body>` when the page has none. */
-export function writePageValues(html, id, values) {
-  const block = `<script type="application/json" id="${CARD_VALUES_ID}">\n${blockText(id, values)}\n</script>`;
+/**
+ * Replace the block, or put one at the end of `<body>` when the page has none. An `artPrompt`
+ * of `undefined` keeps the prompt the page already carries, so writing values never drops it.
+ */
+export function writePageValues(html, id, values, artPrompt) {
   const source = String(html ?? "");
+  const prompt = artPrompt === undefined ? readPageValues(source)?.artPrompt : artPrompt;
+  const block = `<script type="application/json" id="${CARD_VALUES_ID}">\n${blockText(id, values, prompt)}\n</script>`;
   if (blockRe().test(source)) return source.replace(blockRe(), block);
   const bodyEnd = source.toLowerCase().lastIndexOf("</body>");
   if (bodyEnd === -1) return `${source.replace(/\s*$/, "\n")}${block}\n`;
@@ -585,15 +605,19 @@ ${tableFor("settlement", value)}
 
 /**
  * One card page. `previous` is the block read from a page that already exists: its values win
- * over the record, so regenerating the layout never throws away an edit waiting to be applied.
+ * over the record, so regenerating the layout never throws away an edit waiting to be applied,
+ * and its `artPrompt` wins over the composed one for the same reason.
  */
 export function cardPageHtml({ id, record, modDir, previous = null }) {
-  const stored = previous && String(previous.id) === String(id) ? previous.values : null;
-  const values = effectiveValues(record, stored);
+  const stored = previous && String(previous.id) === String(id) ? previous : null;
+  const values = effectiveValues(record, stored ? stored.values : null);
   const diff = pendingValues(record, values);
   const pending = Object.keys(diff.fields).length > 0 || diff.removedTags.length > 0;
   const view = { ...record, ...values };
   const subject = composeSubject(view);
+  // The prompt the player typed wins over the one this record composes, so regenerating the page
+  // never throws away a sentence already read off the old page.
+  const artPrompt = stored && typeof stored.artPrompt === "string" ? stored.artPrompt : subject;
   const face = fontFace();
 
   const live = new Set(FIELDS.card.fields || []);
@@ -608,7 +632,7 @@ export function cardPageHtml({ id, record, modDir, previous = null }) {
   const pendingNote = pending
     ? `<p class="note" id="card-pending">这些值还没写回 <code>cards.json</code>。这一页保存时只写这一页；写回要跑 <code>node tools/preview.mjs --apply --mod &lt;ModName&gt;</code>。</p>`
     : "";
-  const noHost = `<p class="note" id="card-no-host">这些值只能在 app 里保存：直接在浏览器打开这一页时，改了不会写回 <code>cards.json</code>。</p>`;
+  const noHost = `<p class="note" id="card-no-host">这些值只能在 app 里保存：直接在浏览器打开这一页时，改了不会写回 <code>cards.json</code>。「改好了，通知 agent」与「换卡面图，通知 agent」两个按钮也用不了：它们要 app 把消息发进会话。</p>`;
   const saveBar = `<div class="panel" id="card-savebar" hidden>
 <div class="savebar">
 <span class="note" id="card-status">已保存</span>
@@ -616,10 +640,18 @@ export function cardPageHtml({ id, record, modDir, previous = null }) {
 </div>
 <div class="note" style="margin:6px 0 0">保存只写入这一页的值块；写回 <code>cards.json</code> 要跑 <code>node tools/preview.mjs --apply --mod &lt;ModName&gt;</code>。</div>
 </div>`;
+  const notifyBar = `<div class="panel" id="card-notify">
+<div class="savebar">
+<button class="exp" id="card-notify-agent" type="button" disabled>改好了，通知 agent</button>
+<span class="note" id="card-notify-status"></span>
+</div>
+<div class="note" style="margin:6px 0 0">先保存这一页，再点这个按钮：agent 读的是磁盘上这一页的值块。</div>
+</div>`;
 
   const body = `${pendingNote}
 ${noHost}
 ${saveBar}
+${notifyBar}
 
 <h2>卡面</h2>
 <div class="split">
@@ -628,7 +660,12 @@ ${saveBar}
 <h2>画面 · 这张图画成什么</h2>
 <div class="panel">
 <div class="note" style="margin-top:0">只写主体：画谁、画什么、什么神态。构图、风格、透明底由生成配方补，不用写在这里。</div>
-<div class="val" style="white-space:pre-wrap">${esc(subject)}</div>
+<label class="art-lbl" for="card-art-prompt">卡面图的提示词</label>
+<textarea id="card-art-prompt" data-art-prompt="1">${esc(artPrompt)}</textarea>
+<div class="savebar" style="margin-top:10px">
+<button class="exp" id="card-art-notify" type="button" disabled>换卡面图，通知 agent</button>
+<span class="note" id="card-art-status"></span>
+</div>
 </div>
   </div>
   <div class="grow">
@@ -653,7 +690,7 @@ ${unknownSection(unknown)}
     font: face.css ? face : null,
     extraCss: CARD_PAGE_CSS,
     script: BRIDGE_SOURCE,
-    tail: `<script type="application/json" id="${CARD_VALUES_ID}">\n${blockText(id, values)}\n</script>\n`,
+    tail: `<script type="application/json" id="${CARD_VALUES_ID}">\n${blockText(id, values, artPrompt)}\n</script>\n`,
     document: true,
     wrapAttrs: `data-card-page="${esc(id)}"`,
   });

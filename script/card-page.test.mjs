@@ -22,6 +22,11 @@
  * The tag tables are what a player edits, so these tests run the real `card-bridge.js` over the
  * generated markup with a stand-in root instead of a browser: what the controls collect is what
  * the page saves.
+ *
+ * The two notify buttons are the page's only way to reach the agent, and each one is a message:
+ * `/card-edited <page path>` for the values, `/card-art-edited <page path>` plus the prompt the
+ * player typed for the picture. Both go out as `editor:sendPrompt`, so what the app receives is
+ * asserted here, together with the gate that keeps them off when the page has no host.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -30,6 +35,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import vm from "node:vm";
 import { REPO } from "./lib/fixture.mjs";
+import { composeSubject } from "../tools/art.mjs";
 import { CSS, esc } from "../tools/html.mjs";
 import { parseDoc, toPlain } from "../tools/jsonc.mjs";
 import {
@@ -191,7 +197,8 @@ function datalistOf(html, id) {
 /**
  * Run the real `card-bridge.js` over the page's own markup. No browser: the root answers the
  * selectors the bridge walks, the two tables collect the rows it appends, and the document hands
- * out that root, the value block, the datalists and the status line.
+ * out that root, the value block, the datalists, the two notify buttons and the status lines.
+ * `posts` is what the bridge sent the app; `deliver` is the app answering.
  */
 function bridgeOf(html) {
   const controls = controlsOf(html);
@@ -220,14 +227,27 @@ function bridgeOf(html) {
     const name = /^\[([\w-]+)\]$/.exec(selector)?.[1];
     return name ? controls.filter((element) => element.getAttribute(name) !== null) : [];
   };
+  const attrs = new Map();
   const root = {
     handlers: {},
-    getAttribute: () => null,
-    setAttribute: () => {},
+    getAttribute: (name) => (attrs.has(name) ? attrs.get(name) : null),
+    setAttribute: (name, shown) => attrs.set(name, String(shown)),
     addEventListener: (type, handler) => (root.handlers[type] ||= []).push(handler),
     querySelectorAll: find,
     querySelector: (selector) => find(selector)[0] || null,
   };
+
+  /** An element the bridge reaches by id: a button it disables and clicks, or a status line. */
+  const byIdElement = () => ({
+    disabled: false,
+    textContent: "",
+    listeners: {},
+    addEventListener(type, handler) {
+      (this.listeners[type] ||= []).push(handler);
+    },
+  });
+  const buttons = { "card-notify-agent": byIdElement(), "card-art-notify": byIdElement() };
+  const statuses = { "card-notify-status": byIdElement(), "card-art-status": byIdElement() };
 
   const status = { textContent: "", setAttribute: () => {} };
   const block = /<script type="application\/json" id="card-values">([\s\S]*?)<\/script>/.exec(html);
@@ -237,18 +257,40 @@ function bridgeOf(html) {
       if (id === "card-values") return block ? { textContent: block[1] } : null;
       if (id === "card-status") return status;
       if (id === "tag-name-options" || id === "tag-stat-options") return datalistOf(html, id);
+      if (id in buttons) return buttons[id];
+      if (id in statuses) return statuses[id];
       return null;
     },
     querySelector: (selector) => (selector === "[data-card-page]" ? root : null),
     createElement: (tagName) => elementOf(tagName, "", ""),
     addEventListener: () => {},
   };
-  const window = { addEventListener: () => {}, parent: null };
+  /** What the frame posted to the app, in order. */
+  const posts = [];
+  const listeners = [];
+  const window = {
+    parent: { postMessage: (message) => posts.push({ ...message }) },
+    addEventListener: (type, handler) => {
+      if (type === "message") listeners.push(handler);
+    },
+  };
   vm.runInNewContext(readFileSync(path.join(TOOL_DIR, "card-bridge.js"), "utf8"), {
     window,
     document,
     setTimeout: () => {},
   });
+
+  /** One message the app would post into the frame. */
+  const deliver = (data) => listeners.forEach((handler) => handler({ data }));
+  /** Answer the newest request that has no answer yet, the way the app answers it. */
+  const answer = (data) => {
+    const last = posts.at(-1);
+    deliver({ ...data, requestId: last?.requestId });
+  };
+  /** Press one of the two notify buttons. */
+  const click = (id) => (buttons[id].listeners.click || []).forEach((handler) => handler());
+  /** What the player typed into 画面, as the bridge reads it. */
+  const promptField = () => root.querySelector("[data-art-prompt]");
 
   /** The one control that edits this tag, found the way the page shows it. */
   const controlOf = (name) =>
@@ -260,8 +302,25 @@ function bridgeOf(html) {
     input.listeners.change.forEach((handler) => handler());
   };
 
-  return { bridge: window.cardPageBridge, root, tables, status, controlOf, pick };
+  return {
+    bridge: window.cardPageBridge,
+    root,
+    tables,
+    status,
+    controlOf,
+    pick,
+    posts,
+    buttons,
+    statuses,
+    deliver,
+    answer,
+    click,
+    promptField,
+  };
 }
+
+/** Let the promise chains a request hands back run. */
+const tick = () => new Promise((resolve) => setImmediate(resolve));
 
 test("the page is the shared page shell, not a second look", () => {
   const html = page();
@@ -560,7 +619,179 @@ test("the page and the tool only reach the host over the message bridge", () => 
 
   assert.match(pageHtml, /"editor:readFile"/);
   assert.match(pageHtml, /"editor:save"/);
+  assert.match(pageHtml, /"editor:sendPrompt"/);
   assert.match(pageHtml, /noHost\.hidden = true/, "a host hides the read-only line");
+});
+
+// ---------------------------------------------------------------- the two agent buttons
+
+const PROMPTS = path.join(REPO, ".pi/prompts");
+const PAGE_PATH = "your_mods/card_demo/.preview/9000001.card.html";
+
+/** The app opening this page for editing: the one init that turns the two buttons on. */
+const hostInit = (writable = true) => ({
+  type: "editor:init",
+  mode: "edit",
+  writable,
+  file: { path: PAGE_PATH, name: "9000001.card.html" },
+});
+
+/** The prompt the app opened this page for: what a player typed is the art prompt of the record. */
+const COMPOSED = composeSubject(CARD);
+
+/** The `画面` section of the page: from its heading to the next one. */
+function artSection(html) {
+  const start = html.indexOf("画面 · 这张图画成什么");
+  assert.ok(start > 0, "the page carries the 画面 section");
+  return html.slice(start, html.indexOf("<h2>", start));
+}
+
+test("the page carries both agent buttons and the prompt field under 画面", () => {
+  const html = page();
+  const section = artSection(html);
+  assert.match(
+    html,
+    /<button class="exp" id="card-notify-agent" type="button" disabled>改好了，通知 agent<\/button>/,
+    "the values button ships disabled: only the app can send",
+  );
+  assert.match(section, /<label class="art-lbl" for="card-art-prompt">卡面图的提示词<\/label>/, "the prompt is labelled");
+  assert.match(section, /<button class="exp" id="card-art-notify" type="button" disabled>换卡面图，通知 agent<\/button>/);
+  const field = /<textarea id="card-art-prompt"[^>]*>([\s\S]*?)<\/textarea>/.exec(section);
+  assert.ok(field, "the prompt is a textarea, so the player can rewrite it");
+  assert.equal(field[1], esc(COMPOSED), "prefilled with the sentence this record composes");
+});
+
+test("「改好了，通知 agent」 asks the app to send /card-edited with this page's path", async () => {
+  const { posts, statuses, deliver, click } = bridgeOf(page());
+  deliver(hostInit());
+  click("card-notify-agent");
+
+  const sent = posts.filter((message) => message.type === "editor:sendPrompt").at(-1);
+  assert.ok(sent, "the click posts a message for the session");
+  assert.equal(sent.text, `/card-edited ${PAGE_PATH}`, "the command names the page the app has open");
+  assert.equal(posts.some((message) => message.type === "editor:save"), false, "the button writes nothing");
+
+  deliver({ type: "editor:sent", requestId: sent.requestId });
+  await tick();
+  assert.match(statuses["card-notify-status"].textContent, /这一页可以一直开着/, "the page says it can stay open");
+});
+
+test("「换卡面图，通知 agent」 sends the prompt the player typed into 画面", async () => {
+  const { posts, statuses, deliver, click, promptField } = bridgeOf(page());
+  deliver(hostInit());
+
+  promptField().value = "一把断成两截的长剑，插在雪里";
+  click("card-art-notify");
+  const sent = posts.filter((message) => message.type === "editor:sendPrompt").at(-1);
+  assert.equal(
+    sent.text,
+    `/card-art-edited ${PAGE_PATH}\n卡面图的提示词：「一把断成两截的长剑，插在雪里」`,
+    "the command names the page, and the line under it is what the player typed",
+  );
+  assert.equal(posts.some((message) => message.type === "editor:save"), false, "the button writes nothing");
+
+  deliver({ type: "editor:sent", requestId: sent.requestId });
+  await tick();
+  assert.match(statuses["card-art-status"].textContent, /换卡面图/);
+
+  // Nothing typed is not a picture: say so instead of sending a command with no subject in it.
+  promptField().value = "   ";
+  click("card-art-notify");
+  assert.equal(posts.filter((message) => message.type === "editor:sendPrompt").length, 1, "an empty prompt is not sent");
+  assert.match(statuses["card-art-status"].textContent, /卡面图的提示词/);
+});
+
+test("the typed art prompt survives a save and a regeneration", async () => {
+  const html = page();
+  const block = readPageValues(html);
+  assert.equal(block.artPrompt, COMPOSED, "the block starts from the composed sentence");
+
+  // A save writes what the player typed, not the sentence the record composes.
+  const { bridge, posts, deliver, promptField } = bridgeOf(html);
+  deliver(hostInit());
+  deliver({ type: "editor:fileContent", requestId: posts.filter((m) => m.type === "editor:readFile").at(-1).requestId, data: html, revision: "r1" });
+  await tick();
+  promptField().value = "一把断成两截的长剑，插在雪里";
+  bridge.save();
+  const saved = posts.filter((message) => message.type === "editor:save").at(-1);
+  assert.ok(saved, "the page posted its own text");
+  assert.equal(readPageValues(saved.data).artPrompt, "一把断成两截的长剑，插在雪里");
+  assert.deepEqual(readPageValues(saved.data).values, block.values, "the prompt is stored beside the values, not inside them");
+
+  // Regenerating from that block keeps the typed sentence, so a layout refresh loses nothing.
+  const regenerated = page(CARD, readPageValues(saved.data));
+  const field = /<textarea id="card-art-prompt"[^>]*>([\s\S]*?)<\/textarea>/.exec(artSection(regenerated));
+  assert.equal(field[1], "一把断成两截的长剑，插在雪里", "the new page shows the typed prompt");
+
+  // A page written before the prompt existed falls back to what the record composes.
+  const older = cardPageHtml({
+    id: "9000001",
+    record: CARD,
+    modDir: MOD_DIR,
+    previous: { id: "9000001", values: block.values },
+  });
+  assert.equal(
+    /<textarea id="card-art-prompt"[^>]*>([\s\S]*?)<\/textarea>/.exec(artSection(older))[1],
+    esc(COMPOSED),
+    "no stored prompt: the composed sentence is the default",
+  );
+
+  // Writing values without naming a prompt keeps the prompt the page already carries.
+  assert.equal(readPageValues(writePageValues(html, block.id, block.values)).artPrompt, COMPOSED);
+});
+
+test("without a host both buttons are off, and the page says why", () => {
+  const disk = bridgeOf(page());
+  assert.equal(disk.buttons["card-notify-agent"].disabled, true, "opened from disk: no app to send through");
+  assert.equal(disk.buttons["card-art-notify"].disabled, true);
+  assert.match(page(), /两个按钮也用不了/, "the read-only line explains it");
+
+  // The app refuses a message for a file it refuses to write, so the button must be off too.
+  const outside = bridgeOf(page());
+  outside.deliver(hostInit(false));
+  assert.equal(outside.buttons["card-notify-agent"].disabled, true);
+  outside.click("card-notify-agent");
+  assert.equal(outside.posts.filter((message) => message.type === "editor:sendPrompt").length, 0, "a click sends nothing");
+
+  const inside = bridgeOf(page());
+  inside.deliver(hostInit(true));
+  assert.equal(inside.buttons["card-notify-agent"].disabled, false, "a writable page in the app can notify");
+  assert.equal(inside.buttons["card-art-notify"].disabled, false);
+});
+
+/** A prompt template's frontmatter: the `key: value` lines between the first pair of `---`. */
+function frontmatterOf(text) {
+  const match = /^---\n([\s\S]*?)\n---\n/.exec(text);
+  assert.ok(match, "a prompt template starts with frontmatter");
+  const fields = {};
+  for (const line of match[1].split("\n")) {
+    const at = line.indexOf(":");
+    if (at <= 0) continue;
+    // A quoted value is YAML syntax, not part of the value.
+    const value = line.slice(at + 1).trim().replace(/^"(.*)"$/, "$1");
+    fields[line.slice(0, at).trim()] = value;
+  }
+  return { fields, body: text.slice(match[0].length) };
+}
+
+test("each button's command has a prompt template, and the template names the tools to run", () => {
+  const bridge = readFileSync(path.join(TOOL_DIR, "card-bridge.js"), "utf8");
+  const expected = [
+    ["card-edited", ["tools/preview.mjs", "--collect", "--apply", "config/tag.json"]],
+    ["card-art-edited", ["tools/art.mjs", "image/cards/"]],
+  ];
+  for (const [command, needles] of expected) {
+    assert.ok(bridge.includes(`"/${command}"`), `${command}: the bridge sends it`);
+    const file = path.join(PROMPTS, `${command}.md`);
+    assert.ok(existsSync(file), `${command}: .pi/prompts/${command}.md answers it`);
+
+    const { fields, body } = frontmatterOf(readFileSync(file, "utf8"));
+    assert.match(fields.description || "", /[\u4e00-\u9fff]/, `${command}: the command list shows a Chinese description`);
+    assert.equal(fields["argument-hint"], "[卡页路径]", `${command}: the argument is the card page path`);
+    assert.ok(body.includes("${1:-"), `${command}: the page path arrives as the first argument`);
+    assert.match(body, /[\u4e00-\u9fff]/, `${command}: written in Chinese, per script/prompt-standard.md`);
+    for (const needle of needles) assert.ok(body.includes(needle), `${command}: names ${needle}`);
+  }
 });
 
 test("the manifest is what the app discovers, and it matches a generated card page", () => {

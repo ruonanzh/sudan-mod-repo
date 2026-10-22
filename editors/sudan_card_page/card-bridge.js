@@ -10,11 +10,16 @@
  *   saves the edited values back into the page's JSON block over `editor:save`.
  *
  * The protocol is the app's editor contract: `editor:init` and `editor:theme` come in;
- * `editor:readFile` and `editor:save` go out; `editor:fileContent`, `editor:saved` and
- * `editor:error` answer a request. Nothing here reaches the network.
+ * `editor:readFile`, `editor:save` and `editor:sendPrompt` go out; `editor:fileContent`,
+ * `editor:saved`, `editor:sent` and `editor:error` answer a request. Nothing here reaches the
+ * network.
  *
  * A save writes only the page's own value block. Writing the values into `config/cards.json` is
  * a separate, reviewed step: `node tools/preview.mjs --apply --mod your_mods/<Name>`.
+ *
+ * The two notify buttons do not touch the file: each asks the app to send a slash command into
+ * the session that owns this mod, carrying the page path (and, for the picture, the prompt the
+ * player typed). The app refuses when the file is not writable, the same gate a save has.
  */
 (function () {
   "use strict";
@@ -28,8 +33,10 @@
     host: false,
     writable: false,
     revision: null,
+    path: "",
     text: "",
     values: {},
+    artPrompt: "",
     root: null,
     id: "",
     dirty: false,
@@ -102,12 +109,15 @@
     return {
       id: String(parsed.id || ""),
       values: parsed.values && typeof parsed.values === "object" && !Array.isArray(parsed.values) ? parsed.values : {},
+      artPrompt: typeof parsed.artPrompt === "string" ? parsed.artPrompt : "",
     };
   }
 
   /** The same block replacement `tools/cardpage.mjs` performs, so both writers agree. */
-  function withValues(html, id, values) {
-    var payload = JSON.stringify({ version: 1, id: String(id), values: values }, null, 2).replace(/</g, "\\u003c");
+  function withValues(html, id, values, artPrompt) {
+    var parsed = readBlockFromHtml(String(html || ""));
+    var prompt = typeof artPrompt === "string" ? artPrompt : parsed ? parsed.artPrompt : "";
+    var payload = JSON.stringify({ version: 1, id: String(id), values: values, artPrompt: prompt }, null, 2).replace(/</g, "\\u003c");
     var block = '<script type="application/json" id="' + BLOCK_ID + '">\n' + payload + "\n</" + "script>";
     var pattern = blockRegExp();
     if (pattern.test(html)) return html.replace(pattern, block);
@@ -323,16 +333,107 @@
         }
       });
     });
+    wireNotifyButtons();
+  }
+
+  /* ---------- the two notify buttons ---------- */
+
+  function setText(id, text) {
+    var element = byId(id);
+    if (element) element.textContent = text;
+  }
+
+  /** A slash command with the page path as its argument, so the agent knows which page to read. */
+  function commandFor(command) {
+    return state.path ? command + " " + state.path : command;
+  }
+
+  function sendErrorText(response, command) {
+    var code = (response && response.code) || "NO_REPLY";
+    if (code === "AGENT_BUSY") return "agent 正在运行，等它停下来再点一次。";
+    if (code === "NO_SESSION") return "这一页没挂到会话上，到对话里发 " + command + "。";
+    if (code === "NOT_ALLOWED") return "这个文件不在 your_mods/ 里，不能替你发消息。";
+    if (code === "TOO_LONG") return "这句话太长，分两次发。";
+    return "没发出去（" + code + "）：到对话里发 " + command + "。";
+  }
+
+  /**
+   * Ask the app to put one message into the session that owns this mod — the same path the chat
+   * box takes. The button only exists while a save would be allowed, because the app refuses a
+   * message for a page it refuses to write.
+   */
+  function notifyAgent(text, command, statusId, done) {
+    if (!state.host || !state.writable) return;
+    setText(statusId, "正在通知 agent…");
+    request("editor:sendPrompt", { text: text }).then(function (response) {
+      if (response && response.type === "editor:sent") setText(statusId, done);
+      else setText(statusId, sendErrorText(response, command));
+    });
+  }
+
+  function wireNotifyButtons() {
+    var values = byId("card-notify-agent");
+    if (values) {
+      values.addEventListener("click", function () {
+        notifyAgent(
+          commandFor("/card-edited"),
+          "/card-edited",
+          "card-notify-status",
+          "已通知 agent。这一页可以一直开着，agent 改完 cards.json 你再刷新看。"
+        );
+      });
+    }
+    var art = byId("card-art-notify");
+    if (art) {
+      art.addEventListener("click", function () {
+        var prompt = (artPromptOf(state.root) || "").trim();
+        if (!prompt) {
+          setText("card-art-status", "先在「卡面图的提示词」里写一句画面内容。");
+          return;
+        }
+        notifyAgent(
+          commandFor("/card-art-edited") + "\n卡面图的提示词：「" + prompt + "」",
+          "/card-art-edited",
+          "card-art-status",
+          "已通知 agent，它按这句提示词换卡面图。这一页可以一直开着。"
+        );
+      });
+    }
+  }
+
+  /**
+   * The prompt the player typed under 画面, or null when this page carries no prompt field — an
+   * older page must not have one written into its block behind the player's back.
+   */
+  function artPromptOf(root) {
+    var element = root ? root.querySelector("[data-art-prompt]") : null;
+    return element ? String(element.value || "") : null;
+  }
+
+  /** Everything a save writes into the block: the card values, and the picture prompt. */
+  function pageOf(root) {
+    return { values: collect(root), artPrompt: artPromptOf(root) };
+  }
+
+  /** One string for the dirty check, so key order cannot decide whether the page is dirty. */
+  function stamp(page) {
+    return canonical({ values: page.values, artPrompt: page.artPrompt });
   }
 
   function markDirty() {
     if (!state.root) return;
-    state.dirty = canonical(collect(state.root)) !== state.saved;
+    state.dirty = stamp(pageOf(state.root)) !== state.saved;
     paintStatus();
   }
 
   function paintStatus() {
     var button = byId("card-save");
+    // Both notify buttons go through the app, so they follow the same gate a save has.
+    var blocked = !state.host || !state.writable;
+    ["card-notify-agent", "card-art-notify"].forEach(function (id) {
+      var element = byId(id);
+      if (element) element.disabled = blocked;
+    });
     if (!state.host) {
       setStatus("只读：只能在 app 里保存", "readonly");
       if (button) button.disabled = true;
@@ -357,8 +458,11 @@
     var block = element ? parseBlock(element.textContent) : null;
     state.values = block ? block.values : {};
     state.id = (block && block.id) || state.root.getAttribute("data-card-page") || "";
-    state.saved = canonical(state.values);
+    state.artPrompt = artPromptOf(state.root);
+    state.saved = stamp({ values: state.values, artPrompt: state.artPrompt });
     wire(state.root);
+    // Opened from disk the page has no host, so the two notify buttons say why they are off.
+    paintStatus();
     return true;
   }
 
@@ -409,7 +513,8 @@
       var block = readBlockFromHtml(state.text);
       state.values = block ? block.values : {};
       state.id = (block && block.id) || state.root.getAttribute("data-card-page") || "";
-      state.saved = canonical(state.values);
+      state.artPrompt = artPromptOf(state.root);
+      state.saved = stamp({ values: state.values, artPrompt: state.artPrompt });
       wire(state.root);
       markDirty();
     });
@@ -431,7 +536,8 @@
       return;
     }
     var values = collect(state.root);
-    var next = withValues(state.text, state.id, values);
+    var artPrompt = artPromptOf(state.root);
+    var next = withValues(state.text, state.id, values, artPrompt);
     if (next === state.text) {
       state.dirty = false;
       paintStatus();
@@ -446,7 +552,8 @@
       state.text = next;
       state.revision = response.revision || state.revision;
       state.values = values;
-      state.saved = canonical(values);
+      state.artPrompt = artPrompt;
+      state.saved = stamp({ values: values, artPrompt: artPrompt });
       state.dirty = false;
       paintStatus();
       setStatus("已保存这一页；写回 cards.json 要跑 preview --apply", "clean");
@@ -469,6 +576,7 @@
     state.writable = init.mode === "edit" && init.writable === true;
     applyTheme(init);
     var name = init.file && init.file.name;
+    state.path = (init.file && init.file.path) || "";
     var file = byId("card-file");
     if (file && name) file.textContent = name;
     var bar = byId("card-savebar");
@@ -486,10 +594,10 @@
       start(data);
     } else if (data.type === "editor:theme") {
       applyTheme(data);
-    } else if (data.type === "editor:fileContent" || data.type === "editor:saved" || data.type === "editor:error") {
-      if (!settle(data.requestId, data)) {
-        setStatus(data.type === "editor:error" ? saveError(data) : "已保存", data.type === "editor:error" ? "error" : "clean");
-      }
+    } else if (data.type === "editor:fileContent" || data.type === "editor:saved" || data.type === "editor:sent" || data.type === "editor:error") {
+      if (settle(data.requestId, data)) return;
+      if (data.type === "editor:error") setStatus(saveError(data), "error");
+      else if (data.type === "editor:saved") setStatus("已保存", "clean");
     }
   });
 
@@ -517,5 +625,11 @@
     else ready();
   }
 
-  window.cardPageBridge = { collect: collect, save: save, withValues: withValues, readBlock: readBlockFromHtml };
+  window.cardPageBridge = {
+    collect: collect,
+    save: save,
+    withValues: withValues,
+    readBlock: readBlockFromHtml,
+    artPromptOf: artPromptOf,
+  };
 })();
