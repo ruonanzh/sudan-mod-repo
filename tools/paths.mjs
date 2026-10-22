@@ -34,7 +34,7 @@ const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const APP_ID = "3117820";
 
 /** The locations a mod cannot be made without. Everything else is reported but not judged. */
-const REQUIRED = ["steam", "vanilla", "modRoot"];
+export const REQUIRED = ["steam", "vanilla", "modRoot"];
 
 /** `~` expands to the account's home directory. Never process.env.HOME: Windows has no such variable. */
 const expand = (p) => (p === null || p === undefined ? null : String(p).replace(/^~/, os.homedir()));
@@ -231,13 +231,14 @@ const venvPython = (platform = process.platform) =>
 // What is recorded, and what the app recorded
 // ---------------------------------------------------------------------------
 
-const pathsFile = () => path.join(REPO, ".pi", "paths.json");
+/** The record file. A tool that runs against another workspace root passes that root. */
+export const pathsFile = (repo = REPO) => path.join(repo, ".pi", "paths.json");
 
 /**
  * The record file. Absent is normal, so it reads as empty; invalid JSON is reported rather
  * than thrown, because this module is imported by every tool.
  */
-function readPaths(file = pathsFile()) {
+export function readRecord(file = pathsFile()) {
   const empty = { steam: null, vanilla: null, modRoot: null, problem: null };
   if (!file || !existsSync(file)) return empty;
   try {
@@ -246,6 +247,23 @@ function readPaths(file = pathsFile()) {
   } catch (e) {
     return { ...empty, problem: `${shorten(file)} is not valid JSON: ${e.message}` };
   }
+}
+
+/**
+ * What a record holds for judged rows, without writing it. Callers judge first: a recorded
+ * path that does not hold the game is worse than none.
+ */
+export function recordOf(rows) {
+  const pick = (name) => shorten(rows.find((r) => r.name === name).path);
+  return { steam: pick("steam"), vanilla: pick("vanilla"), modRoot: pick("modRoot") };
+}
+
+/** Write a judged record. `recordOf` is separate so a caller can compare before it writes. */
+export function writeRecord(rows, file = pathsFile()) {
+  const body = recordOf(rows);
+  mkdirSync(path.dirname(file), { recursive: true });
+  writeFileSync(file, `${JSON.stringify(body, null, 2)}\n`);
+  return body;
 }
 
 /** The game directory the app verified, recorded beside the repo. Absent outside the app. */
@@ -273,7 +291,7 @@ export function judge(opts = {}) {
   const platform = opts.platform ?? process.platform;
   const home = opts.home ?? os.homedir();
   const env = opts.env ?? process.env;
-  const saved = readPaths(opts.file === undefined ? pathsFile() : opts.file);
+  const saved = readRecord(opts.file === undefined ? pathsFile() : opts.file);
   const recorded = "recorded" in opts ? opts.recorded : recordedGameDir();
 
   // steam: explicit -> .pi/paths.json -> the app's gameDir -> discovery
@@ -317,11 +335,40 @@ export function judge(opts = {}) {
 }
 
 /**
+ * Which location a path is, by its sentinel. `set_game_dir` takes one path and must know
+ * which of the three it is before it can record anything, so the decision lives here and
+ * not in the tool.
+ *
+ * An exact sentinel wins first. A path that is only *inside* the game falls back to the
+ * Steam library above it (`steamapps/common/<install>` is the folder a player copies), then
+ * to the vanilla config derived from an install shape below it.
+ */
+export function classify(p) {
+  const dir = expand(p);
+  if (!dir || !existsSync(dir)) return { name: null, reason: "no such directory" };
+  const exact = [
+    ["steam", judgeSteam(dir)],
+    ["vanilla", judgeVanilla(dir)],
+    ["modRoot", judgeModRoot(dir)],
+  ];
+  const hit = exact.find(([, r]) => r.status === "OK");
+  if (hit) return { name: hit[0], row: hit[1] };
+  const library = steamOf(dir);
+  if (library) {
+    const row = judgeSteam(library);
+    if (row.status === "OK") return { name: "steam", row };
+  }
+  const vanilla = judgeVanilla(vanillaFrom(dir));
+  if (vanilla.status === "OK") return { name: "vanilla", row: vanilla };
+  return { name: null, reason: "none of the three sentinels matched" };
+}
+
+/**
  * The vanilla config a tool needs before it can do its work, or the FAIL text that stops it.
  * A tool with no vanilla must say so and exit non-zero: an empty page is a lie.
  */
-export function vanillaRequirement(explicit) {
-  const found = judge({ vanilla: explicit }).rows.find((r) => r.name === "vanilla");
+export function vanillaRequirement(explicit, opts = {}) {
+  const found = judge({ ...opts, vanilla: explicit }).rows.find((r) => r.name === "vanilla");
   if (found.status === "OK") return { dir: found.path };
   const where = found.path ? ` at ${shorten(found.path)}` : "";
   return {
@@ -402,10 +449,7 @@ function set(args) {
     emit("NEXT", "fix the location, or run `node tools/paths.mjs check` to see what is missing");
     return 1;
   }
-  const pick = (name) => shorten(wanted.rows.find((r) => r.name === name).path);
-  const body = { steam: pick("steam"), vanilla: pick("vanilla"), modRoot: pick("modRoot") };
-  mkdirSync(path.dirname(file), { recursive: true });
-  writeFileSync(file, `${JSON.stringify(body, null, 2)}\n`);
+  writeRecord(wanted.rows, file);
   emit("PASS", `recorded ${shorten(file)}`, "run `node tools/paths.mjs check` to confirm it reads back");
   return 0;
 }
