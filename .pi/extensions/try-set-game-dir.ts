@@ -1,75 +1,70 @@
 /**
- * try_set_game_dir - record where the game is, discovering it (no arguments, idempotent).
+ * try_set_game_dir —— **确保游戏目录已就绪**（无参、幂等）。
  *
- * Discovery is `judge` with nothing explicit: the state file, then the Steam library. It
- * writes only when every required location passes its sentinel, and only when the recorded
- * keys actually changed, so a second call touches nothing.
+ * 语义（判据与发现都在 `tools/paths.mjs`，本工具只是入口）：
+ *   ① 记录的 `gameDir` 仍有效，且派生的 `modInstallDir` / `workshopDir` 与**当前平台**一致
+ *      → 什么都不写 → `PASS: gameDir already correct`
+ *   ② 无效 / 过期 / 从没记过 → 自动发现（每个候选都过哨兵）→ 记录 `gameDir` + 派生的两条
+ *      → `PASS: gameDir discovered and recorded`
+ *   ③ 找不到 → `FAIL`（不写状态）
  *
- * When discovery fails it writes nothing and reports what is missing. Finding a game that is
- * not where it usually is becomes the agent's job only after this tool has failed.
+ * 为什么无参：agent 不需要先知道路径 —— "确保它已就绪"这件事由工具自己做；它自己找过之后仍然失败，
+ * 才轮到 agent 去想办法（找线索、问玩家）。
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
-import { judge, pathsFile, readRecord, recordOf, shorten, writeRecord } from "../../tools/paths.mjs";
-import { failedNames, formatRows, summarize, type PathRow } from "../lib/paths-report";
+import { ensureGameDir, pathsFile, shorten } from "../../tools/paths.mjs";
+import { derivedLines } from "../lib/paths-report";
 
 export default function (pi: ExtensionAPI) {
   pi.registerTool({
     name: "try_set_game_dir",
     label: "Ensure Game Directory",
     description:
-      "Find the game and record it in .gamer-agent.local.json: the install, the vanilla config, the mod root and the workshop directory. It takes no arguments. When the recorded paths are already correct it writes nothing; when discovery succeeds it records every key it derived; when discovery fails it writes nothing and reports the sentinel that is missing. Use it when a task needs the game location and you are not sure it is recorded.",
-    promptSnippet: "Ensure the game locations are recorded, finding them when needed",
+      "Makes sure the game directory is recorded and still valid for this platform. It also checks the mod install directory and the Steam Workshop directory derived from it. This tool takes no arguments. It checks the recorded paths, or locates the game and records the paths.",
+    promptSnippet: "Ensure the game directory is recorded (locates it when needed)",
     promptGuidelines: [
-      "Use try_set_game_dir when a task needs the game location: validating a mod, installing one, or reading the vanilla config. Use it when you are not sure the paths are recorded or still valid.",
-      "try_set_game_dir takes no arguments and finds the game itself. Do not look for the path first. It says whether it found a new path or the record was already correct.",
-      "try_set_game_dir only writes .gamer-agent.local.json. It never creates or changes anything inside the game. When it reports FAIL, ask the player where the game is installed and pass that path to set_game_dir.",
+      "Use try_set_game_dir when a task needs the game location, such as reading the vanilla config or installing a mod. Use it when you are not sure the paths are recorded or still valid.",
+      "try_set_game_dir takes no arguments. It checks the recorded paths or locates and records them. You do not have to find the path yourself.",
+      "try_set_game_dir only records paths in .gamer-agent.local.json. It never creates or changes anything inside the game.",
     ],
     parameters: Type.Object({}),
-    async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
+    async execute(_id, _params, _signal, _onUpdate, ctx) {
       const cwd = ctx.cwd;
       const file = pathsFile(cwd);
-      const { rows, ok, problem } = judge({ file });
-      const judged = rows as PathRow[];
+      const out = ensureGameDir({ file });
 
-      if (!ok) {
-        const lines = formatRows(judged);
-        if (problem) lines.push(`WARN: ${problem}`);
-        lines.push(summarize(false, judged));
-        lines.push(
-          "NEXT: ask the player where the game is installed (the Steam library, the game folder, or the folder that holds Sultan's Game.app), then pass that path to set_game_dir. See the 'setup-workspace' skill for the sentinels. Nothing was written.",
-        );
+      if (out.status === "missing") {
         return {
-          content: [{ type: "text", text: lines.join("\n") }],
+          content: [
+            {
+              type: "text",
+              text: `FAIL: gameDir not found - ${out.reason}.\nNEXT: ${out.next ?? "see the 'setup-workspace' skill."}`,
+            },
+          ],
           details: {
             ok: false,
-            reason: "PATHS_NOT_FOUND",
-            rows: judged,
-            failed: failedNames(judged),
+            reason: "GAME_DIRECTORY_NOT_FOUND",
             wroteState: false,
           },
         };
       }
 
-      const body = recordOf(judged);
-      const current = readRecord(file) as Record<string, unknown>;
-      const unchanged = Object.entries(body).every(([key, value]) => current[key] === value);
-      const lines = formatRows(judged);
-      if (problem) lines.push(`WARN: ${problem}`);
-      if (unchanged) {
-        lines.push("PASS: every required location is OK (already recorded; nothing written)");
-      } else {
-        writeRecord(judged, file);
-        lines.push(`PASS: every required location is OK (discovered and recorded in ${shorten(file)})`);
-      }
+      const lines = [
+        `PASS: gameDir ${out.status === "already" ? "already correct" : "discovered and recorded"} (${shorten(out.recorded)})`,
+        ...derivedLines(out),
+      ];
+      for (const warning of out.warnings) lines.push(`WARN: ${warning}`);
       return {
         content: [{ type: "text", text: lines.join("\n") }],
         details: {
           ok: true,
-          status: unchanged ? "already" : "recorded",
-          rows: judged,
-          recorded: body,
-          wroteState: !unchanged,
+          status: out.status,
+          gameDir: out.recorded,
+          vanillaDir: out.vanillaDir,
+          modInstallDir: out.modInstallDir,
+          workshopDir: out.workshopDir,
+          wroteState: out.status === "recorded",
         },
       };
     },

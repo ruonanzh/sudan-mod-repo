@@ -1,11 +1,11 @@
 ---
 name: setup-workspace
-description: 苏丹的游戏 mod 工作区的环境准备。先记下三个位置（Steam 库、原版配置目录、mod 根目录），再记下 dotnet 路径；dump 游戏代码与提取参考游戏美术是可选的，各写了什么时候需要、怎么准备。在路径未知或记错、要验证玩家给的路径、要 dump 游戏代码、或 `reference/` 为空时读取。
+description: 苏丹的游戏 mod 工作区的环境准备。先记下游戏目录，以及由它派生的创意工坊内容目录与原版配置目录，再记下 mod 安装目录和 dotnet 路径；dump 游戏代码与提取参考游戏美术是可选的，各写了什么时候需要、怎么准备。在路径未知或记错、要验证玩家给的路径、要 dump 游戏代码、或 `reference/` 为空时读取。
 ---
 
 # 准备工作区（苏丹的游戏）
 
-把「游戏在哪、三个位置各是什么、dotnet 够不够」弄清楚并记录。**这一步只产出事实**，不产出 mod。
+把「游戏在哪、三条路径是什么、运行时够不够」弄清楚并记录。**这一步只产出事实**，不产出 mod。
 加载技能不等于获得写权限。咨询可以只解释方法。
 
 ## 状态文件里有什么（本工作区的约定）
@@ -15,12 +15,12 @@ description: 苏丹的游戏 mod 工作区的环境准备。先记下三个位�
 | 键 | 含义 | 来源 | 谁用 |
 |---|---|---|---|
 | `gameDir` | 游戏安装目录（macOS 上含 `Sultan's Game.app` 的那一层，Windows 上含 `Sultan's Game_Data` 的那一层）| 玩家给的，或 `try_set_game_dir` 自动发现 | 派生 `vanillaDir` 与 `workshopDir`；`inspect_game_code` 从 `gameDir` 读游戏 |
-| `vanillaDir` | 原版配置目录（`.../StreamingAssets/config`，里面是 `cards.json` 与 `rite/`）| **由 `gameDir` 派生** | 校验与读原版数据 |
-| `modInstallDir` | mod 根目录（`<MyDocuments>/DoubleCross/SultansGame/Mod`）| **由 `MyDocuments` 现算，不由 `gameDir` 派生** | 安装 mod 复制到此 |
-| `workshopDir` | 创意工坊内容目录（`<Steam 库>/steamapps/workshop/content/3117820`）| **由 `gameDir` 派生**；目录不存在也照记，`EMPTY` 不是错误 | **只读参考**：读工坊里现成 mod 的 `info.json`。**不参与安装** |
+| `workshopDir` | 创意工坊内容目录（`<Steam 库>/steamapps/workshop/content/3117820`）| **由 `gameDir` 派生**；目录不存在时记 `null`，`EMPTY` 不是错误 | **只读参考**：读工坊里现成 mod 的 `info.json`。**不参与安装** |
+| `modInstallDir` | mod 安装目录（`<MyDocuments>/DoubleCross/SultansGame/Mod`）| **由 `MyDocuments` 现算，不由 `gameDir` 派生** | 安装 mod 复制到此 |
 | `runtime` | dotnet 可执行文件路径与版本 | `check_runtime` 探测后写入 | `inspect_game_code action=dump` 重建 dump 时定位 dotnet |
 
-`tools/paths.mjs` 只读写前四个键：读整个文件，按 key 合并，写回。`runtime` 与其他工具写的键原样保留。
+**原版配置目录不是键**：`vanillaDir` 每次由 `gameDir` 现算，写进文件只会过期。写文件时会顺手把旧的 `vanillaDir` 删掉。
+`tools/paths.mjs` 只读写 `gameDir`、`workshopDir`、`modInstallDir` 三个键：读整个文件，按 key 合并，写回。`runtime` 与其他工具写的键原样保留。
 写进文件的 `~` 用 `os.homedir()` 展开，不读 `HOME`：Windows 没有这个变量。
 
 ## 派生关系与「不得只设 `gameDir` 就收工」
@@ -30,19 +30,20 @@ description: 苏丹的游戏 mod 工作区的环境准备。先记下三个位�
 macOS 的 `MyDocuments` 是 `$HOME`，Windows 的是 `%USERPROFILE%\Documents`。`mod-repo.json` 的 `modInstall` 记着同一条推导。
 所以只把 `gameDir` 弄对，`modInstallDir` 仍可能是错的。
 
-报告里的三行仍叫 `steam`、`vanilla`、`modRoot`，它们分别对应 `gameDir`、`vanillaDir`、`modInstallDir`；命令行与工具读的是同一份判定，看哪一份都一样。
+报告逐行叫 `gameDir`、`vanilla`、`modInstallDir`、`workshopDir`；`vanilla` 这一行就是派生的 `vanillaDir`，命令行与工具读的是同一份判定，看哪一份都一样。
 
-**必填与附加**：`steam`、`vanilla`、`modRoot` 三行都必填。任一行不是 `OK` 就是失败。
-`workshop` 只是**只读参考**，**永不产 FAIL**。`EMPTY` 表示玩家没订阅任何工坊内容，不是错误。
+**必填与附加**：`gameDir`、`vanilla`、`modInstallDir` 三行都必填。任一行不是 `OK` 就是失败。
+`workshopDir` 只是**只读参考**，**永不产 FAIL**（最多 `MISS` 或 `EMPTY`）。`EMPTY` 表示玩家没订阅任何工坊内容，不是错误。
 
 ## 完成标准
 
-**三个位置都能用才算准备好**：`steam`、`vanilla`、`modRoot` 三行都是 `OK`。`workshop` 要么 `OK`，要么明说「玩家没订阅工坊内容」。
+**三个位置都能用才算准备好**：`gameDir`、`vanilla`、`modInstallDir` 三行都是 `OK`。`workshopDir` 要么 `OK`，要么明说「玩家没订阅工坊内容」。
 `vanillaDir` 与 `workshopDir` 由 `gameDir` 派生，把 `gameDir` 弄对就会一起算好。**不得设完 `gameDir` 就收工。**
+`modInstallDir` 报 `MISS` 且理由是「游戏还没创建」时，先启动一次游戏再查。
 
 报证据，不报感觉。按实际做过的分支报：
 
-1. 必需：`node tools/paths.mjs check` 打出 `PASS`，或三个位置各一行 `OK`。`modRoot` 的证据也可以是游戏写出的 `<mod>_local.log`。
+1. 必需：`node tools/paths.mjs check` 打出 `PASS`，或三个位置各一行 `OK`。`modInstallDir` 的证据也可以是游戏写出的 `<mod>_local.log`。
 2. 做了 A：`status` 的 `PASS` 或 `PARTIAL` 行，加 `action=setup` 的 `PASS` 或 `SKIP`。没做就明说「不需要 dump 代码」。
 3. 做了 B：`--check` 说参考集完整。没做就明说 `reference/` 不用。
 
@@ -50,19 +51,19 @@ macOS 的 `MyDocuments` 是 `$HOME`，Windows 的是 `%USERPROFILE%\Documents`�
 
 | 工具 | 做什么 | 副作用 |
 |---|---|---|
-| `try_set_game_dir` | **确保三个位置都已记录**（无参、幂等）。三行都过哨兵时只回报。没过时自己找，找到才记录能算出的四个键。| 写 `.gamer-agent.local.json`（只在真的记下了新值时）|
-| `set_game_dir` | **记录一条路径**（玩家给的，或自己找到的）。先按哨兵判断这条路径属于 `gameDir`、`vanillaDir`、`modInstallDir` 里的哪一个，再记录能算出的四个键。| 写 `.gamer-agent.local.json` |
-| `check_game_paths` | **只验**（只读）：核对玩家给的或已记录的路径，逐行报判出 `OK`、`MISS`、`EMPTY`、`FAIL` 的那个哨兵。状态文件还不存在时明说「还没记录过」。不写文件，不找游戏，不建目录。| 无 |
+| `try_set_game_dir` | **确保游戏目录已就绪**（无参、幂等）。已就绪且派生的两条与当前平台一致时只回报。没就绪或过期时自己找，找到才记录 `gameDir` 与派生的 `workshopDir`、`modInstallDir`。| 写 `.gamer-agent.local.json`（只在真的记下了新值时）|
+| `set_game_dir` | **记录一个具体的游戏目录**（玩家给的，或你自己找到的）。先用游戏自己的文件验这条路径；不过就自己找，找到的落库并报 `WARN`；都失败就报 `FAIL`，**什么都不写**。| 写 `.gamer-agent.local.json`（`PASS` 或 `WARN` 时）|
+| `check_game_paths` | **只验**（只读）：核对玩家给的或已记录的路径，逐行报判出 `OK`、`MISS`、`EMPTY`、`FAIL` 的那个哨兵。不写文件，不找游戏，不建目录。| 无 |
 | `check_runtime` | **只查 .NET SDK >= 8**，并记下 dotnet 路径。**不找游戏**。缺 SDK 时用 `install_runtime`：`install_runtime` 只打印安装步骤，不下载、不安装。| 写 `.gamer-agent.local.json` 的 `runtime` 段 |
 
-三个路径工具的判据是 `.pi/extensions/` 调用 `tools/paths.mjs` 的 `judge`、`classify` 与 `writeRecord`，所以命令行与工具不会对「哪个路径算合格」给出两种答案。
+三个路径工具的判据是 `.pi/extensions/` 调用 `tools/paths.mjs` 的 `judge`、`ensureGameDir` 与 `setGameDirWithFallback`，所以命令行与工具不会对「哪个路径算合格」给出两种答案。
 
 ## 怎么用
 
 - **要安装 mod 或读原版数据，而路径未知或已变化**：跑 `try_set_game_dir`（无参，确保就绪）。已记录且仍有效时不必每轮重复检查。
-- **只想知道缺哪一项**：跑 `check_game_paths`。`check_game_paths` 也能接 `steam`、`vanilla`、`modRoot` 三个参数，只验那一条，不记录。
-- **玩家给了路径**：用 `set_game_dir`。`set_game_dir` 先判哨兵再记录；哨兵全不过时报 `INVALID_GAME_PATH` 并拒绝，什么都没写。这条路径合格、另一个必填位置不合格时，`set_game_dir` 同样什么都没写，`NEXT` 指向 `check_game_paths`。
-- **同一件事的命令行做法**：`node tools/paths.mjs check` 相当于 `check_game_paths`；`node tools/paths.mjs set --steam <库或游戏安装目录> --vanilla <配置目录>` 相当于 `set_game_dir`。`check` 的退出码为 0，才继续往下做。
+- **只想知道缺哪一项**：跑 `check_game_paths`。`check_game_paths` 也能接 `gameDir`、`workshopDir`、`modInstallDir` 三个参数，只验那几条，不记录。三个都不传时才验已记录的那几条；一条都没记录就报 `FAIL: nothing to check`。
+- **玩家给了路径**：用 `set_game_dir`。路径里没有游戏自己的文件时，`set_game_dir` 先自己找；找到了就报 `WARN` 并说明现在用的是哪条，找不到才报 `FAIL` 并**什么都没写**。
+- **同一件事的命令行做法**：`node tools/paths.mjs check` 相当于 `check_game_paths`；`node tools/paths.mjs set --game-dir <游戏安装目录>` 相当于 `set_game_dir`。`check` 的退出码为 0，才继续往下做。
 - **要 dump 代码而 SDK 未知**：跑 `check_runtime`。缺 SDK 时取 `install_runtime` 的安装指引，装好后**再检查一次**确认，再谈 dump。
 
 ## 失败阶梯
@@ -71,16 +72,17 @@ macOS 的 `MyDocuments` 是 `$HOME`，Windows 的是 `%USERPROFILE%\Documents`�
 
 | 位置 | 哨兵 |
 |---|---|
-| `steam` | `steamapps/appmanifest_3117820.acf` 存在，文件里写的 `installdir` 在 `steamapps/common/` 下存在 |
-| `vanilla` | 目录里同时有 `cards.json` 与 `rite/` |
-| `modRoot` | 同级有 `ModLog/__mod.log`，或父目录名是 `SultansGame`；目录要可写 |
-| `workshop` | 每个工坊条目目录里有 `info.json` |
+| `gameDir` | 目录里有**游戏自己的文件**：macOS 是 `Sultan's Game.app/Contents/Frameworks/GameAssembly.dylib` 或 `Sultan's Game.app/Contents/Resources/Data/il2cpp_data`（二者之一即可）；Windows 是 `Sultan's Game_Data/GameAssembly.dll` 与 `Sultan's Game_Data/il2cpp_data` 两个都要（未在 Windows 机器上实测）|
+| `vanilla` | 由 `gameDir` 现算，目录里同时有 `cards.json` 与 `rite/` |
+| `modInstallDir` | 同级有 `ModLog/__mod.log`，或父目录名是 `SultansGame`；目录要可写 |
+| `workshopDir` | 每个工坊条目目录里有 `info.json` |
 
-状态词只有四个。`OK` 表示过了哨兵。`MISS` 表示候选位置一个都没过。`FAIL` 表示指定或记录的路径在、哨兵不过。`EMPTY` 只出现在 `workshop`，不是错误。
-`check_game_paths` 另报 `dump` 与 `venv` 两行，状态是 `n/a`：这两项由工具自己管，哨兵不判。
-`modRoot` 在全新机器上由游戏创建。父目录是 `SultansGame` 而 `Mod` 不存在时，`modRoot` 报 `MISS`，先启动一次游戏。
+`steamapps/appmanifest_3117820.acf` **只是发现线索**：它说游戏在哪个库里，本身不算证据。清单在、目录里却没有游戏自己的文件时，`gameDir` 照样报 `FAIL`。
 
-1. `try_set_game_dir` 自己会找。`try_set_game_dir` 按平台找 Steam 根（Windows 读注册表与默认路径，macOS 读 `~/Library/Application Support/Steam`），再读各库的 `config/libraryfolders.vdf`，用 `appmanifest_3117820.acf` 的 `installdir` 定位安装。
+状态词只有四个。`OK` 表示过了哨兵。`MISS` 表示候选位置一个都没过。`FAIL` 表示指定或记录的路径在、哨兵不过。`EMPTY` 只出现在 `workshopDir`，不是错误。
+`modInstallDir` 在全新机器上由游戏创建。父目录是 `SultansGame` 而 `Mod` 不存在时，它报 `MISS`，先启动一次游戏。
+
+1. `try_set_game_dir` 自己会找。它按平台找 Steam 根（Windows 用 `ProgramFiles` 与常见盘符下的 `SteamLibrary`，macOS 读 `~/Library/Application Support/Steam`），再读各库的 `config/libraryfolders.vdf`，每个候选都过 `gameDir` 的哨兵。
 2. `try_set_game_dir` 失败时，把玩家的模糊线索（「装在 D 盘」「Steam 里」「下的那个」）变成候选目录。用 `check_game_paths` 逐个只读验证。挑中后用 `set_game_dir` 记录。
 3. 这样都不行时，才问玩家。问的时候**先说清你已经试过什么**（找过哪些库、验过哪些候选），并给可照做的入口（Steam 的库列表、玩家上次安装时选的盘，或让玩家直接贴路径）。
 
@@ -143,7 +145,7 @@ inspect_game_code action=setup
 node tools/setup.mjs --check
 ```
 
-列出已有的与缺的，并报出 `steam` 与 `vanilla` 两个判定。要提取：
+列出已有的与缺的，并报出 `gameDir` 与 `vanilla` 两个判定。要提取：
 
 ```
 node tools/setup.mjs
@@ -156,5 +158,5 @@ pip 源按这个顺序试，直到成功：`--index` → `SUDAN_PIP_INDEX` → �
 ## 相关技能
 
 - 做 mod 本身（布局、`info.json`、表的合并、事件与仪式的写法）时，用 `mod-creator`。
-- 把 mod 复制进 mod 根目录、启用并从日志确认时，用 `mod-installer`。
+- 把 mod 复制进 mod 安装目录、启用并从日志确认时，用 `mod-installer`。
 - 画一张像真卡的卡面图时，用 `card-art`。写 mod 说明页时，用 `mod-page`。

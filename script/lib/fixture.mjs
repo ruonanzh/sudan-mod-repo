@@ -143,7 +143,7 @@ export function oneRecord(kind, body) {
 }
 
 // ---------------------------------------------------------------------------
-// Fake installs: a Steam library, a vanilla config and a mod root in a temp dir.
+// Fake installs: a Steam library, a game install, a vanilla config and a mod install directory.
 //
 // `tools/paths.mjs` decides where the game is from sentinels, so the only way to test the
 // decision is to build a directory that passes one sentinel and fails another. Nothing here
@@ -170,6 +170,18 @@ export function fakeLibrary(root, { installdir = "Sultan's Game", install = true
   }
   if (install && installdir) mkdirSync(path.join(lib, "steamapps", "common", installdir), { recursive: true });
   return lib;
+}
+
+/** The game's own files in a macOS-shaped install: the sentinel `tools/paths.mjs` judges by.
+ *  `fakeVanilla` builds the config, not the game, so a test that wants a game directory the
+ *  judge accepts says so with this; a test that wants the sentinel to fail leaves it out. */
+export function fakeGame(installDir, { dylib = true, il2cpp = true } = {}) {
+  const contents = path.join(installDir, "Sultan's Game.app", "Contents");
+  mkdirSync(path.join(contents, "Frameworks"), { recursive: true });
+  mkdirSync(path.join(contents, "Resources", "Data"), { recursive: true });
+  if (dylib) writeFileSync(path.join(contents, "Frameworks", "GameAssembly.dylib"), "\n");
+  if (il2cpp) mkdirSync(path.join(contents, "Resources", "Data", "il2cpp_data"), { recursive: true });
+  return installDir;
 }
 
 /** The config directory of a macOS-shaped install, with its two sentinels. */

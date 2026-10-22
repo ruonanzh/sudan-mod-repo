@@ -14,9 +14,10 @@
  *   node tools/setup.mjs --index <url>   a pip index, for a network that needs one
  *   node tools/setup.mjs --paths <file>  read .gamer-agent.local.json from here instead
  *
- * The game is located by tools/paths.mjs, the same judgment every other tool uses: the Steam
- * library is the one whose `appmanifest_3117820.acf` names an existing install, and the library
- * list comes from `config/libraryfolders.vdf`. This file keeps no candidate list of its own.
+ * The game is located by tools/paths.mjs, the same judgment every other tool uses: the install
+ * is the folder that holds the game's own files (`Contents/Frameworks/GameAssembly.dylib` on
+ * macOS), and the candidate libraries come from `config/libraryfolders.vdf` plus the app
+ * manifest. This file keeps no candidate list of its own.
  *
  * Extraction needs UnityPy. Without it the script creates .setup-venv/ and installs it
  * there, which is a one-time download. PyPI direct measured 5m58s without a VPN against
@@ -48,16 +49,8 @@ function dataDir(p) {
  */
 function findGame(explicit, judgeOpts) {
   if (explicit) return dataDir(path.resolve(explicit));
-  const judged = judge(judgeOpts);
-  const steam = judged.rows.find((r) => r.name === "steam");
-  if (steam.status === "OK" && steam.install) {
-    const found = dataDir(steam.install);
-    if (found) return found;
-  }
-  // A config recorded in .gamer-agent.local.json can still name the install when discovery found none.
-  const vanilla = judged.rows.find((r) => r.name === "vanilla");
-  if (vanilla.status === "OK") return dataDir(path.dirname(path.dirname(vanilla.path)));
-  return null;
+  const game = judge(judgeOpts).rows.find((r) => r.name === "gameDir");
+  return game.status === "OK" && game.path ? dataDir(game.path) : null;
 }
 
 /** What the preview needs, and what it can live without, plus the two judged locations. */
@@ -71,13 +64,14 @@ function status(judgeOpts = {}) {
     ? readdirSync(path.join(REF, "cards")).filter((f) => f.endsWith(".png")).length
     : 0;
   const judged = judge(judgeOpts);
-  const location = (name) => {
+  const location = (name, { game = false } = {}) => {
     const r = judged.rows.find((x) => x.name === name);
     return {
       file: `${name.padEnd(7)} ${r.path ? shorten(r.path) : "(not found)"}`,
       ok: r.status === "OK",
       required: true,
       location: true,
+      game,
       detail: r.reason,
     };
   };
@@ -85,7 +79,7 @@ function status(judgeOpts = {}) {
     ...need,
     { file: "reference/fonts/ (card title font)", ok: fonts > 0, required: false, detail: `${fonts} files` },
     { file: "reference/cards/ (style references)", ok: cards > 0, required: false, detail: `${cards} files` },
-    location("steam"),
+    location("gameDir", { game: true }),
     location("vanilla"),
   ];
 }
@@ -132,7 +126,9 @@ function main() {
       console.log(`${r.ok ? "OK  " : r.required ? "MISS" : "    "} ${r.file}${r.detail ? ` (${r.detail})` : ""}`);
     }
     const missing = rows.filter((r) => r.required && !r.ok);
-    if (missing.some((r) => r.location)) {
+    // Only the game directory itself being missing means the game is elsewhere: the config and
+    // the workshop are derived from it, so a missing one means "run the extractor", not "find the game".
+    if (missing.some((r) => r.game)) {
       console.log(`\nThe game was not found. Pass it explicitly:\n  node tools/setup.mjs --game "<install folder>"`);
     } else if (missing.length) {
       console.log(`\n${missing.length} required file group(s) missing. Run: node tools/setup.mjs`);

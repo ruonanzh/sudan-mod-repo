@@ -2,7 +2,7 @@
  * Load a `.pi/extensions/*.ts` file the way pi does, and hand back the tool it registered.
  *
  *   const tool = await loadExtension("check-game-paths.ts");
- *   const result = await tool.execute("id", { steam }, undefined, undefined, { cwd });
+ *   const result = await tool.execute("id", { gameDir }, undefined, undefined, { cwd });
  *
  * The default export of an extension is a factory that receives the pi API; the only method
  * these extensions use is `registerTool`. Registering the hook once, before the first

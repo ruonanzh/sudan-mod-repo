@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { REPO, cleanupAll, fakeLibrary, fakeModRoot, fakeVanilla, tmpDir } from "./lib/fixture.mjs";
+import { REPO, cleanupAll, fakeGame, fakeLibrary, fakeModRoot, fakeVanilla, tmpDir } from "./lib/fixture.mjs";
 
 const SETUP = path.join(REPO, "tools/setup.mjs");
 after(cleanupAll);
@@ -24,15 +24,17 @@ const run = (args) => spawnSync(process.execPath, [SETUP, ...args], { cwd: REPO,
 /** The printed row for one location, in the `OK   <name> <path>` shape this check has always used. */
 const lineOf = (out, name) => out.split("\n").find((l) => new RegExp(`^(OK|MISS|\\s{4})\\s+${name}\\s`).test(l)) ?? "";
 
-/** A world where the game, its config and the mod root all exist, and a state file that names them. */
-function world() {
+/** A world where the game, its config and the mod install directory all exist, and a state file
+ *  that names the two recorded keys. The vanilla config is derived, never recorded. */
+function world({ config = true } = {}) {
   const root = tmpDir("sudan-setup-");
   const lib = fakeLibrary(root);
   const install = path.join(lib, "steamapps", "common", "Sultan's Game");
-  const cfg = fakeVanilla(install);
+  fakeGame(install);
+  const cfg = config ? fakeVanilla(install) : null;
   const mods = fakeModRoot(root);
   const file = path.join(tmpDir("sudan-state-"), ".gamer-agent.local.json");
-  writeFileSync(file, `${JSON.stringify({ gameDir: install, vanillaDir: cfg, modInstallDir: mods }, null, 2)}\n`);
+  writeFileSync(file, `${JSON.stringify({ gameDir: install, modInstallDir: mods }, null, 2)}\n`);
   return { root, lib, install, cfg, mods, file };
 }
 
@@ -40,20 +42,29 @@ test("--check reports the locations paths.mjs verified, in the existing OK/MISS 
   const w = world();
   const r = run(["--check", "--paths", w.file]);
   assert.equal(r.status, 0, r.stdout + r.stderr);
-  assert.match(lineOf(r.stdout, "steam"), /^OK\s+steam\s/);
-  assert.ok(lineOf(r.stdout, "steam").includes(w.lib), lineOf(r.stdout, "steam"));
+  assert.match(lineOf(r.stdout, "gameDir"), /^OK\s+gameDir\s/);
+  assert.ok(lineOf(r.stdout, "gameDir").includes(w.install), lineOf(r.stdout, "gameDir"));
   assert.match(lineOf(r.stdout, "vanilla"), /^OK\s+vanilla\s/);
   assert.ok(lineOf(r.stdout, "vanilla").includes(w.cfg), lineOf(r.stdout, "vanilla"));
   assert.match(r.stdout, /All required files present\./);
 });
 
-test("--check MISSes a config that is gone and says the game is what is missing", () => {
+test("--check MISSes a game directory that is gone and names the game", () => {
   const w = world();
-  writeFileSync(w.file, `${JSON.stringify({ gameDir: w.install, vanillaDir: path.join(w.root, "gone"), modInstallDir: w.mods }, null, 2)}\n`);
+  writeFileSync(w.file, `${JSON.stringify({ gameDir: path.join(w.root, "gone", "Sultan's Game"), modInstallDir: w.mods }, null, 2)}\n`);
+  const r = run(["--check", "--paths", w.file]);
+  assert.equal(r.status, 1, r.stdout + r.stderr);
+  assert.match(lineOf(r.stdout, "gameDir"), /^MISS\s+gameDir\s/);
+  assert.match(r.stdout, /The game was not found/);
+});
+
+test("--check MISSes a config the install does not have, and sends the player to the extractor", () => {
+  const w = world({ config: false });
+  writeFileSync(w.file, `${JSON.stringify({ gameDir: w.install, modInstallDir: w.mods }, null, 2)}\n`);
   const r = run(["--check", "--paths", w.file]);
   assert.equal(r.status, 1, r.stdout + r.stderr);
   assert.match(lineOf(r.stdout, "vanilla"), /^MISS\s+vanilla\s/);
-  assert.match(r.stdout, /the game/i);
+  assert.match(r.stdout, /required file group/);
 });
 
 test("the check names the same vanilla directory as tools/paths.mjs", () => {
