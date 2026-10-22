@@ -3,22 +3,27 @@
  * preview.mjs — one command that turns what a mod carries into pages a player can open.
  *
  *   node tools/preview.mjs --mod your_mods/<ModName> [--focus kind:id] [--out <dir>]
+ *   node tools/preview.mjs --mod your_mods/<ModName> --collect
+ *   node tools/preview.mjs --mod your_mods/<ModName> --apply
  *
  * A mod is data, and a page is how a player checks that data before installing it:
  *
- *   graph.html   the story graph, for a rite's or an event's place in the story around it
- *   index.html   every record the mod carries, one row each, linked to the page that shows it
+ *   graph.html          the story graph, for a rite's or an event's place in the story around it
+ *   <id>.card.html      one page per card: the card page tools/page.mjs renders, as controls
+ *   index.html          every record the mod carries, one row each, linked to its page
  *
  * Which records exist is read from schema/layout.json — the table model.mjs reads and a test
  * keeps in step with lint — so a kind added there shows up here without a second mapping.
  * Everything lands in <mod>/.preview/ unless --out says otherwise, and a mod with no records
  * writes nothing: an empty page is worse than an honest line.
  *
- * The card table gets no page. A static page can be read and not saved, and the app already
- * ships an editor tool for that file (`editors/sudan_cards`): it saves into the original text,
- * so comments and field order survive. index.html names the editor and the file to open in the
- * app instead. The story graph is still written by graphpage.mjs, which owns that view, and
- * `--focus` is handed to it so the preview opens on the thing it was run for.
+ * A card page edits itself, not the mod: its values live in a JSON block at the end of its own
+ * `<body>`, written by the app editor tool `editors/sudan_card_page`. `--collect` prints the
+ * values that differ from config/cards.json, and `--apply` writes only those keys back with
+ * tools/jsonc.mjs, so comments and field order survive. Regenerating a page keeps the values it
+ * already carries, because an edit waiting to be applied must not be lost to a layout refresh.
+ * The story graph is still written by graphpage.mjs, which owns that view, and `--focus` is
+ * handed to it so the preview opens on the thing it was run for.
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
@@ -28,12 +33,17 @@ import { fileURLToPath } from "node:url";
 import { parseJsonc } from "./lint.mjs";
 import { esc, pageHtml } from "./html.mjs";
 import { shorten, vanillaRequirement } from "./paths.mjs";
+import { applyCardValues, cardPageHtml, missingValues, pendingValues, readPageValues } from "./cardpage.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const LAYOUT = JSON.parse(readFileSync(new URL("../schema/layout.json", import.meta.url), "utf8"));
 /** The app editor tool that opens `config/cards.json`; the index names it by its own name. */
 const CARD_EDITOR = JSON.parse(
   readFileSync(new URL("../editors/sudan_cards/.editor.tool.json", import.meta.url), "utf8")
+);
+/** The app editor tool that opens one `*.card.html`; the index names it too. */
+const CARD_PAGE_EDITOR = JSON.parse(
+  readFileSync(new URL("../editors/sudan_card_page/.editor.tool.json", import.meta.url), "utf8")
 );
 const CARD_TABLE = LAYOUT.table.card.file;
 
@@ -105,6 +115,7 @@ export function modRecords(modDir) {
 
 /** The page a record is shown on, or null when no view shows this kind. */
 function pageOf(record, pages) {
+  if (record.kind === "card") return `${record.id}.card.html`;
   return GRAPH_KINDS.has(record.kind) ? pages.graph : null;
 }
 
@@ -122,12 +133,9 @@ function indexHtml({ modName, records, pages }) {
   const rows = records
     .map((r) => {
       const page = pageOf(r, pages);
-      const action =
-        r.kind === "card"
-          ? `在 app 里打开 <code>${esc(CARD_TABLE)}</code>`
-          : page
-            ? `<a href="${esc(page)}">打开</a>`
-            : '<span class="note">这类记录没有预览页</span>';
+      const action = page
+        ? `<a href="${esc(page)}">打开</a>`
+        : '<span class="note">这类记录没有预览页</span>';
       return (
         `<tr data-record="${esc(r.kind)}:${esc(r.id)}">` +
         `<td>${esc(KIND_LABEL[r.kind] || r.kind)}</td>` +
@@ -139,7 +147,7 @@ function indexHtml({ modName, records, pages }) {
     })
     .join("\n");
   const cardNote = hasCards
-    ? `<p class="note">卡用 app 的编辑器「${esc(CARD_EDITOR.name)}」改：在 app 里打开 <code>${esc(CARD_TABLE)}</code> 就是它。保存只改你动过的那几个值。</p>`
+    ? `<p class="note">卡页可以在 app 里用「${esc(CARD_PAGE_EDITOR.name)}」打开：保存只写入那一页自己的值块。写回 <code>${esc(CARD_TABLE)}</code> 用 <code>node tools/preview.mjs --apply --mod your_mods/&lt;ModName&gt;</code>，只写改过的键。整份卡表也可以用「${esc(CARD_EDITOR.name)}」直接改。</p>`
     : "";
   const body = `
 <div class="panel">
@@ -161,13 +169,15 @@ ${pages.graph ? '<p class="note">剧情图是两个文件：graph.html 画图，
 }
 
 function parseArgs(argv) {
-  const out = { modDir: null, focus: null, out: null, vanilla: null };
+  const out = { modDir: null, focus: null, out: null, vanilla: null, collect: false, apply: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--mod") out.modDir = argv[++i];
     else if (a === "--focus") out.focus = argv[++i];
     else if (a === "--out") out.out = argv[++i];
     else if (a === "--vanilla") out.vanilla = argv[++i];
+    else if (a === "--collect") out.collect = true;
+    else if (a === "--apply") out.apply = true;
   }
   return out;
 }
@@ -185,10 +195,133 @@ function toolFailed(tool, file, output) {
   process.stdout.write(`NEXT  fix what ${tool} reported above, then run this again\n`);
 }
 
+/** The mod's card table by id. A `_`-prefixed key is a comment the game ignores. */
+function cardTable(modDir) {
+  const file = path.join(modDir, CARD_TABLE);
+  if (!existsSync(file)) return null;
+  const parsed = parseJsonc(readFileSync(file, "utf8")).value;
+  const records = new Map();
+  if (parsed && typeof parsed === "object") {
+    for (const [id, record] of Object.entries(parsed)) if (!id.startsWith("_")) records.set(String(id), record);
+  }
+  return { file, records };
+}
+
+/** Card pages in the preview directory. */
+function cardPages(outDir) {
+  if (!existsSync(outDir)) return [];
+  const suffix = ".card.html";
+  return readdirSync(outDir)
+    .filter((name) => name.endsWith(suffix))
+    .sort()
+    .map((name) => ({ name, id: name.slice(0, -suffix.length), file: path.join(outDir, name) }));
+}
+
+/** A card id doubles as a file name; anything that cannot be one is refused, not written. */
+const CARD_ID_FILE = /^[A-Za-z0-9_-]+$/;
+
+/** A value as the diff prints it: the literal a reader would type. */
+const show = (value) => (value === undefined ? "(none)" : JSON.stringify(value));
+
+/**
+ * `--collect` and `--apply`: what the card pages carry that the card table does not.
+ * Collect only prints; apply replaces the value spans named by the diff and nothing else.
+ */
+function runCardValues({ modDir, outDir, apply }) {
+  const pages = cardPages(outDir);
+  if (!pages.length) {
+    process.stdout.write(`PASS  no card pages under ${shorten(outDir)}\n`);
+    process.stdout.write(`NEXT  run node tools/preview.mjs --mod ${shorten(modDir)} to write them\n`);
+    return 0;
+  }
+  const table = cardTable(modDir);
+  if (!table) {
+    process.stdout.write(`FAIL  ${shorten(modDir)} has no ${CARD_TABLE}\n`);
+    process.stdout.write("NEXT  a card page is built from the mod's card table; write that file first\n");
+    return 1;
+  }
+
+  const pending = [];
+  for (const page of pages) {
+    const block = readPageValues(readFileSync(page.file, "utf8"));
+    if (!block) {
+      process.stdout.write(`WARN  ${page.name}: no readable value block; rebuild it with node tools/preview.mjs --mod\n`);
+      continue;
+    }
+    const id = block.id || page.id;
+    const record = table.records.get(id);
+    if (!record) {
+      process.stdout.write(`WARN  ${page.name}: ${CARD_TABLE} has no card ${id}\n`);
+      continue;
+    }
+    const diff = pendingValues(record, block.values);
+    if (!Object.keys(diff.fields).length && !diff.removedTags.length) continue;
+    pending.push({ page, id, record, diff, missing: missingValues(record, block.values) });
+  }
+
+  if (!pending.length) {
+    process.stdout.write(`PASS  no card page carries a value different from ${CARD_TABLE}\n`);
+    return 0;
+  }
+
+  const lines = [];
+  for (const item of pending) {
+    for (const [key, value] of Object.entries(item.diff.fields)) {
+      if (key === "tag") {
+        for (const [name, level] of Object.entries(value)) {
+          lines.push(`${item.id}  tag.${name}  ${show(item.record.tag?.[name])} -> ${show(level)}`);
+        }
+      } else {
+        lines.push(`${item.id}  ${key}  ${show(item.record[key])} -> ${show(value)}`);
+      }
+    }
+    for (const name of item.diff.removedTags) {
+      lines.push(`${item.id}  tag.${name}  ${show(item.record.tag?.[name])} -> (removed)`);
+    }
+  }
+
+  if (!apply) {
+    process.stdout.write(`PASS  ${pending.length} card page(s) carry pending values in ${shorten(outDir)}\n`);
+    for (const line of lines) process.stdout.write(`      ${line}\n`);
+    process.stdout.write(`NEXT  run node tools/preview.mjs --mod ${shorten(modDir)} --apply to write them into ${CARD_TABLE}\n`);
+    return 0;
+  }
+
+  const text = readFileSync(table.file, "utf8");
+  let result;
+  try {
+    result = applyCardValues(
+      text,
+      pending.map((item) => ({ id: item.id, ...item.diff })),
+    );
+  } catch (e) {
+    process.stdout.write(`FAIL  could not write ${shorten(table.file)}: ${e.message || e}\n`);
+    process.stdout.write("NEXT  fix the file so it parses, then run this again\n");
+    return 1;
+  }
+  if (result.text !== text) writeFileSync(table.file, result.text);
+  process.stdout.write(`PASS  wrote ${result.written} value(s) into ${shorten(table.file)}\n`);
+  for (const line of lines) process.stdout.write(`      ${line}\n`);
+  // The game replaces a card entry as a whole when it merges by id, so a page that never carried
+  // one of the record's keys is worth saying out loud. Apply is per key, so this is a warning.
+  for (const item of pending) {
+    for (const key of item.missing) {
+      process.stdout.write(
+        `WARN  ${item.id}  the page does not carry ${JSON.stringify(key)}; a whole-entry replace would drop it. ` +
+          "--apply writes only changed keys, so the record keeps it\n",
+      );
+    }
+  }
+  process.stdout.write(`NEXT  run node tools/preview.mjs --mod ${shorten(modDir)} to rebuild the pages without the pending mark\n`);
+  return 0;
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   if (!args.modDir) {
-    process.stderr.write("usage: node tools/preview.mjs --mod your_mods/<ModName> [--focus kind:id] [--out <dir>]\n");
+    process.stderr.write(
+      "usage: node tools/preview.mjs --mod your_mods/<ModName> [--focus kind:id] [--out <dir>] | --collect | --apply\n",
+    );
     return 2;
   }
   const modDir = path.resolve(String(args.modDir).replace(/^~/, os.homedir()));
@@ -227,9 +360,13 @@ function main() {
   const cards = records.filter((r) => r.kind === "card");
   const story = records.filter((r) => GRAPH_KINDS.has(r.kind));
 
-  // Only the story graph reads the game's own config. A mod of cards needs nothing but its file,
-  // and the app opens that file with the editor tool, so requiring an install here would refuse
-  // a preview that can be built.
+  const outDir = path.resolve(String(args.out || path.join(modDir, ".preview")).replace(/^~/, os.homedir()));
+  // Collect and apply only read the pages and the card table; neither needs the game's config.
+  if (args.collect || args.apply) return runCardValues({ modDir, outDir, apply: args.apply });
+
+  // Only the story graph reads the game's own config. A mod of cards needs nothing but its file:
+  // the card page is built from the card table, so requiring an install here would refuse a
+  // preview that can be built.
   const requirement = story.length ? vanillaRequirement(args.vanilla) : { dir: null };
   if (story.length && !requirement.dir) {
     process.stdout.write(`FAIL  ${requirement.message}\n`);
@@ -248,7 +385,6 @@ function main() {
     return 1;
   }
 
-  const outDir = path.resolve(String(args.out || path.join(modDir, ".preview")).replace(/^~/, os.homedir()));
   mkdirSync(outDir, { recursive: true });
   const counts = new Map();
   for (const r of records) counts.set(r.kind, (counts.get(r.kind) || 0) + 1);
@@ -260,9 +396,28 @@ function main() {
   const focusFlag = picked ? ["--focus", `${picked.kind}:${picked.id}`] : [];
 
   if (cards.length) {
-    process.stdout.write(
-      `PASS  ${cards.length} card(s) in ${CARD_TABLE}: the app editor ${CARD_EDITOR.id} edits them, no page is written\n`
-    );
+    const table = cardTable(modDir);
+    let written = 0;
+    for (const card of cards) {
+      if (!CARD_ID_FILE.test(String(card.id))) {
+        process.stdout.write(`FAIL  card id ${JSON.stringify(card.id)} cannot be a file name\n`);
+        process.stdout.write("NEXT  give the card a plain id of letters, digits, _ or -\n");
+        return 1;
+      }
+      const record = table?.records.get(String(card.id));
+      if (!record) continue;
+      const file = path.join(outDir, `${card.id}.card.html`);
+      const previous = existsSync(file) ? readPageValues(readFileSync(file, "utf8")) : null;
+      try {
+        writeFileSync(file, cardPageHtml({ id: card.id, record, modDir, previous }));
+        written += 1;
+      } catch (e) {
+        process.stdout.write(`FAIL  could not write ${path.basename(file)}: ${e.message || e}\n`);
+        process.stdout.write("NEXT  add the missing label to schema/field-labels.json, then run this again\n");
+        return 1;
+      }
+    }
+    process.stdout.write(`PASS  ${written} card page(s) in ${shorten(outDir)}\n`);
   }
 
   if (story.length) {
@@ -289,7 +444,10 @@ function main() {
   process.stdout.write(`PASS  wrote ${shorten(index)}\n`);
   process.stdout.write(`NEXT  open ${shorten(index)} in a browser\n`);
   if (cards.length) {
-    process.stdout.write(`NEXT  to change a card, open ${CARD_TABLE} in the app: it opens with ${CARD_EDITOR.id}\n`);
+    process.stdout.write(
+      `NEXT  to change a card, open its card page in the app: it opens with ${CARD_PAGE_EDITOR.id}\n`,
+    );
+    process.stdout.write(`NEXT  ${CARD_TABLE} stays untouched until you run this with --apply\n`);
   }
   return 0;
 }

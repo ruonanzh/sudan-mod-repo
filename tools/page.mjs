@@ -59,7 +59,7 @@ function parseArgs(argv) {
  * back to a serif. It is a commercial typeface: reference/fonts is git-ignored, and the
  * page only uses it locally.
  */
-function fontFace() {
+export function fontFace() {
   const here = path.dirname(new URL(import.meta.url).pathname);
   const f = path.join(here, "..", "reference", "fonts", "HYJieLongTaoHuaYuanW-2.ttf");
   if (!existsSync(f)) return { css: "", family: "ui-serif, Georgia, 'Songti SC', serif" };
@@ -203,7 +203,7 @@ export function conditionText(obj) {
  * research has a label for it, instead of a one-line JSON dump: the dump widens the column and
  * says nothing. Arrays of objects become the child table for that kind; scalars join with 、.
  */
-function fmt(value, kind, key) {
+export function fmt(value, kind, key) {
   if (value === undefined || value === null) return "（无）";
   if (typeof value === "string") {
     if (!value) return "（空）";
@@ -326,7 +326,7 @@ function columnsFor(kind, rows) {
 }
 
 /** A table of nested records, with each column headed by that key's label. */
-function tableFor(kind, value) {
+export function tableFor(kind, value) {
   const head = (cols, extra) =>
     `<tr>${extra}${cols.map((c) => `<th>${esc(labelOf(kind, c)?.label || c)}</th>`).join("")}</tr>`;
   if (Array.isArray(value)) {
@@ -439,7 +439,7 @@ function assertDescribed(kind, undescribed) {
 }
 
 /** Keys vanilla itself writes and nothing reads: keep them, but say what they are. */
-function legacySection(legacy) {
+export function legacySection(legacy) {
   if (!legacy.length) return "";
   const rows = legacy.map((k) => `<tr><td><code>${esc(k)}</code></td></tr>`).join("");
   return `<h2>原版会写、游戏不读</h2>
@@ -449,7 +449,7 @@ function legacySection(legacy) {
 </div>`;
 }
 
-function unknownSection(unknown) {
+export function unknownSection(unknown) {
   if (!unknown.length) return "";
   const rows = unknown.map((k) => `<tr><td><code>${esc(k)}</code></td></tr>`).join("");
   return `<h2>游戏不读这些键</h2>
@@ -630,7 +630,7 @@ function plateSources(modDir, id, type) {
  * A static composite sits under it for the case where scripts do not run, which is what
  * happens inside the game's panel.
  */
-function artInline(modDir, id, rare, name, type, fontFamily) {
+export function artInline(modDir, id, rare, name, type, fontFamily) {
   const nameFamily = fontFamily || "ui-serif, Georgia, serif";
   const { img, tier, missingPlate } = composeCard(modDir, id, rare, name, type);
   const plateNote = missingPlate

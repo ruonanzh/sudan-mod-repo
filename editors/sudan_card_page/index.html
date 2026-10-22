@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>苏丹的卡页</title>
+    <!--
+      The app opens this wrapper for a matched `*.card.html` and passes the file path in
+      `editor:init`. card-bridge.js reads that file over `editor:readFile`, mounts the card page
+      and saves edits back into the page's own value block over `editor:save`. The wrapper holds
+      no inline script: the editor frame's CSP allows scripts only from this directory.
+    -->
+    <style>
+      :root {
+        --app-font: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+        --bar: #2c241c;
+        --rule: #57452c;
+        --ink: #efe3c8;
+        --dim: #b9a887;
+        --gold: #c9a227;
+        --bad: #b4543f;
+      }
+      [data-theme="light"] {
+        --bar: #f3ead8;
+        --rule: #d3c3a4;
+        --ink: #2a2119;
+        --dim: #6f6049;
+        --gold: #8a6a12;
+      }
+      * { box-sizing: border-box; }
+      /* The mounted card page brings its own `body` rules; the wrapper keeps its own frame. */
+      body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: var(--bar);
+        color: var(--ink);
+        font: 13px/1.6 var(--app-font);
+      }
+      #bar {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--rule);
+        background: var(--bar);
+        color: var(--ink);
+        font: 13px/1.6 var(--app-font);
+      }
+      #card-file {
+        color: var(--gold);
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 12.5px;
+      }
+      #card-status { color: var(--dim); }
+      #card-status[data-state="dirty"] { color: var(--gold); }
+      #card-status[data-state="error"] { color: var(--bad); }
+      #card-status[data-state="readonly"] { color: var(--dim); }
+      #card-save {
+        margin-left: auto;
+        font: inherit;
+        padding: 4px 12px;
+        border: 1px solid var(--gold);
+        background: transparent;
+        color: var(--ink);
+        cursor: pointer;
+      }
+      #card-save:disabled { opacity: 0.45; cursor: default; }
+      #card-hint {
+        margin: 10px 20px 0;
+        color: var(--dim);
+        font: 12.5px/1.6 var(--app-font);
+      }
+      #card-host { display: block; padding: 20px 20px 64px; }
+    </style>
+  </head>
+  <body data-card-page-host="1">
+    <header id="bar">
+      <strong>卡页</strong>
+      <span id="card-file"></span>
+      <span id="card-status" data-state="clean">正在读取…</span>
+      <button id="card-save" type="button" disabled>保存这一页（Ctrl+S）</button>
+    </header>
+    <p id="card-hint">
+      保存只写入这一页自己的值块，<code>config/cards.json</code> 不动。写回要跑
+      <code>node tools/preview.mjs --apply --mod your_mods/&lt;ModName&gt;</code>，只写你改过的键。
+    </p>
+    <main id="card-host"></main>
+    <script src="card-bridge.js"></script>
+  </body>
+</html>

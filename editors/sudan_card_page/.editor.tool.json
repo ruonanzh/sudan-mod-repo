@@ -1,0 +1,9 @@
+{
+  "apiVersion": 1,
+  "id": "sudan_card_page",
+  "name": "苏丹的卡页",
+  "match": ["your_mods/*/.preview/*.card.html"],
+  "entry": "index.html",
+  "mode": "edit",
+  "description": "在 app 里打开一张卡的卡页：改字段、改标签，保存只写这一页自己的值块。写回 config/cards.json 要跑 node tools/preview.mjs --apply --mod your_mods/<ModName>，确定要改的键才落地。"
+}

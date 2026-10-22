@@ -95,20 +95,45 @@ tr.more .morebox th { width: 30%; }
 /**
  * The page frame. `font` is optional `{css, family}` from a caller that embeds a
  * typeface; `wide` drops the 860px cap for canvas pages.
+ *
+ * A page that must be a whole document (one that carries a value block or a bridge script in
+ * its own `<body>`) passes `document: true`; `tail` is then emitted after the script, so the
+ * last thing in the body is the caller's block. The default output is byte for byte what the
+ * pages produced before this option existed.
  */
-export function pageHtml({ title, sub, body, font = null, wide = false, extraCss = "", script = "" }) {
-  return `<!doctype html>
-<meta charset="utf-8">
+export function pageHtml({
+  title,
+  sub,
+  body,
+  font = null,
+  wide = false,
+  extraCss = "",
+  script = "",
+  tail = "",
+  wrapAttrs = "",
+  document: fullDocument = false,
+}) {
+  const head = `<meta charset="utf-8">
 <title>${esc(title)}</title>
 <style>${CSS}
 ${extraCss}
-${font ? font.css : ""}</style>
-<div class="wrap${wide ? " wide" : ""}">
+${font ? font.css : ""}</style>`;
+  const wrap = `<div class="wrap${wide ? " wide" : ""}"${wrapAttrs ? ` ${wrapAttrs}` : ""}>
 <h1>${esc(title)}</h1>
 <div class="sub">${sub}</div>
 ${body}
-</div>
-${script ? `<script>${script}</script>` : ""}
+</div>`;
+  const scriptTag = script ? `<script>${script}</script>\n` : "";
+  if (!fullDocument) return `<!doctype html>\n${head}\n${wrap}\n${scriptTag}`;
+  return `<!doctype html>
+<html lang="zh-CN">
+<head>
+${head}
+</head>
+<body>
+${wrap}
+${scriptTag}${tail}</body>
+</html>
 `;
 }
 
