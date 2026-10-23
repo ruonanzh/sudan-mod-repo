@@ -507,9 +507,13 @@
       state.values = block ? block.values : {};
       state.id = (block && block.id) || state.root.getAttribute("data-card-page") || "";
       state.artPrompt = artPromptOf(state.root);
-      state.saved = stamp({ values: state.values, artPrompt: state.artPrompt });
       wire(state.root);
-      markDirty();
+      // Mounting is not an edit: read the controls back once, after wiring, and start clean.
+      state.values = collect(state.root);
+      state.artPrompt = artPromptOf(state.root);
+      state.saved = stamp({ values: state.values, artPrompt: state.artPrompt });
+      state.dirty = false;
+      paintStatus();
   }
 
   /** Read the file again and rebuild the view. The wrapper owns `editor:init`, so the button
