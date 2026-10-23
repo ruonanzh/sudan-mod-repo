@@ -364,13 +364,6 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
     if (!nodes.has(target)) {
       // keep it: dangling edges are a finding, not something to hide
     }
-    // One line between two nodes: two rules that say the same thing would stack their labels
-    // on top of each other. A condition reference yields to the action that actually runs it.
-    const pair = edges.find((e) => e.f === from && e.t === target);
-    if (pair) {
-      if (String(pair.r).startsWith("condition.") && !String(rule).startsWith("condition.")) pair.r = rule;
-      return;
-    }
     const sig = `${from}->${target}|${rule}`;
     if (seen.has(sig)) return;
     seen.add(sig);
