@@ -661,8 +661,8 @@
 
   var reloadButton = byId("card-reload");
   if (reloadButton) {
+    // The button always re-opens the file from disk: that is what "重新加载" means here.
     reloadButton.addEventListener("click", function () {
-      if (state.dirty && !window.confirm("这一页有未保存的改动，重新加载会丢掉它们。继续？")) return;
       reloadFromDisk();
     });
   }
