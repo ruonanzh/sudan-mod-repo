@@ -35,6 +35,7 @@ import { esc, pageHtml } from "../editors/lib/shell.mjs";
 import { shorten, vanillaRequirement } from "./paths.mjs";
 import { applyCardValues, cardPageHtml, missingValues, pendingValues, readPageValues } from "../editors/card/page.mjs";
 import { recordPageHtml } from "../editors/page/page.mjs";
+import { buildGraph } from "./graph.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const LAYOUT = JSON.parse(readFileSync(new URL("../schema/layout.json", import.meta.url), "utf8"));
@@ -47,6 +48,24 @@ const CARD_TABLE = LAYOUT.table.card.file;
 /** Kinds the story graph draws. The rest of a mod is listed in the index and has no page. */
 const GRAPH_KINDS = new Set(["event", "rite", "loot", "quest", "over", "afterStory", "riteTemplate"]);
 
+
+
+/**
+ * One node and what touches it, for the small graph a record page draws itself. The full page
+ * still carries the whole story; this is only the picture under "where this record sits".
+ */
+export function neighbourhood(g, key, depth = 1) {
+  const keep = new Set([key]);
+  for (let d = 0; d < depth; d++) {
+    for (const e of g.edges) {
+      if (keep.has(e.f)) keep.add(e.t);
+      else if (keep.has(e.t)) keep.add(e.f);
+    }
+  }
+  const nodes = g.nodes.filter((n) => keep.has(n.k)).map((n) => ({ k: n.k, l: n.l, c: n.cat || null, focus: n.k === key }));
+  const edges = g.edges.filter((e) => keep.has(e.f) && keep.has(e.t)).map((e) => ({ f: e.f, t: e.t, r: e.r }));
+  return { nodes, edges };
+}
 
 /** A record's own name: a card and a rite carry one, an event's designer note is its identity. */
 function nameOf(rec) {
@@ -390,6 +409,9 @@ function main() {
   // Rites and events get a page of their own too: the story graph shows where they sit, this
   // shows what they contain field by field.
   const recordKinds = new Set(["rite", "event"]);
+  // The record pages draw their own neighbourhood, so the graph is built here too. Same call the
+  // full page makes; it reads the same files and cannot disagree with it.
+  const graph = records.some((r) => recordKinds.has(r.kind)) ? buildGraph({ modDir }) : null;
   for (const r of records) {
     if (!recordKinds.has(r.kind)) continue;
     if (!CARD_ID_FILE.test(String(r.id))) continue;
@@ -404,6 +426,7 @@ function main() {
           modDir,
           origin: originOf(r.kind, r.id),
           graphLink: `graph.html#${r.kind}:${r.id}`,
+          graph: neighbourhood(graph, `${r.kind}:${r.id}`),
         }),
       );
       pages.files.push(file);

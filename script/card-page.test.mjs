@@ -860,3 +860,23 @@ test("a record page sends /record-edited with the sentence the player typed", ()
   assert.match(bridge, /commandFor\("\/record-edited"\)/, "the command names the record page");
   assert.match(bridge, /要改的地方：「/, "the sentence travels under a label the agent can find");
 });
+
+test("a record page draws the record's own neighbourhood", () => {
+  const html = recordPageHtml({
+    kind: "event",
+    id: 9900102,
+    record: { id: 9900102, text: "长刃回响" },
+    modDir: "/tmp/mod",
+    graph: {
+      nodes: [
+        { k: "event:9900102", l: "长刃回响", focus: true },
+        { k: "rite:9900103", l: "长刃的回响" },
+      ],
+      edges: [{ f: "event:9900102", t: "rite:9900103", r: "action.rite" }],
+    },
+  });
+  assert.match(html, /data-mini-graph="event:9900102"/, "the picture is bound to this record");
+  assert.match(html, /"focus":true/, "the record itself is the focus");
+  assert.match(html, /rite:9900103/, "and its neighbour travels with it");
+  assert.match(html, /cytoscape/, "the renderer is inlined, so the page works from disk");
+});

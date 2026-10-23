@@ -740,7 +740,38 @@ function bodyFor(kind, record, modDir) {
  * A whole page for one record of any kind `bodyFor` knows: the preview writes these into a
  * mod's `.preview/` so the app can open them the same way it opens a card page.
  */
-export function recordPageHtml({ kind, id, record, modDir, origin = "new", graphLink = null }) {
+/** cytoscape (MIT) ships with the repo; a record page draws its own small picture. */
+const CY = readFileSync(new URL("../graph/vendor/cytoscape.min.js", import.meta.url), "utf8");
+
+/** The picture under a record: one node and its neighbours, focus on the record itself. */
+function miniGraphScript(graph) {
+  if (!graph || !graph.nodes.length) return "";
+  const data = { nodes: graph.nodes, edges: graph.edges };
+  return `
+(function () {
+  var G = ${JSON.stringify(data)};
+  var host = document.getElementById("mini-graph");
+  if (!host || !window.cytoscape) return;
+  var cy = window.cytoscape({
+    container: host,
+    elements: G.nodes.map(function (n) { return { data: { id: n.k, label: (n.l || n.k) + "\\n" + n.k } }; })
+      .concat(G.edges.map(function (e, i) { return { data: { id: "e" + i, source: e.f, target: e.t, label: e.r } }; })),
+    style: [
+      { selector: "node", style: { "background-color": "#3a3226", "border-width": 2, "border-color": "#c9a227", "label": "data(label)", "color": "#efe3c8", "font-size": 11, "text-wrap": "wrap", "text-max-width": 120, "text-valign": "center", "text-halign": "center", width: 96, height: 42, shape: "round-rectangle" } },
+      { selector: "node[f].f", style: { "background-color": "#2f2a22", "border-width": 3 } },
+      { selector: "edge", style: { "line-color": "#57452c", "target-arrow-color": "#57452c", "target-arrow-shape": "triangle", "width": 1, "curve-style": "bezier", label: "data(label)", "font-size": 9, color: "#b9a887", "text-background-color": "#1a1510", "text-background-opacity": 0.85, "text-background-padding": 2 } }
+    ],
+    layout: { name: "breadthfirst", directed: true, padding: 12, spacingFactor: 1.1 },
+    wheelSensitivity: 0.2,
+    userZoomingEnabled: true,
+    userPanningEnabled: true,
+  });
+  var focus = cy.nodes().filter(function (n) { return G.nodes.some(function (x) { return x.k === n.id() && x.focus; }); });
+  if (focus.length) cy.fit(focus, 90);
+})();`;
+}
+
+export function recordPageHtml({ kind, id, record, modDir, origin = "new", graphLink = null, graph = null }) {
   const body = bodyFor(kind, record, modDir);
   const label = { rite: "仪式", event: "事件", loot: "战利品表", quest: "任务", over: "结局", afterStory: "后日谈", upgrade: "命运商店", tag: "标签", init: "开局" }[kind] || kind;
   const badge = origin === "override"
@@ -760,10 +791,15 @@ export function recordPageHtml({ kind, id, record, modDir, origin = "new", graph
 <span class="note" id="record-status"></span>
 </div>`;
 
+  const picture = graph && graph.nodes.length
+    ? `<h2>它在剧情里的位置</h2>
+<div id="mini-graph" data-mini-graph="${esc(kind)}:${esc(id)}" style="height:300px;border:1px solid #57452c;background:#14100b"></div>`
+    : "";
   return pageHtml({
     title: `${label} ${id}`,
     sub: `${badge}${record && record.name ? esc(String(record.name)) : ""}`,
-    body: `${graphNote}${ask}<div data-record-page="${esc(kind)}:${esc(id)}">${body}</div>`,
+    body: `${graphNote}${picture}${ask}<div data-record-page="${esc(kind)}:${esc(id)}">${body}</div>`,
+    script: `${CY}\n${miniGraphScript(graph)}`,
   });
 }
 
