@@ -8,45 +8,11 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
-import { cpSync, existsSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, statSync } from "node:fs";
-import { homedir } from "node:os";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { judge, pathsFile, shorten } from "../../tools/paths.mjs";
-
-const absolute = (cwd: string, p: string): string => {
-  const expanded = p.startsWith("~") ? path.join(homedir(), p.slice(1)) : p;
-  return path.isAbsolute(expanded) ? expanded : path.resolve(cwd, expanded);
-};
-
-/**
- * What the game never loads, and what nobody wants in the install folder: the page tool's
- * output, git metadata, and the Finder's litter. `tools/lint.mjs` skips the same names.
- */
-const SKIP = (name: string): boolean => name === ".preview" || name === ".git" || name === ".DS_Store" || name.startsWith("._");
-
-/** Every file under `dir`, relative, so the count and the list agree with what lands. */
-function walk(dir: string, base = dir): string[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    if (SKIP(entry.name)) return [];
-    const full = path.join(dir, entry.name);
-    return entry.isDirectory() ? walk(full, base) : [path.relative(base, full)];
-  });
-}
-
-/** `realpath`, or the input unchanged when it does not exist yet (the target often does not). */
-const real = (p: string): string => {
-  try {
-    return realpathSync(p);
-  } catch {
-    return p;
-  }
-};
-
-/** The mod folder a real install would create, with every path spelled one way. */
-const identity = (p: string): string => {
-  const resolved = path.resolve(p);
-  return path.join(real(path.dirname(resolved)), path.basename(resolved));
-};
+import { installFolder, walk } from "../lib/mod-files";
+import { absolute, identity, sameOrNested } from "../lib/workspace";
 
 export default function (pi: ExtensionAPI) {
   pi.registerTool({
@@ -92,7 +58,6 @@ export default function (pi: ExtensionAPI) {
         throw new Error(`INVALID_MOD: info.json has a non-string "name". Give it a display name, then retry.`);
       }
       const name = (info.name as string | undefined)?.trim() || path.basename(source);
-      const files = walk(source);
 
       const rows = judge({ file: pathsFile(cwd) }).rows as Array<{
         name: string;
@@ -139,43 +104,16 @@ export default function (pi: ExtensionAPI) {
       }
       // Compare real paths, not spellings: a symlink or a `..` in the argument would otherwise
       // pass the string test and let the copy delete its own source.
-      const sourceId = identity(source);
-      const targetId = identity(target);
-      if (
-        sourceId === targetId ||
-        sourceId.startsWith(`${targetId}${path.sep}`) ||
-        targetId.startsWith(`${sourceId}${path.sep}`)
-      ) {
+      if (sameOrNested(identity(source), identity(target))) {
         throw new Error(
           `UNSAFE_TARGET: ${source} and ${target} are the same folder (or one holds the other). Refusing to copy.`,
         );
       }
 
-      const replaced = existsSync(target);
-      const staging = `${target}.installing-${process.pid}`;
-      const backup = `${target}.replaced-${process.pid}`;
-      let movedOld = false;
+      let copied;
       try {
-        rmSync(staging, { recursive: true, force: true });
-        const skip = (entry: string): boolean => !SKIP(path.basename(entry));
-        cpSync(source, staging, { recursive: true, filter: skip });
-        if (replaced) {
-          rmSync(backup, { recursive: true, force: true });
-          renameSync(target, backup);
-          movedOld = true;
-        }
-        renameSync(staging, target);
-        if (movedOld) rmSync(backup, { recursive: true, force: true });
+        copied = installFolder(source, target);
       } catch (error) {
-        rmSync(staging, { recursive: true, force: true });
-        if (movedOld) {
-          try {
-            rmSync(target, { recursive: true, force: true });
-            renameSync(backup, target);
-          } catch {
-            // The old copy could not be put back; report the original failure rather than this one.
-          }
-        }
         throw new Error(
           `INSTALL_FAILED: could not write ${target} (${(error as Error).message}). The previous copy, if there was one, is still in place. Close the game if it is running and run install_mod again.`,
         );
@@ -186,8 +124,8 @@ export default function (pi: ExtensionAPI) {
           {
             type: "text",
             text: [
-              `PASS: installed ${name} to ${shorten(target)} (${files.length} files${replaced ? ", the previous copy was replaced" : ""}).`,
-              replaced
+              `PASS: installed ${name} to ${shorten(target)} (${copied.files} files${copied.replaced ? ", the previous copy was replaced" : ""}).`,
+              copied.replaced
                 ? "NEXT: tell the player to refresh the mod list in the game's mod panel, then read ModLog/<mod name>_local.log and confirm a `read mod` line for each file you changed. Installing does not prove the game loads it."
                 : "NEXT: tell the player to enable the mod in the game's mod panel (title screen), then read ModLog/<mod name>_local.log and confirm a `read mod` line for each file you changed. Installing does not prove the game loads it.",
             ].join("\n"),
@@ -198,10 +136,10 @@ export default function (pi: ExtensionAPI) {
           status: "PASS",
           wroteState: false,
           installed: true,
-          replaced,
+          replaced: copied.replaced,
           target,
-          files: files.length,
-          fileList: files,
+          files: copied.files,
+          fileList: walk(source),
           modName: name,
         },
       };

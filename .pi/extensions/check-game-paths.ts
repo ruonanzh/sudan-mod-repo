@@ -12,17 +12,9 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import path from "node:path";
-import { homedir } from "node:os";
 import { judge, pathsFile, readRecord, shorten } from "../../tools/paths.mjs";
+import { absolute } from "../lib/workspace";
 import { failedNames, formatRows, summarize, type PathRow } from "../lib/paths-report";
-
-/** A relative path is relative to the workspace, which is where the tool runs. */
-const absolute = (cwd: string, p: string): string => {
-  // A path copied out of our own report starts with `~`; resolving that against the workspace
-  // would invent `<workspace>/~/...`, so expand it first.
-  const expanded = p.startsWith("~") ? path.join(homedir(), p.slice(1)) : p;
-  return path.isAbsolute(expanded) ? expanded : path.resolve(cwd, expanded);
-};
 
 export default function (pi: ExtensionAPI) {
   pi.registerTool({
