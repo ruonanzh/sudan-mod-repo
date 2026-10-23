@@ -40,7 +40,7 @@ description: >
 node tools/preview.mjs --mod your_mods/<ModName>
 ```
 
-产物在 `your_mods/<ModName>/.preview/`：
+产物在 `your_mods/<ModName>/.preview/`。给玩家时**一律用工作区相对路径**（`your_mods/<ModName>/.preview/<文件>`），不要给 `~/…` 或别的绝对路径：应用把 `~/` 当相对路径，点开是 `ENOENT`。工具自己现在也打印相对路径，照抄即可。
 
 | 文件 | 内容 |
 |---|---|
@@ -103,13 +103,13 @@ node tools/page.mjs <kind> --mod your_mods/<ModName> --id <id> --out your_mods/<
 --out .preview/card-9000001-b.html   # 数值激进
 ```
 
-然后把两个路径都给玩家，让他自己看差别。
+然后把两条工作区相对路径都给玩家，让他自己看差别。
 
 ## 玩家回话之后
 
 1. 按玩家说的改**记录**（或 `--spec` 里的提案）。
 2. 用同一个 `--out` 重新生成页面，页面就更新了。
-3. 把新页面的路径再给玩家一次，说明这次改了哪几处。
+3. 把新页面的工作区相对路径再给玩家一次，说明这次改了哪几处。
 
 玩家说「不对」而你认为原值有理由时，不要用文字反复解释：**各生成一页**，让他直接比较两页的差别。
 

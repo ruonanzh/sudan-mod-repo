@@ -76,7 +76,7 @@ function readRecord(file) {
   try {
     return parseJsonc(readFileSync(file, "utf8")).value;
   } catch (e) {
-    throw new Error(`${shorten(file)}: ${e.message || e}`);
+    throw new Error(`${displayPath(file)}: ${e.message || e}`);
   }
 }
 
@@ -203,6 +203,17 @@ function cardTable(modDir) {
   return { file, records };
 }
 
+/**
+ * A path as the agent should repeat it to the player: workspace-relative when the file is inside
+ * the workspace, and `~`-shortened only when it is not. The app resolves a leading `~/` as a
+ * relative path, so an absolute link in a chat message does not open.
+ */
+function displayPath(target) {
+  const relative = path.relative(process.cwd(), target);
+  if (relative && !relative.startsWith("..") && !path.isAbsolute(relative)) return relative;
+  return shorten(target);
+}
+
 /** Card pages in the preview directory. */
 function cardPages(outDir) {
   if (!existsSync(outDir)) return [];
@@ -226,13 +237,13 @@ const show = (value) => (value === undefined ? "(none)" : JSON.stringify(value))
 function runCardValues({ modDir, outDir, apply }) {
   const pages = cardPages(outDir);
   if (!pages.length) {
-    process.stdout.write(`PASS  no card pages under ${shorten(outDir)}\n`);
-    process.stdout.write(`NEXT  run node tools/preview.mjs --mod ${shorten(modDir)} to write them\n`);
+    process.stdout.write(`PASS  no card pages under ${displayPath(outDir)}\n`);
+    process.stdout.write(`NEXT  run node tools/preview.mjs --mod ${displayPath(modDir)} to write them\n`);
     return 0;
   }
   const table = cardTable(modDir);
   if (!table) {
-    process.stdout.write(`FAIL  ${shorten(modDir)} has no ${CARD_TABLE}\n`);
+    process.stdout.write(`FAIL  ${displayPath(modDir)} has no ${CARD_TABLE}\n`);
     process.stdout.write("NEXT  a card page is built from the mod's card table; write that file first\n");
     return 1;
   }
@@ -277,9 +288,9 @@ function runCardValues({ modDir, outDir, apply }) {
   }
 
   if (!apply) {
-    process.stdout.write(`PASS  ${pending.length} card page(s) carry pending values in ${shorten(outDir)}\n`);
+    process.stdout.write(`PASS  ${pending.length} card page(s) carry pending values in ${displayPath(outDir)}\n`);
     for (const line of lines) process.stdout.write(`      ${line}\n`);
-    process.stdout.write(`NEXT  run node tools/preview.mjs --mod ${shorten(modDir)} --apply to write them into ${CARD_TABLE}\n`);
+    process.stdout.write(`NEXT  run node tools/preview.mjs --mod ${displayPath(modDir)} --apply to write them into ${CARD_TABLE}\n`);
     return 0;
   }
 
@@ -291,12 +302,12 @@ function runCardValues({ modDir, outDir, apply }) {
       pending.map((item) => ({ id: item.id, ...item.diff })),
     );
   } catch (e) {
-    process.stdout.write(`FAIL  could not write ${shorten(table.file)}: ${e.message || e}\n`);
+    process.stdout.write(`FAIL  could not write ${displayPath(table.file)}: ${e.message || e}\n`);
     process.stdout.write("NEXT  fix the file so it parses, then run this again\n");
     return 1;
   }
   if (result.text !== text) writeFileSync(table.file, result.text);
-  process.stdout.write(`PASS  wrote ${result.written} value(s) into ${shorten(table.file)}\n`);
+  process.stdout.write(`PASS  wrote ${result.written} value(s) into ${displayPath(table.file)}\n`);
   for (const line of lines) process.stdout.write(`      ${line}\n`);
   // The game replaces a card entry as a whole when it merges by id, so a page that never carried
   // one of the record's keys is worth saying out loud. Apply is per key, so this is a warning.
@@ -308,7 +319,7 @@ function runCardValues({ modDir, outDir, apply }) {
       );
     }
   }
-  process.stdout.write(`NEXT  run node tools/preview.mjs --mod ${shorten(modDir)} to rebuild the pages without the pending mark\n`);
+  process.stdout.write(`NEXT  run node tools/preview.mjs --mod ${displayPath(modDir)} to rebuild the pages without the pending mark\n`);
   return 0;
 }
 
@@ -322,13 +333,13 @@ function main() {
   }
   const modDir = path.resolve(String(args.modDir).replace(/^~/, os.homedir()));
   if (!existsSync(modDir)) {
-    process.stdout.write(`FAIL  no such directory: ${shorten(modDir)}\n`);
+    process.stdout.write(`FAIL  no such directory: ${displayPath(modDir)}\n`);
     process.stdout.write("NEXT  pass --mod your_mods/<ModName>\n");
     return 1;
   }
   const infoFile = path.join(modDir, "info.json");
   if (!existsSync(infoFile)) {
-    process.stdout.write(`FAIL  ${shorten(modDir)} has no info.json, so it is not a mod\n`);
+    process.stdout.write(`FAIL  ${displayPath(modDir)} has no info.json, so it is not a mod\n`);
     process.stdout.write("NEXT  a mod is your_mods/<ModName>/ with an info.json; see .pi/skills/mod-creator\n");
     return 1;
   }
@@ -344,11 +355,11 @@ function main() {
     records = modRecords(modDir);
   } catch (e) {
     process.stdout.write(`FAIL  ${e.message || e}\n`);
-    process.stdout.write(`NEXT  run node tools/lint.mjs ${shorten(modDir)} to see what is wrong\n`);
+    process.stdout.write(`NEXT  run node tools/lint.mjs ${displayPath(modDir)} to see what is wrong\n`);
     return 1;
   }
   if (!records.length) {
-    process.stdout.write(`PASS  no records under ${shorten(modDir)}: nothing to preview\n`);
+    process.stdout.write(`PASS  no records under ${displayPath(modDir)}: nothing to preview\n`);
     process.stdout.write("NEXT  add a card, a rite or an event, then run this again\n");
     return 0;
   }
@@ -385,7 +396,7 @@ function main() {
   const counts = new Map();
   for (const r of records) counts.set(r.kind, (counts.get(r.kind) || 0) + 1);
   process.stdout.write(
-    `PASS  ${shorten(modDir)}  (records ${records.length}: ${[...counts.entries()].map(([k, n]) => `${k} ${n}`).join(", ")})\n`
+    `PASS  ${displayPath(modDir)}  (records ${records.length}: ${[...counts.entries()].map(([k, n]) => `${k} ${n}`).join(", ")})\n`
   );
 
   const pages = { graph: null };
@@ -413,7 +424,7 @@ function main() {
         return 1;
       }
     }
-    process.stdout.write(`PASS  ${written} card page(s) in ${shorten(outDir)}\n`);
+    process.stdout.write(`PASS  ${written} card page(s) in ${displayPath(outDir)}\n`);
   }
 
   if (story.length) {
@@ -432,13 +443,13 @@ function main() {
       return 1;
     }
     pages.graph = path.basename(file);
-    process.stdout.write(`PASS  wrote ${shorten(file)}\n`);
+    process.stdout.write(`PASS  wrote ${displayPath(file)}\n`);
   }
 
   const index = path.join(outDir, "index.html");
   writeFileSync(index, indexHtml({ modName, records, pages }));
-  process.stdout.write(`PASS  wrote ${shorten(index)}\n`);
-  process.stdout.write(`NEXT  open ${shorten(index)} in a browser\n`);
+  process.stdout.write(`PASS  wrote ${displayPath(index)}\n`);
+  process.stdout.write(`NEXT  open ${displayPath(index)} in a browser\n`);
   if (cards.length) {
     process.stdout.write(
       `NEXT  to change a card, open its card page in the app: it opens with ${CARD_PAGE_EDITOR.id}\n`,

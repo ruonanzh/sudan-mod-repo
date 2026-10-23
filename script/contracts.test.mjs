@@ -151,6 +151,8 @@ test("each tool registers the name the skill tells the agent to use", async () =
   const creator = readFileSync(path.join(REPO, ".pi/skills/mod-creator/SKILL.md"), "utf8");
   assert.equal((await tool("mod-lint.ts")).name, "validate_mod");
   assert.ok(creator.includes("validate_mod"), "mod-creator must name validate_mod");
+  const page = readFileSync(path.join(REPO, ".pi/skills/mod-page/SKILL.md"), "utf8");
+  assert.match(page, /工作区相对路径/, "page paths must be workspace-relative, or the app cannot open them");
   const installer = readFileSync(path.join(REPO, ".pi/skills/mod-installer/SKILL.md"), "utf8");
   assert.equal((await tool("install-mod.ts")).name, "install_mod");
   assert.ok(installer.includes("install_mod"), "mod-installer must name install_mod");

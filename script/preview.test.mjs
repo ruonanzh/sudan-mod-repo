@@ -36,7 +36,8 @@ function mod(files = {}) {
   return dir;
 }
 
-const run = (args) => spawnSync(process.execPath, [PREVIEW, ...args], { encoding: "utf8" });
+const run = (args, cwd) => spawnSync(process.execPath, [PREVIEW, ...args], { encoding: "utf8", cwd });
+
 const read = (file) => readFileSync(file, "utf8");
 const CARD = { id: 9000001, name: "测试卡", is_reversed: 0, type: 1, rare: 1 };
 const eventAt = (id, text) => ({ id, text, is_replay: 0, on: { rite_end: 5000002 }, condition: {}, settlement: [] });
@@ -261,4 +262,16 @@ test("--collect before any page exists says so and writes nothing", () => {
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /no card pages/);
   assert.equal(existsSync(path.join(dir, ".preview")), false);
+});
+
+test("the paths it prints are workspace-relative, so a chat link can open", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "preview-root-"));
+  const dir = path.join(root, "mods", "probe");
+  mkdirSync(path.join(dir, "config"), { recursive: true });
+  writeFileSync(path.join(dir, "info.json"), JSON.stringify({ name: "probe" }));
+  writeFileSync(path.join(dir, "config/cards.json"), JSON.stringify({ 9000777: { id: 9000777, name: "x", type: "item", rare: 1 } }));
+  const out = run(["--mod", "mods/probe"], root);
+  assert.equal(out.status, 0, out.stderr);
+  assert.match(out.stdout, /mods\/probe\/\.preview/, out.stdout);
+  assert.doesNotMatch(out.stdout, /~\//, "a leading ~/ is resolved as a workspace path by the app");
 });
