@@ -188,6 +188,32 @@ test("a switch reads as the sentence its value earns", { skip }, async () => {
   assert.match(rite, /没有等待期限/, "waiting_round 0 has its own wording");
 });
 
+test("a warning that fires twice is named once", () => {
+  const g = {
+    nodes: [
+      {
+        k: "event:1",
+        t: "event",
+        id: 1,
+        cat: "daily",
+        o: "mod",
+        l: "x",
+        badges: [
+          { level: "WARN", code: "LEGACY_FIELD" },
+          { level: "WARN", code: "LEGACY_FIELD" },
+        ],
+      },
+    ],
+    edges: [],
+    counts: {},
+    categoryCounts: {},
+    components: { count: 0, largest: 0 },
+  };
+  const p = payload(g);
+  assert.deepEqual(p.nodes[0].bm, ["LEGACY_FIELD"], "the panel must not repeat the same code");
+  assert.equal(p.nodes[0].b, "WARN");
+});
+
 test("every kind gets its own group, and the pills count what they show", { skip }, async () => {
   const p = payload(graph());
   const at = (k) => p.nodes.find((n) => n.k === k);

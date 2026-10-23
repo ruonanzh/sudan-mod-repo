@@ -140,7 +140,7 @@ export function payload(g, { focus = null } = {}) {
         const levels = (n.badges || []).map((x) => x.level);
         return levels.includes("FAIL") ? "FAIL" : levels.includes("WARN") ? "WARN" : levels.includes("INFO") ? "INFO" : null;
       })(),
-      bm: (n.badges || []).map((x) => x.code),
+      bm: [...new Set((n.badges || []).map((x) => x.code))],
     })),
     edges: g.edges.filter((e) => index.has(e.f) && index.has(e.t)).map((e) => [index.get(e.f), index.get(e.t), e.r]),
     counts: g.counts,
