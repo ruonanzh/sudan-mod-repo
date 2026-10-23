@@ -208,11 +208,13 @@ function laneLayout(cy, lanes, gap, headerH) {
 }
 `;
 
-const SCRIPT = (dataUrl, editable, detailUrl) => `
+export const pageScript = (dataUrl, editable, detailUrl) => `
 // The graph itself (nodes, edges, switches) is too big for the file: a page is opened by the
 // app's HTML preview, which refuses anything over 1 MB. It arrives as a sibling script.
 const DATA_URL = ${JSON.stringify(dataUrl)};
 const DATA = window.__GRAPH_DATA__ || { nodes: [], edges: [], counts: {}, categoryCounts: {}, components: { count: 0, largest: 0 } };
+// A record page carries its own focus in a two-line file; the full page still uses the payload's.
+const FOCUS = window.__GRAPH_FOCUS__ || DATA.focus || null;
 // The panel's text (narration, branches, switches) lives in this file and is pulled in the
 // first time a node is opened: 10 MB on disk that a page drawing a neighbourhood never needs.
 const DETAIL_URL = ${JSON.stringify(detailUrl)};
@@ -1224,7 +1226,7 @@ document.getElementById("lang").onchange = (e) => {
   listRows();
 };
 // The record the page was built to show: --focus, when this page carries it.
-if (DATA.focus && byKey.has(DATA.focus)) selected = DATA.focus;
+if (FOCUS && byKey.has(FOCUS)) selected = FOCUS;
 cats(); listRows(); draw();
 
 // A link can name the record to open on: graph.html#rite:5010901. It wins over --focus,
@@ -1255,7 +1257,8 @@ window.__select = (key) => focusNode(key);
 window.__draw = draw;
 `;
 
-export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable = true, modNote = "", detailUrl = "graph.detail.js", dataUrl = "graph.data.js", focus = null } = {}) {
+export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable = true, modNote = "", detailUrl = "graph.detail.js", dataUrl = "graph.data.js", focus = null, prompt = false, promptScript = null,
+    scripts = { vendor: "graph.vendor.js", page: "graph.page.js", focus: "graph.focus.js" } } = {}) {
   const body = `
 <div class="gshell">
   <div class="gwrap">
@@ -1349,17 +1352,31 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
 .editsrc .src .dead { color: #7a6f5e; }
 .editsrc .src .dead i { color: #b4543f; font-style: normal; }
 `;
+  const promptBlock = prompt
+    ? `<div class="wrap" style="padding-bottom:32px">
+<h2>要改什么</h2>
+<p class="note" style="margin-top:0">用平时的话说就行，例如「第二个结算改成给一张卡」。Agent 会按这句话改记录，再重新生成这一页。</p>
+<textarea id="record-prompt" rows="4" placeholder="例如：这句台词再狠一点；每 3 回合改成每 5 回合"></textarea>
+<div class="savebar" style="margin-top:8px;display:flex;align-items:center;gap:10px">
+<button class="pill" id="record-notify" type="button">发送给 Agent</button>
+<span class="note" id="record-status"></span>
+</div>
+</div>`
+    : "";
   // The scripts go after the shell: they read DOM ids that only exist once the body is parsed.
   return (
     pageHtml({
       title,
       sub: `构建于 ${g.builtAt?.slice(0, 19).replace("T", " ") || ""}`,
-      body,
+      body: body + promptBlock,
       wide: true,
       extraCss: css,
     }) +
+    `<script src="${esc(scripts.vendor)}"></script>\n` +
     `<script src="${esc(dataUrl)}"></script>\n` +
-    scriptBlocks(SCRIPT(dataUrl, editable, detailUrl))
+    (focus ? `<script src="${esc(scripts.focus)}"></script>\n` : "") +
+    (promptScript ? `<script src="${esc(promptScript)}"></script>\n` : "") +
+    `<script src="${esc(scripts.page)}"></script>\n`
   );
 }
 
@@ -1383,11 +1400,27 @@ export function writePage(g, outPath, opts = {}) {
   const file = path.resolve(String(outPath).replace(/^~/, os.homedir()));
   const detail = path.join(path.dirname(file), detailName(file));
   mkdirSync(path.dirname(file), { recursive: true });
-  const data = path.join(path.dirname(file), dataName(file));
-  const html = renderPage(g, { ...opts, detailUrl: detailName(file), dataUrl: dataName(file) });
+  const data = path.join(path.dirname(file), opts.dataUrl || dataName(file));
+  const scripts = {
+    vendor: opts.vendorUrl || "graph.vendor.js",
+    page: opts.pageUrl || "graph.page.js",
+    focus: opts.focusUrl || "graph.focus.js",
+  };
+  const html = renderPage(g, {
+    ...opts,
+    detailUrl: opts.detailUrl || detailName(file),
+    dataUrl: opts.dataUrl || dataName(file),
+    scripts,
+  });
   const script = detailScript(g);
   const payloadJson = JSON.stringify(payload(g, { focus: opts.focus ?? null }));
   writeFileSync(file, html);
+  // The app's HTML preview refuses inline scripts, so the renderer travels in files of its own.
+  const dir = path.dirname(file);
+  writeFileSync(path.join(dir, scripts.vendor), vendorScripts().map((v) => `/* ${v.file.replace(".min.js", "")} ${v.version} (MIT) - editors/graph/vendor/${v.file} */\n/* Local copy of the library the story graph ships with; never fetched from the network. */\n${v.text}`).join("\n"));
+  writeFileSync(path.join(dir, scripts.page), `${pageScript(scripts.vendor, opts.editable !== false, opts.detailUrl || detailName(file))}\n`);
+  if (opts.focus) writeFileSync(path.join(dir, scripts.focus), `window.__GRAPH_FOCUS__ = ${JSON.stringify(String(opts.focus))};\n`);
+  if (opts.dataUrl) return { file, bytes: Buffer.byteLength(html), data: null, dataBytes: 0, detail: null, detailBytes: 0 };
   writeFileSync(data, `// graph.data.js - nodes, edges and switches. Loaded by ${path.basename(file)}. Generated by tools/graphpage.mjs.\nwindow.__GRAPH_DATA__ = ${payloadJson};\n`);
   writeFileSync(detail, script);
   // Bytes, not characters: the page is full of CJK, where the two differ by a factor of three.

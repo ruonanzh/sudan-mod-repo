@@ -12,7 +12,7 @@ import path from "node:path";
 import os from "node:os";
 import { createRequire } from "node:module";
 import { buildGraph } from "./graph.mjs";
-import { renderPage, payload, LANE_LAYOUT_JS, detailPayload, detailScript, detailName, writePage } from "./graphpage.mjs";
+import { renderPage, payload, LANE_LAYOUT_JS, detailPayload, detailScript, detailName, writePage, pageScript, vendorScripts } from "./graphpage.mjs";
 import { openMod, DEFAULT_VANILLA } from "./model.mjs";
 import { readNodeSource } from "./editor.mjs";
 
@@ -100,7 +100,8 @@ function mount(g, { editable = true, detail = "full", protocol = "http:", page =
     throw new Error(`unexpected ${url}`);
   };
   // Three script blocks in the page; the page's own one is the tagged last block.
-  const script = renderPage(g, { editable, ...page }).match(/<script id="pagejs">([\s\S]*?)<\/script>/)[1];
+  const script = pageScript("graph.data.js", editable, "graph.detail.js");
+  win.__GRAPH_FOCUS__ = page.focus ?? null;
   new Function("document", "window", "location", "requestAnimationFrame", "fetch", script)(
     document,
     win,
@@ -331,29 +332,27 @@ const VENDOR = [
   { file: "cytoscape-dagre.min.js", version: "4.0.1", marker: /dagre/, min: 40000 },
 ];
 
-test("the page inlines both vendored libraries, and nothing is fetched", { skip }, () => {
-  const html = renderPage(graph());
+test("both vendored libraries travel as one file, and nothing is fetched from the network", { skip }, () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "graphpage-"));
+  writePage(graph(), path.join(dir, "graph.html"));
+  const vendor = readFileSync(path.join(dir, "graph.vendor.js"), "utf8");
   for (const v of VENDOR) {
     const text = readFileSync(new URL(`../editors/graph/vendor/${v.file}`, import.meta.url), "utf8");
     assert.ok(text.length > v.min, `${v.file} is a real build (${text.length} bytes), not an error page`);
     assert.match(text, v.marker, `${v.file} names its own library`);
-    assert.ok(html.includes(text), `${v.file} is inlined byte for byte`);
-    assert.match(html, new RegExp(`/\\* ${v.file.replace(".min.js", "")} ${v.version.replace(/\./g, "\\.")} \\(MIT\\)`), `${v.file} ${v.version} is named`);
+    assert.ok(vendor.includes(text), `${v.file} is in the vendor file byte for byte`);
+    assert.match(vendor, new RegExp(`/\\* ${v.file.replace(".min.js", "")} ${v.version.replace(/\./g, "\\.")} \\(MIT\\)`), `${v.file} ${v.version} is named`);
   }
-  assert.doesNotMatch(html, /<script[^>]*\ssrc="(?:https?:)?\/\//i, "nothing is fetched from the network");
-  assert.match(html, /<script src="graph\.data\.js"><\/script>/, "the graph arrives as a sibling script, not inline");
+  const page = readFileSync(path.join(dir, "graph.html"), "utf8");
+  assert.doesNotMatch(page, /<script[^>]*\ssrc="(?:https?:)?\/\//i, "nothing is fetched from the network");
+  assert.match(page, /<script src="graph\.vendor\.js"><\/script>/, "the libraries arrive as a file");
+  assert.match(page, /<script src="graph\.data\.js"><\/script>/, "the graph arrives as a sibling script");
+  assert.match(page, /<script src="graph\.page\.js"><\/script>/, "and the renderer too, because inline scripts are refused");
 });
 
 // ---------------------------------------------------------------- step 1: the renderer
-const pageScript = (g, opts) => {
-  const html = renderPage(g, opts);
-  const m = html.match(/<script id="pagejs">([\s\S]*?)<\/script>/);
-  assert.ok(m, "the page carries its own script block");
-  return m[1];
-};
-
 test("the page's own script parses, because a broken string is a blank page", { skip }, () => {
-  const script = pageScript(graph());
+  const script = pageScript("graph.data.js", true, "graph.detail.js");
   assert.doesNotThrow(() => new Function(script), "the generated inline script must be valid JS");
   assert.match(script, /cytoscape\(/, "the renderer is cytoscape");
   // A hyphenated style key is written with quotes, so the pattern allows either spelling.
@@ -461,7 +460,7 @@ test("--focus opens the page on that record, with its one-hop picture", { skip }
 });
 
 test("a mod node is drawn with a gold border and the same box", { skip }, () => {
-  const script = renderPage(modGraph()).match(/<script id="pagejs">([\s\S]*?)<\/script>/)[1];
+  const script = pageScript("graph.data.js", true, "graph.detail.js");
   const style = script.match(/selector: "node\.mod",\s*style: \{([^}]*)\}/)[1];
   assert.match(style, /"border-color": "#c9a227"/, "gold, the page's accent");
   assert.match(style, /"border-width": 2/);
@@ -525,7 +524,7 @@ test("the panel's text travels in its own file, not in the page", { skip }, () =
   const html = renderPage(g);
   // A rite's paragraph is panel text; its label ("荣耀回归") stays, because the list shows it.
   assert.ok(!html.includes("你已经拿到了盖斯家的世袭头衔"), "the panel text is not in the page");
-  assert.match(html, /"graph\.detail\.js"/, "the page names the file it will ask for on demand");
+  assert.match(pageScript("graph.data.js", true, "graph.detail.js"), /"graph\.detail\.js"/, "the page's script names the file it asks for on demand");
   const detail = detailScript(g);
   assert.ok(detail.includes("你已经拿到了盖斯家的世袭头衔"), "the panel text is in the detail file");
   assert.match(detail, /^\/\/ graph\.detail\.js/, "the file says what it is");
@@ -539,7 +538,7 @@ test("writePage puts both files in one directory and says where", { skip }, () =
   const written = writePage(graph(), path.join(dir, "graph.html"));
   assert.equal(written.detail, path.join(dir, "graph.detail.js"));
   assert.ok(written.bytes > 0 && written.detailBytes > written.bytes / 2, "the detail file is the bigger half");
-  assert.match(readFileSync(written.file, "utf8"), /"graph\.detail\.js"/, "the page asks for the name it was given");
+  assert.match(readFileSync(path.join(dir, "graph.page.js"), "utf8"), /"graph\.detail\.js"/, "the page asks for the name it was given");
   assert.match(readFileSync(written.detail, "utf8"), /__GRAPH_DETAIL__/, "and the detail file defines it");
 });
 
@@ -565,9 +564,9 @@ test("a page copied without its detail file still draws, and names what is missi
 // fetch() is a CORS failure printed into the panel. So the detail file travels by script tag,
 // and nothing on the panel path asks for anything else.
 test("the detail file arrives as a script tag, never as a request", { skip }, () => {
-  const html = renderPage(graph());
+  const html = pageScript("graph.data.js", true, "graph.detail.js");
   const start = html.indexOf("function ensureDetail");
-  const end = html.indexOf("document.head.appendChild");
+  const end = html.indexOf("document.head.appendChild", start);
   assert.ok(start > 0 && end > start, "the loader is in the page");
   const loader = html.slice(start, end);
   assert.doesNotMatch(loader, /fetch\(|XMLHttpRequest|import\(/, "no request is made for the detail file");

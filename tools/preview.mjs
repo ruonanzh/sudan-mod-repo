@@ -33,6 +33,8 @@ import { fileURLToPath } from "node:url";
 import { parseJsonc } from "./lint.mjs";
 import { esc, pageHtml } from "../editors/lib/shell.mjs";
 import { shorten, vanillaRequirement } from "./paths.mjs";
+import { buildGraph } from "./graph.mjs";
+import { writePage as writeGraphPage } from "../editors/graph/graphpage.mjs";
 import { applyCardValues, cardPageHtml, missingValues, pendingValues, readPageValues } from "../editors/card/page.mjs";
 import { recordPageHtml } from "../editors/page/page.mjs";
 
@@ -388,34 +390,36 @@ function main() {
     process.stdout.write(`PASS  ${written} card page(s) in ${displayPath(outDir)}\n`);
   }
 
-  // Rites and events get a page of their own too: the story graph shows where they sit, this
-  // shows what they contain field by field.
+  // A rite or an event gets the whole story graph, opened on itself, plus the box where the
+  // player says what to change. One page, every graph feature, no second renderer.
   const recordKinds = new Set(["rite", "event"]);
-  for (const r of records) {
-    if (!recordKinds.has(r.kind)) continue;
-    if (!CARD_ID_FILE.test(String(r.id))) continue;
-    const file = path.join(outDir, `${r.kind}-${r.id}.record.html`);
-    try {
-      writeFileSync(
-        file,
-        recordPageHtml({
-          kind: r.kind,
-          id: r.id,
-          record: r.record,
-          modDir,
-          origin: originOf(r.kind, r.id),
-          graphLink: `graph.html#${r.kind}:${r.id}`,
-        }),
-      );
-      pages.files.push(file);
-      recordCount += 1;
-    } catch (e) {
-      process.stdout.write(`FAIL  could not write ${path.basename(file)}: ${e.message || e}\n`);
-      process.stdout.write("NEXT  add the missing label to schema/view/field-labels.json, then run this again\n");
-      return 1;
+  const recordList = records.filter((r) => recordKinds.has(r.kind) && CARD_ID_FILE.test(String(r.id)));
+  if (recordList.length) {
+    const graph = buildGraph({ modDir });
+    for (const r of recordList) {
+      const file = path.join(outDir, `${r.kind}-${r.id}.record.html`);
+      try {
+        writeGraphPage(graph, file, {
+          title: `苏丹的游戏 · ${r.kind === "event" ? "事件" : "仪式"} ${r.id}`,
+          focus: `${r.kind}:${r.id}`,
+          prompt: true,
+          promptScript: "record-prompt.js",
+          dataUrl: "graph.data.js",
+          detailUrl: "graph.detail.js",
+          focusUrl: `${r.kind}-${r.id}.focus.js`,
+        });
+        pages.files.push(file);
+        recordCount += 1;
+      } catch (e) {
+        process.stdout.write(`FAIL  could not write ${path.basename(file)}: ${e.message || e}\n`);
+        process.stdout.write("NEXT  run this again once the story graph builds\n");
+        return 1;
+      }
     }
+    // The prompt box's script: the HTML preview forbids inline scripts, so it ships as a file.
+    writeFileSync(path.join(outDir, "record-prompt.js"), readFileSync(new URL("../editors/graph/record-prompt.js", import.meta.url)));
+    if (recordCount) process.stdout.write(`PASS  ${recordCount} record page(s) in ${displayPath(outDir)}\n`);
   }
-  if (recordCount) process.stdout.write(`PASS  ${recordCount} record page(s) in ${displayPath(outDir)}\n`);
 
   if (story.length) {
     const file = path.join(outDir, "graph.html");
