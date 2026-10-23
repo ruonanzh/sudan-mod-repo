@@ -94,6 +94,10 @@ test("a mod of only events gets one story graph that opens on the record named b
   assert.match(page, /"focus":"event:9000001"/, "the page opens on the record preview was asked for");
   assert.match(page, /"mod":true/, "the mod's record is flagged in the payload");
   assert.equal(existsSync(path.join(out, "cards.html")), false, "no card page for a mod with no cards");
+  const recordPage = path.join(out, "event-9000001.record.html");
+  assert.ok(existsSync(recordPage), "an event gets a page of its own, next to the story graph");
+  assert.match(read(recordPage), /data-record-page="event:9000001"/, "the page names the record it shows");
+  assert.match(r.stdout, /event-9000001\.record\.html/, "the run lists the record page");
   assert.match(r.stdout, /graph\.html/, "the run names the story graph it wrote");
 });
 

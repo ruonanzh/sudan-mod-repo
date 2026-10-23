@@ -1,9 +1,9 @@
 {
   "apiVersion": 1,
   "id": "card",
-  "name": "苏丹的卡页",
-  "match": ["your_mods/*/.preview/*.card.html"],
+  "name": "苏丹的 mod 页",
+  "match": ["your_mods/*/.preview/*.card.html", "your_mods/*/.preview/*.record.html"],
   "entry": "index.html",
   "mode": "edit",
-  "description": "在 app 里打开一张卡的卡页：改字段、改标签，保存写在这一页自己的值块里。"
+  "description": "在 app 里打开一个 mod 页：卡页可改字段与标签并发送给 agent；仪式与事件页只读。"
 }

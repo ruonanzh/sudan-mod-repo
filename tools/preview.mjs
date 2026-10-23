@@ -10,6 +10,7 @@
  *
  *   graph.html          the story graph, for a rite's or an event's place in the story around it
  *   <id>.card.html      one page per card: the card page editors/page/page.mjs renders, as controls
+ *   <kind>-<id>.record.html  one read-only page per rite or event, with every field it carries
  *
  * Which records exist is read from schema/layout.json — the table model.mjs reads and a test
  * keeps in step with lint — so a kind added there shows up here without a second mapping.
@@ -24,7 +25,7 @@
  * The story graph is still written by editors/graph/graphpage.mjs, which owns that view, and `--focus` is
  * handed to it so the preview opens on the thing it was run for.
  */
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
@@ -33,6 +34,7 @@ import { parseJsonc } from "./lint.mjs";
 import { esc, pageHtml } from "../editors/lib/shell.mjs";
 import { shorten, vanillaRequirement } from "./paths.mjs";
 import { applyCardValues, cardPageHtml, missingValues, pendingValues, readPageValues } from "../editors/card/page.mjs";
+import { recordPageHtml } from "../editors/page/page.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const LAYOUT = JSON.parse(readFileSync(new URL("../schema/layout.json", import.meta.url), "utf8"));
@@ -68,7 +70,7 @@ function readRecord(file) {
  */
 export function modRecords(modDir) {
   const out = [];
-  const push = (kind, id, rec) => out.push({ kind, id: String(id), name: nameOf(rec) });
+  const push = (kind, id, rec) => out.push({ kind, id: String(id), name: nameOf(rec), record: rec });
   for (const [kind, spec] of Object.entries(LAYOUT.table)) {
     const file = path.join(modDir, spec.file);
     if (!existsSync(file)) continue;
@@ -320,6 +322,9 @@ function main() {
   }
 
   mkdirSync(outDir, { recursive: true });
+  // Older versions wrote a list page; a rebuilt preview must not leave it behind as a stale file.
+  const staleIndex = path.join(outDir, "index.html");
+  if (existsSync(staleIndex)) rmSync(staleIndex, { force: true });
   const counts = new Map();
   for (const r of records) counts.set(r.kind, (counts.get(r.kind) || 0) + 1);
   process.stdout.write(
@@ -327,6 +332,7 @@ function main() {
   );
 
   const pages = { graph: null, files: [] };
+  let recordCount = 0;
   const focusFlag = picked ? ["--focus", `${picked.kind}:${picked.id}`] : [];
 
   if (cards.length) {
@@ -354,6 +360,25 @@ function main() {
     }
     process.stdout.write(`PASS  ${written} card page(s) in ${displayPath(outDir)}\n`);
   }
+
+  // Rites and events get a page of their own too: the story graph shows where they sit, this
+  // shows what they contain field by field.
+  const recordKinds = new Set(["rite", "event"]);
+  for (const r of records) {
+    if (!recordKinds.has(r.kind)) continue;
+    if (!CARD_ID_FILE.test(String(r.id))) continue;
+    const file = path.join(outDir, `${r.kind}-${r.id}.record.html`);
+    try {
+      writeFileSync(file, recordPageHtml({ kind: r.kind, id: r.id, record: r.record, modDir }));
+      pages.files.push(file);
+      recordCount += 1;
+    } catch (e) {
+      process.stdout.write(`FAIL  could not write ${path.basename(file)}: ${e.message || e}\n`);
+      process.stdout.write("NEXT  add the missing label to schema/view/field-labels.json, then run this again\n");
+      return 1;
+    }
+  }
+  if (recordCount) process.stdout.write(`PASS  ${recordCount} record page(s) in ${displayPath(outDir)}\n`);
 
   if (story.length) {
     const file = path.join(outDir, "graph.html");

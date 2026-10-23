@@ -232,6 +232,7 @@ function bridgeOf(html) {
   const root = {
     handlers: {},
     getAttribute: (name) => (attrs.has(name) ? attrs.get(name) : null),
+    hasAttribute: (name) => attrs.has(name),
     setAttribute: (name, shown) => attrs.set(name, String(shown)),
     addEventListener: (type, handler) => (root.handlers[type] ||= []).push(handler),
     querySelectorAll: find,
@@ -262,7 +263,7 @@ function bridgeOf(html) {
       if (id in statuses) return statuses[id];
       return null;
     },
-    querySelector: (selector) => (selector === "[data-card-page]" ? root : null),
+    querySelector: (selector) => (selector === "[data-card-page]" || selector === "[data-record-page]" ? root : null),
     createElement: (tagName) => elementOf(tagName, "", ""),
     addEventListener: () => {},
   };

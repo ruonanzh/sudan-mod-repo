@@ -422,6 +422,10 @@
       var element = byId(id);
       if (element) element.disabled = blocked;
     });
+    if (state.record) {
+      setStatus("只读：仪式与事件页没有可发送的值。", "readonly");
+      return;
+    }
     if (!state.host) {
       setStatus("只读：只能在 app 里编辑", "readonly");
       return;
@@ -437,7 +441,8 @@
 
   /** The page's own DOM is already there; wire it even when no host ever says hello. */
   function preparePage() {
-    state.root = document.querySelector("[data-card-page]");
+    state.root = document.querySelector("[data-card-page]") || document.querySelector("[data-record-page]");
+    state.record = Boolean(state.root && state.root.hasAttribute("data-record-page"));
     if (!state.root) return false;
     var element = byId(BLOCK_ID);
     var block = element ? parseBlock(element.textContent) : null;
@@ -617,6 +622,12 @@
     state.path = (init.file && init.file.path) || "";
     var file = byId("card-file");
     if (file && name) file.textContent = name;
+    if (state.record) {
+      var title = document.querySelector("#bar strong");
+      if (title) title.textContent = "记录";
+      var send = byId("card-send");
+      if (send) send.hidden = true;
+    }
     var bar = byId("card-savebar");
     if (bar) bar.hidden = false;
     var noHost = byId("card-no-host");

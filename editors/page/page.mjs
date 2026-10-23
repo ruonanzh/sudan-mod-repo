@@ -736,6 +736,20 @@ function bodyFor(kind, record, modDir) {
 }
 
 
+/**
+ * A whole page for one record of any kind `bodyFor` knows: the preview writes these into a
+ * mod's `.preview/` so the app can open them the same way it opens a card page.
+ */
+export function recordPageHtml({ kind, id, record, modDir }) {
+  const body = bodyFor(kind, record, modDir);
+  const label = { rite: "仪式", event: "事件", loot: "战利品表", quest: "任务", over: "结局", afterStory: "后日谈", upgrade: "命运商店", tag: "标签", init: "开局" }[kind] || kind;
+  return pageHtml({
+    title: `${label} ${id}`,
+    sub: record && record.name ? String(record.name) : "",
+    body: `<div data-record-page="${esc(kind)}:${esc(id)}">${body}</div>`,
+  });
+}
+
 export function main(argv = process.argv.slice(2)) {
   const kind = argv[0];
   const args = parseArgs(argv.slice(1));
