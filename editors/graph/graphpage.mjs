@@ -725,6 +725,8 @@ function dispLabel(n) {
 function listRows() {
   const q = qEl.value.trim().toLowerCase();
   const rows = visible().filter((n) => {
+    // A card is never part of the story flow; under the mod filter it would only add noise.
+    if (cat === "mod" && n.t === "card") return false;
     if (!q) return true;
     // The note is searched too: it is what the row shows, and it is Chinese only, so it would
     // otherwise vanish from search whenever another language is on screen.
@@ -1087,7 +1089,7 @@ function panelHtml(n) {
 // A page opened from disk has no editor server behind it, and fetch() there is a CORS failure:
 // the panel printed "Failed to fetch" where the file should be. The page already hides 编辑 off
 // the server, so it says where the file can be read instead of asking for it.
-const NO_SERVER_TEXT = "这一页只能看。节点所在的文件要用 node tools/editor.mjs 打开。";
+
 
 // The file that holds a node, as the server reads it. Reading is allowed on a read-only
 // page: only a write needs a mod to land in.
@@ -1155,7 +1157,8 @@ async function fillSource(key) {
   const node = await nodeSource(key);
   if (!document.getElementById("srcpane")) return; // the reader moved on while this was in flight
   if (node.noServer) {
-    pane.innerHTML = '<div class="note" style="margin-top:0">' + escHtml(NO_SERVER_TEXT) + "</div>";
+    // No local server: the panel's own text is the whole page. Nothing to explain here.
+    pane.innerHTML = "";
     return;
   }
   if (!node.ok) {
@@ -1191,14 +1194,18 @@ window.__openNode = (key) => {
   // The node's own reading first, then the file it lives in: one column, so the panel stays a
   // column beside the canvas instead of a sheet over it.
   box.innerHTML =
-    '<div class="drawerbar"><button id="panelclose" class="pill">关闭</button></div>' +
+    '<div class="drawerbar"><button id="panelexpand" class="pill">展开</button>' +
+    '<button id="panelshink" class="pill">缩小</button>' +
+    '<button id="panelclose" class="pill">关闭</button></div>' +
     '<div class="editsplit">' +
     '<div class="editview" id="panelview">' +
     (ok ? "" : '<div class="note bad">' + escHtml(missingDetailText()) + "</div>") +
     panelHtml(nodeOf(key)) + "</div>" +
     '<div class="editsrc" id="srcpane"></div>' +
     "</div>";
-  document.getElementById("panelclose").onclick = closePanel;
+  document.getElementById("panelexpand").onclick = () => { document.getElementById("modal").classList.add("expanded"); };
+document.getElementById("panelshink").onclick = () => { document.getElementById("modal").classList.remove("expanded"); };
+document.getElementById("panelclose").onclick = closePanel;
   openPanel();
   box.querySelectorAll("[data-go]").forEach((a) => {
     a.onclick = (e) => {
@@ -1237,6 +1244,8 @@ function focusFromHash() {
   if (key && byKey.has(key)) focusNode(key);
 }
 focusFromHash();
+// The page exists to explain one record: open its detail before the reader asks.
+if (selected && byKey.has(selected)) window.__openNode(selected);
 if (typeof window.addEventListener === "function") window.addEventListener("hashchange", focusFromHash);
 
 // The lane layout is shared source: the page and the tests run the same text.
@@ -1281,7 +1290,7 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
       <div class="gcanvas"><div id="cy"></div></div>
     </div>
     <div class="note" id="cap">点左边或图上的节点，从这里开始画</div>
-    <div class="note">滚轮缩放、拖动平移，点节点打开编辑页。<span id="count"></span></div>
+    <div class="note">滚轮缩放、拖动平移。单击选中节点，双击或点列表打开详情。<span id="count"></span></div>
   </div>
   <div id="modal" class="modal" hidden><div class="modal-body" id="modal-body"></div></div>
 </div>
@@ -1343,6 +1352,8 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
 .modal { flex: 0 1 min(620px, 44vw); position: sticky; top: 12px; max-height: 92vh; overflow-y: auto; background: var(--panel); border: 1px solid var(--rule); }
 .modal[hidden] { display: none; }
 .modal-body { padding: 14px 16px; }
+.modal:not(.expanded) .panel p, .modal:not(.expanded) .panel pre { max-height: 6.5em; overflow: hidden; }
+.modal.expanded .panel p, .modal.expanded .panel pre { max-height: none; }
 .drawerbar { display: flex; justify-content: flex-end; margin: 0 0 6px; }
 .editsplit { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-items: start; }
 .editview { padding-bottom: 10px; border-bottom: 1px solid #2f2a24; }

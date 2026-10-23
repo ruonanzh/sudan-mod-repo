@@ -351,6 +351,14 @@ test("both vendored libraries travel as one file, and nothing is fetched from th
 });
 
 // ---------------------------------------------------------------- step 1: the renderer
+test("the page opens on its focus record's detail, and the list drops cards under mod", { skip }, () => {
+  const script = pageScript("graph.data.js", true, "graph.detail.js");
+  assert.match(script, /window\.__openNode\(selected\)/, "the detail opens without a click");
+  assert.match(script, /cat === "mod" && n\.t === "card"/, "a card never appears in the mod list");
+  assert.match(script, /panelexpand/, "the panel can expand");
+  assert.match(script, /panelshink/, "and shrink back");
+});
+
 test("the page's own script parses, because a broken string is a blank page", { skip }, () => {
   const script = pageScript("graph.data.js", true, "graph.detail.js");
   assert.doesNotThrow(() => new Function(script), "the generated inline script must be valid JS");
@@ -576,13 +584,13 @@ test("the detail file arrives as a script tag, never as a request", { skip }, ()
   assert.match(html, /const DETAIL_URL = "graph\.detail\.js"/, "the name is the file beside the page");
 });
 
-test("a page opened from disk fetches nothing, and says where the file can be read", { skip }, async () => {
+test("a page opened from disk fetches nothing and keeps the source column quiet", { skip }, async () => {
   const { win, els, fetched } = mount(graph(), { protocol: "file:" });
   win.__openNode("event:5300090");
   await tick();
   assert.deepEqual(fetched, [], "a file:// page has no server to ask");
   const right = els.get("srcpane").innerHTML;
-  assert.match(right, /node tools\/editor\.mjs/, "it names the thing that can read the file");
+  assert.equal(right, "", "the source column has nothing to show and nothing to explain");
   assert.doesNotMatch(right, /Failed to fetch/, "and not the browser's CORS error");
   assert.match(els.get("modal-body").innerHTML, /<h3>描述<\/h3>/, "the panel's text still arrives, from graph.detail.js");
 });
