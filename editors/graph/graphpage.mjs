@@ -1400,7 +1400,7 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
     ? `<div class="wrap" style="padding-bottom:32px">
 <h2>要改什么</h2>
 <p class="note" style="margin-top:0">用平时的话说就行，例如「第二个结算改成给一张卡」。Agent 会按这句话改记录，再重新生成这一页。</p>
-<textarea id="record-prompt" rows="4" placeholder="例如：这句台词再狠一点；每 3 回合改成每 5 回合"></textarea>
+<textarea id="record-prompt" data-record="${esc(focus || "")}" rows="4" placeholder="例如：这句台词再狠一点；每 3 回合改成每 5 回合"></textarea>
 <div class="savebar" style="margin-top:8px;display:flex;align-items:center;gap:10px">
 <button class="pill" id="record-notify" type="button">发送给 Agent</button>
 <span class="note" id="record-status"></span>

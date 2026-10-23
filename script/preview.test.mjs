@@ -105,7 +105,11 @@ test("a mod of only events gets one story graph that opens on the record named b
   assert.match(read(path.join(out, "event-9000001.focus.js")), /__GRAPH_FOCUS__ = "event:9000001"/);
   assert.match(record, /<script src="record-prompt\.js"><\/script>/, "and it carries the prompt box's script");
   assert.match(record, /id="record-prompt"/, "the box the player types into");
-  assert.match(read(path.join(out, "record-prompt.js")), /pi:preview-prompt/, "which talks to the app");
+  const promptJs = read(path.join(out, "record-prompt.js"));
+  assert.match(promptJs, /pi:preview-prompt/, "which talks to the app");
+  assert.match(promptJs, /\/record-edited /, "and sends a command the agent has a template for");
+  assert.match(promptJs, /要改的地方：「/, "with the sentence the player typed");
+  assert.match(record, /data-record="event:9000001"/, "the page knows which record it belongs to");
   assert.match(r.stdout, /event-9000001\.record\.html/, "the run lists the record page");
   assert.match(r.stdout, /graph\.html#event:9000001/, "the run prints the graph link too");
   assert.match(r.stdout, /graph\.html/, "the run names the story graph it wrote");

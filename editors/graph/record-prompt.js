@@ -48,8 +48,14 @@
       say("先写一句你想改什么。");
       return;
     }
+    var record = box.getAttribute("data-record") || "";
     button.disabled = true;
     say("已发送，等 agent 回话…");
-    window.parent.postMessage({ type: "pi:preview-prompt", text: text }, "*");
+    // The command names the record, so the prompt template can find its file without the page
+    // knowing its own path (a preview URL is a token, not a path).
+    window.parent.postMessage(
+      { type: "pi:preview-prompt", text: "/record-edited " + record + "\n要改的地方：「" + text + "」" },
+      "*"
+    );
   });
 })();
