@@ -96,7 +96,9 @@ description: >
 | `config/over_music_config.json` | 结局音乐映射 | 少改 |
 | `config/sfx_settle_card_new.json` | 结算新卡音效映射 | 少改 |
 
-五种常用的放在前六行：加卡看 `cards.json`，加剧情看 `event/`，加玩法看 `rite/`，让玩家拿到看 `upgrade.json`，奖励看 `loot/`。这五项之外的条目，先确认真的需要再写。
+前六行是常改的六项：`cards.json`（加卡、改数值）、`rite/`（加玩法）、`event/`（加剧情）、`upgrade.json`（放进命运商店）、`tag.json`（新卡要用的状态与属性）、`loot/`（仪式或事件的奖励）。这六项之外的条目，先确认真的需要再写。
+
+发卡有三条路：命运商店（`upgrade.json`）、事件结算、战利品表。只做命运商店条目时，玩家要自己攒够资源才会看到那张卡。
 
 下面这些游戏自己也读，但**不可 mod**。玩家要求改这些时，直接说作为 mod 做不到：
 
