@@ -526,7 +526,13 @@
   function reloadFromDisk() {
     request("editor:readFile", {}).then(function (response) {
       if (!response || response.code) {
-        setStatus("读不到这一页：" + ((response && (response.message || response.code)) || "未知错误"), "error");
+        var why = String((response && (response.message || response.code)) || "");
+        setStatus(
+          /ENOENT|not found/i.test(why)
+            ? "这一页已经不在磁盘上了（可能被删除或换了名字）。关掉这个标签页即可。"
+            : "读不到这一页：" + (why || "未知错误"),
+          "error"
+        );
         return;
       }
       state.text = typeof response.data === "string" ? response.data : "";
