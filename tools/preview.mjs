@@ -10,7 +10,6 @@
  *
  *   graph.html          the story graph, for a rite's or an event's place in the story around it
  *   <id>.card.html      one page per card: the card page editors/page/page.mjs renders, as controls
- *   index.html          every record the mod carries, one row each, linked to its page
  *
  * Which records exist is read from schema/layout.json — the table model.mjs reads and a test
  * keeps in step with lint — so a kind added there shows up here without a second mapping.
@@ -46,24 +45,6 @@ const CARD_TABLE = LAYOUT.table.card.file;
 /** Kinds the story graph draws. The rest of a mod is listed in the index and has no page. */
 const GRAPH_KINDS = new Set(["event", "rite", "loot", "quest", "over", "afterStory", "riteTemplate"]);
 
-const KIND_LABEL = {
-  card: "卡",
-  upgrade: "升级",
-  tag: "标签",
-  quest: "任务",
-  over: "结局",
-  event: "事件",
-  rite: "仪式",
-  loot: "掉落表",
-  init: "初始配置",
-  riteTemplate: "棋盘布局",
-  afterStory: "后日谈",
-  dtRoot: "对话树",
-  wizard: "向导",
-  game: "游戏设置",
-  riteMapping: "棋盘映射",
-  sfxTop: "音效",
-};
 
 /** A record's own name: a card and a rite carry one, an event's designer note is its identity. */
 function nameOf(rec) {
@@ -109,60 +90,6 @@ export function modRecords(modDir) {
   return out;
 }
 
-/** The page a record is shown on, or null when no view shows this kind. */
-function pageOf(record, pages) {
-  if (record.kind === "card") return `${record.id}.card.html`;
-  return GRAPH_KINDS.has(record.kind) ? pages.graph : null;
-}
-
-/**
- * index.html: the player's list. Every record the mod carries is a row, so nothing the mod
- * changes is hidden; a kind with no view says so instead of linking nowhere.
- */
-function indexHtml({ modName, records, pages }) {
-  const counts = new Map();
-  for (const r of records) counts.set(r.kind, (counts.get(r.kind) || 0) + 1);
-  const summary = [...counts.entries()]
-    .map(([kind, n]) => `<span class="pill on">${esc(KIND_LABEL[kind] || kind)} ${n}</span>`)
-    .join(" ");
-  const hasCards = records.some((r) => r.kind === "card");
-  const rows = records
-    .map((r) => {
-      const page = pageOf(r, pages);
-      const action = page
-        ? `<a href="${esc(page)}">打开</a>`
-        : '<span class="note">这类记录没有预览页</span>';
-      return (
-        `<tr data-record="${esc(r.kind)}:${esc(r.id)}">` +
-        `<td>${esc(KIND_LABEL[r.kind] || r.kind)}</td>` +
-        `<td><code>${esc(r.id)}</code></td>` +
-        `<td class="txt">${esc(r.name)}</td>` +
-        `<td>${action}</td>` +
-        "</tr>"
-      );
-    })
-    .join("\n");
-  const cardNote = hasCards
-    ? `<p class="note">卡页可以在 app 里用「${esc(CARD_PAGE_EDITOR.name)}」打开：保存只写入那一页自己的值块。写回 <code>${esc(CARD_TABLE)}</code> 用 <code>node tools/preview.mjs --apply --mod your_mods/&lt;ModName&gt;</code>，只写改过的键。</p>`
-    : "";
-  const body = `
-<div class="panel">
-<p class="note" style="margin-top:0">这些页只说明改动长什么样。能不能加载，要把它装进游戏、在游戏内的面板里启用之后才知道。</p>
-${cardNote}
-<p>${summary}</p>
-<table>
-<tr><th>类型</th><th>id</th><th>名字</th><th></th></tr>
-${rows}
-</table>
-</div>
-${pages.graph ? '<p class="note">剧情图是两个文件：graph.html 画图，graph.detail.js 是它要读的正文。两个放在一起，页面才完整。</p>' : ""}`;
-  return pageHtml({
-    title: `${modName} · 预览`,
-    sub: `${records.length} 条记录`,
-    body,
-    extraCss: `.panel a { color: var(--gold); }`,
-  });
-}
 
 function parseArgs(argv) {
   const out = { modDir: null, focus: null, out: null, vanilla: null, collect: false, apply: false };
@@ -388,7 +315,7 @@ function main() {
   const picked = focus ? records.find((r) => `${r.kind}:${r.id}` === focus) : null;
   if (focus && !picked) {
     process.stdout.write(`FAIL  focus ${focus} is not a record this mod carries\n`);
-    process.stdout.write("NEXT  run this without --focus, open index.html, then pass the kind:id of a row\n");
+    process.stdout.write("NEXT  run this without --focus, then pass the kind:id of a record this mod carries\n");
     return 1;
   }
 
@@ -399,7 +326,7 @@ function main() {
     `PASS  ${displayPath(modDir)}  (records ${records.length}: ${[...counts.entries()].map(([k, n]) => `${k} ${n}`).join(", ")})\n`
   );
 
-  const pages = { graph: null };
+  const pages = { graph: null, files: [] };
   const focusFlag = picked ? ["--focus", `${picked.kind}:${picked.id}`] : [];
 
   if (cards.length) {
@@ -417,6 +344,7 @@ function main() {
       const previous = existsSync(file) ? readPageValues(readFileSync(file, "utf8")) : null;
       try {
         writeFileSync(file, cardPageHtml({ id: card.id, record, modDir, previous }));
+        pages.files.push(file);
         written += 1;
       } catch (e) {
         process.stdout.write(`FAIL  could not write ${path.basename(file)}: ${e.message || e}\n`);
@@ -443,13 +371,18 @@ function main() {
       return 1;
     }
     pages.graph = path.basename(file);
+    pages.files.push(file);
     process.stdout.write(`PASS  wrote ${displayPath(file)}\n`);
   }
 
-  const index = path.join(outDir, "index.html");
-  writeFileSync(index, indexHtml({ modName, records, pages }));
-  process.stdout.write(`PASS  wrote ${displayPath(index)}\n`);
-  process.stdout.write(`NEXT  open ${displayPath(index)} in a browser\n`);
+  const written = pages.files || [];
+  if (written.length) {
+    process.stdout.write(`PASS  ${written.length} page(s):\n`);
+    for (const f of written) process.stdout.write(`  ${displayPath(f)}\n`);
+    process.stdout.write("NEXT  give these paths to the player, one per line, and say which record each one shows\n");
+  } else {
+    process.stdout.write("PASS  nothing to write: this mod carries no record that has a page\n");
+  }
   if (cards.length) {
     process.stdout.write(
       `NEXT  to change a card, open its card page in the app: it opens with ${CARD_PAGE_EDITOR.id}\n`,

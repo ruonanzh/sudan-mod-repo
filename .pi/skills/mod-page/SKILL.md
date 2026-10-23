@@ -44,7 +44,6 @@ node tools/preview.mjs --mod your_mods/<ModName>
 
 | 文件 | 内容 |
 |---|---|
-| `index.html` | 这个 mod 改过的全部记录，一行一条 |
 | `<id>.card.html` | 每张卡一页：卡面、画面段、字段表单、开关标签表、数值标签表 |
 | `graph.html` + `graph.detail.js` | 剧情图，仪式与事件用它看位置 |
 
@@ -65,7 +64,7 @@ node tools/preview.mjs --mod your_mods/<ModName>
 
 | 要做什么 | 用哪条 |
 |---|---|
-| 给玩家看这个 mod 改了什么，并让他在卡页上改值 | `preview.mjs`（一条命令出全部页面与 `index.html`） |
+| 给玩家看这个 mod 改了什么，并让他在卡页上改值 | `preview.mjs`（一条命令出全部页面，并把每页路径打印出来） |
 | 讨论一个**还没写进 mod** 的方案 | `page.mjs --spec`（不落盘，副标题标「提案」） |
 | 只看一条记录（仪式、事件、掉落、任务、结局、升级、标签、开局） | `page.mjs <kind> --id <id>` |
 

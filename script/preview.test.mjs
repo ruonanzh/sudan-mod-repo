@@ -77,12 +77,10 @@ test("a mod of only cards writes one page per card, and the index links them", (
   assert.ok(existsSync(path.join(out, "9000002.card.html")));
   assert.equal(existsSync(path.join(out, "cards.html")), false, "no page for the whole table");
   assert.equal(existsSync(path.join(out, "graph.html")), false, "a mod with no story record gets no story graph");
-  const index = read(path.join(out, "index.html"));
-  assert.match(index, /href="9000001\.card\.html"/, "the index links the first card page");
-  assert.match(index, /href="9000002\.card\.html"/);
-  assert.match(index, /「苏丹的卡页」/, "the card page editor is named as the way to edit a card");
-  assert.match(index, /--apply/, "and the index says how values get back into cards.json");
-  assert.match(r.stdout, /2 card page\(s\)/, "the run says how many pages it wrote");
+  assert.equal(existsSync(path.join(out, "index.html")), false, "there is no list page to open as source");
+  assert.match(r.stdout, /2 page\(s\)/, "the run says how many pages it wrote");
+  assert.match(r.stdout, /9000001\.card\.html/, "and names each page, so the agent can pass the paths on");
+  assert.match(r.stdout, /9000002\.card\.html/);
 });
 
 test("a mod of only events gets one story graph that opens on the record named by --focus", { skip }, () => {
@@ -96,10 +94,10 @@ test("a mod of only events gets one story graph that opens on the record named b
   assert.match(page, /"focus":"event:9000001"/, "the page opens on the record preview was asked for");
   assert.match(page, /"mod":true/, "the mod's record is flagged in the payload");
   assert.equal(existsSync(path.join(out, "cards.html")), false, "no card page for a mod with no cards");
-  assert.match(read(path.join(out, "index.html")), /graph\.html/, "the index links the story graph");
+  assert.match(r.stdout, /graph\.html/, "the run names the story graph it wrote");
 });
 
-test("the index lists every record the mod carries, one row each", { skip }, () => {
+test("the run lists every page it wrote, one line each", { skip }, () => {
   const dir = mod({
     "config/cards.json": { 9000001: CARD },
     "config/event/9000001.json": eventAt(9000001, "事件一"),
@@ -108,15 +106,10 @@ test("the index lists every record the mod carries, one row each", { skip }, () 
   });
   const r = run(["--mod", dir]);
   assert.equal(r.status, 0, r.stdout + r.stderr);
-  const index = read(path.join(dir, ".preview", "index.html"));
-  assert.equal((index.match(/data-record="[^"]+"/g) || []).length, 4, "one row per record, cards and story records alike");
-  for (const key of ["card:9000001", "event:9000001", "event:9000002", "rite:9000003"]) {
-    assert.ok(index.includes(`data-record="${key}"`), `the index names ${key}`);
-  }
-  assert.match(index, /graph\.html/, "story rows link the story graph");
-  const cardRow = index.split("\n").find((line) => line.includes('data-record="card:9000001"'));
-  assert.match(cardRow, /9000001\.card\.html/, "the card row links its own page");
-  assert.doesNotMatch(index, /cards\.html/, "no record links a card page");
+  assert.equal(existsSync(path.join(dir, ".preview", "index.html")), false, "no list page");
+  assert.match(r.stdout, /9000001\.card\.html/, "the card page is named");
+  assert.match(r.stdout, /graph\.html/, "the story graph is named");
+  assert.doesNotMatch(r.stdout, /cards\.html/, "a card table gets no page of its own");
 });
 
 test("--out decides where the pages land, and the default directory is left alone", { skip }, () => {
@@ -124,8 +117,9 @@ test("--out decides where the pages land, and the default directory is left alon
   const out = path.join(mkdtempSync(path.join(tmpdir(), "preview-out-")), "pages");
   const r = run(["--mod", dir, "--out", out]);
   assert.equal(r.status, 0, r.stdout + r.stderr);
-  assert.equal(existsSync(path.join(out, "index.html")), true);
+  assert.equal(existsSync(path.join(out, "index.html")), false, "no list page is written");
   assert.equal(existsSync(path.join(out, "graph.html")), true);
+  assert.match(r.stdout, /graph\.html/, "the run names the page it wrote under --out");
   assert.equal(existsSync(path.join(dir, ".preview")), false);
 });
 

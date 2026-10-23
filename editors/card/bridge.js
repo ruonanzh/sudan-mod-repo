@@ -481,6 +481,21 @@
     });
   }
 
+  /** The page on disk was regenerated (the agent applied a value): reload when nothing is unsaved. */
+  function checkDisk() {
+    if (!state.host) return;
+    request("editor:readFile", {}).then(function (response) {
+      if (!response || response.code) return;
+      var revision = response.revision || null;
+      if (!revision || revision === state.revision) return;
+      if (state.dirty) {
+        setStatus("磁盘上这一页已经更新。重新加载会丢掉未保存的改动。", "dirty");
+        return;
+      }
+      location.reload();
+    });
+  }
+
   function loadHost() {
     request("editor:readFile", {}).then(function (response) {
       if (!response || response.code) {
@@ -628,6 +643,16 @@
 
   var saveButton = byId("card-save");
   if (saveButton) saveButton.addEventListener("click", save);
+
+  var reloadButton = byId("card-reload");
+  if (reloadButton) {
+    reloadButton.addEventListener("click", function () {
+      if (state.dirty && !window.confirm("这一页有未保存的改动，重新加载会丢掉它们。继续？")) return;
+      location.reload();
+    });
+  }
+  // The agent may rebuild this file after applying a value: a reload on focus shows the new one.
+  if (isHost) window.addEventListener("focus", checkDisk);
 
   if (isHost) {
     paintStatus();
