@@ -335,8 +335,58 @@
     });
     wireNotifyButtons();
     wireRecordAsk();
+    drawMiniGraph();
   }
 
+
+  /* ---------- the record page's small graph ---------- */
+
+  /**
+   * Inline scripts in a mounted page never run (the editor mounts HTML, not a document), and the
+   * editor's CSP forbids them anyway. So the picture is drawn here, from the JSON block the page
+   * carries, with the cytoscape copy that ships beside this file.
+   */
+  function drawMiniGraph() {
+    var host = document.querySelector("[data-mini-graph]");
+    var block = byId("mini-graph-data");
+    if (!host || !block || !window.cytoscape) return;
+    var G;
+    try {
+      G = JSON.parse(block.textContent || "{}");
+    } catch (e) {
+      return;
+    }
+    if (!G.nodes || !G.nodes.length) return;
+    var cy = window.cytoscape({
+      container: host,
+      elements: G.nodes
+        .map(function (n) {
+          return { data: { id: n.k, label: (n.l || n.k) + "\n" + n.k, focus: !!n.focus } };
+        })
+        .concat(
+          (G.edges || []).map(function (e, i) {
+            return { data: { id: "e" + i, source: e.f, target: e.t, label: e.r || "" } };
+          })
+        ),
+      style: [
+        { selector: "node", style: { "background-color": "#3a3226", "border-width": 2, "border-color": "#7a6640", "label": "data(label)", "color": "#efe3c8", "font-size": 11, "text-wrap": "wrap", "text-max-width": 120, "text-valign": "center", "text-halign": "center", width: 96, height: 42, shape: "round-rectangle" } },
+        { selector: "node[focus]", style: { "border-color": "#c9a227", "border-width": 3 } },
+        { selector: "edge", style: { "line-color": "#57452c", "target-arrow-color": "#57452c", "target-arrow-shape": "triangle", "width": 1, "curve-style": "bezier", label: "data(label)", "font-size": 9, color: "#b9a887", "text-background-color": "#1a1510", "text-background-opacity": 0.85, "text-background-padding": 2 } },
+      ],
+      layout: { name: "breadthfirst", directed: true, padding: 12, spacingFactor: 1.1 },
+      wheelSensitivity: 0.2,
+      userZoomingEnabled: true,
+      userPanningEnabled: true,
+    });
+    cy.ready(function () {
+      var focus = cy.nodes().filter(function (n) {
+        return G.nodes.some(function (x) {
+          return x.k === n.id() && x.focus;
+        });
+      });
+      if (focus.length) cy.fit(focus, 90);
+    });
+  }
 
   /* ---------- the record page's plain-language box ---------- */
 
