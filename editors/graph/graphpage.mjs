@@ -1027,9 +1027,11 @@ function riteFacts(n) {
   return bits.map((t) => " · " + escHtml(t)).join("");
 }
 
-function panelHtml(n) {
-  const out = outOf(n.k).slice(0, 30);
-  const inc = inOf(n.k).slice(0, 30);
+let expandAll = false;
+function panelHtml(n, all = expandAll) {
+  const lim = all ? Infinity : 30;
+  const out = outOf(n.k).slice(0, lim);
+  const inc = inOf(n.k).slice(0, lim);
   const nb = descBlock(n);
   const title = dispLabel(n);
   const sec = (t, body) => "<h3>" + escHtml(t) + "</h3>" + body;
@@ -1200,7 +1202,7 @@ window.__openNode = (key) => {
     '<div class="editsplit">' +
     '<div class="editview" id="panelview">' +
     (ok ? "" : '<div class="note bad">' + escHtml(missingDetailText()) + "</div>") +
-    panelHtml(nodeOf(key)) + "</div>" +
+    panelHtml(nodeOf(key), expandAll) + "</div>" +
     '<div class="editsrc" id="srcpane"></div>' +
     "</div>";
 (function () {
@@ -1213,8 +1215,19 @@ window.__openNode = (key) => {
     if (cy) setTimeout(function () { cy.resize(); cy.fit(undefined, 40); }, 30);
   };
 })();
-document.getElementById("panelexpand").onclick = () => { document.getElementById("modal").classList.add("expanded"); };
-document.getElementById("panelshink").onclick = () => { document.getElementById("modal").classList.remove("expanded"); };
+document.getElementById("panelexpand").onclick = () => {
+  expandAll = true;
+  document.getElementById("modal").classList.add("expanded");
+  // Redraw the panel in place: every relation the node has, not the first 30.
+  var view = document.getElementById("panelview");
+  if (view && selected) view.innerHTML = panelHtml(nodeOf(selected), true);
+};
+document.getElementById("panelshink").onclick = () => {
+  expandAll = false;
+  document.getElementById("modal").classList.remove("expanded");
+  var view = document.getElementById("panelview");
+  if (view && selected) view.innerHTML = panelHtml(nodeOf(selected), false);
+};
 document.getElementById("panelclose").onclick = closePanel;
   openPanel();
   box.querySelectorAll("[data-go]").forEach((a) => {
@@ -1322,12 +1335,14 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
 .ctl label, .ctl { white-space: nowrap; }
 .ctl { display: flex; gap: 12px; align-items: center; margin-left: auto; }
 .ctl input[type=text] { width: 240px; }
-.gmain { display: grid; grid-template-columns: clamp(270px, 28%, 340px) 1fr; gap: 12px; height: 78vh; }
+.gmain { display: grid; grid-template-columns: clamp(270px, 28%, 340px) 1fr; grid-template-rows: minmax(0, 1fr); gap: 12px; height: 78vh; }
 /* With the panel open the controls wrap onto a second row, so the drawing area gives up that
    much height: the list and the canvas stay inside the window instead of running past it. */
 .gshell:has(#modal:not([hidden])) .gmain { height: calc(100vh - 285px); }
-.glist { overflow: auto; border: 1px solid var(--rule); background: var(--panel); }
+.glist { flex: 1 1 auto; overflow: auto; min-height: 0; border: 1px solid var(--rule); background: var(--panel); }
 .glistwrap[hidden] { display: none; }
+.glistwrap { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.gmain { min-height: 0; }
 .gmain.nolist { grid-template-columns: 1fr; }
 .gmain.nolist .glistwrap { display: none; }
 .glist .row { display: grid; grid-template-columns: 76px 1fr; gap: 8px; padding: 4px 8px; cursor: pointer; border-bottom: 1px solid #2f2a24; }

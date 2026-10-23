@@ -356,6 +356,7 @@ test("the page opens on its focus record's detail, and the list drops cards unde
   assert.match(script, /window\.__openNode\(selected\)/, "the detail opens without a click");
   assert.match(script, /cat === "mod" && n\.t === "card"/, "a card never appears in the mod list");
   assert.match(script, /panelexpand/, "the panel can expand");
+  assert.match(script, /panelHtml\(nodeOf\(selected\), true\)/, "expanding shows every relation, not the first 30");
   assert.match(script, /panelshink/, "and shrink back");
 });
 
