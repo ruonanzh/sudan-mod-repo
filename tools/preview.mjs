@@ -37,6 +37,7 @@ import { buildGraph } from "./graph.mjs";
 import { writePage as writeGraphPage } from "../editors/graph/graphpage.mjs";
 import { applyCardValues, cardPageHtml, missingValues, pendingValues, readPageValues } from "../editors/card/page.mjs";
 import { recordPageHtml } from "../editors/page/page.mjs";
+import { formPageHtml, formPageScript, FORM_FIELDS } from "../editors/page/formpage.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const LAYOUT = JSON.parse(readFileSync(new URL("../schema/layout.json", import.meta.url), "utf8"));
@@ -360,6 +361,7 @@ function main() {
 
   const pages = { graph: null, files: [] };
   let recordCount = 0;
+  let formCount = 0;
   const vanilla = vanillaIds(requirement.dir);
   const originOf = (kind, id) => (vanilla.get(kind) && vanilla.get(kind).has(String(id)) ? "override" : "new");
   const focusFlag = picked ? ["--focus", `${picked.kind}:${picked.id}`] : [];
@@ -419,6 +421,36 @@ function main() {
     // The prompt box's script: the HTML preview forbids inline scripts, so it ships as a file.
     writeFileSync(path.join(outDir, "record-prompt.js"), readFileSync(new URL("../editors/graph/record-prompt.js", import.meta.url)));
     if (recordCount) process.stdout.write(`PASS  ${recordCount} record page(s) in ${displayPath(outDir)}\n`);
+  }
+
+  // Loot and fate-shop entries get a form page like a card's: few fields, one button, the agent
+  // writes the values back.
+  const formKinds = Object.keys(FORM_FIELDS);
+  const formList = records.filter((r) => formKinds.includes(r.kind) && CARD_ID_FILE.test(String(r.id)));
+  if (formList.length) {
+    for (const r of formList) {
+      const file = path.join(outDir, `${r.id}.${r.kind}.html`);
+      try {
+        writeFileSync(
+          file,
+          formPageHtml({
+            kind: r.kind,
+            id: r.id,
+            record: r.record,
+            origin: originOf(r.kind, r.id),
+            recordKey: `${r.kind}:${r.id}`,
+          }),
+        );
+        pages.files.push(file);
+        formCount += 1;
+      } catch (e) {
+        process.stdout.write(`FAIL  could not write ${path.basename(file)}: ${e.message || e}\n`);
+        process.stdout.write("NEXT  add the missing label to schema/view/field-labels.json, then run this again\n");
+        return 1;
+      }
+    }
+    writeFileSync(path.join(outDir, "form-page.js"), formPageScript());
+    if (formCount) process.stdout.write(`PASS  ${formCount} form page(s) in ${displayPath(outDir)}\n`);
   }
 
   if (story.length) {

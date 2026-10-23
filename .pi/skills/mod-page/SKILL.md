@@ -42,6 +42,8 @@ node tools/preview.mjs --mod your_mods/<ModName>
 |---|---|
 | `<id>.card.html` | 每张卡一页：卡面、画面段、字段表单、开关标签表、数值标签表 |
 | `<kind>-<id>.record.html` | 完整剧情图，打开即聚焦这条记录；图下方是「要改什么」输入框 |
+| `<id>.loot.html` | 一张战利品表：标量字段 + 可增删的 item 行 |
+| `<id>.upgrade.html` | 一条命运商店条目：标量字段 + 三个 JSON 文本框 |
 | `graph.html` + `graph.detail.js` | 剧情图，仪式与事件用它看位置 |
 
 卡页每一行是「键名 + 中文标签 + 一句说明」。取值有限的字段用下拉，选项多的用可筛选输入框。开关标签用复选框，数值标签用数字框。原版范围只作建议，不限制输入。
@@ -123,6 +125,17 @@ node tools/page.mjs <kind> --mod your_mods/<ModName> --id <id> --out your_mods/<
 ```
 
 agent 按 `.pi/prompts/record-edited.md` 执行：找到 `config/<kind>/<id>.json`，只改这一份记录，跑 `validate_mod`，重跑 `preview.mjs`，然后回一句话与新的相对路径。玩家的话有歧义时先问，不猜。
+
+## 战利品表与命运商店
+
+这两页和卡页一样是可编辑表单：改完点「发送给 Agent」，会话收到
+
+```
+/page-edited loot:6000777
+改动：{"repeat":5,"item":[{"type":2,"id":2000001,"num":1,"weight":99}]}
+```
+
+只有改动过的键在「改动」里。agent 按 `.pi/prompts/page-edited.md` 用 `tools/jsonc.mjs` 做 span 写回，再跑 `validate_mod` 与 `preview.mjs`。
 
 ## 玩家回话之后
 
