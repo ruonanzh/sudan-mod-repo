@@ -818,14 +818,15 @@ test("the wrapper loads one external script, and the page carries that same scri
   assert.equal((wrapper.match(/<script/g) || []).length, 1, "one script tag");
   assert.match(wrapper, /<script src="bridge\.js"><\/script>/, "an external script: the CSP forbids inline ones");
   assert.match(wrapper, /id="card-host"/, "the wrapper has a place for the card page");
-  assert.match(wrapper, /id="card-send"/, "the wrapper has the one send button");
-  assert.match(wrapper, /id="card-reload"/);
+  assert.match(wrapper, /<header id="bar"><\/header>/, "the header is built by the one script");
   assert.doesNotMatch(wrapper, /id="card-save"/, "no separate save button");
 
   const bridge = readFileSync(path.join(TOOL_DIR, "bridge.js"), "utf8");
   assert.match(bridge, /"editor:readFile"/);
   assert.match(bridge, /"editor:save"/);
   assert.match(bridge, /DOMParser/, "the wrapper mounts the page it read");
+  assert.match(bridge, /id="card-send"/, "the shared header carries the send action");
+  assert.match(bridge, /id="card-reload"/, "and the reload action");
   assert.ok(page().includes(bridge.trimEnd()), "each generated page embeds the bridge verbatim");
 });
 

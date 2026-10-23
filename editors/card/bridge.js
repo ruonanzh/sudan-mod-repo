@@ -612,6 +612,22 @@
     }
   }
 
+  /**
+   * The one header every mod page in this workspace uses: what is open on the left, the
+   * actions on the right. Record pages get the same bar with the send action left out.
+   */
+  function renderHeader(record) {
+    var bar = byId("bar");
+    if (!bar) return;
+    bar.innerHTML =
+      '<strong>' + (record ? "记录" : "卡页") + '</strong>' +
+      '<span id="card-file"></span>' +
+      '<span id="card-status" data-state="clean">正在读取…</span>' +
+      '<span class="grow"></span>' +
+      '<button id="card-reload" type="button">重新加载</button>' +
+      (record ? '' : '<button id="card-send" type="button" disabled>发送给 Agent</button>');
+  }
+
   function start(init) {
     if (state.started) return;
     state.started = true;
@@ -619,6 +635,8 @@
     state.writable = init.mode === "edit" && init.writable === true;
     applyTheme(init);
     var name = init.file && init.file.name;
+    state.record = /\\.record\\.html$/.test(String((init.file && init.file.path) || ""));
+    renderHeader(state.record);
     state.path = (init.file && init.file.path) || "";
     var file = byId("card-file");
     if (file && name) file.textContent = name;
