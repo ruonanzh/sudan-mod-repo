@@ -1266,7 +1266,7 @@ fewer of them.
 
 ## How the story graph is derived
 
-`schema/edges.json` declares the id spaces, the timings and the edge rules. `tools/graph.mjs`
+`schema/view/edges.json` declares the id spaces, the timings and the edge rules. `tools/graph.mjs`
 executes it; no edge rule lives in code. Counts are deliberately absent: they depend on
 whether you follow descendant keys (`case:opN`, `delay`) and whether duplicates count, so
 `node tools/graph.mjs --check` prints them instead.

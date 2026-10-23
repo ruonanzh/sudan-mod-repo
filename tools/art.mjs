@@ -63,7 +63,7 @@ const TYPE_HINT = {
   sudan: "an ornate Sultan card motif, symmetrical",
 };
 
-const CARD_ART = JSON.parse(readFileSync(new URL("../schema/card-art.json", import.meta.url), "utf8"));
+const CARD_ART = JSON.parse(readFileSync(new URL("../schema/view/card-art.json", import.meta.url), "utf8"));
 
 const STYLE_MATCH =
   "Match the reference drawing's style and palette, and keep its FULLY TRANSPARENT background: do not add any backdrop, plate or frame.";

@@ -36,8 +36,8 @@ const FIELDS = FIELDS_PATH
   : read("../schema/fields.json");
 const VOCAB = read("../schema/vocab.json");
 const SAVES = read("../schema/save-fields.json");
-const EDGES = read("../schema/edges.json");
-const CATEGORIES = read("../schema/categories.json");
+const EDGES = read("../schema/view/edges.json");
+const CATEGORIES = read("../schema/view/categories.json");
 
 /**
  * The table makes one claim per key, and this is what enforces it: every live key names the
@@ -308,7 +308,7 @@ w();
 
 w("## How the story graph is derived");
 w();
-w("`schema/edges.json` declares the id spaces, the timings and the edge rules. `tools/graph.mjs`");
+w("`schema/view/edges.json` declares the id spaces, the timings and the edge rules. `tools/graph.mjs`");
 w("executes it; no edge rule lives in code. Counts are deliberately absent: they depend on");
 w("whether you follow descendant keys (`case:opN`, `delay`) and whether duplicates count, so");
 w("`node tools/graph.mjs --check` prints them instead.");

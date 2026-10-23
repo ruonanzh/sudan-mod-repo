@@ -27,8 +27,8 @@ import { decodePng, encodePng, cropCover, overlay, solid, nineSlice, tint } from
 import { composePrompt, composeSubject, composeBoilerplate } from "../../tools/art.mjs";
 import { esc, CSS, pageHtml as shellPage } from "../lib/shell.mjs";
 
-const TAG_ROLES = JSON.parse(readFileSync(new URL("../../schema/tag-roles.json", import.meta.url), "utf8"));
-const CARD_ART = JSON.parse(readFileSync(new URL("../../schema/card-art.json", import.meta.url), "utf8"));
+const TAG_ROLES = JSON.parse(readFileSync(new URL("../../schema/view/tag-roles.json", import.meta.url), "utf8"));
+const CARD_ART = JSON.parse(readFileSync(new URL("../../schema/view/card-art.json", import.meta.url), "utf8"));
 const PLATE = ["stone", "copper", "silver", "gold"];
 
 /** Open a row's detail in the full-width row under it, where the column cannot crush it. */
@@ -91,9 +91,9 @@ const SLOTS = ["武器", "服装", "饰品", "驯兽"];
 
 // ---------------------------------------------------------------- labels
 
-let LABELS = JSON.parse(readFileSync(new URL("../../schema/field-labels.json", import.meta.url), "utf8"));
+let LABELS = JSON.parse(readFileSync(new URL("../../schema/view/field-labels.json", import.meta.url), "utf8"));
 let FIELDS = JSON.parse(readFileSync(new URL("../../schema/fields.json", import.meta.url), "utf8"));
-const OP_WORDS = JSON.parse(readFileSync(new URL("../../schema/op-words.json", import.meta.url), "utf8"));
+const OP_WORDS = JSON.parse(readFileSync(new URL("../../schema/view/op-words.json", import.meta.url), "utf8"));
 
 /** Point the page at another label table (used by the tests). */
 export function useLabels(file) {
@@ -435,7 +435,7 @@ function assertDescribed(kind, undescribed) {
   if (!undescribed.length) return;
   throw new ModelError(
     `${kind}: no label for ${undescribed.map((k) => JSON.stringify(k)).join(", ")}. ` +
-      `Add them to schema/field-labels.json; a page that prints the raw key teaches the player nothing.`,
+      `Add them to schema/view/field-labels.json; a page that prints the raw key teaches the player nothing.`,
   );
 }
 

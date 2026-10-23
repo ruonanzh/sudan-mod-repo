@@ -40,7 +40,7 @@
 | `schema/i18n.md` | 讲**游戏**怎么翻译自己的文字，与我们的写作语言无关；需要时单独定 |
 | `reference/**` | Unity 官方示例原文 |
 | `THIRD_PARTY_LICENSES.md` | 法务原文 |
-| `your_mods/**` 的配置与 `schema/field-switches.json` | 这些是**游戏/页面的数据**，不是提示词；其中的中文是给玩家看的 |
+| `your_mods/**` 的配置与 `schema/view/field-switches.json` | 这些是**游戏/页面的数据**，不是提示词；其中的中文是给玩家看的 |
 | 代码、代码注释、commit message | 按 `ste` skill 的排除项办；但工具里的 `content`/错误**字符串**属于上面的英文清单 |
 
 ## 3. 语言分界

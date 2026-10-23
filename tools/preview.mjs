@@ -409,7 +409,7 @@ function main() {
         written += 1;
       } catch (e) {
         process.stdout.write(`FAIL  could not write ${path.basename(file)}: ${e.message || e}\n`);
-        process.stdout.write("NEXT  add the missing label to schema/field-labels.json, then run this again\n");
+        process.stdout.write("NEXT  add the missing label to schema/view/field-labels.json, then run this again\n");
         return 1;
       }
     }

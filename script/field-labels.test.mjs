@@ -24,7 +24,7 @@ import path from "node:path";
 import { REPO } from "./lib/fixture.mjs";
 
 const FIELDS = JSON.parse(readFileSync(path.join(REPO, "schema/fields.json"), "utf8"));
-const LABELS_PATH = path.join(REPO, "schema/field-labels.json");
+const LABELS_PATH = path.join(REPO, "schema/view/field-labels.json");
 
 /** Research root: the planning repo, sibling of this one. */
 export const RESEARCH = path.resolve(REPO, "../desktop-gamer-agent-pi/docs/sudan-game");
@@ -48,7 +48,7 @@ function entriesOf(labels) {
 
 test("L1 the label file exists and covers every live key", () => {
   const labels = loadLabels();
-  assert.ok(labels, "schema/field-labels.json is missing");
+  assert.ok(labels, "schema/view/field-labels.json is missing");
   const missing = [];
   for (const [kind, spec] of Object.entries(FIELDS)) {
     const shared = labels._shared || {};

@@ -13,7 +13,7 @@ import { DEFAULT_VANILLA } from "./model.mjs";
 import os from "node:os";
 
 const VANILLA = String(DEFAULT_VANILLA).replace(/^~/, os.homedir());
-const CATEGORIES = JSON.parse(readFileSync(new URL("../schema/categories.json", import.meta.url), "utf8"));
+const CATEGORIES = JSON.parse(readFileSync(new URL("../schema/view/categories.json", import.meta.url), "utf8"));
 const hasGame = existsSync(VANILLA);
 const skip = hasGame ? false : "the game's config is not installed on this machine";
 
@@ -185,7 +185,7 @@ test("a node's description is its own paragraph, in every language", { skip }, (
 });
 
 test("every switch names a real field and reads in all four languages", () => {
-  const spec = JSON.parse(readFileSync(new URL("../schema/field-switches.json", import.meta.url), "utf8"));
+  const spec = JSON.parse(readFileSync(new URL("../schema/view/field-switches.json", import.meta.url), "utf8"));
   const fields = JSON.parse(readFileSync(new URL("../schema/fields.json", import.meta.url), "utf8"));
   for (const kind of ["event", "rite"]) {
     // A switch may name a legacy field: some of them are still in vanilla data and worth saying
@@ -224,7 +224,7 @@ test("a node carries the switches it sets, and only the ones we can explain", { 
 });
 
 test("the baseline file still describes a full build", { skip }, () => {
-  const base = JSON.parse(readFileSync(new URL("../schema/graph-baseline.json", import.meta.url), "utf8"));
+  const base = JSON.parse(readFileSync(new URL("../schema/view/graph-baseline.json", import.meta.url), "utf8"));
   const g = graph();
   assert.deepEqual(g.counts, base.counts, "语料变了：先确认是新数据还是新规则，再更新基线");
   assert.equal(g.edges.length, base.edges, "边数变了：这是规则改动的信号，必须是有意的");
@@ -235,7 +235,7 @@ test("the baseline file still describes a full build", { skip }, () => {
 });
 
 test("the baseline is internally consistent", { skip }, () => {
-  const base = JSON.parse(readFileSync(new URL("../schema/graph-baseline.json", import.meta.url), "utf8"));
+  const base = JSON.parse(readFileSync(new URL("../schema/view/graph-baseline.json", import.meta.url), "utf8"));
   const sum = Object.values(base.categoryCounts).reduce((a, b) => a + b, 0);
   assert.equal(sum, base.counts.event, "每个事件必须且只能属于一个分类");
   assert.ok(base.largestComponent <= base.counts.event + base.counts.rite);

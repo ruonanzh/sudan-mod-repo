@@ -38,8 +38,10 @@
   - `card-art` —— 图片怎么制作：尺寸、命名、生成卡面图的提示词，以及一张贴图替换掉什么。
   - `mod-audio` —— 换游戏里已有的音频：文件名即片段名、能用的格式，以及为什么只能替换不能新增。
   - `mod-page` —— 写 mod 说明页：一个本地 HTML 页，列出这个 mod 改了哪些记录与字段，玩家可以在上面标注意见。本文件提到的「mod 说明页」就是它。
-- `schema/` —— 唯一事实来源，也是字段规则的唯一所在。
-  `fields.json` 存每种节点的形状，`vocab.json` 存时机、条件、操作的词汇表，`save-fields.json` 存存档形状；`SCHEMA.md` 由 `tools/gen-schema-doc.mjs` 从这三个文件生成。**不要手改 `SCHEMA.md`。**
+- `schema/` —— 工具与页面读的数据，agent 不直接改。
+  - `SCHEMA.md` 是生成物（由 `tools/gen-schema-doc.mjs` 生成），**不要手改**。要查四份 `docs/` 之外的 kind，看它的 Field tables；lint 报的错若是原版数据自带，看 Known defects。
+  - `schema/view/` 是页面与故事图的呈现数据（中文标签、开关文案、分组、连线）：改它只改页面外观，不改校验结论。校验结论只由 `schema/` 根下那几份事实文件决定。
+- `editors/` —— 玩家在应用里打开的页面与编辑器。任务不是改页面时，不要动它的源码。
 - `tools/lint.mjs` —— 校验器。安装前先跑。它读 `schema/`。
   `--save <file|dir>` 改为校验存档文件，而不是 mod。
 - `your_mods/` —— mod 产出区。mod 只写在这里，形式是 `your_mods/<ModName>/`。

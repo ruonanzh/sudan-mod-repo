@@ -143,7 +143,7 @@ A <品级> tier <类型> card: <类型样板>, <构图倾向>. <卡名>，<副�
 |---|---|
 | `<品级>` | 卡的 `rare`：1 stone、2 copper、3 silver、4 gold（样板里同时写中英文，如「银 silver」） |
 | `<类型>` | 卡的 `type` 字段 |
-| `<类型样板>` 与 `<构图倾向>` | 两者都只由 `type` 决定。样板是 `tools/art.mjs` 里的默认值：`char` → `a single character, full body, facing the viewer`；`item` → `a single object, centred, shown large`；`sudan` → `an ornate Sultan card motif, symmetrical`。构图倾向取 `schema/card-art.json` 的实测值，该文件缺这个 `type` 时用默认值 `centred subject` |
+| `<类型样板>` 与 `<构图倾向>` | 两者都只由 `type` 决定。样板是 `tools/art.mjs` 里的默认值：`char` → `a single character, full body, facing the viewer`；`item` → `a single object, centred, shown large`；`sudan` → `an ornate Sultan card motif, symmetrical`。构图倾向取 `schema/view/card-art.json` 的实测值，该文件缺这个 `type` 时用默认值 `centred subject` |
 | `<卡名>` `<副标题>` `<text>` | 卡的 `name`、`title`、`text` 三个字段 |
 | `<tag1>…` | 卡自己的 `tag` 字段里的键，取前五个。它们**只写进提示词当画面气氛**（例如 `体魄` 让角色显得壮），不改卡、不进游戏、不影响数值。`已拥有`、`纯色材质`、`装备`、`已装备`、`可堆叠` 五个是状态词，跳过 |
 

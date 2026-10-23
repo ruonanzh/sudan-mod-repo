@@ -11,7 +11,7 @@
  *   2. its controls follow the field shape — an enum is a `<select>`, a marker tag is a
  *      checkbox, a stat tag a number input, and a new tag name is picked from a live matching
  *      list — and every row prints the raw key next to its Chinese label from
- *      schema/field-labels.json;
+ *      schema/view/field-labels.json;
  *   3. its values round-trip through the JSON block the app save writes, without ever letting
  *      a value close the block or reach the network.
  *
@@ -48,8 +48,8 @@ import {
 } from "../editors/card/page.mjs";
 
 const FIELDS = JSON.parse(readFileSync(path.join(REPO, "schema/fields.json"), "utf8"));
-const LABELS = JSON.parse(readFileSync(path.join(REPO, "schema/field-labels.json"), "utf8"));
-const TAG_ROLES = JSON.parse(readFileSync(path.join(REPO, "schema/tag-roles.json"), "utf8"));
+const LABELS = JSON.parse(readFileSync(path.join(REPO, "schema/view/field-labels.json"), "utf8"));
+const TAG_ROLES = JSON.parse(readFileSync(path.join(REPO, "schema/view/tag-roles.json"), "utf8"));
 const TOOL_DIR = path.join(REPO, "editors/card");
 
 /** What the page says about a tag name `tag.json` does not carry yet. */
@@ -390,7 +390,7 @@ test("every visible row shows its raw key and its Chinese label", () => {
     assert.ok(row, `${key} has a row`);
     assert.ok(row.html.includes(`<code>${key}</code>`), `${key}: the raw key is in code style`);
     const label = LABELS.card[key];
-    assert.ok(label, `${key} has a label in schema/field-labels.json`);
+    assert.ok(label, `${key} has a label in schema/view/field-labels.json`);
     assert.ok(row.html.includes(esc(label.label)), `${key}: the Chinese label is next to the key`);
     assert.ok(row.html.includes(esc(label.note)), `${key}: the note is the dim text under the control`);
   }

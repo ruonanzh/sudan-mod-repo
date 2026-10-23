@@ -23,7 +23,7 @@ import { DEFAULT_VANILLA } from "../tools/model.mjs";
 import { parseDoc, toPlain } from "../tools/jsonc.mjs";
 import { opPhrase } from "../editors/page/page.mjs";
 
-const WORDS = JSON.parse(readFileSync(path.join(REPO, "schema/op-words.json"), "utf8"));
+const WORDS = JSON.parse(readFileSync(path.join(REPO, "schema/view/op-words.json"), "utf8"));
 const VANILLA = DEFAULT_VANILLA.replace(/^~/, homedir());
 
 const plain = (html) => html.replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
@@ -94,5 +94,5 @@ test("O3 every action and condition word in the game has a Chinese name", (t) =>
     .filter(([base]) => !known[base] && !/^s\d+$/.test(base) && !/^r\d+$/.test(base) && !(WORDS._skip || {})[base])
     .sort((a, b) => b[1] - a[1])
     .map(([base, n]) => `${base} (${n}×)`);
-  assert.deepEqual(missing, [], `no Chinese name for: ${missing.join(", ")} — add it to schema/op-words.json`);
+  assert.deepEqual(missing, [], `no Chinese name for: ${missing.join(", ")} — add it to schema/view/op-words.json`);
 });

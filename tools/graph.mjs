@@ -5,7 +5,7 @@
  *   node tools/graph.mjs --check
  *   node tools/graph.mjs --out editors/.preview/graph/index.json [--mod your_mods/x] [--lang zh]
  *
- * The rules live in schema/edges.json and schema/categories.json; this file only executes
+ * The rules live in schema/view/edges.json and schema/view/categories.json; this file only executes
  * them. Counts are printed, never stored in prose: they depend on the counting method
  * (direct key vs descendant key, append vs dedupe), and a document that restates them goes
  * stale the moment a rule changes.
@@ -19,9 +19,9 @@ import { parseJsonc } from "./lint.mjs";
 
 const HERE = path.dirname(new URL(import.meta.url).pathname);
 const ROOT = path.join(HERE, "..");
-const EDGES = JSON.parse(readFileSync(path.join(ROOT, "schema/edges.json"), "utf8"));
-const CATEGORIES = JSON.parse(readFileSync(path.join(ROOT, "schema/categories.json"), "utf8"));
-const FIELD_SWITCHES = JSON.parse(readFileSync(path.join(ROOT, "schema/field-switches.json"), "utf8"));
+const EDGES = JSON.parse(readFileSync(path.join(ROOT, "schema/view/edges.json"), "utf8"));
+const CATEGORIES = JSON.parse(readFileSync(path.join(ROOT, "schema/view/categories.json"), "utf8"));
+const FIELD_SWITCHES = JSON.parse(readFileSync(path.join(ROOT, "schema/view/field-switches.json"), "utf8"));
 
 const LANGS = ["zh", "en", "ja", "zhTW"];
 
@@ -261,7 +261,7 @@ function riteInfoOf(rec) {
 
 /**
  * The switch-like fields a node sets that a player can be told about, in the record's own
- * order. Only fields with an entry in schema/field-switches.json are listed: the rest are
+ * order. Only fields with an entry in schema/view/field-switches.json are listed: the rest are
  * either unreadable without the decompiled code or mean nothing to a player.
  */
 function flagsOf(kind, rec) {

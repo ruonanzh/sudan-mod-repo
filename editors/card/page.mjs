@@ -24,7 +24,7 @@ import { artInline, fontFace, fmt, legacySection, tableFor, unknownSection } fro
 import { findEntries, literal, parseDoc, toPlain } from "../../tools/jsonc.mjs";
 
 const FIELDS = JSON.parse(readFileSync(new URL("../../schema/fields.json", import.meta.url), "utf8"));
-const TAG_ROLES = JSON.parse(readFileSync(new URL("../../schema/tag-roles.json", import.meta.url), "utf8"));
+const TAG_ROLES = JSON.parse(readFileSync(new URL("../../schema/view/tag-roles.json", import.meta.url), "utf8"));
 
 /** Every name `tag.json` defines, whichever table carries it. A tag outside this set is to build. */
 const KNOWN_TAG_NAMES = new Set([

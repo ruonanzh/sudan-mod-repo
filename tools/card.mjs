@@ -40,7 +40,7 @@ const emit = (code, message, next) => {
   if (next) process.stdout.write(`NEXT  ${next}\n`);
 };
 
-const TAG_ROLES = JSON.parse(readFileSync(new URL("../schema/tag-roles.json", import.meta.url), "utf8"));
+const TAG_ROLES = JSON.parse(readFileSync(new URL("../schema/view/tag-roles.json", import.meta.url), "utf8"));
 
 /**
  * "体魄+2" or "体魄" (means 1) -> [name, value].

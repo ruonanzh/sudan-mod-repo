@@ -29,7 +29,7 @@ import { parseDoc, toPlain } from "../tools/jsonc.mjs";
 const PAGE = path.join(REPO, "tools/page.mjs");
 const VANILLA = DEFAULT_VANILLA.replace(/^~/, homedir());
 const FIELDS = JSON.parse(readFileSync(path.join(REPO, "schema/fields.json"), "utf8"));
-const LABELS = JSON.parse(readFileSync(path.join(REPO, "schema/field-labels.json"), "utf8"));
+const LABELS = JSON.parse(readFileSync(path.join(REPO, "schema/view/field-labels.json"), "utf8"));
 
 const dirs = [];
 after(() => {
