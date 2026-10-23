@@ -89,10 +89,12 @@ test("a mod of only events gets one story graph that opens on the record named b
   assert.equal(r.status, 0, r.stdout + r.stderr);
   const out = path.join(dir, ".preview");
   const page = read(path.join(out, "graph.html"));
+  const data = read(path.join(out, "graph.data.js"));
+  assert.match(page, /<script src="graph\.data\.js"><\/script>/, "the page loads its graph from the sibling file");
   assert.match(page, /\["mod", "mod", modCount\]/, "the filter row carries the mod button");
-  assert.match(page, /"defaultCat":"mod"/, "and it is the filter the page opens with");
-  assert.match(page, /"focus":"event:9000001"/, "the page opens on the record preview was asked for");
-  assert.match(page, /"mod":true/, "the mod's record is flagged in the payload");
+  assert.match(data, /"defaultCat":"mod"/, "and it is the filter the page opens with");
+  assert.match(data, /"focus":"event:9000001"/, "the page opens on the record preview was asked for");
+  assert.match(data, /"mod":true/, "the mod's record is flagged in the payload");
   assert.equal(existsSync(path.join(out, "cards.html")), false, "no card page for a mod with no cards");
   const recordPage = path.join(out, "event-9000001.record.html");
   assert.ok(existsSync(recordPage), "an event gets a page of its own, next to the story graph");

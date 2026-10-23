@@ -79,6 +79,8 @@ function mount(g, { editable = true, detail = "full", protocol = "http:", page =
     onkeydown: null,
   };
   const win = {};
+  // The page reads the graph from graph.data.js in a browser; the test hands it the same object.
+  win.__GRAPH_DATA__ = payload(g, { focus: page.focus ?? null });
   const mod = openMod(mkdtempSync(path.join(tmpdir(), "page-")), { vanilla: VANILLA });
   const posts = [];
   // Every request the page makes, so a test can say the page made none.
@@ -338,7 +340,8 @@ test("the page inlines both vendored libraries, and nothing is fetched", { skip 
     assert.ok(html.includes(text), `${v.file} is inlined byte for byte`);
     assert.match(html, new RegExp(`/\\* ${v.file.replace(".min.js", "")} ${v.version.replace(/\./g, "\\.")} \\(MIT\\)`), `${v.file} ${v.version} is named`);
   }
-  assert.doesNotMatch(html, /<script[^>]*\ssrc=/i, "no external script tag");
+  assert.doesNotMatch(html, /<script[^>]*\ssrc="(?:https?:)?\/\//i, "nothing is fetched from the network");
+  assert.match(html, /<script src="graph\.data\.js"><\/script>/, "the graph arrives as a sibling script, not inline");
 });
 
 // ---------------------------------------------------------------- step 1: the renderer
@@ -448,7 +451,7 @@ test("the filter row gains one mod button, and it is the one selected on open", 
 test("--focus opens the page on that record, with its one-hop picture", { skip }, () => {
   const g = modGraph();
   const html = renderPage(g, { focus: "event:9000001" });
-  assert.match(html, /"focus":"event:9000001"/, "the payload names the record the page was built for");
+  assert.equal(payload(g, { focus: "event:9000001" }).focus, "event:9000001", "the payload names the record the page was built for");
   const { win } = mount(g, { page: { focus: "event:9000001" } });
   const state = win.__graphState();
   assert.equal(state.selected, "event:9000001", "the page starts on it");
