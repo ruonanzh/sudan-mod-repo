@@ -571,7 +571,7 @@
       state.saved = stamp({ values: values, artPrompt: artPrompt });
       state.dirty = false;
       paintStatus();
-      setStatus("已保存这一页；写回 cards.json 要跑 preview --apply", "clean");
+      setStatus("已保存这一页。", "clean");
     });
   }
 
