@@ -635,7 +635,7 @@
     state.writable = init.mode === "edit" && init.writable === true;
     applyTheme(init);
     var name = init.file && init.file.name;
-    state.record = /\\.record\\.html$/.test(String((init.file && init.file.path) || ""));
+    state.record = /\.record\.html$/.test(String((init.file && init.file.path) || ""));
     renderHeader(state.record);
     state.path = (init.file && init.file.path) || "";
     var file = byId("card-file");
