@@ -1203,7 +1203,17 @@ window.__openNode = (key) => {
     panelHtml(nodeOf(key)) + "</div>" +
     '<div class="editsrc" id="srcpane"></div>' +
     "</div>";
-  document.getElementById("panelexpand").onclick = () => { document.getElementById("modal").classList.add("expanded"); };
+  (function () {
+  var btn = document.getElementById("listtoggle");
+  var wrap = document.getElementById("listwrap");
+  if (!btn || !wrap) return;
+  btn.onclick = function () {
+    wrap.hidden = !wrap.hidden;
+    btn.textContent = wrap.hidden ? "显示列表" : "隐藏列表";
+    if (cy) setTimeout(function () { cy.resize(); cy.fit(undefined, 40); }, 30);
+  };
+})();
+document.getElementById("panelexpand").onclick = () => { document.getElementById("modal").classList.add("expanded"); };
 document.getElementById("panelshink").onclick = () => { document.getElementById("modal").classList.remove("expanded"); };
 document.getElementById("panelclose").onclick = closePanel;
   openPanel();
@@ -1286,7 +1296,10 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
       <span id="cats" class="cats"></span>
     </div>
     <div class="gmain">
-      <div class="glist" id="list"></div>
+      <div class="glistwrap" id="listwrap">
+        <button class="pill" id="listtoggle" type="button" style="width:100%;margin-bottom:6px">隐藏列表</button>
+        <div class="glist" id="list"></div>
+      </div>
       <div class="gcanvas"><div id="cy"></div></div>
     </div>
     <div class="note" id="cap">点左边或图上的节点，从这里开始画</div>
@@ -1314,6 +1327,8 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
    much height: the list and the canvas stay inside the window instead of running past it. */
 .gshell:has(#modal:not([hidden])) .gmain { height: calc(100vh - 285px); }
 .glist { overflow: auto; border: 1px solid var(--rule); background: var(--panel); }
+.glistwrap[hidden] { display: none; }
+.gmain:has(.glistwrap[hidden]) .gcanvas { flex: 1 1 100%; }
 .glist .row { display: grid; grid-template-columns: 76px 1fr; gap: 8px; padding: 4px 8px; cursor: pointer; border-bottom: 1px solid #2f2a24; }
 .glist .row:hover { background: #35291c; }
 .glist .id { color: var(--dim); font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
@@ -1352,8 +1367,8 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
 .modal { flex: 0 1 min(620px, 44vw); position: sticky; top: 12px; max-height: 92vh; overflow-y: auto; background: var(--panel); border: 1px solid var(--rule); }
 .modal[hidden] { display: none; }
 .modal-body { padding: 14px 16px; }
-.modal:not(.expanded) .panel p, .modal:not(.expanded) .panel pre { max-height: 6.5em; overflow: hidden; }
-.modal.expanded .panel p, .modal.expanded .panel pre { max-height: none; }
+.modal:not(.expanded) .story { max-height: 6.5em; overflow: hidden; }
+.modal.expanded .story { max-height: none; }
 .drawerbar { display: flex; justify-content: flex-end; margin: 0 0 6px; }
 .editsplit { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-items: start; }
 .editview { padding-bottom: 10px; border-bottom: 1px solid #2f2a24; }
