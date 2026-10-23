@@ -37,6 +37,8 @@ body {
 h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: .04em; }
 h2 { font-size: 15px; margin: 34px 0 10px; color: var(--gold); letter-spacing: .12em; text-transform: uppercase; }
 .sub { color: var(--dim); font-size: 13px; margin-bottom: 24px; }
+.sub .origin { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; margin-right: 6px; background: #3a2f22; color: var(--gold); }
+.sub .origin.override { background: #4a2a20; color: #f0c9a8; }
 .panel { background: var(--panel); border: 1px solid var(--rule); padding: 16px 18px; }
 .row { display: grid; grid-template-columns: 118px 1fr; gap: 10px; align-items: start; padding: 7px 0; border-bottom: 1px dotted #3c3227; }
 .row:last-child { border-bottom: 0; }

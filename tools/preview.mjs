@@ -93,6 +93,30 @@ export function modRecords(modDir) {
 }
 
 
+/**
+ * Which ids the game itself ships, per kind. A page says 覆盖原版 when the mod carries an id
+ * that already exists there, and 新增 when it does not.
+ */
+function vanillaIds(dir) {
+  const root = String(dir).replace(/^~/, os.homedir());
+  const out = new Map();
+  const add = (kind, id) => {
+    if (!out.has(kind)) out.set(kind, new Set());
+    out.get(kind).add(String(id));
+  };
+  for (const [kind, spec] of Object.entries(LAYOUT.table)) {
+    const file = path.join(root, spec.file.replace(/^config\//, ""));
+    if (!existsSync(file)) continue;
+    for (const id of Object.keys(readRecord(file) || {})) if (!id.startsWith("_")) add(kind, id);
+  }
+  for (const [kind, spec] of Object.entries(LAYOUT.dir)) {
+    const folder = path.join(root, spec.dir.replace(/^config\//, ""));
+    if (!existsSync(folder)) continue;
+    for (const name of readdirSync(folder)) if (name.endsWith(".json")) add(kind, name.replace(/\.json$/, ""));
+  }
+  return out;
+}
+
 function parseArgs(argv) {
   const out = { modDir: null, focus: null, out: null, vanilla: null, collect: false, apply: false };
   for (let i = 0; i < argv.length; i++) {
@@ -333,6 +357,8 @@ function main() {
 
   const pages = { graph: null, files: [] };
   let recordCount = 0;
+  const vanilla = vanillaIds(requirement.dir);
+  const originOf = (kind, id) => (vanilla.get(kind) && vanilla.get(kind).has(String(id)) ? "override" : "new");
   const focusFlag = picked ? ["--focus", `${picked.kind}:${picked.id}`] : [];
 
   if (cards.length) {
@@ -349,7 +375,7 @@ function main() {
       const file = path.join(outDir, `${card.id}.card.html`);
       const previous = existsSync(file) ? readPageValues(readFileSync(file, "utf8")) : null;
       try {
-        writeFileSync(file, cardPageHtml({ id: card.id, record, modDir, previous }));
+        writeFileSync(file, cardPageHtml({ id: card.id, record, modDir, previous, origin: originOf("card", record.id ?? card.id) }));
         pages.files.push(file);
         written += 1;
       } catch (e) {
@@ -369,7 +395,7 @@ function main() {
     if (!CARD_ID_FILE.test(String(r.id))) continue;
     const file = path.join(outDir, `${r.kind}-${r.id}.record.html`);
     try {
-      writeFileSync(file, recordPageHtml({ kind: r.kind, id: r.id, record: r.record, modDir }));
+      writeFileSync(file, recordPageHtml({ kind: r.kind, id: r.id, record: r.record, modDir, origin: originOf(r.kind, r.id) }));
       pages.files.push(file);
       recordCount += 1;
     } catch (e) {

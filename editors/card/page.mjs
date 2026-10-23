@@ -595,7 +595,7 @@ ${tableFor("settlement", value)}
  * over the record, so regenerating the layout never throws away an edit waiting to be applied,
  * and its `artPrompt` wins over the composed one for the same reason.
  */
-export function cardPageHtml({ id, record, modDir, previous = null }) {
+export function cardPageHtml({ id, record, modDir, previous = null, origin = "new" }) {
   const stored = previous && String(previous.id) === String(id) ? previous : null;
   const values = effectiveValues(record, stored ? stored.values : null);
   const diff = pendingValues(record, values);
@@ -612,7 +612,10 @@ export function cardPageHtml({ id, record, modDir, previous = null }) {
   const unknown = Object.keys(record).filter((key) => !live.has(key) && !(FIELDS.card.legacy || []).includes(key));
 
   const title = String(values.name ?? record.name ?? `卡 ${id}`);
-  const sub = `卡页 · id <code>${esc(id)}</code> · ${esc(values.type ?? record.type ?? "没写 type")} · 稀有度 ${esc(
+  const badge = origin === "override"
+    ? '<span class="origin override">覆盖原版</span>'
+    : '<span class="origin">新增</span>';
+  const sub = `${badge}卡页 · id <code>${esc(id)}</code> · ${esc(values.type ?? record.type ?? "没写 type")} · 稀有度 ${esc(
     values.rare ?? record.rare ?? "没写",
   )}`;
 

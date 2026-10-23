@@ -98,6 +98,7 @@ test("a mod of only events gets one story graph that opens on the record named b
   assert.ok(existsSync(recordPage), "an event gets a page of its own, next to the story graph");
   assert.match(read(recordPage), /data-record-page="event:9000001"/, "the page names the record it shows");
   assert.match(r.stdout, /event-9000001\.record\.html/, "the run lists the record page");
+  assert.match(read(recordPage), /新增/, "an id the game does not ship is marked as new");
   assert.match(r.stdout, /graph\.html/, "the run names the story graph it wrote");
 });
 
