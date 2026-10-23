@@ -81,12 +81,10 @@
       <strong>卡页</strong>
       <span id="card-file"></span>
       <span id="card-status" data-state="clean">正在读取…</span>
+      <button id="card-reload" type="button">重新加载</button>
       <button id="card-save" type="button" disabled>保存这一页（Ctrl+S）</button>
     </header>
-    <p id="card-hint">
-      保存只写入这一页自己的值块，<code>config/cards.json</code> 不动。写回要跑
-      <code>node tools/preview.mjs --apply --mod your_mods/&lt;ModName&gt;</code>，只写你改过的键。
-    </p>
+    <p id="card-hint">在卡页上改完点保存；agent 写回配置后，切回这一页会自动换成新内容。</p>
     <main id="card-host"></main>
     <script src="bridge.js"></script>
   </body>
