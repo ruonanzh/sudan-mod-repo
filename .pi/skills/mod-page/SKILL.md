@@ -61,6 +61,16 @@ node tools/preview.mjs --mod your_mods/<ModName>
 
 ## 生成一页
 
+`page.mjs` 与 `preview.mjs` 分工不同，不要混用：
+
+| 要做什么 | 用哪条 |
+|---|---|
+| 给玩家看这个 mod 改了什么，并让他在卡页上改值 | `preview.mjs`（一条命令出全部页面与 `index.html`） |
+| 讨论一个**还没写进 mod** 的方案 | `page.mjs --spec`（不落盘，副标题标「提案」） |
+| 只看一条记录（仪式、事件、掉落、任务、结局、升级、标签、开局） | `page.mjs <kind> --id <id>` |
+
+`page.mjs` 一次只出一条记录，页面是**只读**的；它不能写回配置，也没有索引页。卡页一律走 `preview.mjs`。
+
 ```
 node tools/page.mjs <kind> --mod your_mods/<ModName> --id <id> --out your_mods/<ModName>/.preview/<名字>.html
 ```
