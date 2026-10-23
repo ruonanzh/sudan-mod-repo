@@ -477,19 +477,12 @@
         setStatus("磁盘上这一页已经更新。重新加载会丢掉未保存的改动。", "dirty");
         return;
       }
-      location.reload();
+      reloadFromDisk();
     });
   }
 
-  function loadHost() {
-    request("editor:readFile", {}).then(function (response) {
-      if (!response || response.code) {
-        setStatus("读不到这一页：" + ((response && (response.message || response.code)) || "未知错误"), "error");
-        return;
-      }
-      state.text = typeof response.data === "string" ? response.data : "";
-      state.revision = response.revision || null;
-
+  /** Mount the page text the app just read: the one place that turns a file into this view. */
+  function mountText() {
       var parsed = new DOMParser().parseFromString(state.text, "text/html");
       var style = parsed.querySelector("style");
       if (style) document.head.appendChild(style.cloneNode(true));
@@ -517,6 +510,32 @@
       state.saved = stamp({ values: state.values, artPrompt: state.artPrompt });
       wire(state.root);
       markDirty();
+  }
+
+  /** Read the file again and rebuild the view. The wrapper owns `editor:init`, so the button
+   *  cannot rely on `location.reload()`: a reloaded wrapper never gets that message again. */
+  function reloadFromDisk() {
+    request("editor:readFile", {}).then(function (response) {
+      if (!response || response.code) {
+        setStatus("读不到这一页：" + ((response && (response.message || response.code)) || "未知错误"), "error");
+        return;
+      }
+      state.text = typeof response.data === "string" ? response.data : "";
+      state.revision = response.revision || null;
+      mountText();
+      setStatus("已按磁盘上的版本重新加载。", "clean");
+    });
+  }
+
+  function loadHost() {
+    request("editor:readFile", {}).then(function (response) {
+      if (!response || response.code) {
+        setStatus("读不到这一页：" + ((response && (response.message || response.code)) || "未知错误"), "error");
+        return;
+      }
+      state.text = typeof response.data === "string" ? response.data : "";
+      state.revision = response.revision || null;
+      mountText();
     });
   }
 
@@ -613,7 +632,7 @@
       // The page was rewritten on disk (the agent regenerated it). Reload only when nothing is at
       // stake: a reload would throw away edits the player has not saved.
       if (!state.dirty) {
-        location.reload();
+        reloadFromDisk();
         return;
       }
       var bar = document.getElementById("reload-bar");
@@ -625,7 +644,7 @@
         bar.innerHTML = '这一页在磁盘上被重写过。你有还没保存的改动。' +
           '<button id="reload-now" class="pill" style="margin-left:10px">重新载入（放弃我的改动）</button>';
         document.body.insertBefore(bar, document.body.firstChild);
-        document.getElementById("reload-now").addEventListener("click", function () { location.reload(); });
+        document.getElementById("reload-now").addEventListener("click", function () { reloadFromDisk(); });
       }
     } else if (data.type === "editor:fileContent" || data.type === "editor:saved" || data.type === "editor:sent" || data.type === "editor:error") {
       if (settle(data.requestId, data)) return;
@@ -640,7 +659,7 @@
   if (reloadButton) {
     reloadButton.addEventListener("click", function () {
       if (state.dirty && !window.confirm("这一页有未保存的改动，重新加载会丢掉它们。继续？")) return;
-      location.reload();
+      reloadFromDisk();
     });
   }
   // The agent may rebuild this file after applying a value: a reload on focus shows the new one.
