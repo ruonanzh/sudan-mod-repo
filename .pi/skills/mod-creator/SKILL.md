@@ -161,12 +161,6 @@ description: >
 - `PARTIAL`：跑过的规则全过，但**没找到原版 `config`**，所以 id 冲突与标签检查没跑。先跑 `check_game_paths` 看缺哪一项，补上 `vanilla` 再验一次，不许当 `PASS` 用。
 - `PASS`：规则全过。它不证明游戏会加载这个 mod，安装与实机验收另算。
 
-没有工具时才用命令行，输出是一样的：
-
-```
-node tools/lint.mjs your_mods/<ModName>
-```
-
 然后安装、启用，读 `~/DoubleCross/SultansGame/ModLog/<mod name>_local.log`。你要看到你改过的每个文件都有 `read mod <name> file: config/<file>`，并且没有 `mod <name> info.json invalid`。
 
 缺文件是噪音，不是错误。只提供一个文件的 mod 会打出十八条警告，照样能用。
