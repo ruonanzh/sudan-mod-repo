@@ -818,8 +818,7 @@ test("the manifest is what the app discovers, and it matches a generated card pa
 
 test("the wrapper loads one external script, and the page carries that same script", () => {
   const wrapper = readFileSync(path.join(TOOL_DIR, "index.html"), "utf8");
-  assert.equal((wrapper.match(/<script/g) || []).length, 2, "two script tags: the graph library and the bridge");
-  assert.match(wrapper, /<script src="cytoscape\.min\.js"><\/script>/, "the vendored graph library, beside the bridge");
+  assert.equal((wrapper.match(/<script/g) || []).length, 1, "one script tag");
   assert.match(wrapper, /<script src="bridge\.js"><\/script>/, "an external script: the CSP forbids inline ones");
   assert.match(wrapper, /id="card-host"/, "the wrapper has a place for the card page");
   assert.match(wrapper, /<header id="bar"><\/header>/, "the header is built by the one script");
@@ -864,24 +863,3 @@ test("a record page sends /record-edited with the sentence the player typed", ()
   assert.match(bridge, /要改的地方：「/, "the sentence travels under a label the agent can find");
 });
 
-test("a record page draws the record's own neighbourhood", () => {
-  const html = recordPageHtml({
-    kind: "event",
-    id: 9900102,
-    record: { id: 9900102, text: "长刃回响" },
-    modDir: "/tmp/mod",
-    graph: {
-      nodes: [
-        { k: "event:9900102", l: "长刃回响", focus: true },
-        { k: "rite:9900103", l: "长刃的回响" },
-      ],
-      edges: [{ f: "event:9900102", t: "rite:9900103", r: "action.rite" }],
-    },
-  });
-  assert.match(html, /data-mini-graph="event:9900102"/, "the picture is bound to this record");
-  assert.match(html, /"focus":true/, "the record itself is the focus");
-  assert.match(html, /rite:9900103/, "and its neighbour travels with it");
-  assert.match(html, /id="mini-graph-data"/, "the data travels as JSON, which the bridge draws");
-  const bridge = readFileSync(path.join(TOOL_DIR, "bridge.js"), "utf8");
-  assert.match(bridge, /function drawMiniGraph/, "and the drawing lives in the bridge, where the CSP allows scripts");
-});

@@ -760,15 +760,11 @@ export function recordPageHtml({ kind, id, record, modDir, origin = "new", graph
 <span class="note" id="record-status"></span>
 </div>`;
 
-  const picture = graph && graph.nodes.length
-    ? `<h2>它在剧情里的位置</h2>
-<div id="mini-graph" data-mini-graph="${esc(kind)}:${esc(id)}" style="height:300px;border:1px solid #57452c;background:#14100b"></div>
-<script type="application/json" id="mini-graph-data">${JSON.stringify(graph).replace(/</g, "\\u003c")}</script>`
-    : "";
+  const picture = "";
   return pageHtml({
     title: `${label} ${id}`,
     sub: `${badge}${record && record.name ? esc(String(record.name)) : ""}`,
-    body: `${graphNote}<div data-record-page="${esc(kind)}:${esc(id)}">${picture}${ask}${body}</div>`,
+    body: `${graphNote}<div data-record-page="${esc(kind)}:${esc(id)}">${ask}${body}</div>`,
   });
 }
 
