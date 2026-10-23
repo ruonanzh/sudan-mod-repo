@@ -15,7 +15,16 @@ description: >
 
 原版数据是这个格式唯一完整的描述，而且带注释。先读你要改的那个文件，再动它。
 
-**原版目录的位置不写在这里。** 它是本机安装位置，会随机器和平台变，写法与取法在 `setup-workspace` 那份 SKILL 里（`node tools/setup.mjs --check` 也会打印出来）。要读原版文件却不知道目录在哪时，去读 `setup-workspace`，不要在别处猜路径。
+**原版数据在哪里：游戏安装目录下的 `StreamingAssets/config/`。**
+
+| 平台 | 路径 |
+|---|---|
+| macOS | `<游戏安装>/Sultan's Game.app/Contents/Resources/Data/StreamingAssets/config/` |
+| Windows | `<游戏安装>/Sultan's Game_Data/StreamingAssets/config/` |
+
+`cards.json`、`event/`、`rite/`、`tag.json`、`init.json` 这些元数据都在这个目录里。mod 的 `config/` 就是它的镜像：路径相对 `config/` 写，例如原版的 `config/event/5300000.json` 在 mod 里就是 `config/event/5300000.json`。
+
+不知道 `<游戏安装>` 是哪台机器上的哪个目录时，跑 `node tools/setup.mjs --check`：它打印 `gameDir` 与 `vanilla` 两行，`vanilla` 就是上面那个 `config/` 目录。路径判据与准备步骤见 `setup-workspace`，不要在别处猜。
 
 开发者在这些文件里留了中文 `//` 注释，逐个解释字段。`config/event/5300000.json` 是教学局的开场，就地写明了 `confirm`、`option`、`success` 与 `failed`，短写与长写两种形状并排给出。它是最好的单一样例文件。
 
