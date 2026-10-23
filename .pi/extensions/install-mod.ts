@@ -24,7 +24,7 @@ export default function (pi: ExtensionAPI) {
     promptGuidelines: [
       "Use install_mod after validate_mod reports PASS, and pass modDir=<your_mods/ModName>. Do not copy the folder with a shell command: the tool replaces the whole folder and reports the install directory it used.",
       "install_mod never enables the mod. After it reports PASS, tell the player to enable the mod in the game's mod panel (title screen), then read ModLog/<mod name>_local.log for a `read mod` line before claiming the mod works.",
-      "A PARTIAL from install_mod means the mod folder does not exist yet: start the game once so it creates the folder, then install again. A FAIL means the recorded folder is wrong: run try_set_game_dir. Do not create the folder by hand.",
+      "A PARTIAL from install_mod means the mod folder does not exist yet: ask the player to press the \"ModList\" button in the game's mod panel, which creates the folder, then install again. A FAIL means the recorded folder is wrong: run try_set_game_dir. Do not create the folder by hand.",
     ],
     parameters: Type.Object({
       modDir: Type.String({
@@ -79,7 +79,7 @@ export default function (pi: ExtensionAPI) {
               text: [
                 `${missing ? "PARTIAL" : "FAIL"}: the mod install directory is not available${why}.`,
                 missing
-                  ? "NEXT: start the game once so it creates the mod folder, then run install_mod again. Do not create the folder by hand; the game also creates it from the mod panel button."
+                  ? "NEXT: ask the player to press the \"ModList\" button in the game's mod panel, which creates the mod folder, then run install_mod again. Do not create the folder by hand."
                   : "NEXT: run try_set_game_dir to find the game again, or set_game_dir with the real install folder, then run install_mod again. Do not create the folder by hand.",
               ].join("\n"),
             },

@@ -80,7 +80,7 @@ test("a missing mod root tells the agent to launch the game once, not to search"
   const result = await withHome(home, () => run(def, { gameDir: install }, cwd));
   const text = textOf(result);
   assert.match(text, /modInstallDir/, text);
-  assert.match(text, /Start the game once/, "a missing mod root must not send the agent hunting the game");
+  assert.match(text, /ModList/, "the fix is the mod panel button, not a hunt for the game");
 });
 
 // ---------------------------------------------- validate_mod: PASS, PARTIAL, and the vanilla flag

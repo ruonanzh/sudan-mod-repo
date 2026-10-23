@@ -84,7 +84,7 @@ export default function (pi: ExtensionAPI) {
         const onlyModRoot = failed.length === 1 && failed[0] === "modInstallDir";
         lines.push(
           onlyModRoot
-            ? "NEXT: the game is fine; the mod root is missing. Start the game once so it creates DoubleCross/SultansGame/Mod, then check again. Nothing was written."
+            ? "NEXT: the game is fine; the mod root is missing. Ask the player to press the \"ModList\" button in the game's mod panel, which creates the folder, then check again. Nothing was written."
             : "NEXT: run try_set_game_dir (no arguments) to find the game and record it. If that fails, ask the player which folder holds the game (the install folder), then pass that path to set_game_dir. Nothing was written.",
         );
       }

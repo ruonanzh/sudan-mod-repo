@@ -39,7 +39,7 @@ macOS 的 `MyDocuments` 是 `$HOME`，Windows 的是 `%USERPROFILE%\Documents`�
 
 **三个位置都能用才算准备好**：`gameDir`、`vanilla`、`modInstallDir` 三行都是 `OK`。`workshopDir` 要么 `OK`，要么明说「玩家没订阅工坊内容」。
 `vanillaDir` 与 `workshopDir` 由 `gameDir` 派生，把 `gameDir` 弄对就会一起算好。**不得设完 `gameDir` 就收工。**
-`modInstallDir` 报 `MISS` 且理由是「游戏还没创建」时，先启动一次游戏再查。
+`modInstallDir` 报 `MISS` 时，让玩家在 mod 面板点「模组目录」（ModList）：这个按钮会把目录建出来，然后再查。
 
 报证据，不报感觉。按实际做过的分支报：
 
@@ -80,7 +80,7 @@ macOS 的 `MyDocuments` 是 `$HOME`，Windows 的是 `%USERPROFILE%\Documents`�
 `steamapps/appmanifest_3117820.acf` **只是发现线索**：它说游戏在哪个库里，本身不算证据。清单在、目录里却没有游戏自己的文件时，`gameDir` 照样报 `FAIL`。
 
 状态词只有四个。`OK` 表示过了哨兵。`MISS` 表示目录不存在或候选位置一个都没过。`FAIL` 表示目录在、哨兵不过。`EMPTY` 只出现在 `workshopDir`，不是错误。
-`modInstallDir` 在全新机器上由游戏创建。父目录是 `SultansGame` 而 `Mod` 不存在时，它报 `MISS`，先启动一次游戏。
+`modInstallDir` 在装好游戏之后就有。若父目录是 `SultansGame` 而 `Mod` 不存在，它报 `MISS`；让玩家点 mod 面板的「模组目录」（ModList）按钮，这个按钮会把目录建出来。
 
 1. `try_set_game_dir` 自己会找。它按平台找 Steam 根（Windows 用 `ProgramFiles` 与常见盘符下的 `SteamLibrary`，macOS 读 `~/Library/Application Support/Steam`），再读各库的 `config/libraryfolders.vdf`，每个候选都过 `gameDir` 的哨兵。
 2. `try_set_game_dir` 失败时，把玩家的模糊线索（「装在 D 盘」「Steam 里」「下的那个」）变成候选目录。用 `check_game_paths` 逐个只读验证。挑中后用 `set_game_dir` 记录。

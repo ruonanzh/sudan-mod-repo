@@ -94,7 +94,7 @@ test("install_mod reports PARTIAL when no mod directory is recorded", async () =
   }
   const text = textOf(result);
   assert.equal(result.details.status, "PARTIAL", text);
-  assert.match(text, /start the game once/, "the fix is to start the game, not to create folders");
+  assert.match(text, /ModList/, "the fix is the mod panel button, not a folder made by hand");
   assert.equal(result.details.installed, false);
 });
 
