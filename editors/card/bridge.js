@@ -346,16 +346,21 @@
    * editor's CSP forbids them anyway. So the picture is drawn here, from the JSON block the page
    * carries, with the cytoscape copy that ships beside this file.
    */
+  /** The JSON block a record page carries, read before the mount strips scripts. */
+  function miniGraphData(doc) {
+    var block = doc.querySelector("#mini-graph-data");
+    if (!block) return null;
+    try {
+      return JSON.parse(block.textContent || "null");
+    } catch (e) {
+      return null;
+    }
+  }
+
   function drawMiniGraph() {
     var host = document.querySelector("[data-mini-graph]");
-    var block = byId("mini-graph-data");
-    if (!host || !block || !window.cytoscape) return;
-    var G;
-    try {
-      G = JSON.parse(block.textContent || "{}");
-    } catch (e) {
-      return;
-    }
+    var G = state.mini;
+    if (!host || !G || !window.cytoscape) return;
     if (!G.nodes || !G.nodes.length) return;
     var cy = window.cytoscape({
       container: host,
@@ -576,6 +581,9 @@
       var parsed = new DOMParser().parseFromString(state.text, "text/html");
       var style = parsed.querySelector("style");
       if (style) document.head.appendChild(style.cloneNode(true));
+      // The picture's data is a script inside the page, and the mount below strips scripts:
+      // read it from the parsed document first.
+      state.mini = miniGraphData(parsed);
       var wrap = parsed.querySelector("[data-card-page]") || parsed.querySelector("[data-record-page]");
       var host = byId(HOST_ID);
       if (!wrap || !host) {

@@ -768,7 +768,7 @@ export function recordPageHtml({ kind, id, record, modDir, origin = "new", graph
   return pageHtml({
     title: `${label} ${id}`,
     sub: `${badge}${record && record.name ? esc(String(record.name)) : ""}`,
-    body: `${graphNote}${picture}${ask}<div data-record-page="${esc(kind)}:${esc(id)}">${body}</div>`,
+    body: `${graphNote}<div data-record-page="${esc(kind)}:${esc(id)}">${picture}${ask}${body}</div>`,
   });
 }
 
