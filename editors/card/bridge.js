@@ -372,17 +372,6 @@
   }
 
   function wireNotifyButtons() {
-    var values = byId("card-notify-agent");
-    if (values) {
-      values.addEventListener("click", function () {
-        notifyAgent(
-          commandFor("/card-edited"),
-          "/card-edited",
-          "card-notify-status",
-          "已通知 agent。这一页可以一直开着，agent 改完 cards.json 你再刷新看。"
-        );
-      });
-    }
     var art = byId("card-art-notify");
     if (art) {
       art.addEventListener("click", function () {
@@ -427,25 +416,21 @@
   }
 
   function paintStatus() {
-    var button = byId("card-save");
-    // Both notify buttons go through the app, so they follow the same gate a save has.
+    // Sending and the art prompt both go through the app, so they follow the same gate a write has.
     var blocked = !state.host || !state.writable;
-    ["card-notify-agent", "card-art-notify"].forEach(function (id) {
+    ["card-send", "card-art-notify"].forEach(function (id) {
       var element = byId(id);
       if (element) element.disabled = blocked;
     });
     if (!state.host) {
-      setStatus("只读：只能在 app 里保存", "readonly");
-      if (button) button.disabled = true;
+      setStatus("只读：只能在 app 里编辑", "readonly");
       return;
     }
     if (!state.writable) {
       setStatus("只读：这个文件不在 your_mods/ 里", "readonly");
-      if (button) button.disabled = true;
       return;
     }
-    if (button) button.disabled = !state.dirty;
-    setStatus(state.dirty ? "未保存（Ctrl+S）" : "已保存", state.dirty ? "dirty" : "clean");
+    setStatus(state.dirty ? "有改动还没发送" : "", state.dirty ? "dirty" : "clean");
   }
 
   /* ---------- reading and saving ---------- */
@@ -544,11 +529,12 @@
     return "保存失败：" + ((response && (response.message || code)) || "未知错误");
   }
 
+  /** Write the page's value block. Resolves true when the file on disk is current. */
   function save() {
-    if (!state.host || !state.writable || !state.root) return;
+    if (!state.host || !state.writable || !state.root) return Promise.resolve(false);
     if (!state.text) {
       setStatus("读不到这一页的源文件，不能保存。", "error");
-      return;
+      return Promise.resolve(false);
     }
     var values = collect(state.root);
     var artPrompt = artPromptOf(state.root);
@@ -556,13 +542,13 @@
     if (next === state.text) {
       state.dirty = false;
       paintStatus();
-      return;
+      return Promise.resolve(true);
     }
     setStatus("正在保存…", "clean");
-    request("editor:save", { data: next, baseRevision: state.revision || undefined }).then(function (response) {
+    return request("editor:save", { data: next, baseRevision: state.revision || undefined }).then(function (response) {
       if (!response || response.code) {
         setStatus(saveError(response), "error");
-        return;
+        return false;
       }
       state.text = next;
       state.revision = response.revision || state.revision;
@@ -571,7 +557,21 @@
       state.saved = stamp({ values: values, artPrompt: artPrompt });
       state.dirty = false;
       paintStatus();
-      setStatus("已保存这一页。", "clean");
+      return true;
+    });
+  }
+
+  /** 保存并让 agent 把这一页的值写回配置。 */
+  function sendToAgent() {
+    if (!state.host || !state.writable) return;
+    save().then(function (ok) {
+      if (!ok) return;
+      notifyAgent(
+        commandFor("/card-edited"),
+        "/card-edited",
+        "card-status",
+        "已发送给 agent。写回后这一页会刷新。"
+      );
     });
   }
 
@@ -630,19 +630,11 @@
     } else if (data.type === "editor:fileContent" || data.type === "editor:saved" || data.type === "editor:sent" || data.type === "editor:error") {
       if (settle(data.requestId, data)) return;
       if (data.type === "editor:error") setStatus(saveError(data), "error");
-      else if (data.type === "editor:saved") setStatus("已保存", "clean");
     }
   });
 
-  window.addEventListener("keydown", function (event) {
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
-      event.preventDefault();
-      save();
-    }
-  });
-
-  var saveButton = byId("card-save");
-  if (saveButton) saveButton.addEventListener("click", save);
+  var sendButton = byId("card-send");
+  if (sendButton) sendButton.addEventListener("click", sendToAgent);
 
   var reloadButton = byId("card-reload");
   if (reloadButton) {

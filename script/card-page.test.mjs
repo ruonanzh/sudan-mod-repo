@@ -662,14 +662,10 @@ function artSection(html) {
   return html.slice(start, html.indexOf("<h2>", start));
 }
 
-test("the page carries both agent buttons and the prompt field under 画面", () => {
+test("the page carries the art prompt and its button; sending the values lives in the wrapper", () => {
   const html = page();
   const section = artSection(html);
-  assert.match(
-    html,
-    /<button class="exp" id="card-notify-agent" type="button" disabled>改好了，通知 agent<\/button>/,
-    "the values button ships disabled: only the app can send",
-  );
+  assert.doesNotMatch(html, /card-notify-agent/, "values are sent from the wrapper's toolbar, not the page");
   assert.match(section, /<label class="art-lbl" for="card-art-prompt">卡面图的提示词<\/label>/, "the prompt is labelled");
   assert.match(section, /<button class="exp" id="card-art-notify" type="button" disabled>修改卡面图，通知 agent<\/button>/);
   const field = /<textarea id="card-art-prompt"[^>]*>([\s\S]*?)<\/textarea>/.exec(section);
@@ -677,19 +673,13 @@ test("the page carries both agent buttons and the prompt field under 画面", ()
   assert.equal(field[1], esc(COMPOSED), "prefilled with the sentence this record composes");
 });
 
-test("「改好了，通知 agent」 asks the app to send /card-edited with this page's path", async () => {
-  const { posts, statuses, deliver, click } = bridgeOf(page());
-  deliver(hostInit());
-  click("card-notify-agent");
-
-  const sent = posts.filter((message) => message.type === "editor:sendPrompt").at(-1);
-  assert.ok(sent, "the click posts a message for the session");
-  assert.equal(sent.text, `/card-edited ${PAGE_PATH}`, "the command names the page the app has open");
-  assert.equal(posts.some((message) => message.type === "editor:save"), false, "the button writes nothing");
-
-  deliver({ type: "editor:sent", requestId: sent.requestId });
-  await tick();
-  assert.match(statuses["card-notify-status"].textContent, /这一页可以一直开着/, "the page says it can stay open");
+test("the wrapper's send button saves the page and then asks the app for /card-edited", () => {
+  const bridge = readFileSync(path.join(TOOL_DIR, "bridge.js"), "utf8");
+  const body = bridge.slice(bridge.indexOf("function sendToAgent"), bridge.indexOf("/* ---------- the host ---------- */"));
+  assert.match(body, /save\(\)\.then/, "the values go to disk first");
+  assert.match(body, /notifyAgent\(\s*commandFor\("\/card-edited"\)/, "then the session is asked to apply them");
+  assert.match(bridge, /byId\("card-send"\)/, "the wrapper's button is wired to it");
+  assert.doesNotMatch(bridge, /ctrlKey \) && event\.key\.toLowerCase\(\) === "s"/, "no Ctrl+S shortcut");
 });
 
 test("「修改卡面图，通知 agent」 sends the prompt the player typed into 画面", async () => {
@@ -758,21 +748,17 @@ test("the typed art prompt survives a save and a regeneration", async () => {
 
 test("without a host both buttons are off, and the page says why", () => {
   const disk = bridgeOf(page());
-  assert.equal(disk.buttons["card-notify-agent"].disabled, true, "opened from disk: no app to send through");
-  assert.equal(disk.buttons["card-art-notify"].disabled, true);
+  assert.equal(disk.buttons["card-art-notify"].disabled, true, "opened from disk: no app to send through");
   assert.match(page(), /两个按钮也用不了/, "the read-only line explains it");
 
   // The app refuses a message for a file it refuses to write, so the button must be off too.
   const outside = bridgeOf(page());
   outside.deliver(hostInit(false));
-  assert.equal(outside.buttons["card-notify-agent"].disabled, true);
-  outside.click("card-notify-agent");
-  assert.equal(outside.posts.filter((message) => message.type === "editor:sendPrompt").length, 0, "a click sends nothing");
+  assert.equal(outside.buttons["card-art-notify"].disabled, true);
 
   const inside = bridgeOf(page());
   inside.deliver(hostInit(true));
-  assert.equal(inside.buttons["card-notify-agent"].disabled, false, "a writable page in the app can notify");
-  assert.equal(inside.buttons["card-art-notify"].disabled, false);
+  assert.equal(inside.buttons["card-art-notify"].disabled, false, "a writable page in the app can notify");
 });
 
 /** A prompt template's frontmatter: the `key: value` lines between the first pair of `---`. */
@@ -831,7 +817,9 @@ test("the wrapper loads one external script, and the page carries that same scri
   assert.equal((wrapper.match(/<script/g) || []).length, 1, "one script tag");
   assert.match(wrapper, /<script src="bridge\.js"><\/script>/, "an external script: the CSP forbids inline ones");
   assert.match(wrapper, /id="card-host"/, "the wrapper has a place for the card page");
-  assert.match(wrapper, /id="card-save"/);
+  assert.match(wrapper, /id="card-send"/, "the wrapper has the one send button");
+  assert.match(wrapper, /id="card-reload"/);
+  assert.doesNotMatch(wrapper, /id="card-save"/, "no separate save button");
 
   const bridge = readFileSync(path.join(TOOL_DIR, "bridge.js"), "utf8");
   assert.match(bridge, /"editor:readFile"/);

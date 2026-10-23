@@ -58,8 +58,7 @@
       #card-status[data-state="dirty"] { color: var(--gold); }
       #card-status[data-state="error"] { color: var(--bad); }
       #card-status[data-state="readonly"] { color: var(--dim); }
-      #card-save {
-        margin-left: auto;
+      #card-reload, #card-send {
         font: inherit;
         padding: 4px 12px;
         border: 1px solid var(--gold);
@@ -67,7 +66,9 @@
         color: var(--ink);
         cursor: pointer;
       }
-      #card-save:disabled { opacity: 0.45; cursor: default; }
+      #card-send { background: var(--gold); color: #1a1510; font-weight: 600; }
+      #card-reload:disabled, #card-send:disabled { opacity: 0.45; cursor: default; }
+      #bar .grow { flex: 1; }
       #card-hint {
         margin: 10px 20px 0;
         color: var(--dim);
@@ -81,10 +82,11 @@
       <strong>卡页</strong>
       <span id="card-file"></span>
       <span id="card-status" data-state="clean">正在读取…</span>
+      <span class="grow"></span>
       <button id="card-reload" type="button">重新加载</button>
-      <button id="card-save" type="button" disabled>保存这一页（Ctrl+S）</button>
+      <button id="card-send" type="button" disabled>发送给 Agent</button>
     </header>
-    <p id="card-hint">在卡页上改完点保存；agent 写回配置后，切回这一页会自动换成新内容。</p>
+    <p id="card-hint">改完点「发送给 Agent」：它会先保存这一页，再把改动发给 agent 写回配置。</p>
     <main id="card-host"></main>
     <script src="bridge.js"></script>
   </body>
