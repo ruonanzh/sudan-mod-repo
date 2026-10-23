@@ -1385,7 +1385,8 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
 .modal-body { padding: 14px 16px; }
 .modal:not(.expanded) .story { max-height: 6.5em; overflow: hidden; }
 .modal.expanded .story { max-height: none; }
-.modal.expanded { flex: 0 1 min(900px, 56vw); }
+.modal.expanded { flex: 0 1 min(900px, 56vw); max-height: none; overflow: visible; }
+@media (max-width: 1240px) { .modal.expanded { width: 100%; } }
 .drawerbar { display: flex; justify-content: flex-end; margin: 0 0 6px; }
 .editsplit { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-items: start; }
 .editview { padding-bottom: 10px; border-bottom: 1px solid #2f2a24; }
