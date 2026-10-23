@@ -749,10 +749,21 @@ export function recordPageHtml({ kind, id, record, modDir, origin = "new", graph
   const graphNote = graphLink
     ? `<p class="note" style="margin:0 0 14px"><a href="${esc(graphLink)}">在剧情图里看它</a></p>`
     : "";
+  // No form: a rite's fields are nested (settlement arrays, slot conditions) and a control for
+  // each one would be a worse editor than a sentence. The player says what to change in their own
+  // words; the agent edits the record and regenerates this page.
+  const ask = `<h2>要改什么</h2>
+<p class="note" style="margin-top:0">用平时的话说就行，例如「第二个结算改成给一张卡」。Agent 会按这句话改记录，再重新生成这一页。</p>
+<textarea id="record-prompt" data-record-prompt rows="4" placeholder="例如：这句台词再狠一点；每 3 回合改成每 5 回合"></textarea>
+<div class="savebar" style="margin-top:8px">
+<button class="exp" id="record-notify" type="button" disabled>发送给 Agent</button>
+<span class="note" id="record-status"></span>
+</div>`;
+
   return pageHtml({
     title: `${label} ${id}`,
     sub: `${badge}${record && record.name ? esc(String(record.name)) : ""}`,
-    body: `${graphNote}<div data-record-page="${esc(kind)}:${esc(id)}">${body}</div>`,
+    body: `${graphNote}${ask}<div data-record-page="${esc(kind)}:${esc(id)}">${body}</div>`,
   });
 }
 

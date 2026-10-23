@@ -334,6 +334,38 @@
       });
     });
     wireNotifyButtons();
+    wireRecordAsk();
+  }
+
+
+  /* ---------- the record page's plain-language box ---------- */
+
+  /**
+   * A record page has no fields to save: it carries one sentence from the player. The message
+   * names this page so the agent can read it back, then edits the record itself.
+   */
+  function wireRecordAsk() {
+    var box = byId("record-prompt");
+    var button = byId("record-notify");
+    if (!box || !button) return;
+    var enable = function () {
+      button.disabled = !(state.host && state.writable && String(box.value || "").trim());
+    };
+    box.addEventListener("input", enable);
+    enable();
+    button.addEventListener("click", function () {
+      var text = String(box.value || "").trim();
+      if (!text) {
+        setText("record-status", "先写一句你想改什么。");
+        return;
+      }
+      notifyAgent(
+        commandFor("/record-edited") + "\n要改的地方：「" + text + "」",
+        "/record-edited",
+        "record-status",
+        "已通知 agent，它按这句话改记录并重新生成这一页。"
+      );
+    });
   }
 
   /* ---------- the two notify buttons ---------- */
@@ -418,12 +450,15 @@
   function paintStatus() {
     // Sending and the art prompt both go through the app, so they follow the same gate a write has.
     var blocked = !state.host || !state.writable;
-    ["card-send", "card-art-notify"].forEach(function (id) {
+    ["card-send", "card-art-notify", "record-notify"].forEach(function (id) {
       var element = byId(id);
       if (element) element.disabled = blocked;
     });
     if (state.record) {
-      setStatus("只读：仪式与事件页没有可发送的值。", "readonly");
+      // A record page sends a sentence, not values: the gate is the same, the wording is not.
+      if (!state.host) setStatus("只读：没有 app 宿主，发不了消息。", "readonly");
+      else if (!state.writable) setStatus("只读：这个文件不在 your_mods/ 里", "readonly");
+      else setStatus("", "clean");
       return;
     }
     if (!state.host) {

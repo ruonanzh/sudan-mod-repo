@@ -38,6 +38,7 @@ import vm from "node:vm";
 import { REPO } from "./lib/fixture.mjs";
 import { composeSubject } from "../tools/art.mjs";
 import { CSS, esc } from "../editors/lib/shell.mjs";
+import { recordPageHtml } from "../editors/page/page.mjs";
 import { parseDoc, toPlain } from "../tools/jsonc.mjs";
 import {
   applyCardValues,
@@ -839,4 +840,23 @@ test("the text a player reads carries no internal jargon", () => {
   for (const word of ["--apply", "--collect", "LEGACY_FIELD", "validate_mod", "install_mod", "create_mod_folder"]) {
     assert.equal(visible.includes(word), false, `the player's page must not mention ${word}`);
   }
+});
+
+test("a record page carries a plain-language box instead of fields", () => {
+  const html = recordPageHtml({
+    kind: "event",
+    id: 9900102,
+    record: { id: 9900102, text: "长刃回响", on: { round_begin_ba: 3 } },
+    modDir: "/tmp/mod",
+  });
+  assert.match(html, /data-record-prompt/, "the box the player types into");
+  assert.match(html, /id="record-notify"/, "and the button that sends it");
+  assert.match(html, /用平时的话说就行/, "the page says plain words are enough");
+});
+
+test("a record page sends /record-edited with the sentence the player typed", () => {
+  const bridge = readFileSync(path.join(TOOL_DIR, "bridge.js"), "utf8");
+  assert.match(bridge, /byId\("record-notify"\)/, "the page's button is wired");
+  assert.match(bridge, /commandFor\("\/record-edited"\)/, "the command names the record page");
+  assert.match(bridge, /要改的地方：「/, "the sentence travels under a label the agent can find");
 });
