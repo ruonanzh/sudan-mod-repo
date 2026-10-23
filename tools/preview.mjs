@@ -62,8 +62,27 @@ export function neighbourhood(g, key, depth = 1) {
       else if (keep.has(e.t)) keep.add(e.f);
     }
   }
-  const nodes = g.nodes.filter((n) => keep.has(n.k)).map((n) => ({ k: n.k, l: n.l, c: n.cat || null, focus: n.k === key }));
-  const edges = g.edges.filter((e) => keep.has(e.f) && keep.has(e.t)).map((e) => ({ f: e.f, t: e.t, r: e.r }));
+  // A label is a per-language object; the page prints one line, so one language is enough.
+  const text = (l) => (typeof l === "string" ? l : l && (l.zh || l.en || l.ja || l.zhTW) ? l.zh || l.en || l.ja || l.zhTW : null);
+  const nodes = g.nodes
+    .filter((n) => keep.has(n.k))
+    .map((n) => {
+      const raw = text(n.l) || n.k;
+      // A node is a box on a small canvas: one line, cut with an ellipsis rather than overflow.
+      const short = raw.length > 22 ? `${raw.slice(0, 22)}…` : raw;
+      return { k: n.k, l: short, c: n.cat || null, focus: n.k === key };
+    });
+  // One line per pair in this small picture: two rules would stack their labels on the same edge.
+  const seenEdge = new Set();
+  const edges = g.edges
+    .filter((e) => keep.has(e.f) && keep.has(e.t))
+    .filter((e) => {
+      const pair = `${e.f}->${e.t}`;
+      if (seenEdge.has(pair)) return false;
+      seenEdge.add(pair);
+      return true;
+    })
+    .map((e) => ({ f: e.f, t: e.t, r: e.r }));
   return { nodes, edges };
 }
 
