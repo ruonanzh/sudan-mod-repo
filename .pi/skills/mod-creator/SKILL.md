@@ -49,15 +49,7 @@ description: >
 
 - `name` 是小写 snake_case：`a-z`、`0-9`、`_`，以字母开头，最多 40 个字符（`broken_blade`，不是 `Broken Blade`）。它是文件夹名，不是面板名：面板上显示的名字是 `info.json` 的 `name`。
 - 它不建任何源文件。`info.json` 自己写（下一节）。
-- 失败与对应的做法：
-
-| 输出 | 做法 |
-|---|---|
-| `EXISTING: This session is already bound to <path>` | 已经绑定过了，继续用这个目录，不要再建第二个 |
-| `INVALID_MOD_NAME: ...` | 改名字，再调一次 |
-| `MOD_NAME_TAKEN: <name> already exists` | 这个名字被占了，换一个名字 |
-| `MOD_DIRECTORY_MISSING` / `UNAVAILABLE` | 绑定的目录已经不在了或读不了。请玩家恢复它，或者开一个新会话；不要绑定第二个目录 |
-| `HELPER_READ_ONLY` | Game Helper 会话不能建 mod；换到 mod 开发会话 |
+- 这些失败都是 `create_mod_folder` 的 `throw`，消息里已经写了下一步，照做即可。不要为同一个会话建第二个目录。
 
 ## info.json
 
