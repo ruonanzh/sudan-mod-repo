@@ -346,11 +346,13 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
     return null;
   };
   /** Emit an edge, or record a cross-type reference when the id belongs to another kind. */
+  /** A mod may add ids outside the ranges the game ships; if it is a node here, it is real. */
+  const known = (kind, id) => nodes.has(`${kind}:${id}`);
   const emit = (from, toKind, value, rule) => {
     const n = Number(value);
     if (!Number.isInteger(n)) return;
     if (toKind === "counter") return; // annotations only, see noteCounter
-    if (!inSpace(toKind, n)) {
+    if (!inSpace(toKind, n) && !known(toKind, n)) {
       const looks = kindContaining(n);
       if (looks) crossNotes.push({ from, to: `${toKind}:${n}`, rule, looksLike: looks });
       return;
@@ -361,6 +363,13 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
   const edgeRaw = (from, target, rule) => {
     if (!nodes.has(target)) {
       // keep it: dangling edges are a finding, not something to hide
+    }
+    // One line between two nodes: two rules that say the same thing would stack their labels
+    // on top of each other. A condition reference yields to the action that actually runs it.
+    const pair = edges.find((e) => e.f === from && e.t === target);
+    if (pair) {
+      if (String(pair.r).startsWith("condition.") && !String(rule).startsWith("condition.")) pair.r = rule;
+      return;
     }
     const sig = `${from}->${target}|${rule}`;
     if (seen.has(sig)) return;
@@ -423,7 +432,7 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
       for (const v of asIds(value)) {
         if (v === 1 && (toKind === "card" || toKind === "rite")) continue; // wildcard: any
         if (toKind === "over" && (v === -1 || v === -3)) continue; // sentinels
-        if (!inSpace(toKind, v)) {
+        if (!inSpace(toKind, v) && !known(toKind, v)) {
           const looks = kindContaining(v);
           if (looks) crossNotes.push({ from: `event:${id}`, to: `${toKind}:${v}`, rule: `on.${timing}`, looksLike: looks });
           continue;
