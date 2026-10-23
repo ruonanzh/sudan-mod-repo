@@ -491,14 +491,14 @@
       var parsed = new DOMParser().parseFromString(state.text, "text/html");
       var style = parsed.querySelector("style");
       if (style) document.head.appendChild(style.cloneNode(true));
-      var wrap = parsed.querySelector("[data-card-page]");
+      var wrap = parsed.querySelector("[data-card-page]") || parsed.querySelector("[data-record-page]");
       var host = byId(HOST_ID);
       if (!wrap || !host) {
         setStatus("这一页里没有卡页内容。", "error");
         return;
       }
       host.replaceChildren(wrap.cloneNode(true));
-      state.root = host.querySelector("[data-card-page]");
+      state.root = host.querySelector("[data-card-page]") || host.querySelector("[data-record-page]");
       // The page's own scripts are the bridge itself; the tool already runs that one.
       state.root.querySelectorAll("script").forEach(function (element) {
         element.parentNode.removeChild(element);
@@ -641,10 +641,10 @@
     var file = byId("card-file");
     if (file && name) file.textContent = name;
     if (state.record) {
-      var title = document.querySelector("#bar strong");
-      if (title) title.textContent = "记录";
       var send = byId("card-send");
       if (send) send.hidden = true;
+      var hint = byId("card-hint");
+      if (hint) hint.hidden = true;
     }
     var bar = byId("card-savebar");
     if (bar) bar.hidden = false;
