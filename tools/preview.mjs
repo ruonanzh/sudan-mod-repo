@@ -395,7 +395,17 @@ function main() {
     if (!CARD_ID_FILE.test(String(r.id))) continue;
     const file = path.join(outDir, `${r.kind}-${r.id}.record.html`);
     try {
-      writeFileSync(file, recordPageHtml({ kind: r.kind, id: r.id, record: r.record, modDir, origin: originOf(r.kind, r.id) }));
+      writeFileSync(
+        file,
+        recordPageHtml({
+          kind: r.kind,
+          id: r.id,
+          record: r.record,
+          modDir,
+          origin: originOf(r.kind, r.id),
+          graphLink: `graph.html#${r.kind}:${r.id}`,
+        }),
+      );
       pages.files.push(file);
       recordCount += 1;
     } catch (e) {
@@ -430,6 +440,10 @@ function main() {
   if (written.length) {
     process.stdout.write(`PASS  ${written.length} page(s):\n`);
     for (const f of written) process.stdout.write(`  ${displayPath(f)}\n`);
+    for (const r of records) {
+      if (!recordKinds.has(r.kind)) continue;
+      process.stdout.write(`  story graph: ${displayPath(outDir)}/graph.html#${r.kind}:${r.id}\n`);
+    }
     process.stdout.write("NEXT  give these paths to the player, one per line, and say which record each one shows\n");
   } else {
     process.stdout.write("PASS  nothing to write: this mod carries no record that has a page\n");

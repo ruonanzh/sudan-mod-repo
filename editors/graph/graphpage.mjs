@@ -1219,6 +1219,16 @@ document.getElementById("lang").onchange = (e) => {
 if (DATA.focus && byKey.has(DATA.focus)) selected = DATA.focus;
 cats(); listRows(); draw();
 
+// A link can name the record to open on: graph.html#rite:5010901. It wins over --focus,
+// because the hash is the more specific request (one page, many records).
+function focusFromHash() {
+  var key = "";
+  try { key = decodeURIComponent(String((window.location && window.location.hash) || "").replace(/^#/, "")); } catch (e) { key = ""; }
+  if (key && byKey.has(key)) focusNode(key);
+}
+focusFromHash();
+if (typeof window.addEventListener === "function") window.addEventListener("hashchange", focusFromHash);
+
 // The lane layout is shared source: the page and the tests run the same text.
 ${LANE_LAYOUT_JS}
 

@@ -740,16 +740,19 @@ function bodyFor(kind, record, modDir) {
  * A whole page for one record of any kind `bodyFor` knows: the preview writes these into a
  * mod's `.preview/` so the app can open them the same way it opens a card page.
  */
-export function recordPageHtml({ kind, id, record, modDir, origin = "new" }) {
+export function recordPageHtml({ kind, id, record, modDir, origin = "new", graphLink = null }) {
   const body = bodyFor(kind, record, modDir);
   const label = { rite: "仪式", event: "事件", loot: "战利品表", quest: "任务", over: "结局", afterStory: "后日谈", upgrade: "命运商店", tag: "标签", init: "开局" }[kind] || kind;
   const badge = origin === "override"
     ? '<span class="origin override">覆盖原版</span>'
     : '<span class="origin">新增</span>';
+  const graphNote = graphLink
+    ? `<p class="note" style="margin:0 0 14px"><a href="${esc(graphLink)}">在剧情图里看它</a></p>`
+    : "";
   return pageHtml({
     title: `${label} ${id}`,
     sub: `${badge}${record && record.name ? esc(String(record.name)) : ""}`,
-    body: `<div data-record-page="${esc(kind)}:${esc(id)}">${body}</div>`,
+    body: `${graphNote}<div data-record-page="${esc(kind)}:${esc(id)}">${body}</div>`,
   });
 }
 

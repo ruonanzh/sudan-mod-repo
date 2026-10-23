@@ -99,6 +99,8 @@ test("a mod of only events gets one story graph that opens on the record named b
   assert.match(read(recordPage), /data-record-page="event:9000001"/, "the page names the record it shows");
   assert.match(r.stdout, /event-9000001\.record\.html/, "the run lists the record page");
   assert.match(read(recordPage), /新增/, "an id the game does not ship is marked as new");
+  assert.match(read(recordPage), /graph\.html#event:9000001/, "the record page links the graph at that record");
+  assert.match(r.stdout, /graph\.html#event:9000001/, "the run prints the graph link too");
   assert.match(r.stdout, /graph\.html/, "the run names the story graph it wrote");
 });
 
