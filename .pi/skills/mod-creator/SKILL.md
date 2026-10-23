@@ -45,7 +45,7 @@ description: >
 
 ## 建 mod 骨架
 
-目录由工具建，不用 `mkdir`：`create_mod_folder(name=...)` 建出 `your_mods/<name>/`，并把会话绑定到它。它同时是写入隔离的边界——守卫只允许写绑定目录里面——所以不要用别的办法建这个目录。
+目录必须用 `create_mod_folder(name=...)` 建：它建出 `your_mods/<name>/`，并把会话绑定到它。它同时是写入隔离的边界——守卫只允许写绑定目录里面——所以建目录只走这一条路。
 
 - `name` 是小写 snake_case：`a-z`、`0-9`、`_`，以字母开头，最多 40 个字符（`broken_blade`，不是 `Broken Blade`）。它是文件夹名，不是面板名：面板上显示的名字是 `info.json` 的 `name`。
 - 它不建任何源文件。`info.json` 自己写（下一节）。
