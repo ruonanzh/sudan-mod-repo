@@ -1266,8 +1266,8 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
 </div>
 `;
   const css = `
-.gshell { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
-@media (max-width: 1180px) {
+.gshell { display: flex; align-items: flex-start; gap: 12px; flex-wrap: nowrap; }
+@media (max-width: 1240px) {
   .gshell { flex-direction: column; }
   .modal { flex: 1 1 auto; position: static; width: 100%; max-height: none; }
   .gshell:has(#modal:not([hidden])) .gmain { height: 62vh; }
@@ -1319,7 +1319,7 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
 .badge.FAIL { background: var(--bad); color: #fff; }
 .badge.WARN { background: var(--gold); color: #1a1510; }
 .badge.INFO { background: #4f5a52; color: var(--ink); }
-.modal { flex: 0 1 min(640px, 48vw); position: sticky; top: 12px; max-height: 92vh; overflow-y: auto; background: var(--panel); border: 1px solid var(--rule); }
+.modal { flex: 0 1 min(620px, 44vw); position: sticky; top: 12px; max-height: 92vh; overflow-y: auto; background: var(--panel); border: 1px solid var(--rule); }
 .modal[hidden] { display: none; }
 .modal-body { padding: 14px 16px; }
 .drawerbar { display: flex; justify-content: flex-end; margin: 0 0 6px; }
