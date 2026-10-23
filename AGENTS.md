@@ -32,12 +32,13 @@
 - `AGENTS.md` —— 本文件：固定的环境事实与边界。
 - `script/` —— 测试与维护者的工具。`run-tests.mjs` 是唯一入口；`gen-field-tables.mjs` 从字段普查重建 `schema/fields.json`；`prompt-standard.md` 是提示词写作标准，改本文件或任一 `SKILL.md` 前先读它。
 - `.pi/skills/` —— 分步指导。读匹配的那一份，每份自己写了触发条件。
+  - `how-to-speak` —— 跟玩家说话的规范：用词、语言、路径、答案先行，以及什么叫「没问题」。每次回复前读。
   - `setup-workspace` —— 环境准备：先确定 mod 根目录（必需）；dump 游戏代码的工具链、参考游戏美术都是可选的，用到时才准备。开局或换机器先读这一份。
   - `mod-creator` —— 主参考：mod 布局、`info.json`、mod 能提供哪些 config、合并语义、JSONC 规则，以及带可用示例的卡与事件/仪式写法。
   - `mod-installer` —— 把 mod 复制进 mod 根目录、启用它、再从日志确认。
   - `card-art` —— 图片怎么制作：尺寸、命名、生成卡面图的提示词，以及一张贴图替换掉什么。
   - `mod-audio` —— 换游戏里已有的音频：文件名即片段名、能用的格式，以及为什么只能替换不能新增。
-  - `mod-page` —— 写 mod 说明页：一个本地 HTML 页，列出这个 mod 改了哪些记录与字段，玩家可以在上面标注意见。本文件提到的「mod 说明页」就是它。
+  - `mod-page` —— 生成玩家能打开的页面：卡页可在应用里改值并「发送给 Agent」，剧情图看仪式与事件在剧情里的位置。要讨论还没写进 mod 的方案时用它。
 - `schema/` —— 工具与页面读的数据，agent 不直接改。
   - `SCHEMA.md` 是生成物（由 `tools/gen-schema-doc.mjs` 生成），**不要手改**。要查四份 `docs/` 之外的 kind，看它的 Field tables；lint 报的错若是原版数据自带，看 Known defects。
   - `schema/view/` 是页面与故事图的呈现数据（中文标签、开关文案、分组、连线）：改它只改页面外观，不改校验结论。校验结论只由 `schema/` 根下那几份事实文件决定。

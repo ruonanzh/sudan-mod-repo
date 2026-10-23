@@ -16,6 +16,8 @@
  *    One concept one word is what keeps a long document navigable.
  * 3. **A tool message is ASCII.** Windows GBK turns anything else into mojibake, and these
  *    messages are read on both platforms.
+ * 4. **A skill description is one line.** A folded `description: >` block hard-wraps a Chinese
+ *    sentence, and the fold then shows up as a stray space in the middle of it.
  *
  * A file with no CJK prose is *pending translation*, not a violation: the SKILL.md files are
  * being translated one batch at a time, and a red suite for work not yet started would train
@@ -212,10 +214,27 @@ const targets = FILE_ARGS.length
       .map((d) => path.join(REPO, ".pi/skills", d.name, "SKILL.md"))
       .filter((p) => statSync(p, { throwIfNoEntry: false })?.isFile())];
 
+/** `description: >` in a SKILL frontmatter wraps a Chinese sentence and leaves a stray space. */
+function checkDescriptionLine(files) {
+  const bad = [];
+  for (const file of files) {
+    let text;
+    try {
+      text = readFileSync(file, "utf8");
+    } catch {
+      continue;
+    }
+    const head = /^---\n([\s\S]*?)\n---/.exec(text);
+    if (!head) continue;
+    if (/^description:\s*[>|]\s*$/m.test(head[1])) bad.push(`${path.relative(REPO, file)}: description must be one line, not a folded block`);
+  }
+  return bad;
+}
+
 const results = targets.map((f) => checkProse(f, keys, concepts));
 const toolProblems = checkTools(TOOLS_DIR);
 
-const problems = [...results.flatMap((r) => r.problems), ...toolProblems];
+const problems = [...results.flatMap((r) => r.problems), ...toolProblems, ...checkDescriptionLine(targets)];
 const pending = results.filter((r) => r.pending).map((r) => r.file);
 
 for (const r of results) if (!r.pending) process.stdout.write(`checked  ${r.file}\n`);

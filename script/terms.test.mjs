@@ -114,3 +114,16 @@ test("T8 an English file is reported as pending, not as a violation", () => {
   const strict = run([file], ["--strict"]);
   assert.equal(strict.status, 1, "--strict turns pending into a failure");
 });
+
+test("a folded description is a violation: the fold eats a space in the middle of a sentence", () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "terms-desc-"));
+  const file = path.join(dir, "SKILL.md");
+  writeFileSync(file, "---\nname: probe\ndescription: >\n  第一行，\n  第二行。\n---\n\n正文。\n");
+  const r = spawnSync(process.execPath, [CHECKER, "--files", file], { cwd: REPO, encoding: "utf8" });
+  assert.equal(r.status, 1, r.stdout + r.stderr);
+  assert.match(r.stdout, /description must be one line/);
+
+  writeFileSync(file, "---\nname: probe\ndescription: 第一行，第二行。\n---\n\n正文。\n");
+  const ok = spawnSync(process.execPath, [CHECKER, "--files", file], { cwd: REPO, encoding: "utf8" });
+  assert.equal(ok.status, 0, ok.stdout + ok.stderr);
+});

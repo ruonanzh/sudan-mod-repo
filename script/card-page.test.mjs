@@ -827,3 +827,14 @@ test("the wrapper loads one external script, and the page carries that same scri
   assert.match(bridge, /DOMParser/, "the wrapper mounts the page it read");
   assert.ok(page().includes(bridge.trimEnd()), "each generated page embeds the bridge verbatim");
 });
+
+test("the text a player reads carries no internal jargon", () => {
+  // Scripts and styles stay in the file (the page needs them) but a player never reads them.
+  const visible = page()
+    .replace(/<script[\s\S]*?<\/script>/g, "")
+    .replace(/<style[\s\S]*?<\/style>/g, "")
+    .replace(/<!--[\s\S]*?-->/g, "");
+  for (const word of ["--apply", "--collect", "LEGACY_FIELD", "validate_mod", "install_mod", "create_mod_folder"]) {
+    assert.equal(visible.includes(word), false, `the player's page must not mention ${word}`);
+  }
+});
