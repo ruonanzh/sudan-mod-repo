@@ -722,11 +722,15 @@ function dispLabel(n) {
 }
 
 // ---------------------------------------------------------------- list
+/** The word a player uses for a node kind, for the list's type column. */
+function kindWord(kind) {
+  var words = { event: "事件", rite: "仪式", card: "卡牌", loot: "战利品", quest: "任务", over: "结局", afterStory: "后日谈", riteTemplate: "星盘", counter: "计数器", game: "游戏", upgrade: "命运商店", tag: "标签", init: "开局" };
+  return words[kind] || kind;
+}
+
 function listRows() {
   const q = qEl.value.trim().toLowerCase();
   const rows = visible().filter((n) => {
-    // A card is never part of the story flow; under the mod filter it would only add noise.
-    if (cat === "mod" && n.t === "card") return false;
     if (!q) return true;
     // The note is searched too: it is what the row shows, and it is Chinese only, so it would
     // otherwise vanish from search whenever another language is on screen.
@@ -736,6 +740,7 @@ function listRows() {
   listEl.innerHTML = rows.slice(0, 500).map((n) =>
     '<div class="row' + (selected === n.k ? " sel" : "") + '" data-k="' + n.k + '">' +
     '<span class="id">' + n.id + "</span>" +
+    '<span class="ty">' + escHtml(kindWord(n.t)) + "</span>" +
     '<span class="nm">' + (n.b ? '<span class="badge ' + n.b + '">' + n.b + "</span> " : "") +
     escHtml(dispLabel(n).slice(0, 40)) +
     (n.t !== "event" && lang !== "zh" && n.tr && !n.tr[lang] ? ' <span class="toless">无' + lang + "</span>" : "") + "</span></div>"
@@ -1345,8 +1350,9 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
 .gmain { min-height: 0; }
 .gmain.nolist { grid-template-columns: 1fr; }
 .gmain.nolist .glistwrap { display: none; }
-.glist .row { display: grid; grid-template-columns: 76px 1fr; gap: 8px; padding: 4px 8px; cursor: pointer; border-bottom: 1px solid #2f2a24; }
+.glist .row { display: grid; grid-template-columns: 68px 46px 1fr; gap: 8px; padding: 4px 8px; cursor: pointer; border-bottom: 1px solid #2f2a24; }
 .glist .row:hover { background: #35291c; }
+#glist-ty, .glist .ty { color: var(--dim); font-size: 12px; white-space: nowrap; }
 .glist .id { color: var(--dim); font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
 .glist .nm { font-size: 13px; }
 .gcanvas { border: 1px solid var(--rule); background: #17120c; position: relative; min-height: 0; }

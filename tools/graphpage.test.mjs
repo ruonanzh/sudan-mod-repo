@@ -351,10 +351,11 @@ test("both vendored libraries travel as one file, and nothing is fetched from th
 });
 
 // ---------------------------------------------------------------- step 1: the renderer
-test("the page opens on its focus record's detail, and the list drops cards under mod", { skip }, () => {
+test("the page opens on its focus record's detail, and the list names each record's kind", { skip }, () => {
   const script = pageScript("graph.data.js", true, "graph.detail.js");
   assert.match(script, /window\.__openNode\(selected\)/, "the detail opens without a click");
-  assert.match(script, /cat === "mod" && n\.t === "card"/, "a card never appears in the mod list");
+  assert.match(script, /class="ty"/, "the list carries a type column between the id and the name");
+  assert.match(script, /card: "卡牌"/, "and a card is called what a player calls it");
   assert.match(script, /panelexpand/, "the panel can expand");
   assert.match(script, /panelHtml\(nodeOf\(selected\), true\)/, "expanding shows every relation, not the first 30");
   assert.match(script, /panelshink/, "and shrink back");
