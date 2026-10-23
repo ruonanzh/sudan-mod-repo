@@ -58,13 +58,13 @@ test("--check MISSes a game directory that is gone and names the game", () => {
   assert.match(r.stdout, /The game was not found/);
 });
 
-test("--check MISSes a config the install does not have, and sends the player to the extractor", () => {
+test("--check MISSes a config the install does not have, and names the fix", () => {
   const w = world({ config: false });
   writeFileSync(w.file, `${JSON.stringify({ gameDir: w.install, modInstallDir: w.mods }, null, 2)}\n`);
   const r = run(["--check", "--paths", w.file]);
   assert.equal(r.status, 1, r.stdout + r.stderr);
   assert.match(lineOf(r.stdout, "vanilla"), /^MISS\s+vanilla\s/);
-  assert.match(r.stdout, /required file group/);
+  assert.match(r.stdout, /The game's config was not found/);
 });
 
 test("the check names the same vanilla directory as tools/paths.mjs", () => {

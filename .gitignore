@@ -3,16 +3,9 @@
 node_modules/
 .DS_Store
 
-# extracted vanilla art: DoubleCross owns it, it is a style reference only
-reference/cards/*.png
-reference/cards/head/
-
-# extracted vanilla plates: DoubleCross owns them
-reference/plates/*.png
-
-# extracted vanilla fonts: commercial licences, reference only
+# The card plates and the style references ship with the repo: they are card faces, which
+# players share publicly. The title font is a commercial licence and stays out.
 reference/fonts/
-.setup-venv/
 
 # a workspace keeps its own mods here; the app refuses to sync a repo that tracks this
 your_mods/

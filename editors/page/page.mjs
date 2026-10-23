@@ -18,7 +18,6 @@
  */
 import { writeFileSync, mkdirSync, existsSync, readFileSync, realpathSync } from "node:fs";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { openMod, ModelError } from "../../tools/model.mjs";
 import { vanillaRequirement } from "../../tools/paths.mjs";
@@ -565,45 +564,18 @@ function blankPlate() {
 }
 
 /**
- * The reference set is not in git, so a fresh clone has none. Build it on the spot the
- * first time the page is generated, and show progress: the only work here is reading the
- * player's own game, which takes a few seconds.
+ * The reference plates ship with the repository, so a fresh checkout can draw a card page at once.
  */
-function ensureReference(quietIfPresent = true) {
+function ensureReference() {
+  // The plates ship with the repository. A checkout that lost them still renders: the page
+  // falls back to a plain placeholder. Nothing is downloaded and nothing is extracted.
   const here = path.dirname(new URL(import.meta.url).pathname);
   const need = ["card.png", "card-stone.png", "card-copper.png", "card-silver.png", "card-gold.png"].map((f) =>
     path.join(here, "..", "..", "reference", "plates", f)
   );
   if (need.every((f) => existsSync(f))) return true;
-
-  process.stderr.write("reference art is missing; building it from the installed game\n");
-  const setup = path.join(here, "..", "..", "tools", "setup.mjs");
-  const bar = (step) => {
-    if (!process.stderr.isTTY) return;
-    const filled = Math.round((step / 5) * 20);
-    process.stderr.write(`\r[${"#".repeat(filled)}${"-".repeat(20 - filled)}] ${Math.round((step / 5) * 100)}%  `);
-  };
-  bar(0);
-  const r = spawnSync(process.execPath, [setup], {
-    cwd: path.join(here, "..", ".."),
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "inherit"],
-  });
-  const lines = (r.stdout || "").split("\n");
-  for (const line of lines) {
-    const m = line.match(/^\[(\d)\/(\d)\]\s*(.*)$/);
-    if (m) bar(Number(m[1]));
-  }
-  if (process.stderr.isTTY) process.stderr.write("\n");
-  if (r.status !== 0) {
-    process.stderr.write(
-      "could not build the reference art; the page will use a plain placeholder.\n" +
-        (lines.slice(-3).join("\n") || "") + "\n"
-    );
-    return false;
-  }
-  for (const line of lines) if (line.startsWith("[")) process.stderr.write(`  ${line}\n`);
-  return true;
+  process.stderr.write("reference plates are missing; the page will use a placeholder. Re-clone the workspace to restore them.\n");
+  return false;
 }
 
 const dataUri = (img) => encodePng(img).toString("base64");
@@ -635,7 +607,7 @@ export function artInline(modDir, id, rare, name, type, fontFamily) {
   const nameFamily = fontFamily || "ui-serif, Georgia, serif";
   const { img, tier, missingPlate } = composeCard(modDir, id, rare, name, type);
   const plateNote = missingPlate
-    ? `<div class="note" style="margin-top:8px">用的是<b>占位底图</b>：原版纸纹没解出来。先跑 <code>node tools/setup.mjs</code>。</div>`
+    ? `<div class="note" style="margin-top:8px">用的是<b>占位底图</b>：仓库里的底图缺失。重新克隆工作区即可恢复。</div>`
     : "";
   const { sources, art } = plateSources(modDir, id, type);
   const payload = JSON.stringify({ plates: sources, art, name, rare });

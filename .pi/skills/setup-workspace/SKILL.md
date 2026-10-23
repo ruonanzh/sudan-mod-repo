@@ -139,21 +139,15 @@ inspect_game_code action=setup
 
 ## 可选 B：参考游戏美术
 
-参考游戏美术是原版四张品级底板、卡面标题字体与十二张参考卡。只有在你要画一张像真卡的预览时才需要。
+参考游戏美术是四张品级底板与十二张参考卡。**它们随仓库提供**（`reference/plates/`、`reference/cards/`），不需要提取，也不需要联网或 Python。
 
 ```
 node tools/setup.mjs --check
 ```
 
-列出已有的与缺的，并报出 `gameDir` 与 `vanilla` 两个判定。要提取：
+它列出底图与参考卡是否齐全，并报出 `gameDir` 与 `vanilla` 两个判定。缺了就是工作区不完整：重新克隆一次即可恢复。
 
-```
-node tools/setup.mjs
-```
-
-`node tools/setup.mjs` 读玩家自己的游戏，需要带 UnityPy 的 Python。首次会建 `.setup-venv/` 并在里面装 UnityPy。
-pip 源按这个顺序试，直到成功：`--index` → `SUDAN_PIP_INDEX` → 清华 → 阿里 → 默认 PyPI（`tools/setup.mjs:183`）。
-`node tools/setup.mjs` 只写 `reference/` 与 `.setup-venv/`。要指定游戏或解释器，用 `--game <安装目录>` 与 `--python <解释器>`。
+卡面标题字体不在仓库里（商业授权）。缺字体时页面退回衬线字体，画面照常生成。
 
 ## 相关技能
 
