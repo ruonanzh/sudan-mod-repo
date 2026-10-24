@@ -32,6 +32,20 @@ function mod(files) {
 const run = (args) => spawnSync(process.execPath, [PREVIEW, ...args], { encoding: "utf8" });
 const read = (file) => readFileSync(file, "utf8");
 
+/**
+ * One mod holding both records, generated once. Preview spawns a fresh Node process and reads the
+ * vanilla config, so running it per test cost six seconds of the suite for nothing.
+ */
+let shared = null;
+function pages() {
+  if (shared) return shared;
+  const dir = mod({ "config/loot/6000777.json": LOOT, "config/upgrade.json": { 8000777: UPGRADE } });
+  const r = run(["--mod", dir]);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  shared = { dir, loot: read(path.join(dir, ".preview", "6000777.loot.html")), upgrade: read(path.join(dir, ".preview", "8000777.upgrade.html")) };
+  return shared;
+}
+
 const LOOT = {
   id: 6000777,
   name: "测试掉落",
@@ -55,10 +69,7 @@ const UPGRADE = {
 };
 
 test("a loot table gets a form page with every field, labelled", () => {
-  const dir = mod({ "config/loot/6000777.json": LOOT });
-  const r = run(["--mod", dir]);
-  assert.equal(r.status, 0, r.stdout + r.stderr);
-  const page = read(path.join(dir, ".preview", "6000777.loot.html"));
+  const page = pages().loot;
   for (const key of ["repeat", "type", "name"]) assert.match(page, new RegExp(`data-form="${key}"`), key);
   assert.match(page, /战利品表/, "the page names what it is");
   assert.match(page, /抽取次数|name/, "each row carries its Chinese label");
@@ -68,10 +79,7 @@ test("a loot table gets a form page with every field, labelled", () => {
 });
 
 test("a fate-shop entry gets a form page with JSON boxes for the nested fields", () => {
-  const dir = mod({ "config/upgrade.json": { 8000777: UPGRADE } });
-  const r = run(["--mod", dir]);
-  assert.equal(r.status, 0, r.stdout + r.stderr);
-  const page = read(path.join(dir, ".preview", "8000777.upgrade.html"));
+  const page = pages().upgrade;
   for (const key of ["name", "text", "cost", "icon", "link_card"]) assert.match(page, new RegExp(`data-form="${key}"`), key);
   assert.match(page, /<textarea data-form="condition"/, "a condition is edited as JSON");
   assert.match(page, /<textarea data-form="effect"/, "so is an effect");
@@ -82,13 +90,11 @@ test("a fate-shop entry gets a form page with JSON boxes for the nested fields",
 });
 
 test("the form page carries its values in a block and opens in the editor", () => {
-  const dir = mod({ "config/loot/6000777.json": LOOT });
-  run(["--mod", dir]);
-  const page = read(path.join(dir, ".preview", "6000777.loot.html"));
+  const page = pages().loot;
   assert.match(page, /id="form-values"/, "the wrapper reads and writes this block");
   assert.match(page, /"key": ?"loot:6000777"/, "the block names the record");
   assert.match(page, /"weight": ?10/, "the block carries the current values");
-  assert.ok(existsSync(path.join(dir, ".preview", "6000777.loot.html")), "no separate script file: the editor wrapper supplies one");
+  assert.ok(existsSync(path.join(pages().dir, ".preview", "6000777.loot.html")), "the page is a file the wrapper opens");
 });
 
 test("the wrapper mounts into the host its stylesheet pads", () => {
@@ -107,9 +113,7 @@ test("the record id never travels as a change", () => {
 });
 
 test("every row is the card page's row: key on the left, control in the right column", () => {
-  const dir = mod({ "config/loot/6000777.json": LOOT });
-  run(["--mod", dir]);
-  const page = read(path.join(dir, ".preview", "6000777.loot.html"));
+  const page = pages().loot;
   for (const key of ["id", "repeat", "type", "name"]) {
     const start = page.indexOf(`data-key="${key}"`);
     const next = page.indexOf("data-key=", start + 10);
