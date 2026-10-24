@@ -44,7 +44,7 @@ test("install_mod copies the whole folder under the recorded directory", async (
   assert.ok(existsSync(path.join(target, "info.json")), text);
   assert.ok(existsSync(path.join(target, "config/cards.json")), text);
   assert.equal(result.details.files, 3, "info.json, config/cards.json and preview.png");
-  assert.match(text, /^NEXT: .*enable the mod/m, "the player must be told to enable it");
+  assert.doesNotMatch(text, /^NEXT:/m, "PASS carries no NEXT; mod-installer SKILL says what to do next");
 });
 
 test("install_mod replaces the previous copy instead of merging into it", async () => {
@@ -230,7 +230,7 @@ test("install_mod replaces the bytes, not just the file names", async () => {
   const landed = path.join(root, path.basename(mod), "config/cards.json");
   assert.match(textOf(result), /^PASS:/, textOf(result));
   assert.equal(readFileSync(landed, "utf8"), '{"v":2}\n', "a copy that is not refreshed must fail here");
-  assert.match(textOf(result), /refresh the mod list/, "an update is not an enable");
+  assert.doesNotMatch(textOf(result), /refresh the mod list/, "PASS carries no NEXT; the SKILL covers the refresh");
 });
 test("install_mod declares the parameter it reads, and mod-installer names it", async () => {
   const def = await get();

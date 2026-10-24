@@ -62,7 +62,7 @@ export default function (pi: ExtensionAPI) {
       try {
         const doc = parseDoc(readFileSync(infoFile, "utf8"));
         info = (toPlain(doc, doc.root) ?? {}) as typeof info;
-        if (typeof info !== "object" || info === null) throw new Error("info.json holds no object");
+        if (typeof info !== "object" || info === null) throw new Error("INVALID_MOD: info.json holds no object");
       } catch (error) {
         fail(`INVALID_MOD: ${infoFile} is not readable JSONC (${(error as Error).message}). Fix info.json first.`);
       }
@@ -163,9 +163,8 @@ export default function (pi: ExtensionAPI) {
                 [
                   // The name is the player's own text; escape it for a console that cannot print it.
                   `PASS: installed ${name} to ${shorten(target)} (${copied.files} files${copied.replaced ? ", the previous copy was replaced" : ""}).`,
-                  copied.replaced
-                    ? "NEXT: tell the player to refresh the mod list in the game's mod panel, then read ModLog/<mod name>_local.log and confirm a `read mod` line for each file you changed. Installing does not prove the game loads it."
-                    : "NEXT: tell the player to enable the mod in the game's mod panel (title screen), then read ModLog/<mod name>_local.log and confirm a `read mod` line for each file you changed. Installing does not prove the game loads it.",
+                  // No NEXT on PASS: the mod-installer SKILL already tells the agent to have the
+                  // player enable the mod and to read the log. Repeating it here adds noise.
                   ...(shown ? [shown] : []),
                 ].join("\n"),
               ),

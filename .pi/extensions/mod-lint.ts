@@ -134,13 +134,14 @@ export default function (pi: ExtensionAPI) {
           ? "NEXT: fix the FAIL messages, then run validate_mod again. This tool did not edit the mod; nothing is installed."
           : status === "PARTIAL"
             ? "NEXT: the vanilla config was not found, so id-collision and tag checks did not run. Run check_game_paths to see which sentinel is missing, then pass vanilla=<config dir> to validate_mod, or record the game directory with set_game_dir (vanilla is derived from it)."
-            : "NEXT: the mod passes lint. Install it and confirm the game loads it; a clean lint does not prove the change is visible in the game.";
+            : "";
       // The report is clipped, then the verdict and its next step are appended: a long report must
       // never be able to push the line that says what to do out of the result.
-      const body = clipUtf8(lines.join("\n"), MAX_CONTENT_BYTES - Buffer.byteLength(`\n${next}`, "utf8"));
+      const tail = next ? `\n${next}` : "";
+      const body = clipUtf8(lines.join("\n"), MAX_CONTENT_BYTES - Buffer.byteLength(tail, "utf8"));
 
       return {
-        content: [{ type: "text", text: `${body}\n${next}` }],
+        content: [{ type: "text", text: `${body}${tail}` }],
         details: {
           ok: status === "PASS",
           counts,

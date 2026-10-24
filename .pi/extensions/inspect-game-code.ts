@@ -94,10 +94,9 @@ export default function (pi: ExtensionAPI) {
       try {
         cfg = loadConfig(cwd);
       } catch (error) {
-        return {
-          content: [{ type: "text", text: clipUtf8(`FAIL: ${(error as Error).message}`) }],
-          details: { ok: false, reason: "CONFIG" },
-        };
+        // A decompile.json the tool cannot read is a broken workspace, not an answer about the
+        // game: throw, so the result is a tool error and not a FAIL to work around.
+        throw new Error(`CONFIG_INVALID: ${(error as Error).message}`);
       }
 
       if (params.game) writeState(cwd, { gameDir: expandHome(params.game) });
@@ -257,10 +256,8 @@ export default function (pi: ExtensionAPI) {
             { path: done.path },
           );
         } catch (error) {
-          return {
-            content: [{ type: "text", text: clipUtf8(`FAIL: ${(error as Error).message}`) }],
-            details: { ok: false, reason: "SETUP" },
-          };
+          // Downloading or verifying a tool is environment work; its failure is not game data.
+          throw new Error(`SETUP_FAILED: ${(error as Error).message}`);
         } finally {
           clearInterval(beat);
         }
@@ -324,9 +321,9 @@ export default function (pi: ExtensionAPI) {
             : [];
           const fresh = freshness.state === "fresh";
           const head = !fresh && problem
-            ? `FAIL: the dump cannot be used yet. Expected ${dir}.`
+            ? `PARTIAL: the dump is stale or incomplete. Expected ${dir}.`
             : freshness.state === "missing"
-              ? `FAIL: no dump for this repository. Expected ${dir}.`
+              ? `PARTIAL: no dump for this repository yet. Expected ${dir}.`
               : !fresh
                 ? "PARTIAL: the dump is stale."
                 : problem
@@ -388,7 +385,7 @@ export default function (pi: ExtensionAPI) {
           const file = join(dumper, "stringliteral.json");
           if (!existsSync(file)) {
             return {
-              content: [{ type: "text", text: clipUtf8(`FAIL: this dump has no stringliteral.json (${file}).`) }],
+              content: [{ type: "text", text: clipUtf8(`FAIL: this dump has no stringliteral.json (${file}).\nNEXT: action=dump rebuilds it; the string table is written on every rebuild.`) }],
               details: { ok: false, reason: "NO_STRINGS" },
             };
           }
@@ -440,7 +437,7 @@ export default function (pi: ExtensionAPI) {
             content: [
               {
                 type: "text",
-                text: clipUtf8(`FAIL: no method matches "${params.member ?? ""}" in ${params.target}.\n# methods in this type:\n${truncate(all.join("\n"), 80)}`),
+                text: clipUtf8(`FAIL: no method matches "${params.member ?? ""}" in ${params.target}.\nNEXT: action=type target=${params.target} lists the signatures; copy one.\n# methods in this type:\n${truncate(all.join("\n"), 80)}`),
               },
             ],
             details: { ok: false, reason: "METHOD_NOT_FOUND" },
@@ -455,10 +452,16 @@ export default function (pi: ExtensionAPI) {
         );
       } catch (error) {
         const message = (error as Error).message;
-        return {
-          content: [{ type: "text", text: clipUtf8(`FAIL: ${message}`) }],
-          details: { ok: false, reason: "DUMP", dir, sha: game ? sha256File(game.binary).slice(0, 8) : null },
-        };
+        // The rebuild and the runtime are prerequisites, not game answers. Their own messages
+        // already carry a NEXT step; keep them as PARTIAL so the agent runs it. Anything else
+        // (an unreadable file, a crash) is an environment failure: throw, with a code.
+        if (/^(DOTNET_TOO_OLD|GAME_NOT_FOUND|RUNTIME_MISSING|TOOL_MISSING)\b/.test(message)) {
+          return {
+            content: [{ type: "text", text: clipUtf8(message.replace(/^FAIL: /, "PARTIAL: ")) }],
+            details: { ok: false, reason: "NOT_READY", dir, sha: game ? sha256File(game.binary).slice(0, 8) : null },
+          };
+        }
+        throw new Error(/^[A-Z][A-Z0-9_]{2,}:/.test(message) ? message : `DUMP_READ_FAILED: ${message}`);
       }
     },
   });

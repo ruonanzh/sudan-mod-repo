@@ -126,7 +126,7 @@ export default function (pi: ExtensionAPI) {
       } catch (error) {
         // The CLI reports FAIL on its own; a spawn failure is ours to explain.
         const e = error as Error & { stdout?: string; stderr?: string; code?: string };
-        if (e.code === "ENOENT") throw new Error("tools/image.mjs is missing from this workspace; run setup-workspace or update the workspace.");
+        if (e.code === "ENOENT") throw new Error("TOOL_MISSING: tools/image.mjs is missing from this workspace; run setup-workspace or update the workspace.");
         const raw = `${e.stdout || ""}${e.stderr || ""}`.trim();
         // The CLI exits 1 for WARN and FAIL too: both are answers, not spawn failures. Decide on the
         // whole text; clipping first could hide the FAIL line and turn an answer into a thrown error.
