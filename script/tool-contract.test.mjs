@@ -91,3 +91,30 @@ test("a tool that worked returns PASS and no NEXT", async () => {
   assert.match(text, /^PASS:/);
   assert.doesNotMatch(text, /NEXT:/);
 });
+
+// The vocabulary is closed: script/prompt-standard.md §5.4 names PASS, WARN, FAIL and PARTIAL as
+// the only result statuses, plus NOTE for a fact that sits beside them. SKIP, INSTRUCTIONS
+// PROVIDED and INFO are legacy words — they stay where they are and may disappear, but a new one
+// would mean the standard stopped describing the tools. The bound is a ceiling, not an equality:
+// removing a legacy use is always allowed.
+test("the legacy status words do not grow", () => {
+  const ceiling = { SKIP: 3, "INSTRUCTIONS PROVIDED": 1, INFO: 1 };
+  const seen = Object.fromEntries(Object.keys(ceiling).map((w) => [w, []]));
+  for (const { name, text } of extensions()) {
+    // Only a literal that starts a line of `content` counts. `{ FAIL: 0, INFO: 0 }` is a counter,
+    // not a status, and must not be read as one.
+    for (const word of Object.keys(ceiling)) {
+      for (const m of text.matchAll(new RegExp("(?:`|\"|')" + word + ": ", "g"))) {
+        seen[word].push(`${name}:${text.slice(0, m.index).split("\n").length}`);
+      }
+    }
+  }
+  const grown = Object.entries(ceiling)
+    .filter(([word, max]) => seen[word].length > max)
+    .map(([word]) => `${word}: ${seen[word].length} > ${max} (${seen[word].join(", ")})`);
+  assert.deepEqual(
+    grown,
+    [],
+    "a legacy status word grew: use PASS with a sentence, or FAIL with NEXT, per prompt-standard §5.4",
+  );
+});

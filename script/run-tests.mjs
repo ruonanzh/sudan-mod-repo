@@ -94,7 +94,9 @@ for (const file of files) {
 }
 
 // Run the bun suites when bun exists, and say so when it does not: a missing runner must not
-// look like "these tests passed".
+// look like "these tests passed". The counter is declared before this block because the skip
+// branch runs first — declaring it after made the runner throw instead of reporting.
+let skippedSuites = 0;
 if (libFiles.length) {
   {
     const r = await runBun(libFiles.map((n) => `./.pi/lib/${n}`));
@@ -121,8 +123,6 @@ function runBun(files) {
   return { pass, fail, code: r.status ?? 1, output };
 }
 
-let skippedSuites = 0;
-
 const passTotal = results.reduce((a, r) => a + r.pass, 0);
 const failTotal = results.reduce((a, r) => a + r.fail, 0);
 const redSuites = results.filter((r) => r.fail > 0 || r.code !== 0).length;
@@ -132,4 +132,10 @@ if (redSuites) {
   process.stdout.write(`RESULT: FAIL (${redSuites} suite(s) red)\n`);
   process.exit(1);
 }
-process.stdout.write(`RESULT: PASS${skippedSuites ? " (with skipped suites)" : ""}\n`);
+if (skippedSuites) {
+  // A suite that never ran is not a pass. Exit 2 means "the run did not cover everything", so a
+  // bun-less machine cannot report green while .pi/lib went unexercised.
+  process.stdout.write(`RESULT: INCOMPLETE (${skippedSuites} suite(s) skipped - install bun to cover them)\n`);
+  process.exit(2);
+}
+process.stdout.write("RESULT: PASS\n");
