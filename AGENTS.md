@@ -33,7 +33,6 @@
 - `docs/` —— 一份记录一份：`card.md`、`event.md`、`rite.md`、`loot-quest-over.md`。写哪类记录就先读那一份。
 - `schema/` —— 工具与页面读的数据，agent 不直接改。
   - `SCHEMA.md` 是生成物（由 `tools/gen-schema-doc.mjs` 生成），**不要手改**。要查四份 `docs/` 之外的 kind，看它的 Field tables；lint 报的错若是原版数据自带，看 Known defects。
-  - `schema/view/` 是页面与故事图的呈现数据（中文标签、开关文案、分组、连线）：改它只改页面外观，不改校验结论。校验结论只由 `schema/` 根下那几份事实文件决定。
 - `editors/` —— 玩家在应用里打开的页面与编辑器。任务不是改页面时，不要动它的源码。
 - `tools/lint.mjs` —— 校验器。安装前先跑。它读 `schema/`。
   `--save <file|dir>` 改为校验存档文件，而不是 mod。
