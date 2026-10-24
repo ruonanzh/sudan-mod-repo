@@ -187,11 +187,13 @@
   function wireTypeNote(root) {
     var pick = root.querySelector('[data-form="type"]');
     var line = root.querySelector("#type-note");
-    var table = document.getElementById("loot-type-notes");
-    if (!pick || !line || !table) return;
+    if (!pick || !line) return;
+    // The mounted page drops every script, so the table is read from the file text, not the DOM.
+    var match = /<script[^>]*id="loot-type-notes"[^>]*>([\s\S]*?)<\/script>/i.exec(state.text || "");
+    if (!match) return;
     var notes;
     try {
-      notes = JSON.parse(table.textContent || "{}");
+      notes = JSON.parse(match[1]);
     } catch (error) {
       return;
     }
