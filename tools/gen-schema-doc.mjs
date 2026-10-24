@@ -89,7 +89,7 @@ const ABOUT = {
   over: ["One ending screen.", "config/over.json", "dictionary key = id; the record has no id field"],
   afterStory: ["Epilogue text shown after an ending.", "config/after_story/<id>.json", "filename = id"],
   afterStoryExtra: ["One epilogue paragraph.", "after_story.prior/extra[]", "-"],
-  wizard: ["The character-creation guide: prompts and options.", "config/wizard/<name>.json", "filename = name"],
+  wizard: ["The character-creation guide: prompts and options.", "config/wizard/<name>.json", "looked up by the file stem that init.wizard names; id is the upper-case identity"],
   wizardOption: ["One choice in the creation guide.", "wizard.options[]", "-"],
   riteTemplate: ["Board layout: background, foreground, per-slot position/scale/rotation.", "config/rite_template/<id>.json", "filename = id"],
   riteMapping: ["Binds a mapping id to a template and lists which slots it exposes.", "config/rite_template_mappings.json", "dictionary key = id as a string"],

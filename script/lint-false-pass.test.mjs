@@ -29,6 +29,32 @@ test("a quest target written under the table is checked", { skip }, () => {
   assert.match(r.stdout, /UNKNOWN_FIELD/, "the unknown key inside target is reported");
 });
 
+test("a single-object config is checked field by field", { skip }, () => {
+  const mod = makeMod({ "config/game.json": JSON.stringify({ nosuchkey: 1 }) });
+  const r = lint([mod]);
+  assert.match(r.stdout, /UNKNOWN_FIELD/, "unknown key in game.json is reported");
+});
+
+test("an explicit ---vanilla directory without the sentinels is refused", { skip }, () => {
+  const empty = mkdtempSync(path.join(tmpdir(), "vanilla-empty-"));
+  const mod = makeMod({ "config/cards.json": "{}\n" });
+  const r = spawnSync(process.execPath, [path.join(REPO, "tools/lint.mjs"), mod, "--vanilla", empty], { encoding: "utf8" });
+  assert.equal(r.status, 1, r.stdout);
+  assert.match(r.stdout, /VANILLA_INCOMPLETE|VANILLA_MISSING/);
+});
+
+test("two mods that define the same dialogue tree id collide", { skip }, () => {
+  const root = mkdtempSync(path.join(tmpdir(), "modroot-dt-"));
+  for (const name of ["a", "b"]) {
+    const dir = path.join(root, name);
+    mkdirSync(path.join(dir, "config/dt"), { recursive: true });
+    writeFileSync(path.join(dir, "info.json"), JSON.stringify({ name, version: "1.0.0" }));
+    writeFileSync(path.join(dir, `config/dt/${name.toUpperCase()}1.json`), JSON.stringify({ dialog_tree_id: "DT9", Item: [] }));
+  }
+  const r = spawnSync(process.execPath, [path.join(REPO, "tools/lint.mjs"), "--mod-root", root, "--vanilla", VANILLA], { encoding: "utf8" });
+  assert.match(r.stdout, /ID_CROSS_MOD/);
+});
+
 test("a loot weight of zero or less is a failure, not a silent no-op", { skip }, () => {
   const mod = makeMod({
     "config/loot/6000777.json": JSON.stringify({ id: 6000777, repeat: 1, type: 2, item: [{ type: "card", id: 2000001, num: 1, weight: 0 }] }),

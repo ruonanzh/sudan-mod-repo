@@ -114,7 +114,7 @@ description: 写苏丹的游戏 mod、改苏丹的游戏 mod 的主参考。在�
 目录条目分三种寻址方式，别把一种当成全部：
 
 - **按 id 拼路径**：`rite/` 是唯一有代码字面量证据的——游戏用 `rite/{0}.json` 拼，文件名与 `id` 对不上，那个文件不会被读。`event/`、`loot/`、`init/`、`rite_template/`、`after_story/` 在原版与每一个 mod 里文件名都等于 `id`，名字对不上按缺陷处理。
-- **按文件里的 id 字段**：`dt/` 一个文件一棵对话树，文件名是 `DT<n>.json`，树自己的编号写在 `dialog_tree_id` 里。这两个应当一致；原版有五个文件不一致（`DT3`、`DT4`、`DT9` 各写错，见 `schema/SCHEMA.md` 的原版缺陷表），照抄会跟着错。
+- **按文件里的 id 字段**：`dt/` 一个文件一棵对话树，文件名是 `DT<n>.json`，树自己的编号写在 `dialog_tree_id` 里。这两个应当一致；原版有三个文件不一致（`DT3`、`DT4` 声明 `DT2`，`DT9` 声明 `DT7`，见 `schema/SCHEMA.md` 的原版缺陷表），照抄会跟着错。
 - **按文件名当键**：`wizard/` 一个文件一个开场向导，游戏用 `init` 记录里的 `wizard` 字符串取它，那个字符串等于**文件名去掉 `.json`**（`wizard_sudan`）。文件里的 `id` 是大写形式（`WIZARD_SUDAN`），`name` 是显示文本，两者都不决定读哪个文件。
 
 ## JSONC 规则

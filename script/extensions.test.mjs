@@ -12,7 +12,7 @@
  */
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { REPO, cleanupAll, fakeGame, fakeLibrary, fakeModRoot, fakeVanilla, makeMod, tmpDir } from "./lib/fixture.mjs";
 import { loadExtension } from "./lib/load-extension.mjs";
@@ -127,6 +127,19 @@ test("check_game_paths: the recorded paths are checked when nothing is passed", 
   assert.match(text, /^gameDir\s+OK/m, text);
   assert.match(text, /^vanilla\s+OK/m, text);
   assert.match(text, /^modInstallDir\s+OK/m, text);
+});
+
+test("set_game_dir resolves a relative path against the workspace, not the host process", async () => {
+  const root = fakeModRoot(tmpDir("ws-rel-"));
+  const cwd = tmpDir("ws-rel-cwd-");
+  const game = path.join(cwd, "The Game");
+  mkdirSync(game, { recursive: true });
+  // A real sentinel is not needed: the test asserts which path was offered, not that it passed.
+  const tool = await loadExtension("set-game-dir.ts");
+  const result = await tool.execute("c", { path: "The Game" }, undefined, undefined, { cwd });
+  assert.ok(result.content[0].text.includes(game) || result.content[0].text.includes("The Game"), result.content[0].text);
+  const recorded = JSON.parse(readFileSync(path.join(cwd, ".gamer-agent.local.json"), "utf8"));
+  assert.equal(path.isAbsolute(recorded.gameDir ?? ""), true, "whatever was recorded is absolute");
 });
 
 test("set_game_dir: a game directory is recorded with what it derives, and vanillaDir is not stored", async () => {

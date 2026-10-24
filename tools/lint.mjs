@@ -1000,6 +1000,13 @@ function lintMod(modDir, vanilla, opts) {
         const parsed = parseJsonc(readText(full));
         reportDups(relPath, parsed.dups);
         if (!isPlainObject(parsed.value)) fail("JSON_SHAPE", relPath, "expected a JSON object.");
+        else {
+          const kind = DIR_KIND.get(relPath);
+          if (kind) {
+            reportFields(relPath, kind, parsed.value, "");
+            reportRequired(relPath, kind, parsed.value, "");
+          }
+        }
       } catch (e) {
         fail("JSON_PARSE", relPath, `not parseable: ${e.message}`);
       }
@@ -1251,10 +1258,24 @@ function idsOfMod(modDir) {
       /* reported per-mod */
     }
   }
+  // A dialogue tree names itself in `dialog_tree_id`; the file name is only where it lives.
+  const dtDir = path.join(modDir, "config/dt");
+  if (existsSync(dtDir)) {
+    for (const name of readdirSync(dtDir)) {
+      if (!name.endsWith(".json")) continue;
+      try {
+        const { value } = parseJsonc(readText(path.join(dtDir, name)));
+        const id = value && typeof value.dialog_tree_id === "string" ? value.dialog_tree_id : null;
+        if (id) out.push([`config/dt/${name}`, "dtRoot", id]);
+      } catch {
+        /* reported per-mod */
+      }
+    }
+  }
   for (const [relPath, spec] of DIR_STYLE) {
     if (spec.filename !== "id") continue;
     const kind = DIR_KIND.get(relPath);
-    if (!kind) continue;
+    if (!kind || relPath === "config/dt") continue;
     const dir = path.join(modDir, relPath);
     if (!existsSync(dir)) continue;
     for (const name of readdirSync(dir)) {
@@ -1279,6 +1300,12 @@ function main() {
   // which reads as PASS in every script that checks the exit code.
   const need = args.vanilla ? { dir: args.vanilla } : vanillaRequirement();
   const vanilla = loadVanilla(need.dir);
+  if (vanilla.dir && (!existsSync(path.join(vanilla.dir, "cards.json")) || !existsSync(path.join(vanilla.dir, "rite"))))
+    fail(
+      "VANILLA_INCOMPLETE",
+      null,
+      `${vanilla.dir} does not hold cards.json and rite/, so it is not the vanilla config folder. Pass the folder that holds both, or record the game directory and let vanilla be derived.`,
+    );
   if (!vanilla.dir)
     fail(
       "VANILLA_MISSING",

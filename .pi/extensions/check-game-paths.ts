@@ -21,11 +21,11 @@ export default function (pi: ExtensionAPI) {
     name: "check_game_paths",
     label: "Check Game Paths",
     description:
-      "Check the game directory, the Steam Workshop content directory, the mod install directory and the vanilla config derived from the game directory. This tool is read-only: it never writes .gamer-agent.local.json and never creates a directory. A path you pass is judged instead of the recorded one; a path you omit falls back to the recorded one. When no game directory is passed or recorded, it locates the game exactly as try_set_game_dir does, so the report can still name a game directory. Use it when the player gives you a path, or to re-check a remembered path; use try_set_game_dir when you want the found path recorded.",
-    promptSnippet: "Check game and mod paths without scanning or writing",
+      "Check all four locations together: the game directory, the vanilla config derived from it, the Steam Workshop content directory, and the mod install directory derived from MyDocuments. This tool is read-only: it never writes .gamer-agent.local.json and never creates a directory. A path you pass overrides the recorded value for that location; the other locations are still judged. When no game directory is given or recorded, it locates the game the way try_set_game_dir does, so the report can still name one. Use it when the player gives you a path, or to re-check a remembered one; use try_set_game_dir when you want the found path recorded.",
+    promptSnippet: "Check the game, vanilla, workshop and mod paths (read-only)",
     promptGuidelines: [
       "Use check_game_paths when the player gives you a path, or to check a remembered path. It writes no state: checking and recording are separate tools.",
-      "A path you omit in check_game_paths is checked from the recorded value; with no game directory recorded it also looks for the game, like try_set_game_dir, but records nothing.",
+      "check_game_paths judges all four locations and reports each row. A path you pass replaces the recorded value for that row only.",
       "A failed check_game_paths changes nothing. Follow its NEXT line to fix the problem. It never creates or installs anything.",
     ],
     parameters: Type.Object({

@@ -40,7 +40,7 @@ Class column and absent from the data is a key the game reads and vanilla never 
 | `questTargetItem` | 3 | One completion target of a quest. | `quest.<id>.target[]` | - |
 | `over` | 12 | One ending screen. | `config/over.json` | dictionary key = id; the record has no id field |
 | `afterStory` | 6 | Epilogue text shown after an ending. | `config/after_story/<id>.json` | filename = id |
-| `wizard` | 13 | The character-creation guide: prompts and options. | `config/wizard/<name>.json` | filename = name |
+| `wizard` | 13 | The character-creation guide: prompts and options. | `config/wizard/<name>.json` | looked up by the file stem that init.wizard names; id is the upper-case identity |
 | `wizardOption` | 7 | One choice in the creation guide. | `wizard.options[]` | - |
 | `riteTemplate` | 14 | Board layout: background, foreground, per-slot position/scale/rotation. | `config/rite_template/<id>.json` | filename = id |
 | `slotPosition` | 9 | - | `-` | - |

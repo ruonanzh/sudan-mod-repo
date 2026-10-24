@@ -36,6 +36,13 @@ test("reference/ is described as shipped, not empty", () => {
   assert.doesNotMatch(cardArt, /参考美术不在本仓/, "reference/cards ships with the repository");
 });
 
+test("the generator does not say a wizard file is named after its display name", () => {
+  const gen = read("tools/gen-schema-doc.mjs");
+  assert.doesNotMatch(gen, /wizard[^\n]*filename = name/, "the key is the file stem chosen by init.wizard");
+  const skill = read(".pi/skills/mod-creator/SKILL.md");
+  assert.doesNotMatch(skill, /原版有五个文件不一致/, "the defect table lists three");
+});
+
 test("docs/rite.md does not promise a list it does not carry", () => {
   const rite = read("docs/rite.md");
   assert.doesNotMatch(rite, /这份清单是完整的/, "the section has no list; it points at the mod-creator list");
