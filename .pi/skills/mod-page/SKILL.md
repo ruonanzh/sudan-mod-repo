@@ -67,7 +67,7 @@ node tools/preview.mjs --mod your_mods/<ModName>
 | 讨论一个**还没写进 mod** 的方案 | `page.mjs --spec`（不落盘，副标题标「提案」） |
 | 只看一条记录（仪式、事件、掉落、任务、结局、升级、标签、开局） | `page.mjs <kind> --id <id>` |
 
-`page.mjs` 一次只出一条记录，页面是**只读**的；它不能写回配置，也没有索引页。卡页一律走 `preview.mjs`。
+`page.mjs` 一次只出一条记录，页面是**只读**的：它不能写回配置，也没有索引页。`preview.mjs` 生成的记录页不是只读的，它下方有一个「要改什么」输入框，玩家写完点发送，agent 按这句话去改记录。卡页一律走 `preview.mjs`。
 
 ```
 node tools/page.mjs <kind> --mod your_mods/<ModName> --id <id> --out your_mods/<ModName>/.preview/<名字>.html
@@ -120,7 +120,7 @@ node tools/page.mjs <kind> --mod your_mods/<ModName> --id <id> --out your_mods/<
 玩家点「发送给 Agent」后，会话收到：
 
 ```
-/record-edited <记录页路径>
+/record-edited event:9900102
 要改的地方：「第二个结算改成给一张卡」
 ```
 

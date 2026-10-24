@@ -434,8 +434,13 @@
     if (element) element.textContent = text;
   }
 
-  /** A slash command with the page path as its argument, so the agent knows which page to read. */
+  /**
+   * A slash command with its argument. A card page is named by its path; a record page is named
+   * by the record key (`kind:id`), because that is what its prompt template reads and what
+   * `page.mjs` writes into `data-record-page`. The path of a record page would name no record.
+   */
   function commandFor(command) {
+    if (state.record) return state.recordKey ? command + " " + state.recordKey : command;
     return state.path ? command + " " + state.path : command;
   }
 
@@ -537,6 +542,7 @@
   function preparePage() {
     state.root = document.querySelector("[data-card-page]") || document.querySelector("[data-record-page]");
     state.record = Boolean(state.root && state.root.hasAttribute("data-record-page"));
+    state.recordKey = state.record ? state.root.getAttribute("data-record-page") : "";
     if (!state.root) return false;
     var element = byId(BLOCK_ID);
     var block = element ? parseBlock(element.textContent) : null;

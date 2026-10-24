@@ -3,8 +3,8 @@
  * preview.mjs — one command that turns what a mod carries into pages a player can open.
  *
  *   node tools/preview.mjs --mod your_mods/<ModName> [--focus kind:id] [--out <dir>]
- *   node tools/preview.mjs --mod your_mods/<ModName> --collect
- *   node tools/preview.mjs --mod your_mods/<ModName> --apply
+ *   node tools/preview.mjs --mod your_mods/<ModName> --collect [--id <card id>]
+ *   node tools/preview.mjs --mod your_mods/<ModName> --apply [--id <card id>]
  *
  * A mod is data, and a page is how a player checks that data before installing it:
  *
@@ -122,13 +122,14 @@ function vanillaIds(dir) {
 }
 
 function parseArgs(argv) {
-  const out = { modDir: null, focus: null, out: null, vanilla: null, collect: false, apply: false };
+  const out = { modDir: null, focus: null, out: null, vanilla: null, collect: false, apply: false, id: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--mod") out.modDir = argv[++i];
     else if (a === "--focus") out.focus = argv[++i];
     else if (a === "--out") out.out = argv[++i];
     else if (a === "--vanilla") out.vanilla = argv[++i];
+    else if (a === "--id") out.id = argv[++i];
     else if (a === "--collect") out.collect = true;
     else if (a === "--apply") out.apply = true;
   }
@@ -191,8 +192,15 @@ const show = (value) => (value === undefined ? "(none)" : JSON.stringify(value))
  * `--collect` and `--apply`: what the card pages carry that the card table does not.
  * Collect only prints; apply replaces the value spans named by the diff and nothing else.
  */
-function runCardValues({ modDir, outDir, apply }) {
-  const pages = cardPages(outDir);
+function runCardValues({ modDir, outDir, apply, id }) {
+  // One page, not every page: the prompt names the card whose button the player pressed, and
+  // writing another page's values would apply an edit the player never confirmed.
+  const pages = id ? cardPages(outDir).filter((page) => page.id === String(id)) : cardPages(outDir);
+  if (id && !pages.length) {
+    process.stdout.write(`FAIL  no page for card ${id} under ${displayPath(outDir)}\n`);
+    process.stdout.write(`NEXT  check the id, or rebuild the pages with node tools/preview.mjs --mod ${displayPath(modDir)}\n`);
+    return 1;
+  }
   if (!pages.length) {
     process.stdout.write(`PASS  no card pages under ${displayPath(outDir)}\n`);
     process.stdout.write(`NEXT  run node tools/preview.mjs --mod ${displayPath(modDir)} to write them\n`);
@@ -326,7 +334,7 @@ function main() {
 
   const outDir = path.resolve(String(args.out || path.join(modDir, ".preview")).replace(/^~/, os.homedir()));
   // Collect and apply only read the pages and the card table; neither needs the game's config.
-  if (args.collect || args.apply) return runCardValues({ modDir, outDir, apply: args.apply });
+  if (args.collect || args.apply) return runCardValues({ modDir, outDir, apply: args.apply, id: args.id });
 
   // Only the story graph reads the game's own config. A mod of cards needs nothing but its file:
   // the card page is built from the card table, so requiring an install here would refuse a

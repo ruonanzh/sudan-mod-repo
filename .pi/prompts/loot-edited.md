@@ -18,9 +18,16 @@ $ARGUMENTS
 
 1. 找文件：这张表是 `config/loot/<id>.json`。
 2. 有 `说明：` 时，把第 N 件的条件写进 `item[N-1].condition`。条件的形状是一个对象，多个键表示全部满足，例如 `{"!have.2000707": 1, "counter.7000673<": 1}`：玩家没有 2000707 这张卡，并且计数器 7000673 小于 1。写成这些键表达不了时，先说清哪一句做不到，再问玩家；不要自己发明键名。
-3. 用 `tools/jsonc.mjs` 做 span 编辑写回：标量用 `set`，`item` 数组按索引增删用 `append`/`remove`。注释、字段顺序、重复键一律不动；**不要**读成对象再 `JSON.stringify`。
+3. 用 `tools/jsonc.mjs` 写回，只改动的部分，注释、字段顺序、重复键一律不动；**不要**读成对象再 `JSON.stringify`。它提供五个方法，按改动挑：
+   - `set(node, literal)`：改一个标量，`repeat`、`type`、`name` 都走它。node 用 `getDoc(doc, [<键>])` 取。
+   - `setElement(arr, i, literal)`：整件替换 `item[i]`，用于这一件的 `type`、`id`、`num`、`weight` 任一变化。`arr` 用 `getDoc(doc, ["item"])` 取。
+   - `appendElement(arr, literal)`：在末尾加一件。
+   - `removeElement(arr, i)`：删掉第 i 件。删多件时从大到小删，否则后面的索引会错位。
+   - `element(arr, i)`：读出第 i 件当前的 JSON，改之前先看它有哪些键。
+
+   `改动：` 里的 `item` 是**整份数组**：逐项和文件里的比，第 i 项有变化就 `setElement`，末尾多出来的项 `appendElement`，少掉的项按上面的顺序 `removeElement`。只有 `condition` 变、且玩家是在 `说明：` 里写的，也要整件 `setElement`（保持这一件其余字段原样）。
 4. 跑 `validate_mod`，必须 **PASS**：`PARTIAL` 不算通过（它说明原版配置没读到），按 `NEXT` 解决后重跑；`FAIL` 先改到没有。
-5. 重跑 `node tools/preview.mjs --mod <ModName>`，让这一页反映新值。
+5. 重跑 `node tools/preview.mjs --mod your_mods/<ModName>`，让这一页反映新值。
 6. 回话：一句话说改了哪几个字段，再给这一页的工作区相对路径。玩家不需要看 JSON。
 
 `改动：` 里的值不合法（例如 `type` 不是 2/3/4/99，或 `item[].type` 不是 card/event/rite/loot）时，先说明哪里不对，再问玩家要不要按建议值改；不要猜。

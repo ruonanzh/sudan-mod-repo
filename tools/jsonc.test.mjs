@@ -152,3 +152,36 @@ test("appending to a table with a comment after the last entry keeps the comment
   const again = parseJsonc(out);
   assert.deepEqual(Object.keys(again.value), ["1", "2"]);
 });
+
+test("array helpers edit one element and leave the rest of the file alone", () => {
+  const text = `{\n  "item": [\n    {"type": "card", "id": 2000001}, // 第一件\n    {"type": "card", "id": 2000002}\n  ],\n  "repeat": 1\n}\n`;
+  const doc = parseDoc(text);
+  const arr = getDoc(doc, ["item"]);
+  doc.setElement(arr, 1, `{"type": "card", "id": 2000003}`);
+  assert.equal(parseJsonc(doc.render()).value.item[1].id, 2000003, "the second element changed");
+  assert.ok(doc.render().includes("// 第一件"), "the comment on the first element survives");
+  assert.equal(parseJsonc(doc.render()).value.repeat, 1, "its sibling key is untouched");
+});
+
+test("appending to an array handles an empty one, a trailing comma and a comment", () => {
+  const empty = parseDoc(`{"item": []}\n`);
+  empty.appendElement(getDoc(empty, ["item"]), `{"id": 1}`);
+  assert.deepEqual(JSON.parse(JSON.stringify(parseJsonc(empty.render()).value.item)), [{ id: 1 }]);
+
+  const trailing = parseDoc(`{"item": [\n  {"id": 1},\n]}\n`);
+  trailing.appendElement(getDoc(trailing, ["item"]), `{"id": 2}`);
+  assert.deepEqual(JSON.parse(JSON.stringify(parseJsonc(trailing.render()).value.item)), [{ id: 1 }, { id: 2 }]);
+
+  const commented = parseDoc(`{"item": [\n  {"id": 1} // 唯一一件\n]}\n`);
+  commented.appendElement(getDoc(commented, ["item"]), `{"id": 2}`);
+  const rendered = commented.render();
+  assert.deepEqual(JSON.parse(JSON.stringify(parseJsonc(rendered).value.item)), [{ id: 1 }, { id: 2 }]);
+  assert.ok(rendered.includes("// 唯一一件"), "the comment survives");
+});
+
+test("removing an array element takes exactly one comma with it", () => {
+  const text = `{"item": [\n  {"id": 1},\n  {"id": 2},\n  {"id": 3}\n]}\n`;
+  const doc = parseDoc(text);
+  doc.removeElement(getDoc(doc, ["item"]), 1);
+  assert.deepEqual(JSON.parse(JSON.stringify(parseJsonc(doc.render()).value.item)), [{ id: 1 }, { id: 3 }]);
+});

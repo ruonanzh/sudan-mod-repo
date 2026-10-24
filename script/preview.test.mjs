@@ -176,8 +176,8 @@ function cardMod() {
 const cardPageFile = (dir, id = "9000001") => path.join(dir, ".preview", `${id}.card.html`);
 
 /** What the app save does: replace the page's own value block. */
-function editPage(dir, change, remove = []) {
-  const file = cardPageFile(dir);
+function editPage(dir, change, remove = [], id = "9000001") {
+  const file = cardPageFile(dir, id);
   const html = read(file);
   const block = readPageValues(html);
   const values = { ...block.values, ...change };
@@ -232,6 +232,26 @@ test("--apply writes only the changed values; comments, order and trailing comma
     .replace('"rare": 3', '"rare": 1')
     .replace('"体魄": 5', '"体魄": 1');
   assert.equal(reverted, before, "every byte that did not change is the byte the file already had");
+});
+
+test("--apply with --id writes only that card, not every pending page", () => {
+  const dir = cardMod();
+  editPage(dir, { name: "只改第一张" });
+  editPage(dir, { name: "第二张也被点过" }, [], "9000002");
+  const r = run(["--mod", dir, "--apply", "--id", "9000001"]);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const table = read(path.join(dir, "config/cards.json"));
+  assert.match(table, /只改第一张/, "the named card was written");
+  assert.doesNotMatch(table, /第二张也被点过/, "the other page was left alone");
+  assert.doesNotMatch(r.stdout, /9000002/, "and the report does not claim it");
+});
+
+test("--apply --id for a page that does not exist fails and says which id", () => {
+  const dir = cardMod();
+  const r = run(["--mod", dir, "--apply", "--id", "9999999"]);
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /9999999/);
+  assert.match(r.stdout, /NEXT/);
 });
 
 test("--apply warns when a changed page no longer carries a field the record has", () => {

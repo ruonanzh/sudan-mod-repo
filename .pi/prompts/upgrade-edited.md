@@ -25,7 +25,7 @@ $ARGUMENTS
 
 3. 用 `tools/jsonc.mjs` 做 span 编辑写回：每个字段用 `set`。注释、字段顺序、重复键一律不动；**不要**读成对象再 `JSON.stringify`。
 4. 跑 `validate_mod`，必须 **PASS**：`PARTIAL` 不算通过（它说明原版配置没读到），按 `NEXT` 解决后重跑；`FAIL` 先改到没有。
-5. 重跑 `node tools/preview.mjs --mod <ModName>`，让这一页反映新值。
+5. 重跑 `node tools/preview.mjs --mod your_mods/<ModName>`，让这一页反映新值。
 6. 回话：一句话说改了哪几个字段，再给这一页的工作区相对路径。玩家不需要看 JSON。
 
 `改动：` 里的值不合法（例如 `icon` 不是 gain 或 buff）时，先说明哪里不对，再问玩家要不要按建议值改；不要猜。

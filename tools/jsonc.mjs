@@ -140,6 +140,90 @@ class Doc {
     return this;
   }
 
+  /** One array element, or null. */
+  element(arrNode, index) {
+    return arrNode && arrNode.type === "array" ? arrNode.items[index] ?? null : null;
+  }
+
+  /** Replace one array element. The rest of the array, and every comment, stays as it was. */
+  setElement(arrNode, index, literalText) {
+    const item = this.element(arrNode, index);
+    if (!item) throw new Error(`setElement: no element ${index}`);
+    this.applyEdit({ start: item.start, end: item.end, text: literalText });
+    return this;
+  }
+
+  /**
+   * Add one element to an array. Same comma rules as `append`: a file that already has a trailing
+   * comma must not get a second one, and a comment after the last element stays where it is.
+   */
+  appendElement(arrNode, literalText) {
+    if (!arrNode || arrNode.type !== "array") throw new Error("appendElement: not an array");
+    const items = arrNode.items;
+    // Array nodes record their span and items; the brackets are the ends of that span.
+    const open = arrNode.start;
+    const close = arrNode.end - 1;
+    const indent = this.itemIndent(arrNode);
+    if (!items.length) {
+      const inner = this.text.slice(open + 1, close);
+      // `[]` on one line stays on one line; a multi-line array gets a new line at its own indent.
+      const text = inner.includes("\n")
+        ? `\n${indent}${literalText}\n${this.lineIndent(close)}`
+        : literalText;
+      this.applyEdit({ start: open + 1, end: close, text });
+      return this;
+    }
+    const last = items[items.length - 1];
+    const nl = this.text.indexOf("\n", last.end);
+    const at = nl === -1 || nl > close ? close : nl + 1;
+    const between = this.text.slice(last.end, at);
+    const hasComma = /,/.test(between.replace(/\/\/[^\n]*/g, ""));
+    const edits = [];
+    if (!hasComma) edits.push({ start: last.end, end: last.end, text: "," });
+    const prefix = nl === -1 || nl > close ? `\n${indent}` : indent;
+    edits.push({ start: at, end: at, text: `${prefix}${literalText}\n` });
+    this.applyEdit(edits);
+    return this;
+  }
+
+  /** Remove one array element, taking one comma with it and leaving no blank line. */
+  removeElement(arrNode, index) {
+    const item = this.element(arrNode, index);
+    if (!item) return this;
+    let start = item.start;
+    let end = item.end;
+    let i = end;
+    while (i < this.text.length && WS.has(this.text[i])) i++;
+    if (this.text[i] === ",") {
+      end = i + 1;
+    } else {
+      let j = start - 1;
+      while (j >= 0 && WS.has(this.text[j])) j--;
+      if (this.text[j] === ",") start = j;
+    }
+    let k = start - 1;
+    while (k >= 0 && (this.text[k] === " " || this.text[k] === "\t" || this.text[k] === "\r")) k--;
+    if (this.text[k] === "\n") start = k;
+    this.applyEdit({ start, end, text: "" });
+    return this;
+  }
+
+  /** The indentation of the line that holds `at`. */
+  lineIndent(at) {
+    const lineStart = this.text.lastIndexOf("\n", at) + 1;
+    const lead = this.text.slice(lineStart, at);
+    return /^[ \t]*$/.test(lead) ? lead : "";
+  }
+
+  /** The indentation array elements use. */
+  itemIndent(arrNode) {
+    const first = arrNode.items[0];
+    if (!first) return `${this.entryIndent(this.root)}  `;
+    const lineStart = this.text.lastIndexOf("\n", first.start) + 1;
+    const lead = this.text.slice(lineStart, first.start);
+    return /^[ \t]*$/.test(lead) ? lead : `${this.entryIndent(this.root)}  `;
+  }
+
   /** The indentation an existing entry uses, so an append matches the file's style. */
   entryIndent(objNode) {
     const first = objNode.entries[0];
