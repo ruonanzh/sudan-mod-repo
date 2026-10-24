@@ -172,6 +172,15 @@ export function saveNode(mod, kind, id, source, options = {}) {
     try {
       parseDoc(rendered);
     } catch (error) {
+      // Nothing was written, so the backup made a moment ago would be litter beside an unchanged
+      // file. Remove it before reporting the failure.
+      if (backup) {
+        try {
+          unlinkSync(backup);
+        } catch {
+          /* the message below matters more than this cleanup */
+        }
+      }
       return { ok: false, error: `写回之后这个文件解析不了：${String(error.message || error)}` };
     }
     writeFileSync(target, rendered);

@@ -115,3 +115,13 @@ test("a nested sfx loop group is checked, not skipped as dead code", { skip }, (
   const r = lint([mod]);
   assert.match(r.stdout, /UNKNOWN_FIELD/, "the nested loop object is checked");
 });
+
+test("an armageddon loop entry passes with its six vanilla keys", { skip }, () => {
+  const mod = makeMod({
+    "config/sfx_config.json": JSON.stringify({
+      armageddon_music_loop: { 5003027: { clip: "secret_journey", start: 0, loop_start: 0, loop_end: -1, play_instant: 1, play_in_rite_create: 0 } },
+    }),
+  });
+  const r = lint([mod]);
+  assert.doesNotMatch(r.stdout, /UNKNOWN_FIELD/, "the two extra keys belong to sfxArmageddonLoop");
+});

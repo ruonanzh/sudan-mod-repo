@@ -1004,8 +1004,11 @@ function lintMod(modDir, vanilla, opts) {
             if (relPath === "config/sfx_config.json") {
               for (const [group, inner] of Object.entries(parsed.value)) {
                 if (!isPlainObject(inner)) continue;
+                // armageddon entries carry two extra keys (play_instant, play_in_rite_create), so
+                // they have their own kind. Checking them as sfxLoop flags the vanilla keys.
+                const loopKind = group === "armageddon_music_loop" ? "sfxArmageddonLoop" : "sfxLoop";
                 for (const [k, loop] of Object.entries(inner)) {
-                  if (isPlainObject(loop)) reportFields(relPath, "sfxLoop", loop, `${group}.${k}`);
+                  if (isPlainObject(loop)) reportFields(relPath, loopKind, loop, `${group}.${k}`);
                 }
               }
             }

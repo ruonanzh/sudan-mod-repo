@@ -67,23 +67,11 @@
     if (element) element.textContent = text;
   }
 
-  /** Key order must not decide whether the page is dirty. */
+  /** Key order must not decide whether the page is dirty; the comparison is the shared one. */
   function canonical(value) {
-    if (Array.isArray(value)) return "[" + value.map(canonical).join(",") + "]";
-    if (value && typeof value === "object") {
-      return (
-        "{" +
-        Object.keys(value)
-          .sort()
-          .map(function (key) {
-            return JSON.stringify(key) + ":" + canonical(value[key]);
-          })
-          .join(",") +
-        "}"
-      );
-    }
-    return JSON.stringify(value === undefined ? null : value);
+    return window.FormValues.canonical(value);
   }
+
 
   function blockRegExp() {
     return new RegExp('<script[^>]*\\sid="' + BLOCK_ID + '"[^>]*>([\\s\\S]*?)<\\/script>', "i");
