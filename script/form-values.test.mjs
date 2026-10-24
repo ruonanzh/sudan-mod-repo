@@ -43,9 +43,10 @@ test("a row that already has a condition keeps it, and each stored one is used o
 const { changedValues } = require(fileURLToPath(new URL("../editors/form/form-values.js", import.meta.url)));
 
 test("a number equal to the same number written as a string is not a change", () => {
-  const saved = { repeat: 3, item: [{ type: "card", id: "2000032", num: "1", weight: "10" }] };
+  // Vanilla writes num/id/type/weight; the page reads type/id/num/weight — key order must not matter.
+  const saved = { repeat: 3, item: [{ num: "1", id: "2000032", weight: "10", type: "card" }] };
   const page = { repeat: 3, item: [{ type: "card", id: 2000032, num: 1, weight: 10 }] };
-  assert.deepEqual(changedValues(page, saved, [], undefined), {}, "vanilla strings and page numbers agree");
+  assert.deepEqual(changedValues(page, saved, [], undefined), {}, "vanilla strings, key order and page numbers agree");
 });
 
 test("only the key that changed travels, not the whole item array", () => {

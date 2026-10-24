@@ -109,7 +109,8 @@ test("two mods that write the same after-story id collide", { skip }, () => {
 
 test("a nested sfx loop group is checked, not skipped as dead code", { skip }, () => {
   const mod = makeMod({
-    "config/sfx_config.json": JSON.stringify({ sfx: { music: { nosuchkey: 1 } } }),
+    // A real top-level group, so the only error can come from the nested loop block.
+    "config/sfx_config.json": JSON.stringify({ main_game_loop: { 0: { nosuchkey: 1 } } }),
   });
   const r = lint([mod]);
   assert.match(r.stdout, /UNKNOWN_FIELD/, "the nested loop object is checked");

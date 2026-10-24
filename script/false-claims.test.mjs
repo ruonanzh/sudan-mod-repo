@@ -130,3 +130,11 @@ test("inspect_game_code caps content at 50 KB and says so in its description", a
   const text = result.content.map((c) => c.text).join("\n");
   assert.ok(Buffer.byteLength(text, "utf8") <= 50 * 1024 + 32, `${Buffer.byteLength(text, "utf8")} bytes`);
 });
+
+test("every image refusal carries a NEXT step", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const r = spawnSync(process.execPath, [path.join(REPO, "tools/image.mjs"), "check", "--file", "/no/such.png"], { encoding: "utf8" });
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /^FAIL: /m);
+  assert.match(r.stdout, /^NEXT: /m, "a bare FAIL leaves the caller with nothing to run");
+});

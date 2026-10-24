@@ -256,8 +256,13 @@ export default function (pi: ExtensionAPI) {
             { path: done.path },
           );
         } catch (error) {
-          // Downloading or verifying a tool is environment work; its failure is not game data.
-          throw new Error(`SETUP_FAILED: ${(error as Error).message}`);
+          const message = (error as Error).message;
+          // A download that fails with its own NEXT step is an answer; only a bare failure is an
+          // environment error worth throwing.
+          if (/NEXT:/.test(message)) {
+            return { content: [{ type: "text", text: clipUtf8(`FAIL: ${message}${/NEXT:/.test(message) ? "" : "\nNEXT: run action=setup, then retry."}`) }], details: { ok: false, reason: "SETUP" } };
+          }
+          throw new Error(`SETUP_FAILED: ${message}`);
         } finally {
           clearInterval(beat);
         }
@@ -455,11 +460,19 @@ export default function (pi: ExtensionAPI) {
         // The rebuild and the runtime are prerequisites, not game answers. Their own messages
         // already carry a NEXT step; answer FAIL so the agent runs it. Anything else
         // (an unreadable file, a crash) is an environment failure: throw, with a code.
-        if (/^(DOTNET_MISSING|DOTNET_TOO_OLD|CPP2IL_MISSING|IL2CPPDUMPER_MISSING|GAME_NOT_FOUND)\b/.test(message)) {
+        if (/^(DOTNET_MISSING|DOTNET_TOO_OLD|CPP2IL_MISSING|CPP2IL_UNSUPPORTED_PLATFORM|IL2CPPDUMPER_MISSING|GAME_NOT_FOUND)\b/.test(message)) {
           // Not ready to answer, but a business answer all the same: the caller has to fix the
           // environment, and the message already names the step. FAIL, not throw and not PARTIAL.
           return {
             content: [{ type: "text", text: clipUtf8(`FAIL: ${message}${/NEXT:/.test(message) ? "" : "\nNEXT: run check_runtime and install_runtime, then retry."}`) }],
+            details: { ok: false, reason: "NOT_READY", dir, sha: game ? sha256File(game.binary).slice(0, 8) : null },
+          };
+        }
+        // A message that already carries a NEXT step is an answer the agent can act on; throwing it
+        // would mark the result as a tool error while still telling the agent to run something.
+        if (/NEXT:/.test(message)) {
+          return {
+            content: [{ type: "text", text: clipUtf8(`FAIL: ${message}${/NEXT:/.test(message) ? "" : "\nNEXT: run action=setup, then retry."}`) }],
             details: { ok: false, reason: "NOT_READY", dir, sha: game ? sha256File(game.binary).slice(0, 8) : null },
           };
         }

@@ -189,9 +189,11 @@ test("a record that ends with a line comment can still be saved", { skip }, () =
   writeFileSync(path.join(dir, "config/cards.json"), `{\n  "9000001": {\n    "id": 9000001,\n    "type": "item",\n    "rare": 2,\n    "name": "名字" // 结尾注释\n  }\n}\n`);
   const mod = openMod(dir, { vanilla: VANILLA });
   const view = readNodeSource(mod, "card", 9000001);
-  const out = saveNode(mod, "card", 9000001, view.text);
+  // A real edit, so the save does not take the "unchanged" early return and the file is rewritten.
+  const out = saveNode(mod, "card", 9000001, view.text.replace('"名字"', '"新名字"'));
   assert.equal(out.ok, true, out.error);
   const after = readFileSync(path.join(dir, "config/cards.json"), "utf8");
+  assert.ok(after.includes('"新名字"'), "the edit landed");
   assert.ok(after.includes("// 结尾注释"), "the comment survives");
   parseJsonc(after); // still parses
 });

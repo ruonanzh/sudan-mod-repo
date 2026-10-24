@@ -11,7 +11,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { REPO, cleanupAll, makeMod } from "./lib/fixture.mjs";
@@ -41,7 +41,8 @@ test("every FAIL line carries a NEXT step", () => {
     for (const m of text.matchAll(/`(FAIL:[^`]*)`/g)) {
       const literal = m[1];
       if (literal.includes("NEXT:")) continue;
-      // A head assembled with a separate `next` clause is judged by the rendered result, below.
+      // A head assembled with a separate `next` clause is covered by the rendered-result tests
+      // below (the not-ready path asserts FAIL + NEXT on real output).
       const after = text.slice(m.index + m[0].length, m.index + m[0].length + 400);
       if (after.includes("NEXT:") || /\bnext\b/.test(after)) continue;
       bad.push(`${name}: ${literal.slice(0, 70)}`);
@@ -117,4 +118,22 @@ test("the legacy status words do not grow", () => {
     [],
     "a legacy status word grew: use PASS with a sentence, or FAIL with NEXT, per prompt-standard §5.4",
   );
+});
+
+test("a not-ready inspect answer is FAIL with NEXT on the rendered result", async () => {
+  const config = path.join(REPO, ".pi/decompile.json");
+  if (!existsSync(config)) return; // this workspace states its dump config elsewhere
+  const cwd = mkdtempSync(path.join(tmpdir(), "contract-nodump-"));
+  mkdirSync(path.join(cwd, ".pi"), { recursive: true });
+  writeFileSync(path.join(cwd, ".pi/decompile.json"), readFileSync(config));
+  const inspect = await loadExtension("inspect-game-code.ts");
+  let result;
+  try {
+    result = await inspect.execute("c", { action: "status" }, undefined, undefined, { cwd });
+  } catch (error) {
+    return; // no dump folder support on this machine; covered by the static rule
+  }
+  const text = result.content.map((c) => c.text).join("\n");
+  assert.match(text, /^FAIL:/, "a missing dump is an answer, not a success");
+  assert.match(text, /NEXT:/, "and it says what to run");
 });

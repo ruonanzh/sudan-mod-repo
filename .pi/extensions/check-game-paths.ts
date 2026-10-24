@@ -62,7 +62,7 @@ export default function (pi: ExtensionAPI) {
           content: [
             {
               type: "text",
-              text: `FAIL: nothing to check - no paths were given and none are recorded in this workspace's state file (${shorten(file)}).\nNEXT: run try_set_game_dir with no arguments to find the game, or pass gameDir explicitly. See the 'setup-workspace' skill if discovery fails.`,
+              text: clipUtf8(ascii(`FAIL: nothing to check - no paths were given and none are recorded in this workspace's state file (${shorten(file)}).\nNEXT: run try_set_game_dir with no arguments to find the game, or pass gameDir explicitly. See the 'setup-workspace' skill if discovery fails.`)),
             },
           ],
           details: { ok: false, reason: "NOTHING_TO_CHECK", rows: [], failed: [], wroteState: false, present: recorded.present },

@@ -405,7 +405,12 @@ async function main(argv) {
     return 2;
   } catch (error) {
     if (error instanceof ImageError) {
-      say("FAIL", error.message, /NO_OUT|NO_PROMPT/.test(error.code) ? "run with --out <png> (and a --prompt, unless you are reusing --task)" : undefined);
+      const next = /NO_OUT|NO_PROMPT/.test(error.code)
+        ? "run with --out <png> (and a --prompt, unless you are reusing --task)"
+        : /SIZE_/.test(error.code)
+          ? "run fit with the size the check printed, then check again"
+          : "fix what the message names, then run the same command again";
+      say("FAIL", error.message, next);
       return 1;
     }
     throw error;
