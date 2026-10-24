@@ -9,7 +9,8 @@
  */
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { cleanupAll, fakeModRoot, makeMod, tmpDir } from "./lib/fixture.mjs";
 import { loadExtension } from "./lib/load-extension.mjs";
@@ -88,6 +89,16 @@ test("install_mod refuses a folder with no info.json", async () => {
   await assert.rejects(run(await get(), { modDir: bare }, cwd), /has no info\.json/);
 });
 
+test("install_mod says when info.json's name does not match the folder name", async () => {
+  const root = modRoot();
+  const cwd = workspace(root);
+  const mod = makeMod({});
+  writeFileSync(path.join(mod, "info.json"), JSON.stringify({ name: "显示名", version: "1.0.0" }));
+  const result = await run(await get(), { modDir: mod }, cwd);
+  assert.equal(result.details.status, "PASS", textOf(result));
+  assert.match(textOf(result), /WARN: info\.json says name "显示名" but the folder is/, "the mismatch is named");
+});
+
 test("install_mod refuses malformed info.json", async () => {
   const root = modRoot();
   const cwd = workspace(root);
@@ -116,6 +127,25 @@ test("install_mod reports PARTIAL when no mod directory is recorded", async () =
   assert.equal(result.details.status, "PARTIAL", text);
   assert.match(text, /ModList/, "the fix is the mod panel button, not a folder made by hand");
   assert.equal(result.details.installed, false);
+});
+
+test("install_mod refuses an install folder inside the workspace", async () => {
+  const cwd = mkdtempSync(path.join(tmpdir(), "ws-inside-"));
+  const mod = path.join(cwd, "your_mods", "inside_probe");
+  mkdirSync(mod, { recursive: true });
+  writeFileSync(path.join(mod, "info.json"), JSON.stringify({ name: "inside_probe", version: "1.0.0" }));
+  mkdirSync(path.join(cwd, "SultansGame/Mod"), { recursive: true });
+  mkdirSync(path.join(cwd, "SultansGame/ModLog"), { recursive: true });
+  writeFileSync(path.join(cwd, "SultansGame/ModLog/__mod.log"), "");
+  writeFileSync(path.join(cwd, ".gamer-agent.local.json"), JSON.stringify({ modInstallDir: path.join(cwd, "SultansGame/Mod") }));
+  let out = null;
+  try {
+    out = await run(await get(), { modDir: mod }, cwd);
+  } catch (e) {
+    assert.match(String(e.message), /UNSAFE_TARGET: the install directory .* is inside the workspace/);
+    return;
+  }
+  assert.fail(`expected a refusal, got: ${textOf(out)}`);
 });
 
 test("install_mod refuses to copy a folder onto itself", async () => {

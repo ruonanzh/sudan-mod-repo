@@ -102,6 +102,14 @@ export default function (pi: ExtensionAPI) {
 
       const folder = path.basename(source);
       const target = path.join(root.path, folder);
+      // The workspace is app-managed: writing into it is forbidden everywhere else in this repo,
+      // and an install target that happens to sit inside it would break that rule through the one
+      // tool whose job is writing.
+      if (sameOrNested(identity(cwd), identity(target))) {
+        throw new Error(
+          `UNSAFE_TARGET: the install directory ${shorten(target)} is inside the workspace ${shorten(cwd)}. Install into the game's mod folder, not into the repo.`,
+        );
+      }
       const relative = path.relative(root.path, target);
       if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
         throw new Error(
@@ -133,6 +141,14 @@ export default function (pi: ExtensionAPI) {
         throw new Error(`INSTALL_FAILED: could not write ${target} (${detail}). ${state} Close the game if it is running and run install_mod again.`);
       }
 
+      const folderName = path.basename(source);
+      // The folder name is what the player sees in the mod list and what the log is named after;
+      // info.json's `name` is a separate string. When they differ, say so: every later step that
+      // follows the log path or looks for the folder would otherwise use a name that is not there.
+      const mismatch =
+        typeof name === "string" && name !== folderName
+          ? `WARN: info.json says name "${name}" but the folder is "${folderName}". The game lists and logs the folder name; rename one of them so they match.`
+          : null;
       return {
         content: [
           {
@@ -142,6 +158,7 @@ export default function (pi: ExtensionAPI) {
               copied.replaced
                 ? "NEXT: tell the player to refresh the mod list in the game's mod panel, then read ModLog/<mod name>_local.log and confirm a `read mod` line for each file you changed. Installing does not prove the game loads it."
                 : "NEXT: tell the player to enable the mod in the game's mod panel (title screen), then read ModLog/<mod name>_local.log and confirm a `read mod` line for each file you changed. Installing does not prove the game loads it.",
+              ...(mismatch ? [mismatch] : []),
             ].join("\n"),
           },
         ],
