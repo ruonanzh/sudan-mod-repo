@@ -108,4 +108,6 @@ test("every row is the card page's row: key on the left, control in the right co
   const repeat = page.slice(page.indexOf('data-key="repeat"'), page.indexOf('data-key="type"'));
   assert.match(repeat, /class="val"><input data-form="repeat"/, "the control sits in the value column, as on a card page");
   assert.match(page, /class="panel"/, "the rows sit inside the same bordered box a card page uses");
+  assert.match(page, /<div class="wrap" data-form-page="loot:6000777">/, "the wrapper mounts the whole page, title and subtitle included");
+  assert.match(page, /<h1>战利品表 6000777<\/h1>/, "the mounted page keeps its title, as a card page does");
 });

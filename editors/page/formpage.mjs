@@ -114,16 +114,16 @@ export function formPageHtml({ kind, id, record = {}, origin = "new", recordKey 
     ...(spec.json || []).map((field) => row(field, requireLabel(kind, field), control(kind, field, record[field], spec))),
   ].join("\n");
 
+  // The wrapper mounts the element that carries `data-form-page`, so that element is the whole
+  // `.wrap`: title, subtitle and panels travel together, exactly as they do on a card page.
   return pageHtml({
     title: `${spec.label} ${id}`,
     sub: `${badge}${esc(spec.label)} · id <code>${esc(String(id))}</code>`,
     extraCss: FORM_CSS,
-    body: `<div data-form-page="${esc(key)}">
-<div class="panel">${fields}</div>
+    body: `<div class="panel">${fields}</div>
 ${spec.items ? itemsPanel(record[spec.items]) : ""}
-<p class="only-host" id="card-no-host">在应用里打开这一页才能编辑：保存会写回这条记录，发送会把改动交给 agent。</p>
-<script type="application/json" id="form-values">${JSON.stringify({ version: 1, key, values: record }).replace(/</g, "\\u003c")}</script>
-</div>`,
+<script type="application/json" id="form-values">${JSON.stringify({ version: 1, key, values: record }).replace(/</g, "\\u003c")}</script>`,
+    wrapAttrs: `data-form-page="${esc(key)}"`,
     script: "",
   });
 }
