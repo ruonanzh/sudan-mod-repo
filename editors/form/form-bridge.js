@@ -222,18 +222,23 @@
   /* ---------- reading, saving, sending ---------- */
 
   /**
-   * Only the keys whose value differs from the block, so the message stays short. `id` never
-   * travels: the page shows it read-only, and a record that loses its id cannot be found again.
+   * Only the keys whose value differs from the block, so the message stays short. Two kinds of key
+   * never travel as a change: `id`, which the page shows read-only (a record that loses its id
+   * cannot be found again), and every key the player describes in words instead of typing it — an
+   * absent control there means "the player said nothing", not "remove this field".
    */
-  function changedValues(values) {
+  function changedValues(values, described) {
     var saved = state.values || {};
     var changed = {};
+    var skip = function (key) {
+      return key === "id" || described.indexOf(key) !== -1;
+    };
     Object.keys(values).forEach(function (key) {
-      if (key === "id") return;
+      if (skip(key)) return;
       if (JSON.stringify(values[key]) !== JSON.stringify(saved[key])) changed[key] = values[key];
     });
     Object.keys(saved).forEach(function (key) {
-      if (key === "id") return;
+      if (skip(key)) return;
       if (!(key in values)) changed[key] = null;
     });
     return changed;
@@ -311,7 +316,10 @@
       setStatus(String(error && error.message ? error.message : error), "error");
       return;
     }
-    var changed = changedValues(values);
+    var described = Array.prototype.map.call(state.root.querySelectorAll("[data-prose]"), function (element) {
+      return element.getAttribute("data-prose");
+    });
+    var changed = changedValues(values, described);
     var prose = proseOf(state.root);
     if (!Object.keys(changed).length && !prose.length) {
       setStatus("还没有改动。", "dirty");

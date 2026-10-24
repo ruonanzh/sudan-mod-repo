@@ -129,7 +129,7 @@ test("the three described fields travel as the player's sentences", () => {
 
 test("the record id never travels as a change", () => {
   const bridge = read(path.join(REPO, "editors/form/form-bridge.js"));
-  assert.match(bridge, /if \(key === "id"\) return;/, "the diff skips the read-only id");
+  assert.match(bridge, /key === "id" \|\| described\.indexOf\(key\) !== -1/, "the diff skips the read-only id and every described field");
 });
 
 test("every row is the card page's row: key on the left, control in the right column", () => {
