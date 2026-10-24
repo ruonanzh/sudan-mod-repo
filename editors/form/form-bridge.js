@@ -183,11 +183,33 @@
     paintStatus();
   }
 
+  /** The line under 抽取算法 says what this algorithm gives, from the table the page ships. */
+  function wireTypeNote(root) {
+    var pick = root.querySelector('[data-form="type"]');
+    var line = root.querySelector("#type-note");
+    var table = document.getElementById("loot-type-notes");
+    if (!pick || !line || !table) return;
+    var notes;
+    try {
+      notes = JSON.parse(table.textContent || "{}");
+    } catch (error) {
+      return;
+    }
+    var paint = function () {
+      var text = notes[String(pick.value)] || notes["2"] || "";
+      if (text) line.textContent = text;
+    };
+    pick.addEventListener("change", paint);
+    pick.addEventListener("input", paint);
+    paint();
+  }
+
   function wire(root) {
     if (!root || root.getAttribute("data-form-wired") === "1") return;
     root.setAttribute("data-form-wired", "1");
     root.addEventListener("input", markDirty);
     root.addEventListener("change", markDirty);
+    wireTypeNote(root);
     var add = byId("item-add");
     if (add) {
       add.addEventListener("click", function () {

@@ -84,6 +84,14 @@ test("a loot table gets a form page with every field, labelled", () => {
   assert.match(page, /data-prose-item="condition"/, "each item carries its own sentence box");
   assert.match(page, /<input data-item="id" data-kind="number" type="number"/, "the card id gets a full cell");
   assert.match(page, /<h2>放什么<\/h2>\s*<div class="panel">/, "the heading sits outside the box, as on a card page");
+  assert.match(page, /id="type-note"/, "the algorithm row keeps a line that explains the current choice");
+  assert.match(page, /id="loot-type-notes"/, "the four explanations travel with the page");
+  for (const [value, hint] of [["2", "玩家得到 repeat 件"], ["3", "最多得到 repeat 件"], ["4", "把 repeat 当成件数"], ["99", "repeat 乘表中物品数"]]) {
+    assert.ok(page.includes(hint), `the note for ${value} explains repeat: ${hint}`);
+  }
+  assert.ok((page.match(/例如/g) || []).length >= 4, "each algorithm note carries a worked example");
+  const bridge = read(path.join(REPO, "editors/form/form-bridge.js"));
+  assert.match(bridge, /wireTypeNote/, "the wrapper swaps the line when the pick changes");
   assert.match(page, /id="form-values"/, "the values live in one block the editor wrapper rewrites");
 });
 

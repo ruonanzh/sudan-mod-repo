@@ -42,6 +42,17 @@ const ITEM_NUMBERS = ["id", "num", "weight", "type"];
 const show = (value) => (value === undefined ? "" : typeof value === "string" ? value : JSON.stringify(value));
 
 /** The card page's row rules, so the two kinds of page read the same. */
+/**
+ * One line per algorithm: what one round gives, how `repeat` reads for it, and a worked example.
+ * The page swaps the visible line when the player picks another value.
+ */
+export const LOOT_TYPE_NOTES = {
+  "2": "这个算法每一轮按权重抽一件，所以玩家得到 repeat 件，同一个物品可以出现多次。例如 repeat 写 3、两项权重是 10 与 5，玩家得到 3 件，权重 10 的那项大约出现两件。",
+  "3": "这个算法每一轮先去掉玩家已经拥有的物品，再按权重抽一件，所以最多得到 repeat 件，池子抽空时会少一些。例如 repeat 写 2、表里三件而玩家已有一件，这次最多得到 2 件，已经有的那件不会再给。",
+  "4": "这个算法把 repeat 当成件数，一次抽出这么多件，而且不重复。例如 repeat 写 2，玩家一次得到 2 件不同的物品；表里符合条件的不足 2 件时，把有的都给出来。",
+  "99": "这个算法每一轮把整张表里符合条件的物品各给一份，所以玩家得到 repeat 乘表中物品数那么多件。例如 repeat 写 2、表里 3 件，玩家得到 6 件，每一件两份。",
+};
+
 const FORM_CSS = `
 .lbl code { display: block; }
 .lbl .key-zh { display: block; color: var(--ink); }
@@ -76,6 +87,14 @@ function proseRow(kind, key, value) {
     `<div class="readonly"><code>${esc(current)}</code></div>
 <textarea data-prose="${esc(key)}" rows="2" spellcheck="false" placeholder="${esc(PROSE_ASK[key] || "用你自己的话写")}"></textarea>`,
   );
+}
+
+/** The type pick carries a second line that changes with the value: what one round gives. */
+function tooltipControl(kind, field, record, spec) {
+  const base = control(kind, field, record[field], spec);
+  if (kind !== "loot" || field !== "type") return base;
+  const current = String(record.type ?? "2");
+  return `${base}<p class="note dyn" id="type-note">${esc(LOOT_TYPE_NOTES[current] || LOOT_TYPE_NOTES["2"])}</p>`;
 }
 
 /** One row: key and its Chinese name on the left, the control and its sentence on the right. */
@@ -154,7 +173,7 @@ export function formPageHtml({ kind, id, record = {}, origin = "new", recordKey 
     : '<span class="origin">新增</span>';
   const fields = [
     row("id", requireLabel(kind, "id"), `<div class="readonly">${esc(String(id))}</div>`),
-    ...spec.scalar.map((field) => row(field, requireLabel(kind, field), control(kind, field, record[field], spec))),
+    ...spec.scalar.map((field) => row(field, requireLabel(kind, field), tooltipControl(kind, field, record, spec))),
     ...(spec.prose || []).map((field) => proseRow(kind, field, record[field])),
   ].join("\n");
 
@@ -166,6 +185,7 @@ export function formPageHtml({ kind, id, record = {}, origin = "new", recordKey 
     extraCss: FORM_CSS,
     body: `<div class="panel">${fields}</div>
 ${spec.items ? itemsPanel(record[spec.items]) : ""}
+<script type="application/json" id="loot-type-notes">${JSON.stringify(LOOT_TYPE_NOTES).replace(/</g, "\\u003c")}</script>
 <script type="application/json" id="form-values">${JSON.stringify({ version: 1, key, values: record }).replace(/</g, "\\u003c")}</script>`,
     wrapAttrs: `data-form-page="${esc(key)}"`,
     script: "",
