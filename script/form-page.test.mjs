@@ -76,6 +76,9 @@ test("a fate-shop entry gets a form page with JSON boxes for the nested fields",
   assert.match(page, /<textarea data-form="condition"/, "a condition is edited as JSON");
   assert.match(page, /<textarea data-form="effect"/, "so is an effect");
   assert.match(page, /命运商店/, "the page names the shop");
+  assert.match(page, /<select data-form="icon">/, "the icon is a pick of the two names the game resolves");
+  assert.match(page, /gain · 获得/, "the option shows the label the player sees beside the value to write");
+  assert.match(page, /buff · 增益/, "so does the other one");
 });
 
 test("the form page carries its values in a block and opens in the editor", () => {

@@ -556,7 +556,7 @@
     },
     "icon": {
       "label": "图标类型",
-      "note": "图标的名字，原版只有「获得」与「增益」两种，写别的名字图标会是空白。",
+      "note": "写 gain 或 buff，界面分别显示为「获得」与「增益」；写别的名字，图标是空白。",
       "from": "docs/sudan-game/fields/07-upgrade.md §`icon` (level 2)"
     },
     "link_card": {

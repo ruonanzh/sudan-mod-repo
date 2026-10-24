@@ -21,6 +21,7 @@ export const FORM_FIELDS = {
   upgrade: {
     label: "命运商店",
     scalar: ["name", "text", "cost", "icon", "link_card"],
+    selects: { icon: [["gain", "gain · 获得"], ["buff", "buff · 增益"]] },
     numbers: ["cost", "link_card"],
     json: ["condition", "effect", "incompatible"],
   },
@@ -59,7 +60,10 @@ function control(kind, key, value, spec) {
   const options = spec?.selects?.[key];
   if (options) {
     const current = String(value ?? options[0][0]);
-    return `<select data-form="${esc(key)}" data-kind="number">${options
+    // A record may carry a value outside the list (a third icon key someone added to variable.json).
+    const list = options.some(([v]) => v === current) ? options : [[current, `${current}（不在原版取值里）`], ...options];
+    const numeric = spec?.numbers?.includes(key);
+    return `<select data-form="${esc(key)}"${numeric ? ' data-kind="number"' : ""}>${list
       .map(([v, text]) => `<option value="${esc(v)}"${v === current ? " selected" : ""}>${esc(text)}</option>`)
       .join("")}</select>`;
   }
