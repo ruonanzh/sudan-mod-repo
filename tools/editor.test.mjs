@@ -128,3 +128,35 @@ test("a table save keeps comments, trailing commas and other records' text", { s
   assert.ok(after.includes('"9000002"'), "the other record is still there");
   assert.match(after, /\},\s*\/\/ 尾逗号也是原版风格/, "the trailing comma of the last entry is untouched");
 });
+
+test("two saves of the same table cannot interleave: the second waits or refuses", { skip }, () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "editor-lock-"));
+  writeFileSync(path.join(dir, "info.json"), JSON.stringify({ name: "lock probe", version: "1.0.0" }));
+  mkdirSync(path.join(dir, "config"), { recursive: true });
+  writeFileSync(path.join(dir, "config/cards.json"), `{\n  "9000001": {"id": 9000001, "name": "甲", "type": "item", "rare": 2}\n}\n`);
+  const mod = openMod(dir, { vanilla: VANILLA });
+  const target = path.join(dir, "config/cards.json");
+  writeFileSync(`${target}.lock`, "held"); // pretend another process is mid-save
+  const started = Date.now();
+  const out = saveNode(mod, "card", 9000001, JSON.stringify({ id: 9000001, name: "乙", type: "item", rare: 2 }), { lockWaitMs: 40 });
+  assert.equal(out.ok, false, "the save does not run while the lock is held");
+  assert.match(out.error, /另一次保存/, "and says why");
+  assert.ok(Date.now() - started >= 30, "it waits before giving up");
+  const after = readFileSync(target, "utf8");
+  assert.ok(after.includes("甲"), "the file was not touched");
+});
+
+test("a second save keeps every backup instead of overwriting the first", { skip }, () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "editor-bak-"));
+  writeFileSync(path.join(dir, "info.json"), JSON.stringify({ name: "bak probe", version: "1.0.0" }));
+  mkdirSync(path.join(dir, "config"), { recursive: true });
+  const file = path.join(dir, "config/cards.json");
+  writeFileSync(file, `{\n  "9000001": {"id": 9000001, "name": "一", "type": "item", "rare": 2}\n}\n`);
+  const mod = openMod(dir, { vanilla: VANILLA });
+  const a = saveNode(mod, "card", 9000001, JSON.stringify({ id: 9000001, name: "二", type: "item", rare: 2 }));
+  const b = saveNode(mod, "card", 9000001, JSON.stringify({ id: 9000001, name: "三", type: "item", rare: 2 }));
+  assert.equal(a.ok, true, a.error);
+  assert.equal(b.ok, true, b.error);
+  assert.ok(a.backup && b.backup && a.backup !== b.backup, "each save has its own backup file");
+  assert.ok(existsSync(a.backup) && existsSync(b.backup), "both backups are on disk");
+});

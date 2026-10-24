@@ -683,6 +683,7 @@ function lintMod(modDir, vanilla, opts) {
   // ---- unknown top-level entries ------------------------------------------
   for (const name of readdirSync(modDir)) {
     if (name.startsWith(".") || name.startsWith("._")) continue;
+    if (name.endsWith(".lock") || name.includes(".bak")) continue; // the page editor's working files
     if (MOD_ROOT_ENTRIES.has(name)) continue;
     if (name === "preview.jpeg") {
       warn("PREVIEW_EXT", name, "use preview.png or preview.jpg. The game globs preview.*, but jpeg is untested.");
@@ -728,6 +729,7 @@ function lintMod(modDir, vanilla, opts) {
       const dspec = DIR_STYLE.get(relPath);
       if (!dspec) continue;
       for (const name of readdirSync(full)) {
+        if (name.endsWith(".lock") || name.includes(".bak")) continue; // the page editor's working files
         if (!name.endsWith(dspec.ext)) {
           warn("DIR_STRAY_FILE", `${relPath}/${name}`, `only ${dspec.ext} files are read here.`);
           continue;

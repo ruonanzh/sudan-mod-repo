@@ -16,10 +16,10 @@
  *
  * Save path: the text you typed is parsed as JSONC, the record is validated with the same
  * checks the rest of the repo uses, and only then is it written — into the mod, never into
- * the game's own files. A `.bak` copy of the previous file is kept beside it.
+ * the game's own files. A timestamped `.bak-<time>` copy of the previous file is kept beside it.
  */
 import { createServer } from "node:http";
-import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync, realpathSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync, realpathSync, openSync, unlinkSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -84,7 +84,7 @@ export function readNodeSource(mod, kind, id, { vanilla } = {}) {
  * Write an edited record. Table-style kinds are merged back into their table file; every
  * other kind is a file of its own.
  */
-export function saveNode(mod, kind, id, source) {
+export function saveNode(mod, kind, id, source, options = {}) {
   let parsed;
   try {
     parsed = parseJsonc(source);
@@ -115,14 +115,38 @@ export function saveNode(mod, kind, id, source) {
     const same = JSON.stringify(isTable ? (before && before[id]) : before) === JSON.stringify(record);
     if (same) return { ok: true, unchanged: true, path: currentFile, backup: null, warnings };
   }
-  const previous = existsSync(target) ? target : null;
+  // One writer at a time: two saves of the same table each read, change one record and write the
+  // whole file back, so without a lock the second silently drops the first edit. The lock is a
+  // file next to the target; a crash leaves it behind, so an old lock is reported rather than
+  // waited on forever.
+  const lock = `${target}.lock`;
   mkdirSync(path.dirname(target), { recursive: true });
+  const waitMs = Number(options.lockWaitMs ?? process.env.SUDAN_EDITOR_LOCK_MS ?? 2000);
+  const started = Date.now();
+  let lockHandle = null;
+  for (;;) {
+    try {
+      lockHandle = openSync(lock, "wx");
+      break;
+    } catch (e) {
+      if (e.code !== "EEXIST") return { ok: false, error: `无法写保存锁：${String(e.message || e)}` };
+      if (Date.now() - started >= waitMs)
+        return { ok: false, error: `另一次保存正在进行（${lock}）。等它结束后再点保存。` };
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20);
+    }
+  }
+  const previous = existsSync(target) ? target : null;
   let backup = null;
   if (previous) {
-    backup = `${target}.bak`;
+    // Never overwrite an older backup: a second save used to replace `.bak` with the state the
+    // first save had already overwritten, so the original text was gone.
+    const stamp = `${new Date().toISOString().replace(/[:.]/g, "-")}-${process.pid}`;
+    backup = `${target}.bak-${stamp}`;
+    for (let n = 2; existsSync(backup); n++) backup = `${target}.bak-${stamp}-${n}`;
     copyFileSync(previous, backup);
   }
 
+  try {
   if (where.style === "table" || where.style === "single") {
     // Table files hold many records, comments, trailing commas and duplicate keys. Rewriting the
     // whole table as JSON threw all of that away, so only this record's value is replaced.
@@ -143,6 +167,18 @@ export function saveNode(mod, kind, id, source) {
     writeFileSync(target, doc.render());
   } else {
     writeFileSync(target, source.endsWith("\n") ? source : `${source}\n`);
+  }
+  } finally {
+    try {
+      lockHandle.closeSync?.();
+    } catch {
+      /* closing twice is harmless */
+    }
+    try {
+      unlinkSync(lock);
+    } catch {
+      /* another writer may have removed a stale lock */
+    }
   }
   return { ok: true, path: target, backup, warnings };
 }

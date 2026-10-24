@@ -14,7 +14,15 @@ import { cpSync, existsSync, readdirSync, renameSync, rmSync } from "node:fs";
 import path from "node:path";
 
 export const SKIP = (name: string): boolean =>
-  name === ".preview" || name === ".git" || name === ".DS_Store" || name === "asset_manifest.jsonl" || name.startsWith("._");
+  name === ".preview" ||
+  name === ".git" ||
+  name === ".DS_Store" ||
+  name === "asset_manifest.jsonl" ||
+  name.startsWith("._") ||
+  // The page editor keeps a lock file while saving and one timestamped backup per save; neither
+  // is part of the mod, and shipping them would put old copies of records in the player's folder.
+  name.endsWith(".lock") ||
+  name.includes(".bak-");
 
 /** Every file that would land, relative to `dir`. */
 export function walk(dir: string, base = dir): string[] {
