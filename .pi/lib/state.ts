@@ -16,7 +16,7 @@
  * The vanilla config is not a key: `tools/paths.mjs` derives it from `gameDir` on every
  * call, so a recorded copy could only go stale.
  */
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import os from "node:os";
 
@@ -63,8 +63,25 @@ export function readState(cwd: string): RuntimeState {
 }
 
 export function writeState(cwd: string, patch: RuntimeState): RuntimeState {
-  const next = { ...readState(cwd), ...patch };
   const file = statePath(cwd);
+  // A state file that cannot be parsed used to be read as `{}` and then replaced by the patch, so
+  // one broken write erased the game directory, the dotnet path and everything else. Keep the
+  // broken file and refuse to write: a caller can then report it instead of losing the record.
+  let base: RuntimeState = {};
+  if (existsSync(file)) {
+    const text = readFileSync(file, "utf8");
+    try {
+      base = JSON.parse(text) as RuntimeState;
+    } catch (error) {
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const kept = `${file}.corrupt-${stamp}`;
+      renameSync(file, kept);
+      throw new Error(
+        `STATE_CORRUPT: ${file} is not valid JSON (${(error as Error).message}). It was moved to ${kept}; nothing was overwritten. Fix or delete that file, then run the command again.`,
+      );
+    }
+  }
+  const next = { ...base, ...patch };
   const tmp = `${file}.tmp-${process.pid}`;
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(tmp, `${JSON.stringify(next, null, 2)}\n`);

@@ -114,12 +114,17 @@ export default function (pi: ExtensionAPI) {
       const shown = sorted.slice(0, MESSAGE_LIMIT);
 
       const where = path.relative(cwd, modDir) || modDir;
+      // `content` goes to the model through the terminal, and a Windows console with a legacy code
+      // page turns non-ASCII into garbage. Lint messages quote record values and paths, so they can
+      // carry any script; escape it here and keep the exact characters in `details.results`.
+      const ascii = (text: string): string =>
+        String(text).replace(/[^\x20-\x7e]/g, (c) => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"));
       const lines = [
-        `${status}: ${counts.FAIL ?? 0} fail, ${counts.WARN ?? 0} warn, ${counts.INFO ?? 0} info (${where})`,
+        ascii(`${status}: ${counts.FAIL ?? 0} fail, ${counts.WARN ?? 0} warn, ${counts.INFO ?? 0} info (${where})`),
       ];
-      if (status === "PARTIAL") lines.push(`  vanilla config missing: ${known.message ?? "not found"}`);
+      if (status === "PARTIAL") lines.push(ascii(`  vanilla config missing: ${known.message ?? "not found"}`));
       for (const r of shown) {
-        lines.push(`${r.level.padEnd(4)} ${(r.file || "-").padEnd(30)} ${r.code.padEnd(22)} ${clip(r.message)}`);
+        lines.push(ascii(`${r.level.padEnd(4)} ${(r.file || "-").padEnd(30)} ${r.code.padEnd(22)} ${clip(r.message)}`));
       }
       if (results.length > shown.length) {
         lines.push(`... (${results.length - shown.length} more messages; details.results has all ${results.length})`);

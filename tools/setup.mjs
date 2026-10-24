@@ -19,16 +19,38 @@ import { judge, shorten } from "./paths.mjs";
 const ROOT = path.join(path.dirname(new URL(import.meta.url).pathname), "..");
 const REF = path.join(ROOT, "reference");
 
+/** The plate files the preview always needs. */
+export const PLATES = ["card.png", "card-stone.png", "card-copper.png", "card-silver.png", "card-gold.png"];
+
+/** The twelve style references the card SKILL tells the agent to expect, one per type and rarity. */
+export const CARD_REFS = ["char", "item", "sudan"].flatMap((type) => [1, 2, 3, 4].map((rare) => `${type}-${rare}.png`));
+
+/** The files this repository must ship for the preview. Exported so a test can drive it with a fixture. */
+export function referenceStatus(ref = REF) {
+  const need = PLATES.map((f) => {
+    const ok = existsSync(path.join(ref, "plates", f));
+    return { file: `reference/plates/${f}`, ok, required: true };
+  });
+  const fonts = existsSync(path.join(ref, "fonts"))
+    ? readdirSync(path.join(ref, "fonts")).filter((f) => /\.(ttf|otf)$/i.test(f)).length
+    : 0;
+  const cardsPresent = CARD_REFS.filter((f) => existsSync(path.join(ref, "cards", f))).length;
+  return [
+    ...need,
+    { file: "reference/fonts/ (card title font, optional)", ok: fonts > 0, required: false, detail: `${fonts} files` },
+    // "One picture is there" is not "the set is complete": the SKILL promises twelve, and a
+    // missing one makes the agent draw a card with no style reference instead of stopping.
+    {
+      file: "reference/cards/ (style references)",
+      ok: cardsPresent === CARD_REFS.length,
+      required: false,
+      detail: `${cardsPresent}/${CARD_REFS.length} files`,
+    },
+  ];
+}
+
 /** What the preview needs, and what it can live without, plus the two judged locations. */
 function status(judgeOpts = {}) {
-  const need = ["card.png", "card-stone.png", "card-copper.png", "card-silver.png", "card-gold.png"]
-    .map((f) => ({ file: `reference/plates/${f}`, ok: existsSync(path.join(REF, "plates", f)), required: true }));
-  const fonts = existsSync(path.join(REF, "fonts"))
-    ? readdirSync(path.join(REF, "fonts")).filter((f) => /\.(ttf|otf)$/i.test(f)).length
-    : 0;
-  const cards = existsSync(path.join(REF, "cards"))
-    ? readdirSync(path.join(REF, "cards")).filter((f) => f.endsWith(".png")).length
-    : 0;
   const judged = judge(judgeOpts);
   const location = (name, { game = false } = {}) => {
     const r = judged.rows.find((x) => x.name === name);
@@ -41,13 +63,7 @@ function status(judgeOpts = {}) {
       detail: r.reason,
     };
   };
-  return [
-    ...need,
-    { file: "reference/fonts/ (card title font, optional)", ok: fonts > 0, required: false, detail: `${fonts} files` },
-    { file: "reference/cards/ (style references)", ok: cards > 0, required: false, detail: `${cards} files` },
-    location("gameDir", { game: true }),
-    location("vanilla"),
-  ];
+  return [...referenceStatus(REF), location("gameDir", { game: true }), location("vanilla")];
 }
 
 function main() {
@@ -79,4 +95,4 @@ function main() {
   return missing.length ? 1 : 0;
 }
 
-process.exit(main());
+if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith("setup.mjs")) process.exit(main());

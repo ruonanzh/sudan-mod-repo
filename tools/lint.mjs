@@ -1049,7 +1049,14 @@ function lintMod(modDir, vanilla, opts) {
           if (!own && !r.startsWith("cards/") && !r.startsWith("tag_"))
             warn("SPRITE_UNKNOWN", "config/cards.json", `card ${key} resource ${JSON.stringify(r)} does not look like a sprite name (cards/..., tag_...).`);
           else if (!own)
-            info("SPRITE_VANILLA", "config/cards.json", `card ${key} reuses sprite ${JSON.stringify(r)}. Ship image/${r}.png to override it.`);
+            // This lint does not index the vanilla sprites, so it cannot say whether the name
+            // exists there: a missing name in the shipped data would be a defect. It only says
+            // where the name is not.
+            info(
+              "SPRITE_VANILLA",
+              "config/cards.json",
+              `card ${key} uses sprite ${JSON.stringify(r)}, which is not in this mod. It may exist in vanilla, and it may not; check the vanilla image folder before you rely on it. Ship image/${r}.png to override it.`,
+            );
         }
       }
     } catch {
