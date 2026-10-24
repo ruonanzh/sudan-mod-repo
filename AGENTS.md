@@ -21,10 +21,6 @@
 
 - **mod 只提供数据。** 没有 `.dll`、没有 `.cs`、没有脚本、没有 AssetBundle。想要的改动如果不能用下面的数据键表达，就是做不到 —— 这时要说做不到，而不是编一条代码路线。有一个热门 mod 随包提供 `code/` 目录，里面全是 Python，游戏从不读它。
 
-- **`reference/` 里的卡面随仓库提供。**
-  四张品级底板（`reference/plates/`）与十二张参考卡（`reference/cards/`）是公开的卡面，供预览页与画风参考使用，已进 git。
-  卡面标题字体不在仓库里（商业授权），缺字体时页面退回衬线字体。没有安装步骤，也没有 Python 依赖：`node tools/setup.mjs --check` 只报告缺什么。
-
 - **脚本优先用 `node`。** 产品自带 node。`tools/lint.mjs` 无依赖。
 
 ## 目录地图
