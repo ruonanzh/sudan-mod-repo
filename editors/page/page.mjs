@@ -583,17 +583,28 @@ const dataUri = (img) => encodePng(img).toString("base64");
 /** Halve the size before embedding: the page is displayed at 236px wide anyway. */
 const half = (img) => cropCover(img, Math.round(img.width / 2), Math.round(img.height / 2));
 
+/**
+ * The card preview is 236px wide. Writing the pictures at their display width, and the four
+ * plates at half of it, keeps a page with art near 700 KB instead of 1.8 MB: the plates are a
+ * texture behind the art, so half resolution is invisible, and the art is drawn at full width.
+ */
+const PREVIEW_W = 236;
+const PLATE_W = 118;
+const atWidth = (img, width) => cropCover(img, width, Math.round((width * img.height) / img.width));
+
 function plateSources(modDir, id, type) {
   const here = path.dirname(new URL(import.meta.url).pathname);
   const plateDir = path.join(here, "..", "..", "reference", "plates");
   const sources = {};
   for (const [i, tier] of ["stone", "copper", "silver", "gold"].entries()) {
     const f = path.join(plateDir, `card-${tier}.png`);
-    if (existsSync(f)) sources[i + 1] = `data:image/png;base64,${dataUri(half(cropCover(decodePng(readFileSync(f)), CARD_W, CARD_H)))}`;
+    if (existsSync(f)) sources[i + 1] = `data:image/png;base64,${dataUri(atWidth(cropCover(decodePng(readFileSync(f)), CARD_W, CARD_H), PLATE_W))}`;
   }
   const artFile = path.join(modDir, "image", "cards", `${id}.png`);
+  // One copy of the art, in the payload. The visible <img> borrows this string at load, so the
+  // bytes do not appear twice in the file.
   const art = existsSync(artFile)
-    ? `data:image/png;base64,${dataUri(half(cropCover(decodePng(readFileSync(artFile)), CARD_W, CARD_H)))}`
+    ? `data:image/png;base64,${dataUri(atWidth(cropCover(decodePng(readFileSync(artFile)), CARD_W, CARD_H), PREVIEW_W))}`
     : null;
   return { sources, art };
 }
@@ -611,8 +622,10 @@ export function artInline(modDir, id, rare, name, type, fontFamily) {
     : "";
   const { sources, art } = plateSources(modDir, id, type);
   const payload = JSON.stringify({ plates: sources, art, name, rare });
+  // A 1×1 transparent GIF as the visible fallback: real bytes would be a second copy of the art.
+  const BLANK = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
   return `<div style="position:relative;width:236px">
-  <img id="cardStatic" src="data:image/png;base64,${dataUri(half(img))}" style="width:236px;display:block;border:1px solid #57452c" alt="${esc(tier)} card">
+  <img id="cardStatic" src="${BLANK}" data-art="${art ? "1" : "0"}" style="width:236px;display:block;border:1px solid #57452c" alt="${esc(tier)} card">
   <canvas id="cardCanvas" width="236" height="514" style="display:none;border:1px solid #57452c"></canvas>
   <div id="cardName" style="position:absolute;left:5%;right:5%;top:3.5%;text-align:center;white-space:nowrap;overflow:hidden;font:700 ${nameFont(name)}px/1.05 ${nameFamily};color:#20180f;letter-spacing:0;text-shadow:0 1px 0 rgba(255,255,255,.3)">${esc(name)}</div>
 </div>${plateNote}
@@ -645,9 +658,35 @@ export function artInline(modDir, id, rare, name, type, fontFamily) {
   plate.onload = function () { reveal(); draw(); };
   art.onload = function () { reveal(); draw(); };
 
+  // The static image and the canvas both borrow the single embedded copy: one string, two readers.
+  if (wantArt) {
+    staticImg.src = payload.art;
+    art.src = payload.art;
+  }
   plate.src = payload.plates[wantPlate];
-  if (wantArt) art.src = payload.art;
 
+  // The fields come after this script in the document, so wiring waits for the parse to finish.
+  function wireFields() {
+    var rareInput = document.querySelector('[data-field="rare"]');
+    if (rareInput) {
+      rareInput.addEventListener("change", function () {
+        var next = Number(rareInput.value) || 1;
+        if (!payload.plates[next]) return;
+        wantPlate = next;
+        plate.src = payload.plates[wantPlate];
+        draw();
+      });
+    }
+    var nameInput = document.querySelector('[data-field="name"]');
+    var nameBox = document.getElementById("cardName");
+    if (nameInput && nameBox) {
+      nameInput.addEventListener("input", function () {
+        nameBox.textContent = nameInput.value;
+      });
+    }
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", wireFields);
+  else wireFields();
 })();
 </script>`;
 }

@@ -31,12 +31,13 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import vm from "node:vm";
 import { REPO } from "./lib/fixture.mjs";
 import { composeSubject } from "../editors/lib/card-prompt.mjs";
+import { cropCover, encodePng, solid } from "../tools/png.mjs";
 import { CSS, esc } from "../editors/lib/shell.mjs";
 import { recordPageHtml } from "../editors/page/page.mjs";
 import { parseDoc, toPlain } from "../tools/jsonc.mjs";
@@ -814,6 +815,20 @@ test("the manifest is what the app discovers, and it matches a generated card pa
   assert.ok(re.test("your_mods/SomeMod/.preview/9000001.card.html"), "it matches a card page");
   assert.ok(!re.test("your_mods/SomeMod/config/cards.json"), "it does not match the card table");
   assert.ok(!re.test("your_mods/SomeMod/.preview/9000001.card.html.bak"), "it matches the page itself");
+});
+
+test("a card page with art stays small, and keeps all four tiers for live switching", () => {
+  const artDir = mkdtempSync(path.join(tmpdir(), "card-art-"));
+  mkdirSync(path.join(artDir, "image", "cards"), { recursive: true });
+  writeFileSync(path.join(artDir, "info.json"), JSON.stringify({ name: "art probe", description: "d", tags: ["Utilities"], version: "1.0.0" }));
+  writeFileSync(path.join(artDir, "image", "cards", "9000001.png"), encodePng(cropCover(solid(472, 1028, "#3355ff"), 472, 1028)));
+  const page = cardPageHtml({ id: "9000001", record: CARD, modDir: artDir });
+  const pngs = (page.match(/data:image\/png;base64/g) || []).length;
+  assert.ok(pngs <= 5, `the art is embedded once and the four plates once each, got ${pngs}`);
+  assert.ok(page.length < 900 * 1024, `a page with art stays under 900 KB, got ${Math.round(page.length / 1024)} KB`);
+  assert.match(page, /data-field="rare"/, "the page still offers the rarity pick");
+  assert.match(page, /rareInput\.value/, "picking another rarity is read from the field");
+  assert.match(page, /wantPlate = next/, "and it replaces the plate before redrawing");
 });
 
 test("the wrapper loads one external script, and the page carries that same script", () => {
