@@ -138,11 +138,14 @@ export default function (pi: ExtensionAPI) {
         const detail = error instanceof Error ? error.message : String(error);
         const restored = error instanceof InstallError ? error.restored : false;
         const backup = error instanceof InstallError ? error.backup : null;
-        const state = restored
-          ? "The previous copy is still in place."
-          : backup
-            ? `The previous copy could not be put back; it is at ${backup}. Copy it back by hand before running the game.`
-            : "Nothing was installed, and there was no previous copy to restore.";
+        const replaced = error instanceof InstallError ? error.replaced : false;
+        const state = !replaced
+          ? "Nothing was installed, and there was no previous copy to restore."
+          : restored
+            ? "The previous copy is still in place."
+            : backup
+              ? `The previous copy could not be put back; it is at ${backup}. Copy it back by hand before running the game.`
+              : "The previous copy is not in place; check the install folder before running the game.";
         fail(`INSTALL_FAILED: could not write ${target} (${detail}). ${state} Close the game if it is running and run install_mod again.`);
       }
 

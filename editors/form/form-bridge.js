@@ -236,11 +236,22 @@
     Array.prototype.forEach.call(root.querySelectorAll("[data-item-row]"), wireRemove);
   }
 
+  /** The visible "第 N 件" follows the rows that remain; the message does not rely on it. */
+  function renumber(body) {
+    if (!body) return;
+    body.querySelectorAll("[data-item-row]").forEach(function (row, index) {
+      var head = row.querySelector(".item-head span");
+      if (head) head.textContent = "第 " + (index + 1) + " 件";
+    });
+  }
+
   function wireRemove(tr) {
     var button = tr.querySelector("[data-item-remove]");
     if (!button) return;
     button.onclick = function () {
-      tr.parentNode.removeChild(tr);
+      var body = tr.parentNode;
+      body.removeChild(tr);
+      renumber(body);
       markDirty();
     };
   }
@@ -333,7 +344,13 @@
     root.querySelectorAll("[data-item-row]").forEach(function (row, index) {
       var box = row.querySelector("[data-prose-item]");
       var text = box ? String(box.value || "").trim() : "";
-      if (text) lines.push("第 " + (index + 1) + " 件的条件：" + text);
+      if (!text) return;
+      // Name the entry by identity as well as by position: deleting a row changes the position,
+      // and the agent writes into the file's array, not into what was on screen a minute ago.
+      var type = row.querySelector('[data-item="type"]');
+      var id = row.querySelector('[data-item="id"]');
+      var key = (type && type.value ? type.value : "?") + " " + (id && id.value ? id.value : "?");
+      lines.push("第 " + (index + 1) + " 件（" + key + "）的条件：" + text);
     });
     return lines;
   }

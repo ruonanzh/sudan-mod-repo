@@ -41,8 +41,29 @@ test("installFolder keeps the old copy when the copy itself fails", () => {
   assert.equal(threw, true, "an unreadable source must fail the install");
 });
 
+test("a first install that fails says there was no previous copy", () => {
+  const home = mkdtempSync(path.join(tmpdir(), "modfiles-"));
+  const source = path.join(home, "source");
+  mkdirSync(source, { recursive: true });
+  writeFileSync(path.join(source, "x.txt"), "x");
+  chmodSync(path.join(source, "x.txt"), 0o000);
+  const target = path.join(home, "target");
+  let caught = null;
+  try {
+    installFolder(source, target);
+  } catch (error) {
+    caught = error;
+  } finally {
+    chmodSync(path.join(source, "x.txt"), 0o600);
+  }
+  assert.ok(caught instanceof InstallError);
+  assert.equal(caught.replaced, false, "there was no old copy");
+  assert.equal(caught.restored, true, "and nothing needed putting back");
+  assert.equal(existsSync(target), false);
+});
+
 test("an InstallError names the backup path when the restore fails", () => {
-  const error = new InstallError(new Error("boom"), false, "/tmp/x.replaced-1");
+  const error = new InstallError(new Error("boom"), false, "/tmp/x.replaced-1", true);
   assert.equal(error.restored, false);
   assert.equal(error.backup, "/tmp/x.replaced-1");
   assert.match(error.message, /boom/);

@@ -131,7 +131,7 @@ export default function (pi: ExtensionAPI) {
         // The CLI exits 1 for WARN and FAIL too: both are answers, not spawn failures. Decide on the
         // whole text; clipping first could hide the FAIL line and turn an answer into a thrown error.
         if (/(^|\n)(PASS|WARN|FAIL)/.test(raw)) return { content: [{ type: "text" as const, text: clipUtf8(ascii(raw)) }] };
-        throw new Error(clipUtf8(ascii(raw || e.message)));
+        throw new Error(clipUtf8(ascii(/^[A-Z][A-Z0-9_]{2,}:/.test(raw) ? raw : `IMAGE_FAILED: ${raw || e.message}`)));
       }
 
       return { content: [{ type: "text" as const, text: clipUtf8(ascii(summarize(result))) }] };

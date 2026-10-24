@@ -40,13 +40,18 @@ export interface InstallResult {
 
 /** A failed install that knows whether the old copy made it back. */
 export class InstallError extends Error {
+  /** The previous copy is on disk (either never moved, or moved back). */
   readonly restored: boolean;
+  /** Where the old copy sits when it could not be moved back. */
   readonly backup: string | null;
-  constructor(cause: unknown, restored: boolean, backup: string | null) {
+  /** There was an old copy to begin with. */
+  readonly replaced: boolean;
+  constructor(cause: unknown, restored: boolean, backup: string | null, replaced: boolean) {
     super(cause instanceof Error ? cause.message : String(cause));
     this.name = "InstallError";
     this.restored = restored;
     this.backup = backup;
+    this.replaced = replaced;
   }
 }
 
@@ -69,12 +74,14 @@ export function restoreBackup(target: string, backup: string): boolean {
  * The caller decides whether the paths are safe; this function only writes.
  */
 export function installFolder(source: string, target: string): InstallResult {
-  const files = walk(source).length;
   const replaced = existsSync(target);
   const staging = `${target}.installing-${process.pid}`;
   const backup = `${target}.replaced-${process.pid}`;
   let movedOld = false;
   try {
+    // Reading the source can fail too (an unreadable file); it belongs inside the try so the
+    // failure is reported with the same facts as any other step.
+    const files = walk(source).length;
     rmSync(staging, { recursive: true, force: true });
     cpSync(source, staging, { recursive: true, filter: (entry) => !SKIP(path.basename(entry)) });
     if (replaced) {
@@ -89,6 +96,6 @@ export function installFolder(source: string, target: string): InstallResult {
     rmSync(staging, { recursive: true, force: true });
     // When the copy failed before the old folder was moved aside, the old copy never left.
     const restored = movedOld ? restoreBackup(target, backup) : true;
-    throw new InstallError(error, restored, movedOld && !restored ? backup : null);
+    throw new InstallError(error, restored, movedOld && !restored ? backup : null, replaced);
   }
 }

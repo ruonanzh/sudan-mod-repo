@@ -53,7 +53,7 @@ macOS 的 `MyDocuments` 是 `$HOME`，Windows 的是 `%USERPROFILE%\Documents`�
 |---|---|---|
 | `try_set_game_dir` | **确保游戏目录已就绪**（无参、幂等）。已就绪且派生的两条与当前平台一致时只回报。没就绪或过期时自己找，找到才记录 `gameDir` 与派生的 `workshopDir`、`modInstallDir`。| 写 `.gamer-agent.local.json`（只在真的记下了新值时）|
 | `set_game_dir` | **记录一个具体的游戏目录**（玩家给的，或你自己找到的）。先用游戏自己的文件验这条路径；不过就自己找，找到的落库并报 `WARN`；都失败就报 `FAIL`，**什么都不写**。| 写 `.gamer-agent.local.json`（`PASS` 或 `WARN` 时）|
-| `check_game_paths` | **只验**（只读）：核对玩家给的或已记录的路径，逐行报判出 `OK`、`MISS`、`EMPTY`、`FAIL` 的那个哨兵。不写文件，不找游戏，不建目录。| 无 |
+| `check_game_paths` | **只读**：判四个位置（游戏目录、由它推出的原版配置、工坊内容、由 MyDocuments 推出的 mod 安装目录），逐行报哨兵结果。传参只替换那一行的值，其余照常判；没有记录游戏目录时会去发现，但不写记录、不建目录。| 无 |
 | `check_runtime` | **只查 .NET SDK >= 8**，并记下 dotnet 路径。**不找游戏**。缺 SDK 时用 `install_runtime`：`install_runtime` 只打印安装步骤，不下载、不安装。| 写 `.gamer-agent.local.json` 的 `runtime` 段 |
 
 三个路径工具的判据是 `.pi/extensions/` 调用 `tools/paths.mjs` 的 `judge`、`ensureGameDir` 与 `setGameDirWithFallback`，所以命令行与工具不会对「哪个路径算合格」给出两种答案。
@@ -61,7 +61,7 @@ macOS 的 `MyDocuments` 是 `$HOME`，Windows 的是 `%USERPROFILE%\Documents`�
 ## 怎么用
 
 - **要安装 mod 或读原版数据，而路径未知或已变化**：跑 `try_set_game_dir`（无参，确保就绪）。已记录且仍有效时不必每轮重复检查。
-- **只想知道缺哪一项**：跑 `check_game_paths`。`check_game_paths` 也能接 `gameDir`、`workshopDir`、`modInstallDir` 三个参数，只验那几条，不记录。三个都不传时才验已记录的那几条；一条都没记录就报 `FAIL: nothing to check`。
+- **只想知道缺哪一项**：跑 `check_game_paths`。它会一次判四个位置，传 `gameDir`、`workshopDir`、`modInstallDir` 只是替换对应那一行，不记录。四条都没有来源时它报 `FAIL: nothing to check`。
 - **玩家给了路径**：用 `set_game_dir`。路径里没有游戏自己的文件时，`set_game_dir` 先自己找；找到了就报 `WARN` 并说明现在用的是哪条，找不到才报 `FAIL` 并**什么都没写**。
 - **同一件事的命令行做法**：`node tools/paths.mjs check` 相当于 `check_game_paths`；`node tools/paths.mjs set --game-dir <游戏安装目录>` 相当于 `set_game_dir`；不带 `--game-dir` 的 `node tools/paths.mjs set` 相当于 `try_set_game_dir`。`check` 的退出码为 0，才继续往下做；参数写错时退出码是 2。
 - **要 dump 代码而 SDK 未知**：跑 `check_runtime`。缺 SDK 时取 `install_runtime` 的安装指引，装好后**再检查一次**确认，再谈 dump。

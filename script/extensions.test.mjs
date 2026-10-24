@@ -130,16 +130,17 @@ test("check_game_paths: the recorded paths are checked when nothing is passed", 
 });
 
 test("set_game_dir resolves a relative path against the workspace, not the host process", async () => {
-  const root = fakeModRoot(tmpDir("ws-rel-"));
+  const world = fakeWorld();
   const cwd = tmpDir("ws-rel-cwd-");
+  // A game folder inside the workspace, shaped like the real install so the sentinel passes.
   const game = path.join(cwd, "The Game");
-  mkdirSync(game, { recursive: true });
-  // A real sentinel is not needed: the test asserts which path was offered, not that it passed.
-  const tool = await loadExtension("set-game-dir.ts");
-  const result = await tool.execute("c", { path: "The Game" }, undefined, undefined, { cwd });
-  assert.ok(result.content[0].text.includes(game) || result.content[0].text.includes("The Game"), result.content[0].text);
+  mkdirSync(path.join(game, "Sultan's Game.app/Contents/Frameworks"), { recursive: true });
+  mkdirSync(path.join(game, "Sultan's Game.app/Contents/Resources/Data"), { recursive: true });
+  writeFileSync(path.join(game, "Sultan's Game.app/Contents/Frameworks/GameAssembly.dylib"), "x");
+  mkdirSync(path.join(game, "Sultan's Game.app/Contents/Resources/Data/il2cpp_data"), { recursive: true });
+  const result = await withHome(world.home, async () => run(await tool("set-game-dir.ts"), { path: "The Game" }, cwd));
   const recorded = JSON.parse(readFileSync(path.join(cwd, ".gamer-agent.local.json"), "utf8"));
-  assert.equal(path.isAbsolute(recorded.gameDir ?? ""), true, "whatever was recorded is absolute");
+  assert.equal(recorded.gameDir, game, `the workspace-relative path is the one recorded: ${result.content[0].text}`);
 });
 
 test("set_game_dir: a game directory is recorded with what it derives, and vanillaDir is not stored", async () => {

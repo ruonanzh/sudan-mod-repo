@@ -119,6 +119,8 @@ const DIR_KIND = new Map([
   ["config/init", "init"],
   ["config/rite_template", "riteTemplate"],
   ["config/dt", "dtRoot"],
+  ["config/after_story", "afterStory"],
+  ["config/sfx_config.json", "sfxTop"],
   ["config/game.json", "game"],
 ]);
 

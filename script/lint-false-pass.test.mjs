@@ -94,3 +94,15 @@ test("every edit route asks for a real PASS, not merely no FAIL", () => {
     assert.match(text, /PARTIAL/, `${name} says PARTIAL does not count`);
   }
 });
+
+test("two mods that write the same after-story id collide", { skip }, () => {
+  const root = mkdtempSync(path.join(tmpdir(), "modroot-after-"));
+  for (const name of ["a", "b"]) {
+    const dir = path.join(root, name);
+    mkdirSync(path.join(dir, "config/after_story"), { recursive: true });
+    writeFileSync(path.join(dir, "info.json"), JSON.stringify({ name, version: "1.0.0" }));
+    writeFileSync(path.join(dir, "config/after_story/2000001.json"), JSON.stringify({ id: 2000001, prior: {}, extra: [] }));
+  }
+  const r = spawnSync(process.execPath, [path.join(REPO, "tools/lint.mjs"), "--mod-root", root, "--vanilla", VANILLA], { encoding: "utf8" });
+  assert.match(r.stdout, /ID_CROSS_MOD/, "the after_story id is part of the collision check");
+});

@@ -19,7 +19,7 @@
  * the game's own files. A timestamped `.bak-<time>` copy of the previous file is kept beside it.
  */
 import { createServer } from "node:http";
-import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync, realpathSync, openSync, unlinkSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync, realpathSync, openSync, closeSync, unlinkSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -160,6 +160,9 @@ export function saveNode(mod, kind, id, source, options = {}) {
     // Write the text as typed. Parsing it above proved it is valid JSONC and validated the record;
     // re-serialising here would drop the comments the player left inside the record.
     const literalText = source.trim();
+    // Re-parse what will be written: a trailing line comment can swallow the comma that separates
+    // this record from the next one, and the file would stop parsing.
+    parseDoc(`{ "x": ${literalText} }`);
     if (entries.length) {
       // The game reads the last duplicate, so the last one is the record the page showed.
       doc.set(entries[entries.length - 1].value, literalText);
@@ -172,7 +175,7 @@ export function saveNode(mod, kind, id, source, options = {}) {
   }
   } finally {
     try {
-      lockHandle.closeSync?.();
+      closeSync(lockHandle);
     } catch {
       /* closing twice is harmless */
     }

@@ -100,6 +100,7 @@ if (libFiles.length) {
     const r = await runBun(libFiles.map((n) => `./.pi/lib/${n}`));
     if (r === null) {
       process.stdout.write("SKIP    bun is not installed; .pi/lib tests did not run\n");
+      skippedSuites += 1;
     } else {
       results.push({ file: ".pi/lib (bun)", pass: r.pass, fail: r.fail, code: r.code, output: r.output });
       const label = r.fail === 0 && r.code === 0 ? "PASS" : "FAIL";
@@ -120,13 +121,15 @@ function runBun(files) {
   return { pass, fail, code: r.status ?? 1, output };
 }
 
+let skippedSuites = 0;
+
 const passTotal = results.reduce((a, r) => a + r.pass, 0);
 const failTotal = results.reduce((a, r) => a + r.fail, 0);
 const redSuites = results.filter((r) => r.fail > 0 || r.code !== 0).length;
 
-process.stdout.write(`\n${results.length} suites, ${passTotal} pass, ${failTotal} fail\n`);
+process.stdout.write(`\n${results.length} suites, ${passTotal} pass, ${failTotal} fail${skippedSuites ? `, ${skippedSuites} skipped` : ""}\n`);
 if (redSuites) {
   process.stdout.write(`RESULT: FAIL (${redSuites} suite(s) red)\n`);
   process.exit(1);
 }
-process.stdout.write("RESULT: PASS\n");
+process.stdout.write(`RESULT: PASS${skippedSuites ? " (with skipped suites)" : ""}\n`);

@@ -455,7 +455,7 @@ export default function (pi: ExtensionAPI) {
         // The rebuild and the runtime are prerequisites, not game answers. Their own messages
         // already carry a NEXT step; answer FAIL so the agent runs it. Anything else
         // (an unreadable file, a crash) is an environment failure: throw, with a code.
-        if (/^(DOTNET_TOO_OLD|GAME_NOT_FOUND|RUNTIME_MISSING|TOOL_MISSING)\b/.test(message)) {
+        if (/^(DOTNET_MISSING|DOTNET_TOO_OLD|CPP2IL_MISSING|IL2CPPDUMPER_MISSING|GAME_NOT_FOUND)\b/.test(message)) {
           // Not ready to answer, but a business answer all the same: the caller has to fix the
           // environment, and the message already names the step. FAIL, not throw and not PARTIAL.
           return {
