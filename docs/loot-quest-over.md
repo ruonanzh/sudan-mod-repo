@@ -27,14 +27,14 @@
 
 `type: 4` 时，`repeat` 就是「n 中选 m」的 `m`，抽出的几件互不重复；`type: 99` 不看 `weight`，每轮把整张表都给出去。其余 `type` 下，`repeat` 是独立抽取的次数。原版 188 张表用 `1`，其余用 3、6 或 13。
 
-每条 `item` 是 `{type, id, num, weight, condition}` 这五个键。`type` 的取值是 `card`、`event`、`rite` 与 `loot` 四个，其中 `loot` 表示表套表。`weight` 是相对值，只有比值有意义：`SimpleWeightLoot` 确实是把权重加起来之后用 `Random.Range` 抽。`num` 是给几条，原版写成字符串（`"1"`）。`condition` 过滤条目，工作方式与游戏里每一个条件一样。
+每条 `item` 是 `{type, id, num, weight, condition}` 这五个键。`type` 的取值是 `card`、`event`、`rite` 与 `loot` 四个，其中 `loot` 表示表套表。`condition` 在抽签之前过滤，不成立的那一件不参与权重（原版 391/1280 条带条件）。`weight` 是相对值，只有比值有意义：`SimpleWeightLoot` 确实是把权重加起来之后用 `Random.Range` 抽。`num` 是给几条，原版写成字符串（`"1"`）。`condition` 过滤条目，工作方式与游戏里每一个条件一样。
 
 原版计数：193 张表，1280 条 `item`（870 张卡、215 个事件、171 个仪式、24 个掉落表）。
 
 `item` 对象上有两个警告。
 
 1. `refLoot` 是历史键。加载器只注册 `type`、`id`、`num`、`weight` 与 `condition`，没有一条原版 `item` 带着 `refLoot`。要套表就写 `"type": "loot"`。
-2. `condition` 会被读进来，但从不求值。`SimpleWeightLoot`、`WeightedNChooseM`、`RealGenCard` 与 `Generate` 都构造了 `ConditionContext`，四个都没有调 `IsSatisfied`。所以不要用 `condition` 闸住掉落。要限制掉落，要么拆表，要么把闸设在结算上。
+2. `condition` 是闸，在抽签之前就把不成立的条目剔除：`GenLoot` 先 `loot.item.Where(i => i.condition == null || i.condition.Check(ctx))`，再对剩下的条目求和抽签。所以被剔除的那一件，连权重都不参与。原版 1280 条里有 391 条带条件。想限制掉落，直接写在这里，不要拆表。
 
 ## 任务
 

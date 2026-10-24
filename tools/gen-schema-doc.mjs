@@ -405,7 +405,8 @@ w("- `is_empty`, `is_replay`, `auto_begin`, `auto_result`, `is_only` and the tag
 w("  are written as integers 0/1, while `start_trigger` and `final_pin` are real booleans.");
 w("- `loot.item[].id` and `.num` are declared int and written as strings.");
 w("- The template key is `nomal_slot_bg`, one letter short of normal. It is the real key.");
-w("- `rite.location` must be `\"<region>:[min,max]\"`.");
+w("- `rite.location` is `\"<region>\"` optionally followed by `:<slot>` or `:[min,max]`;");
+  w("  both halves are parsed, so a bare region, a slot and a range are all legal.");
 
 const text = out.join("\n") + "\n";
 const target = OUT_PATH ? resolve(OUT_PATH) : new URL("../schema/SCHEMA.md", import.meta.url);

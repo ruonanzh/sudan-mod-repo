@@ -47,7 +47,7 @@
   `--save <file|dir>` 改为校验存档文件，而不是 mod。
 - `your_mods/` —— mod 产出区。mod 只写在这里，形式是 `your_mods/<ModName>/`。
 - `mod-repo.json` —— 机器可读的游戏与路径声明。
-- `reference/` —— 预留。这个版本里没有内容。
+- `reference/` —— 随仓提供的美术：`plates/` 五张卡面底板，`cards/` 十二张风格参考（三种类型 × 四个品级）。预览与卡图都用它们，不需要提取。
 
 ## 硬边界
 

@@ -1380,4 +1380,5 @@ positives, and they are why a vanilla run is not expected to exit 0.
   are written as integers 0/1, while `start_trigger` and `final_pin` are real booleans.
 - `loot.item[].id` and `.num` are declared int and written as strings.
 - The template key is `nomal_slot_bg`, one letter short of normal. It is the real key.
-- `rite.location` must be `"<region>:[min,max]"`.
+- `rite.location` is `"<region>"` optionally followed by `:<slot>` or `:[min,max]`;
+  both halves are parsed, so a bare region, a slot and a range are all legal.

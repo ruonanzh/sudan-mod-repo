@@ -16,9 +16,7 @@
 
 ### mod 能提供什么
 
-这份清单是完整的。mod 少给哪一项，加载器就为哪一项写一行 `file not exists`，所以任何一个 mod 的日志里都能读出这个集合。
-
-一个 mod 只交一份 `config/rite/<id>.json` 很正常，也是对的。
+完整清单在 `.pi/skills/mod-creator/SKILL.md` 的「mod 能提供什么，别的都不行」一节；这里只补一句：一个 mod 只交一份 `config/rite/<id>.json` 很正常，也是对的。
 
 游戏的读取器接受 `//`、`/* */`、尾逗号与 BOM。按原版的写法写。
 
