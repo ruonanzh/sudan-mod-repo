@@ -70,8 +70,9 @@ export function writeState(cwd: string, patch: RuntimeState): RuntimeState {
   let base: RuntimeState = {};
   if (existsSync(file)) {
     const text = readFileSync(file, "utf8");
+    let parsed: unknown;
     try {
-      base = JSON.parse(text) as RuntimeState;
+      parsed = JSON.parse(text);
     } catch (error) {
       const stamp = new Date().toISOString().replace(/[:.]/g, "-");
       const kept = `${file}.corrupt-${stamp}`;
@@ -80,6 +81,17 @@ export function writeState(cwd: string, patch: RuntimeState): RuntimeState {
         `STATE_CORRUPT: ${file} is not valid JSON (${(error as Error).message}). It was moved to ${kept}; nothing was overwritten. Fix or delete that file, then run the command again.`,
       );
     }
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      // `null`, `[]` and `"x"` are valid JSON and would be spread into a fresh object, silently
+      // replacing whatever the file meant. Only an object is a state file.
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const kept = `${file}.corrupt-${stamp}`;
+      renameSync(file, kept);
+      throw new Error(
+        `STATE_CORRUPT: ${file} does not hold a JSON object. It was moved to ${kept}; nothing was overwritten. Fix or delete that file, then run the command again.`,
+      );
+    }
+    base = parsed as RuntimeState;
   }
   const next = { ...base, ...patch };
   const tmp = `${file}.tmp-${process.pid}`;

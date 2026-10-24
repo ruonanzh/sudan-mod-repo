@@ -129,6 +129,7 @@ function itemsPanel(value) {
 <div class="panel">
 <p class="note" style="margin:0 0 10px">一行就是一件东西。加一件、删一件都可以，顺序就是抽签的顺序。</p>
 <div id="item-rows">${(Array.isArray(value) ? value : []).map((item, i) => itemBlock(item, i)).join("")}</div>
+<template id="item-template">${itemBlock({}, -1).replace(' data-item-index="-1"', "")}</template>
 <button type="button" class="pill" id="item-add">加一件</button>
 </div>`;
 }
@@ -149,7 +150,7 @@ function itemBlock(item = {}, index = 0) {
   const cell = (key, label, input) =>
     `<label class="cell"><span class="key-zh">${esc(label)}</span>${input}</label>`;
   const current = item.condition === undefined ? "" : `<code class="cur">${esc(JSON.stringify(item.condition))}</code>`;
-  return `<div class="item" data-item-row>
+  return `<div class="item" data-item-row data-item-index="${index}">
   <div class="item-head"><span>第 ${index + 1} 件</span><button type="button" class="pill" data-item-remove>删除</button></div>
   <div class="item-fields">
     ${cell("type", "类型", `<select data-item="type">${ITEM_TYPES.map(([v, text]) => `<option value="${v}"${String(item.type ?? "card") === v ? " selected" : ""}>${esc(text)}</option>`).join("")}</select>`)}

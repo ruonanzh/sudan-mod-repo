@@ -87,7 +87,8 @@ export function installFolder(source: string, target: string): InstallResult {
     return { files, replaced };
   } catch (error) {
     rmSync(staging, { recursive: true, force: true });
-    const restored = movedOld ? restoreBackup(target, backup) : !replaced;
+    // When the copy failed before the old folder was moved aside, the old copy never left.
+    const restored = movedOld ? restoreBackup(target, backup) : true;
     throw new InstallError(error, restored, movedOld && !restored ? backup : null);
   }
 }

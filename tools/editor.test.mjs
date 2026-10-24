@@ -124,7 +124,7 @@ test("a table save keeps comments, trailing commas and other records' text", { s
   const after = readFileSync(path.join(dir, "config/cards.json"), "utf8");
   assert.ok(after.includes("// 这张卡的名字别动"), "the comment above the record survives");
   assert.ok(after.includes("// 尾逗号也是原版风格"), "the comment beside another record survives");
-  assert.ok(after.includes('"name": "改过的名字"'), "the record itself changed");
+  assert.match(after, /"name"\s*:\s*"改过的名字"/, "the record itself changed");
   assert.ok(after.includes('"9000002"'), "the other record is still there");
   assert.match(after, /\},\s*\/\/ 尾逗号也是原版风格/, "the trailing comma of the last entry is untouched");
 });
@@ -159,4 +159,24 @@ test("a second save keeps every backup instead of overwriting the first", { skip
   assert.equal(b.ok, true, b.error);
   assert.ok(a.backup && b.backup && a.backup !== b.backup, "each save has its own backup file");
   assert.ok(existsSync(a.backup) && existsSync(b.backup), "both backups are on disk");
+});
+
+test("a table save keeps the comments inside the record it edits", { skip }, () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "editor-inner-"));
+  writeFileSync(path.join(dir, "info.json"), JSON.stringify({ name: "inner probe", version: "1.0.0" }));
+  mkdirSync(path.join(dir, "config"), { recursive: true });
+  writeFileSync(
+    path.join(dir, "config/cards.json"),
+    `{\n  "9000001": {\n    "id": 9000001, // 编号\n    "name": "旧名字", // 显示名\n    "type": "item",\n    "rare": 2\n  }\n}\n`,
+  );
+  const mod = openMod(dir, { vanilla: VANILLA });
+  const view = readNodeSource(mod, "card", 9000001);
+  assert.ok(view.text.includes("// 编号"), "the editor shows the record with its comments");
+  const edited = view.text.replace('"旧名字"', '"新名字"');
+  const out = saveNode(mod, "card", 9000001, edited);
+  assert.equal(out.ok, true, out.error);
+  const after = readFileSync(path.join(dir, "config/cards.json"), "utf8");
+  assert.ok(after.includes("// 编号"), "the inner comment survives");
+  assert.ok(after.includes("// 显示名"), "and so does the one beside the edited value");
+  assert.match(after, /"name": "新名字"/);
 });

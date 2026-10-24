@@ -28,10 +28,11 @@ test("the loot prompt uses array methods that exist", () => {
   const text = read(".pi/prompts/loot-edited.md");
   const doc = parseDoc('{"item": []}');
   const arr = getDoc(doc, ["item"]);
-  for (const name of ["set", "setElement", "appendElement", "removeElement", "element"]) {
+  for (const name of ["set", "appendElement", "removeElement", "element"]) {
     assert.equal(typeof doc[name], "function", `${name} exists on the editor`);
     assert.ok(text.includes(`\`${name}(`), `the prompt mentions ${name}`);
   }
+  assert.equal(typeof doc.setElement, "function", "setElement still exists for a whole-element write");
   assert.equal(typeof doc.append, "function", "object append still exists");
   assert.equal(typeof arr, "object");
   // The old advice named object-only helpers for an array.

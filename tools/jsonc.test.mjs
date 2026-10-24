@@ -185,3 +185,12 @@ test("removing an array element takes exactly one comma with it", () => {
   doc.removeElement(getDoc(doc, ["item"]), 1);
   assert.deepEqual(JSON.parse(JSON.stringify(parseJsonc(doc.render()).value.item)), [{ id: 1 }, { id: 3 }]);
 });
+
+test("a comma inside a block comment is not a separator", () => {
+  const doc = parseDoc(`{\n  "a": 1 /* one, two */\n}\n`);
+  doc.appendSource("b", `"b": 2`);
+  const out = doc.render();
+  assert.deepEqual(Object.keys(parseJsonc(out).value), ["a", "b"]);
+  assert.ok(out.includes("/* one, two */"), "the comment survives");
+  assert.equal((out.match(/,/g) || []).length, 2, "exactly one separator comma plus the one in the comment");
+});

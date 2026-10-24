@@ -20,6 +20,11 @@
 
 const WS = new Set([" ", "\t", "\r", "\n"]);
 
+/** Text with comments removed, so a comma inside one is not read as a separator. */
+function withoutComments(text) {
+  return text.replace(/\/\/[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+}
+
 class Doc {
   constructor(text, bom) {
     this.text = text;
@@ -107,7 +112,7 @@ class Doc {
     // another produces `,,` — a file the game cannot read. Look at what sits between the value
     // and the insertion point: a comma there means "already separated".
     const between = this.text.slice(last.value.end, at);
-    const hasComma = /,/.test(between.replace(/\/\/[^\n]*/g, ""));
+    const hasComma = /,/.test(withoutComments(between));
     const edits = [];
     if (!hasComma) edits.push({ start: last.value.end, end: last.value.end, text: "," });
     edits.push({ start: at, end: at, text: `${indent}${entrySource}\n` });
@@ -177,7 +182,7 @@ class Doc {
     const nl = this.text.indexOf("\n", last.end);
     const at = nl === -1 || nl > close ? close : nl + 1;
     const between = this.text.slice(last.end, at);
-    const hasComma = /,/.test(between.replace(/\/\/[^\n]*/g, ""));
+    const hasComma = /,/.test(withoutComments(between));
     const edits = [];
     if (!hasComma) edits.push({ start: last.end, end: last.end, text: "," });
     const prefix = nl === -1 || nl > close ? `\n${indent}` : indent;

@@ -75,7 +75,8 @@ test("a loot table gets a form page with every field, labelled", () => {
   assert.match(page, /战利品表/, "the page names what it is");
   assert.match(page, /抽取次数|name/, "each row carries its Chinese label");
   assert.match(page, /data-item-row/, "the repeated items are blocks");
-  assert.equal((page.match(/data-item-row/g) || []).length, 2, "one block per item in the record");
+  assert.equal((page.match(/data-item-index=/g) || []).length, 2, "one block per item in the record");
+  assert.match(page, /<template id="item-template">/, "an empty table still has a row to start from");
   assert.match(page, /第 1 件/, "each block says which item it is");
   for (const text of ["普通权重：每一轮按权重抽一件", "必新：每一轮先去掉玩家已有的", "无放回：一次抽 m 件，不重复", "全部：表里所有符合条件的物品都给"]) {
     assert.ok(page.includes(text), `the algorithm pick explains ${text}`);

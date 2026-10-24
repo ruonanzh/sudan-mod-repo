@@ -214,13 +214,20 @@ function runCardValues({ modDir, outDir, apply, id }) {
   }
 
   const pending = [];
+  const mismatched = [];
   for (const page of pages) {
     const block = readPageValues(readFileSync(page.file, "utf8"));
     if (!block) {
       process.stdout.write(`WARN  ${page.name}: no readable value block; rebuild it with node tools/preview.mjs --mod\n`);
       continue;
     }
-    const id = block.id || page.id;
+    // The file name, the value block and the --id must agree. A stale or copied page otherwise
+    // writes one card's values into another card.
+    if (String(block.id) !== String(page.id)) {
+      mismatched.push(`${page.name} carries values for card ${block.id}`);
+      continue;
+    }
+    const id = page.id;
     const record = table.records.get(id);
     if (!record) {
       process.stdout.write(`WARN  ${page.name}: ${CARD_TABLE} has no card ${id}\n`);
@@ -229,6 +236,11 @@ function runCardValues({ modDir, outDir, apply, id }) {
     const diff = pendingValues(record, block.values);
     if (!Object.keys(diff.fields).length && !diff.removedTags.length) continue;
     pending.push({ page, id, record, diff, missing: missingValues(record, block.values) });
+  }
+  if (mismatched.length) {
+    for (const line of mismatched) process.stdout.write(`FAIL  ${line}\n`);
+    process.stdout.write(`NEXT: rebuild the pages with node tools/preview.mjs --mod ${displayPath(modDir)}, then press the button again\n`);
+    return 1;
   }
 
   if (!pending.length) {

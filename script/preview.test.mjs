@@ -246,6 +246,21 @@ test("--apply with --id writes only that card, not every pending page", () => {
   assert.doesNotMatch(r.stdout, /9000002/, "and the report does not claim it");
 });
 
+test("a page whose value block names another card is refused, not written under either id", () => {
+  const dir = cardMod();
+  const file = cardPageFile(dir, "9000002");
+  const html = read(file);
+  const block = readPageValues(html);
+  // What a copy-paste or a stale page looks like: the file says 9000002, the block says 9000001.
+  writeFileSync(file, writePageValues(html, "9000001", { ...block.values, name: "错位的值" }));
+  const r = run(["--mod", dir, "--apply", "--id", "9000002"]);
+  assert.equal(r.status, 1, r.stdout + r.stderr);
+  assert.match(r.stdout, /9000002/);
+  assert.match(r.stdout, /9000001/);
+  const table = read(path.join(dir, "config/cards.json"));
+  assert.doesNotMatch(table, /错位的值/, "nothing was written");
+});
+
 test("--apply --id for a page that does not exist fails and says which id", () => {
   const dir = cardMod();
   const r = run(["--mod", dir, "--apply", "--id", "9999999"]);

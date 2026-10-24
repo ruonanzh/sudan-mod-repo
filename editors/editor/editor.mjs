@@ -25,7 +25,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { openMod, locate, validateRecord, ModelError } from "../../tools/model.mjs";
 import { parseJsonc } from "../../tools/lint.mjs";
-import { parseDoc, findEntries } from "../../tools/jsonc.mjs";
+import { parseDoc, findEntries, sourceOf } from "../../tools/jsonc.mjs";
 import { buildGraph } from "../../tools/graph.mjs";
 import { renderPage, payload, detailScript, writePage } from "../graph/graphpage.mjs";
 import { DEFAULT_VANILLA } from "../../tools/model.mjs";
@@ -69,13 +69,16 @@ export function readNodeSource(mod, kind, id, { vanilla } = {}) {
   const file = sourcePath(mod, kind, id, vanilla);
   if (!existsSync(file)) return null;
   const text = readFileSync(file, "utf8");
-  const doc = parseJsonc(text).value;
   const where = locate(kind);
   if (where.style === "table" || where.style === "single") {
-    const rec = doc && doc[id];
-    if (!rec) return null;
-    // Re-serialise just this record, so the textarea shows the node and not the table.
-    return { file, text: JSON.stringify(rec, null, 1), whole: true };
+    const doc = parseDoc(text);
+    if (doc.root.type !== "object") return null;
+    const entries = findEntries(doc.root, String(id));
+    const entry = entries[entries.length - 1];
+    if (!entry) return null;
+    // The record's own source, not a re-serialised copy: comments and spacing inside it are what
+    // the player will edit, and a save must be able to put them back unchanged.
+    return { file, text: sourceOf(doc, entry.value), whole: true };
   }
   return { file, text, whole: false };
 }
@@ -154,10 +157,9 @@ export function saveNode(mod, kind, id, source, options = {}) {
     const doc = parseDoc(text);
     if (doc.root.type !== "object") return { ok: false, error: "这一页的表文件根节点不是对象" };
     const entries = findEntries(doc.root, String(id));
-    const literalText = JSON.stringify(record, null, 2)
-      .split("\n")
-      .map((line, i) => (i === 0 ? line : `${doc.entryIndent(doc.root)}${line}`))
-      .join("\n");
+    // Write the text as typed. Parsing it above proved it is valid JSONC and validated the record;
+    // re-serialising here would drop the comments the player left inside the record.
+    const literalText = source.trim();
     if (entries.length) {
       // The game reads the last duplicate, so the last one is the record the page showed.
       doc.set(entries[entries.length - 1].value, literalText);

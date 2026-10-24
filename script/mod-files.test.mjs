@@ -3,7 +3,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import "./lib/load-extension.mjs";
@@ -26,13 +26,19 @@ test("installFolder keeps the old copy when the copy itself fails", () => {
   writeFileSync(path.join(target, "old.txt"), "old");
   // Make the source unreadable so cpSync fails before the old copy is moved.
   writeFileSync(path.join(source, "x.txt"), "x");
+  chmodSync(path.join(source, "x.txt"), 0o000);
+  let threw = false;
   try {
     installFolder(source, target);
   } catch (error) {
+    threw = true;
     assert.ok(error instanceof InstallError, "the failure carries its own fields");
     assert.equal(error.restored, true, "the old copy never moved, so it is still there");
     assert.ok(existsSync(path.join(target, "old.txt")), "and it is on disk");
+  } finally {
+    chmodSync(path.join(source, "x.txt"), 0o600);
   }
+  assert.equal(threw, true, "an unreadable source must fail the install");
 });
 
 test("an InstallError names the backup path when the restore fails", () => {

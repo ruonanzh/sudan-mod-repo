@@ -144,10 +144,11 @@
       if (value === undefined || value === "") return;
       values[key] = value;
     });
-    var rows = root.querySelectorAll("[data-item-row]");
-    if (rows.length) {
+    var container = byId("item-rows");
+    if (container) {
+      var rows = container.querySelectorAll("[data-item-row]");
       var saved = Array.isArray((state.values || {}).item) ? state.values.item : [];
-      values.item = Array.prototype.map.call(rows, function (row, index) {
+      var items = Array.prototype.map.call(rows, function (row) {
         var item = {};
         row.querySelectorAll("[data-item]").forEach(function (element) {
           var key = element.getAttribute("data-item");
@@ -155,13 +156,11 @@
           if (value === undefined || value === "") return;
           item[key] = value;
         });
-        // The condition is not a control any more: the player describes it in words. Keep the
-        // stored one so the diff does not look like a removal the player never made.
-        if (item.condition === undefined && saved[index] && saved[index].condition !== undefined) {
-          item.condition = saved[index].condition;
-        }
         return item;
       });
+      // The condition is not a control any more: the player describes it in words. Keep the
+      // stored one by identity, not by index — deleting a row shifts every index after it.
+      values.item = window.FormValues ? window.FormValues.mergeConditions(items, saved) : items;
     }
     return values;
   }
@@ -218,8 +217,11 @@
         var body = byId("item-rows");
         if (!body) return;
         var last = body.querySelector("[data-item-row]");
-        if (!last) return;
-        var next = last.cloneNode(true);
+        var template = byId("item-template");
+        // An empty table has no row to copy: the page ships a blank one for exactly this case.
+        var next = last ? last.cloneNode(true) : template && template.content.firstElementChild.cloneNode(true);
+        if (!next) return;
+        next.removeAttribute("data-item-index");
         next.querySelectorAll("input").forEach(function (input) {
           input.value = input.getAttribute("data-item") === "num" || input.getAttribute("data-item") === "weight" ? "1" : "";
         });
