@@ -306,13 +306,18 @@
     });
   }
 
+  /** Each kind has its own template: a loot table and a shop entry ask for different fields. */
+  function command() {
+    return String(state.key.split(":")[0]) === "upgrade" ? "/upgrade-edited" : "/loot-edited";
+  }
+
   function sendErrorText(response) {
     var code = (response && response.code) || "NO_REPLY";
     if (code === "AGENT_BUSY") return "agent 正在运行，等它停下来再点一次。";
-    if (code === "NO_SESSION") return "这一页没挂到会话上，到对话里发 /page-edited " + state.key + "。";
+    if (code === "NO_SESSION") return "这一页没挂到会话上，到对话里发 " + command() + " " + state.key + "。";
     if (code === "NOT_ALLOWED") return "这个文件不在 your_mods/ 里，不能替你发消息。";
     if (code === "TOO_LONG") return "改动太多，分两次发。";
-    return "没发出去（" + code + "）：到对话里发 /page-edited " + state.key + "。";
+    return "没发出去（" + code + "）：到对话里发 " + command() + " " + state.key + "。";
   }
 
   /** What the player wrote about the fields the page does not let them type as JSON. */
@@ -352,7 +357,7 @@
     save().then(function (ok) {
       if (!ok) return;
       setText("form-status", "正在通知 agent…");
-      var lines = ["/page-edited " + state.key];
+      var lines = [command() + " " + state.key];
       if (prose.length) lines.push("说明：", prose.map(function (line) { return "- " + line; }).join("\n"));
       if (Object.keys(changed).length) lines.push("改动：" + JSON.stringify(changed));
       request("editor:sendPrompt", { text: lines.join("\n") }).then(function (response) {

@@ -93,6 +93,7 @@ test("a loot table gets a form page with every field, labelled", () => {
   assert.ok((page.match(/例如/g) || []).length >= 4, "each algorithm note carries a worked example");
   const bridge = read(path.join(REPO, "editors/form/form-bridge.js"));
   assert.match(bridge, /wireTypeNote/, "the wrapper swaps the line when the pick changes");
+  assert.match(bridge, /"upgrade" \? "\/upgrade-edited" : "\/loot-edited"/, "each kind names its own template");
   assert.match(bridge, /id="loot-type-notes"/, "it reads the table out of the file text: mounting drops every script");
   assert.match(page, /id="form-values"/, "the values live in one block the editor wrapper rewrites");
 });
