@@ -43,7 +43,7 @@ export class ImageError extends Error {
   }
 }
 
-const say = (level, message, next) => process.stdout.write(`${level}  ${message}${next ? `\nNEXT  ${next}` : ""}\n`);
+const say = (level, message, next) => process.stdout.write(`${level}  ${message}${next ? `\nNEXT: ${next}` : ""}\n`);
 
 // ---------------------------------------------------------------- fit / check / refs
 
@@ -120,6 +120,14 @@ export function checkImage({ file, width, height, alpha = false }) {
   }
   const colorType = pngColorType(buf);
   const hasAlpha = colorType === 6;
+  if ((width === undefined) !== (height === undefined)) {
+    // One dimension alone used to be ignored, so a caller who asked for 472 wide got PASS on any
+    // size. A size check means both axes or none.
+    throw new ImageError(
+      "SIZE_PARTIAL",
+      `check needs both width and height, or neither; got width=${width ?? "(none)"} height=${height ?? "(none)"}. A card is checked against 472x1028.`,
+    );
+  }
   if (width !== undefined && height !== undefined && (img.width !== width || img.height !== height)) {
     throw new ImageError(
       "SIZE_MISMATCH",
@@ -367,7 +375,7 @@ async function main(argv) {
     if (action === "refs") {
       const got = checkRefs({ dir: args.dir, expect: args.expect });
       if (got.missing.length) {
-        say("WARN", `${got.missing.length} of ${args.expect.length} expected picture(s) missing in ${args.dir}`, `${got.missing.join(", ")} — add them, or run without --dir to skip the reference completely`);
+        say("WARN", `${got.missing.length} of ${args.expect.length} expected picture(s) missing in ${args.dir}`, `${got.missing.join(", ")}: add them, or run without --dir to skip the reference completely`);
         return 1;
       }
       say("PASS", `all ${got.present} expected picture(s) present in ${args.dir}`);

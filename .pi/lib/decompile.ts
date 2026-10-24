@@ -16,6 +16,7 @@ import { join, resolve } from "node:path";
 import { createGzip } from "node:zlib";
 import { pipeline } from "node:stream/promises";
 import { createHash } from "node:crypto";
+import { clipUtf8 } from "./clip";
 import os from "node:os";
 import { runAsync } from "./proc";
 import { repoName, readState } from "./state";
@@ -699,7 +700,9 @@ export function truncate(text: string, maxLines = 200, maxBytes = 48 * 1024): st
     out = `${lines.slice(0, maxLines).join("\n")}\n... (${lines.length - maxLines} more lines truncated)`;
   }
   if (Buffer.byteLength(out) > maxBytes) {
-    out = `${out.slice(0, maxBytes)}\n... (output truncated at ${maxBytes} bytes)`;
+    // `slice` counts UTF-16 code units, so a byte check followed by a slice can still overshoot
+    // and can cut a surrogate pair in half. Cut the way the limit is measured.
+    out = clipUtf8(out, maxBytes);
   }
   return out;
 }

@@ -45,3 +45,33 @@ test("validate_mod escapes non-ASCII in content and keeps the raw text in detail
   assert.match(text, /\\u[0-9a-f]{4}/, "it carries the escape instead");
   assert.match(JSON.stringify(result.details), /中文键/, "details keep the exact characters");
 });
+
+test("a size check with one dimension is refused, not answered with PASS", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const png = path.join(REPO, "reference/plates/card.png");
+  const r = spawnSync(process.execPath, [path.join(REPO, "tools/image.mjs"), "check", "--file", png, "--width", "472"], { encoding: "utf8" });
+  assert.equal(r.status, 1, r.stdout + r.stderr);
+  assert.match(r.stdout + r.stderr, /check needs both width and height/);
+  const ok = spawnSync(process.execPath, [path.join(REPO, "tools/image.mjs"), "check", "--file", png], { encoding: "utf8" });
+  assert.equal(ok.status, 0, "checking only alpha or format still works without dimensions");
+});
+
+test("validate_mod keeps content under 50 KB even when every message is Chinese", async () => {
+  const longKey = "键".repeat(400);
+  const files = {};
+  // Lint clips one message at 500 characters; escaped, 20 shown messages are about 60 KB.
+  for (let i = 0; i < 30; i++) {
+    files[`config/event/99005${String(i).padStart(2, "0")}.json`] = JSON.stringify({
+      id: Number(`99005${String(i).padStart(2, "0")}`),
+      on: { round_begin_ba: 1 },
+      [`${longKey}${i}`]: 1,
+    });
+  }
+  const mod = makeMod(files);
+  const tool = await loadExtension("mod-lint.ts");
+  const result = await tool.execute("c", { modDir: mod }, undefined, undefined, { cwd: REPO });
+  const text = result.content.map((c) => c.text).join("\n");
+  assert.ok(Buffer.byteLength(text, "utf8") <= 50 * 1024, `content is ${Buffer.byteLength(text, "utf8")} bytes`);
+  assert.match(text, /output truncated/, "the cut is labelled");
+  assert.ok(JSON.stringify(result.details).includes(longKey), "details keep the whole message");
+});

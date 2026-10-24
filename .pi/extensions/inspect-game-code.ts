@@ -32,12 +32,12 @@ export default function (pi: ExtensionAPI) {
     name: "inspect_game_code",
     label: "Inspect Game Code",
     description:
-      "Read the game's code from the local decompiled dump. Actions: status, search, type, body, strings, dump, setup. The dump is rebuilt automatically when the installed game, the config, or the tool version changed. setup fetches the tool that produces method bodies. The tool only writes inside the product data root and its own tools folder; it never changes the game or the mod.",
+      "Read the game's code from the local decompiled dump. Actions: status, search, type, body, strings, dump, setup. The dump is rebuilt automatically when the installed game binary, its metadata, or decompile.json changed; a different tool build alone does not trigger a rebuild. setup fetches the tool that produces method bodies. The tool writes inside the product data root, and records the game directory you pass in game in this workspace's state file; it never changes the game or the mod.",
     promptSnippet: "Read game code from the local dump (types, bodies, strings), and dump more assemblies",
     promptGuidelines: [
       "Use inspect_game_code to read game code from the dump, and to dump more assemblies.",
       "inspect_game_code reads signature data with search and type. For IL2CPP games, body returns ISIL pseudo-code, not C#: it has no field or local names, and its field offsets are decimal (40 is 0x28). Do not treat ISIL as source.",
-      "inspect_game_code rebuilds the dump by itself when the installed game or the config changed, and says in the result when it ran and how long it took. Do not rebuild the dump some other way.",
+      "inspect_game_code rebuilds the dump by itself when the installed game binary, its metadata, or decompile.json changed, and says in the result when it ran and how long it took. Do not rebuild the dump some other way.",
       "inspect_game_code dump writes the assemblies in decompile.json. Pass assemblies= to add one for this dump; a wider set costs disk and time.",
     ],
     parameters: Type.Object({

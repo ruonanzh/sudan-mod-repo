@@ -18,7 +18,7 @@ export default function (pi: ExtensionAPI) {
     name: "set_game_dir",
     label: "Set Game Directory",
     description:
-      "Record one game directory. The tool validates it with a file the game ships inside the install. If the path does not validate, the tool locates the game and records that path instead, and returns WARN. It also records the Workshop and mod install directories derived from the game directory. Use try_set_game_dir when you have no path.",
+      "Record one game directory. The tool validates it with a file the game ships inside the install. If the path does not validate, the tool locates the game and records that path instead, and returns WARN. It also records the Workshop directory derived from the game directory, and the mod install directory derived from MyDocuments. Use try_set_game_dir when you have no path.",
     promptSnippet: "Record one game directory. It validates the path, or locates the game.",
     promptGuidelines: [
       "Use set_game_dir when you have one game directory to record, and the player gave it or you found it. It validates the path and records it.",
@@ -41,7 +41,6 @@ export default function (pi: ExtensionAPI) {
         content: [{ type: "text", text }],
         details: {
           ok,
-          status,
           given: out.given,
           recorded: out.recorded,
           vanillaDir: out.vanillaDir,

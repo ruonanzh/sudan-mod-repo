@@ -15,6 +15,7 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { clipUtf8 } from "../lib/clip";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { runAsync } from "../lib/proc";
@@ -30,7 +31,7 @@ interface CliResult {
 /** The last few lines of output: the tool speaks in PASS / WARN / FAIL plus a NEXT line. */
 function summarize(result: CliResult): string {
   const text = `${result.stdout || ""}${result.stderr || ""}`.trim();
-  return text || "(no output)";
+  return clipUtf8(text || "(no output)");
 }
 
 export default function (pi: ExtensionAPI) {
@@ -41,7 +42,7 @@ export default function (pi: ExtensionAPI) {
       "Draw one 2D picture from a prompt and reference pictures, crop a PNG to an exact size, verify a PNG, or list missing reference pictures. Four actions: generate, fit, check, refs. It saves files where out says and never touches a game record. The prompt, the size, and which pictures to use come from the capability SKILL that calls it.",
     promptSnippet: "Draw, crop, or verify a 2D picture (generate / fit / check / refs)",
     promptGuidelines: [
-      "generate_2d_asset with action=generate writes the picture to out. Write previews into .preview/, and only ship a picture after the player confirms it. That tool never edits a game record.",
+      "generate_2d_asset with action=generate writes the picture to out. Write previews into .preview/ and show them from the page; the page is where the player confirms a card picture. That tool never edits a game record.",
       "generate_2d_asset with action=fit changes only the size, never the content. When a picture is the wrong shape, fix the prompt or use fit; do not ask for a redraw to change its size.",
       "generate_2d_asset with task= downloads an existing task and spends nothing. Reuse it to crop or copy the same picture again instead of drawing a second one.",
     ],
@@ -68,7 +69,7 @@ export default function (pi: ExtensionAPI) {
       in: Type.Optional(Type.String({ description: "fit: the PNG to read." })),
       width: Type.Optional(Type.Number({ description: "fit / check: expected width in pixels." })),
       height: Type.Optional(Type.Number({ description: "fit / check: expected height in pixels." })),
-      mode: Type.Optional(Type.Union([Type.Literal("cover"), Type.Literal("contain")], { description: "fit: cover crops the overflow, contain adds transparent bands. Default cover." })),
+      mode: Type.Optional(Type.Union([Type.Literal("cover"), Type.Literal("contain")], { description: "fit: cover fills the target and crops the overflow, contain fits inside and adds transparent bands. Default cover." })),
       file: Type.Optional(Type.String({ description: "check: the PNG to verify." })),
       alpha: Type.Optional(Type.Boolean({ description: "check: when true, a picture without an alpha channel fails." })),
       dir: Type.Optional(Type.String({ description: "refs: the folder that should hold the reference pictures." })),

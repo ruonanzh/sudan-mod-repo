@@ -8,6 +8,7 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { ascii, clipUtf8 } from "../lib/clip";
 import { existsSync, statSync } from "node:fs";
 import path from "node:path";
 import { pathsFile, vanillaRequirement } from "../../tools/paths.mjs";
@@ -116,9 +117,8 @@ export default function (pi: ExtensionAPI) {
       const where = path.relative(cwd, modDir) || modDir;
       // `content` goes to the model through the terminal, and a Windows console with a legacy code
       // page turns non-ASCII into garbage. Lint messages quote record values and paths, so they can
-      // carry any script; escape it here and keep the exact characters in `details.results`.
-      const ascii = (text: string): string =>
-        String(text).replace(/[^\x20-\x7e]/g, (c) => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"));
+      // carry any script; escape here and keep the exact characters in `details.results`. Escape
+      // first, then cut by bytes: escaping can grow one message sixfold.
       const lines = [
         ascii(`${status}: ${counts.FAIL ?? 0} fail, ${counts.WARN ?? 0} warn, ${counts.INFO ?? 0} info (${where})`),
       ];
@@ -144,10 +144,9 @@ export default function (pi: ExtensionAPI) {
       }
 
       return {
-        content: [{ type: "text", text: lines.join("\n") }],
+        content: [{ type: "text", text: clipUtf8(lines.join("\n")) }],
         details: {
           ok: status === "PASS",
-          status,
           counts,
           results,
           modDir,

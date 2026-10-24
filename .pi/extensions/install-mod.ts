@@ -13,6 +13,7 @@ import path from "node:path";
 import { judge, pathsFile, shorten } from "../../tools/paths.mjs";
 import { parseDoc, toPlain } from "../../tools/jsonc.mjs";
 import { InstallError, installFolder, walk } from "../lib/mod-files";
+import { ascii, clipUtf8 } from "../lib/clip";
 import { absolute, identity, sameOrNested } from "../lib/workspace";
 
 export default function (pi: ExtensionAPI) {
@@ -92,7 +93,6 @@ export default function (pi: ExtensionAPI) {
           ],
           details: {
             ok: false,
-            status: missing ? "PARTIAL" : "FAIL",
             wroteState: false,
             installed: false,
             target: null,
@@ -142,29 +142,33 @@ export default function (pi: ExtensionAPI) {
       }
 
       const folderName = path.basename(source);
-      // The folder name is what the player sees in the mod list and what the log is named after;
-      // info.json's `name` is a separate string. When they differ, say so: every later step that
-      // follows the log path or looks for the folder would otherwise use a name that is not there.
-      const mismatch =
+      // The game shows `info.json`'s `name` and names `ModLog/<name>_local.log` after it; the folder
+      // name is only where the files sit. A workshop mod's folder is a numeric id and its name is
+      // Chinese, so the two differing is normal — say which name to look for, do not ask for a rename.
+      const shown =
         typeof name === "string" && name !== folderName
-          ? `WARN: info.json says name "${name}" but the folder is "${folderName}". The game lists and logs the folder name; rename one of them so they match.`
+          ? `INFO: the folder is ${folderName}; the mod panel and ModLog use the name "${name}".`
           : null;
       return {
         content: [
           {
             type: "text",
-            text: [
-              `PASS: installed ${name} to ${shorten(target)} (${copied.files} files${copied.replaced ? ", the previous copy was replaced" : ""}).`,
-              copied.replaced
-                ? "NEXT: tell the player to refresh the mod list in the game's mod panel, then read ModLog/<mod name>_local.log and confirm a `read mod` line for each file you changed. Installing does not prove the game loads it."
-                : "NEXT: tell the player to enable the mod in the game's mod panel (title screen), then read ModLog/<mod name>_local.log and confirm a `read mod` line for each file you changed. Installing does not prove the game loads it.",
-              ...(mismatch ? [mismatch] : []),
-            ].join("\n"),
+            text: clipUtf8(
+              ascii(
+                [
+                  // The name is the player's own text; escape it for a console that cannot print it.
+                  `PASS: installed ${name} to ${shorten(target)} (${copied.files} files${copied.replaced ? ", the previous copy was replaced" : ""}).`,
+                  copied.replaced
+                    ? "NEXT: tell the player to refresh the mod list in the game's mod panel, then read ModLog/<mod name>_local.log and confirm a `read mod` line for each file you changed. Installing does not prove the game loads it."
+                    : "NEXT: tell the player to enable the mod in the game's mod panel (title screen), then read ModLog/<mod name>_local.log and confirm a `read mod` line for each file you changed. Installing does not prove the game loads it.",
+                  ...(shown ? [shown] : []),
+                ].join("\n"),
+              ),
+            ),
           },
         ],
         details: {
           ok: true,
-          status: "PASS",
           wroteState: false,
           installed: true,
           replaced: copied.replaced,

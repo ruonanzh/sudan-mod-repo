@@ -21,11 +21,11 @@ export default function (pi: ExtensionAPI) {
     name: "check_game_paths",
     label: "Check Game Paths",
     description:
-      "Check three directories: the game directory, the Steam Workshop content directory, and the mod install directory. It also reports the vanilla config derived from the game directory. This tool is read-only. It never writes .gamer-agent.local.json, never scans for the game, and never creates a directory. Pass any of gameDir, workshopDir, or modInstallDir to check those paths. Omit all three to check the paths in .gamer-agent.local.json. Use it when the player gives you a path, or to re-check a remembered path. Use try_set_game_dir when the location is unknown.",
+      "Check the game directory, the Steam Workshop content directory, the mod install directory and the vanilla config derived from the game directory. This tool is read-only: it never writes .gamer-agent.local.json and never creates a directory. A path you pass is judged instead of the recorded one; a path you omit falls back to the recorded one. When no game directory is passed or recorded, it locates the game exactly as try_set_game_dir does, so the report can still name a game directory. Use it when the player gives you a path, or to re-check a remembered path; use try_set_game_dir when you want the found path recorded.",
     promptSnippet: "Check game and mod paths without scanning or writing",
     promptGuidelines: [
-      "Use check_game_paths when the player gives you a path, or to check a remembered path. It verifies a path without scanning and without writing state.",
-      "check_game_paths never writes .gamer-agent.local.json. Checking and recording are separate tools.",
+      "Use check_game_paths when the player gives you a path, or to check a remembered path. It writes no state: checking and recording are separate tools.",
+      "A path you omit in check_game_paths is checked from the recorded value; with no game directory recorded it also looks for the game, like try_set_game_dir, but records nothing.",
       "A failed check_game_paths changes nothing. Follow its NEXT line to fix the problem. It never creates or installs anything.",
     ],
     parameters: Type.Object({
@@ -42,9 +42,9 @@ export default function (pi: ExtensionAPI) {
       const cwd = ctx.cwd;
       const file = pathsFile(cwd);
       const recorded = readRecord(file);
-      // Check only what was passed, or everything recorded when nothing was passed. Never fall
-      // back per-key: a stale recorded path would decide the verdict for a location the caller
-      // did not ask about, and judging a missing gameDir would start a discovery scan.
+      // A passed path replaces the recorded one, per key. A key left out is judged from the
+      // record, and `judge` starts a discovery scan when no game directory is recorded — this tool
+      // is read-only, but it is not scan-free.
       const anyGiven = Boolean(params.gameDir?.trim() || params.workshopDir?.trim() || params.modInstallDir?.trim());
       const use = (given: string | undefined, saved: string | null): string | undefined => {
         if (anyGiven) return given?.trim() ? absolute(cwd, given.trim()) : undefined;

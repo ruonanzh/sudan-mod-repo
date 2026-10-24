@@ -21,7 +21,7 @@ export default function (pi: ExtensionAPI) {
     name: "try_set_game_dir",
     label: "Ensure Game Directory",
     description:
-      "Makes sure the game directory is recorded and still valid for this platform. It also checks the mod install directory and the Steam Workshop directory derived from it. This tool takes no arguments. It checks the recorded paths, or locates the game and records the paths.",
+      "Makes sure the game directory is recorded and still valid for this platform. It also checks the Steam Workshop directory derived from it, and the mod install directory derived from MyDocuments. This tool takes no arguments. It checks the recorded paths, or locates the game and records the paths.",
     promptSnippet: "Ensure the game directory is recorded (locates it when needed)",
     promptGuidelines: [
       "Use try_set_game_dir when a task needs the game location, such as reading the vanilla config or installing a mod. Use it when you are not sure the paths are recorded or still valid.",
@@ -59,7 +59,6 @@ export default function (pi: ExtensionAPI) {
         content: [{ type: "text", text: lines.join("\n") }],
         details: {
           ok: true,
-          status: out.status,
           gameDir: out.recorded,
           vanillaDir: out.vanillaDir,
           modInstallDir: out.modInstallDir,

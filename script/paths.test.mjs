@@ -209,7 +209,7 @@ test("a vanilla config without rite/ is refused too, and NEXT points at the sett
   const r = run(["check", "--game-dir", world.install, "--paths", stateFile()], world.home);
   assert.equal(r.status, 1, r.stdout + r.stderr);
   assert.match(lineOf(r.stdout, "vanilla"), /rite/);
-  assert.match(r.stdout, /^NEXT\s+\S/m);
+  assert.match(r.stdout, /^NEXT:?\s+\S/m);
 });
 
 // ------------------------------------------------------------- what the report is allowed to say
@@ -267,7 +267,7 @@ test("set refuses a location that is not the game and writes nothing", () => {
   assert.equal(r.status, 1, r.stdout + r.stderr);
   assert.equal(existsSync(file), false, "set must not record a directory it could not verify");
   assert.match(r.stdout, /^FAIL\s/m);
-  assert.match(r.stdout, /^NEXT\s/m);
+  assert.match(r.stdout, /^NEXT:?\s/m);
 });
 
 test("set finds the game when the given path does not validate, and says so", () => {

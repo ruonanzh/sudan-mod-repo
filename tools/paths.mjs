@@ -683,7 +683,7 @@ export const resolveVanilla = () => vanillaRequirement().dir;
 
 const emit = (code, message, next) => {
   process.stdout.write(`${code}  ${message}\n`);
-  if (next) process.stdout.write(`NEXT  ${next}\n`);
+  if (next) process.stdout.write(`NEXT: ${next}\n`);
 };
 
 function printRows(rows) {
@@ -741,7 +741,7 @@ function check(args) {
   emit("FAIL", `${bad.join(", ")} not OK`);
   emit("ASK", "Is the game installed through Steam on this machine? If it is on another disk, name that library folder.");
   emit(
-    "NEXT",
+    "NEXT:",
     "run `node tools/paths.mjs set --game-dir <game directory>`; the sentinels are in .pi/skills/setup-workspace/SKILL.md",
   );
   return 1;

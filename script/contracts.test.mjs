@@ -130,7 +130,7 @@ test("validate_mod really passes --vanilla: a colliding id fails only when the c
     codes(given).includes("ID_OVERRIDES_VANILLA"),
     "the collision is reported only if --vanilla reaches the linter",
   );
-  assert.equal(missing.details.status, "PARTIAL", textOf(missing));
+  assert.match(textOf(missing), /^PARTIAL:/, textOf(missing));
   assert.ok(!codes(missing).includes("ID_OVERRIDES_VANILLA"), "skipped checks must not claim to have run");
 });
 

@@ -40,7 +40,7 @@ test("install_mod copies the whole folder under the recorded directory", async (
   const text = textOf(result);
   const target = path.join(root, path.basename(mod));
 
-  assert.equal(result.details.status, "PASS", text);
+  assert.match(text, /^PASS:/, text);
   assert.ok(existsSync(path.join(target, "info.json")), text);
   assert.ok(existsSync(path.join(target, "config/cards.json")), text);
   assert.equal(result.details.files, 3, "info.json, config/cards.json and preview.png");
@@ -78,7 +78,7 @@ test("install_mod reads info.json the way lint does: comments, a BOM and a trail
   const mod = makeMod({});
   writeFileSync(path.join(mod, "info.json"), '\ufeff{\n  // 显示名\n  "name": "断剑卡面探针",\n  "version": "1.0.0",\n}\n');
   const result = await run(await get(), { modDir: mod }, cwd);
-  assert.equal(result.details.status, "PASS", textOf(result));
+  assert.match(textOf(result), /^PASS:/, textOf(result));
 });
 
 test("install_mod refuses a folder with no info.json", async () => {
@@ -95,8 +95,8 @@ test("install_mod says when info.json's name does not match the folder name", as
   const mod = makeMod({});
   writeFileSync(path.join(mod, "info.json"), JSON.stringify({ name: "显示名", version: "1.0.0" }));
   const result = await run(await get(), { modDir: mod }, cwd);
-  assert.equal(result.details.status, "PASS", textOf(result));
-  assert.match(textOf(result), /WARN: info\.json says name "显示名" but the folder is/, "the mismatch is named");
+  assert.match(textOf(result), /^PASS:/, textOf(result));
+  assert.match(textOf(result), /INFO: the folder is .*; the mod panel and ModLog use the name "\\u663e\\u793a\\u540d"/, "the display name is named, escaped");
 });
 
 test("install_mod refuses malformed info.json", async () => {
@@ -124,7 +124,7 @@ test("install_mod reports PARTIAL when no mod directory is recorded", async () =
     else process.env.USERPROFILE = before.USERPROFILE;
   }
   const text = textOf(result);
-  assert.equal(result.details.status, "PARTIAL", text);
+  assert.match(text, /^PARTIAL:/, text);
   assert.match(text, /ModList/, "the fix is the mod panel button, not a folder made by hand");
   assert.equal(result.details.installed, false);
 });
@@ -216,7 +216,7 @@ test("install_mod reports FAIL, not PARTIAL, when a recorded folder is not the m
   const mod = makeMod({});
   const result = await run(await get(), { modDir: mod }, cwd);
   const text = textOf(result);
-  assert.equal(result.details.status, "FAIL", text);
+  assert.match(text, /^FAIL:/, text);
   assert.match(text, /^NEXT: run try_set_game_dir/m, "a wrong folder is fixed by finding the game again");
 });
 
@@ -228,7 +228,7 @@ test("install_mod replaces the bytes, not just the file names", async () => {
   writeFileSync(path.join(mod, "config/cards.json"), '{"v":2}\n');
   const result = await run(await get(), { modDir: mod }, cwd);
   const landed = path.join(root, path.basename(mod), "config/cards.json");
-  assert.equal(result.details.status, "PASS", textOf(result));
+  assert.match(textOf(result), /^PASS:/, textOf(result));
   assert.equal(readFileSync(landed, "utf8"), '{"v":2}\n', "a copy that is not refreshed must fail here");
   assert.match(textOf(result), /refresh the mod list/, "an update is not an enable");
 });

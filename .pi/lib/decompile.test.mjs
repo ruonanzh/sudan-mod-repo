@@ -136,7 +136,9 @@ test("extractMethods splits blocks and filters by member", () => {
 
 test("truncate caps lines and bytes", () => {
   expect(truncate("a\nb\nc", 2)).toContain("1 more lines truncated");
-  expect(truncate("x".repeat(100), 10, 20)).toContain("truncated at 20 bytes");
+  const clipped = truncate("x".repeat(1000), 10, 200);
+  expect(clipped).toContain("output truncated");
+  expect(Buffer.byteLength(clipped, "utf8")).toBeLessThanOrEqual(200);
 });
 
 test("configSignature ignores order and budget", () => {

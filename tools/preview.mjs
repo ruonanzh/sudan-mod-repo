@@ -146,7 +146,7 @@ function runTool(tool, args) {
 function toolFailed(tool, file, output) {
   process.stdout.write(`FAIL  ${tool} could not write ${path.basename(file)}\n`);
   for (const line of output.split("\n")) if (line.trim()) process.stdout.write(`      ${line.trim()}\n`);
-  process.stdout.write(`NEXT  fix what ${tool} reported above, then run this again\n`);
+  process.stdout.write(`NEXT: fix what ${tool} reported above, then run this again\n`);
 }
 
 /** The mod's card table by id. A `_`-prefixed key is a comment the game ignores. */
@@ -198,18 +198,18 @@ function runCardValues({ modDir, outDir, apply, id }) {
   const pages = id ? cardPages(outDir).filter((page) => page.id === String(id)) : cardPages(outDir);
   if (id && !pages.length) {
     process.stdout.write(`FAIL  no page for card ${id} under ${displayPath(outDir)}\n`);
-    process.stdout.write(`NEXT  check the id, or rebuild the pages with node tools/preview.mjs --mod ${displayPath(modDir)}\n`);
+    process.stdout.write(`NEXT: check the id, or rebuild the pages with node tools/preview.mjs --mod ${displayPath(modDir)}\n`);
     return 1;
   }
   if (!pages.length) {
     process.stdout.write(`PASS  no card pages under ${displayPath(outDir)}\n`);
-    process.stdout.write(`NEXT  run node tools/preview.mjs --mod ${displayPath(modDir)} to write them\n`);
+    process.stdout.write(`NEXT: run node tools/preview.mjs --mod ${displayPath(modDir)} to write them\n`);
     return 0;
   }
   const table = cardTable(modDir);
   if (!table) {
     process.stdout.write(`FAIL  ${displayPath(modDir)} has no ${CARD_TABLE}\n`);
-    process.stdout.write("NEXT  a card page is built from the mod's card table; write that file first\n");
+    process.stdout.write("NEXT: a card page is built from the mod's card table; write that file first\n");
     return 1;
   }
 
@@ -255,7 +255,7 @@ function runCardValues({ modDir, outDir, apply, id }) {
   if (!apply) {
     process.stdout.write(`PASS  ${pending.length} card page(s) carry pending values in ${displayPath(outDir)}\n`);
     for (const line of lines) process.stdout.write(`      ${line}\n`);
-    process.stdout.write(`NEXT  run node tools/preview.mjs --mod ${displayPath(modDir)} --apply to write them into ${CARD_TABLE}\n`);
+    process.stdout.write(`NEXT: run node tools/preview.mjs --mod ${displayPath(modDir)} --apply to write them into ${CARD_TABLE}\n`);
     return 0;
   }
 
@@ -268,7 +268,7 @@ function runCardValues({ modDir, outDir, apply, id }) {
     );
   } catch (e) {
     process.stdout.write(`FAIL  could not write ${displayPath(table.file)}: ${e.message || e}\n`);
-    process.stdout.write("NEXT  fix the file so it parses, then run this again\n");
+    process.stdout.write("NEXT: fix the file so it parses, then run this again\n");
     return 1;
   }
   if (result.text !== text) writeFileSync(table.file, result.text);
@@ -284,7 +284,7 @@ function runCardValues({ modDir, outDir, apply, id }) {
       );
     }
   }
-  process.stdout.write(`NEXT  run node tools/preview.mjs --mod ${displayPath(modDir)} to rebuild the pages without the pending mark\n`);
+  process.stdout.write(`NEXT: run node tools/preview.mjs --mod ${displayPath(modDir)} to rebuild the pages without the pending mark\n`);
   return 0;
 }
 
@@ -299,13 +299,13 @@ function main() {
   const modDir = path.resolve(String(args.modDir).replace(/^~/, os.homedir()));
   if (!existsSync(modDir)) {
     process.stdout.write(`FAIL  no such directory: ${displayPath(modDir)}\n`);
-    process.stdout.write("NEXT  pass --mod your_mods/<ModName>\n");
+    process.stdout.write("NEXT: pass --mod your_mods/<ModName>\n");
     return 1;
   }
   const infoFile = path.join(modDir, "info.json");
   if (!existsSync(infoFile)) {
     process.stdout.write(`FAIL  ${displayPath(modDir)} has no info.json, so it is not a mod\n`);
-    process.stdout.write("NEXT  a mod is your_mods/<ModName>/ with an info.json; see .pi/skills/mod-creator\n");
+    process.stdout.write("NEXT: a mod is your_mods/<ModName>/ with an info.json; see .pi/skills/mod-creator\n");
     return 1;
   }
   let modName = path.basename(modDir);
@@ -320,12 +320,12 @@ function main() {
     records = modRecords(modDir);
   } catch (e) {
     process.stdout.write(`FAIL  ${e.message || e}\n`);
-    process.stdout.write(`NEXT  run node tools/lint.mjs ${displayPath(modDir)} to see what is wrong\n`);
+    process.stdout.write(`NEXT: run node tools/lint.mjs ${displayPath(modDir)} to see what is wrong\n`);
     return 1;
   }
   if (!records.length) {
     process.stdout.write(`PASS  no records under ${displayPath(modDir)}: nothing to preview\n`);
-    process.stdout.write("NEXT  add a card, a rite or an event, then run this again\n");
+    process.stdout.write("NEXT: add a card, a rite or an event, then run this again\n");
     return 0;
   }
 
@@ -342,7 +342,7 @@ function main() {
   const requirement = story.length ? vanillaRequirement(args.vanilla) : { dir: null };
   if (story.length && !requirement.dir) {
     process.stdout.write(`FAIL  ${requirement.message}\n`);
-    process.stdout.write(`NEXT  ${requirement.next}\n`);
+    process.stdout.write(`NEXT: ${requirement.next}\n`);
     return 1;
   }
 
@@ -353,7 +353,7 @@ function main() {
   const picked = focus ? records.find((r) => `${r.kind}:${r.id}` === focus) : null;
   if (focus && !picked) {
     process.stdout.write(`FAIL  focus ${focus} is not a record this mod carries\n`);
-    process.stdout.write("NEXT  run this without --focus, then pass the kind:id of a record this mod carries\n");
+    process.stdout.write("NEXT: run this without --focus, then pass the kind:id of a record this mod carries\n");
     return 1;
   }
 
@@ -380,7 +380,7 @@ function main() {
     for (const card of cards) {
       if (!CARD_ID_FILE.test(String(card.id))) {
         process.stdout.write(`FAIL  card id ${JSON.stringify(card.id)} cannot be a file name\n`);
-        process.stdout.write("NEXT  give the card a plain id of letters, digits, _ or -\n");
+        process.stdout.write("NEXT: give the card a plain id of letters, digits, _ or -\n");
         return 1;
       }
       const record = table?.records.get(String(card.id));
@@ -393,7 +393,7 @@ function main() {
         written += 1;
       } catch (e) {
         process.stdout.write(`FAIL  could not write ${path.basename(file)}: ${e.message || e}\n`);
-        process.stdout.write("NEXT  add the missing label to schema/view/field-labels.json, then run this again\n");
+        process.stdout.write("NEXT: add the missing label to schema/view/field-labels.json, then run this again\n");
         return 1;
       }
     }
@@ -422,7 +422,7 @@ function main() {
         recordCount += 1;
       } catch (e) {
         process.stdout.write(`FAIL  could not write ${path.basename(file)}: ${e.message || e}\n`);
-        process.stdout.write("NEXT  run this again once the story graph builds\n");
+        process.stdout.write("NEXT: run this again once the story graph builds\n");
         return 1;
       }
     }
@@ -453,7 +453,7 @@ function main() {
         formCount += 1;
       } catch (e) {
         process.stdout.write(`FAIL  could not write ${path.basename(file)}: ${e.message || e}\n`);
-        process.stdout.write("NEXT  add the missing label to schema/view/field-labels.json, then run this again\n");
+        process.stdout.write("NEXT: add the missing label to schema/view/field-labels.json, then run this again\n");
         return 1;
       }
     }
@@ -488,15 +488,15 @@ function main() {
       if (!recordKinds.has(r.kind)) continue;
       process.stdout.write(`  story graph: ${displayPath(outDir)}/graph.html#${r.kind}:${r.id}\n`);
     }
-    process.stdout.write("NEXT  give these paths to the player, one per line, and say which record each one shows\n");
+    process.stdout.write("NEXT: give these paths to the player, one per line, and say which record each one shows\n");
   } else {
     process.stdout.write("PASS  nothing to write: this mod carries no record that has a page\n");
   }
   if (cards.length) {
     process.stdout.write(
-      `NEXT  to change a card, open its card page in the app: it opens with ${CARD_PAGE_EDITOR.id}\n`,
+      `NEXT: to change a card, open its card page in the app: it opens with ${CARD_PAGE_EDITOR.id}\n`,
     );
-    process.stdout.write(`NEXT  ${CARD_TABLE} stays untouched until you run this with --apply\n`);
+    process.stdout.write(`NEXT: ${CARD_TABLE} stays untouched until you run this with --apply\n`);
   }
   return 0;
 }

@@ -135,7 +135,7 @@ test("set_game_dir: a game directory is recorded with what it derives, and vanil
   const result = await withHome(world.home, async () => run(await tool("set-game-dir.ts"), { path: world.install }, cwd));
   const text = result.content[0].text;
   assert.equal(result.details.ok, true, text);
-  assert.equal(result.details.status, "PASS", text);
+  assert.match(text, /^PASS:/, text);
   assert.match(text, /^PASS: recorded gameDir /m, text);
   assert.equal(result.details.wroteState, true);
   const record = JSON.parse(readFileSync(stateOf(cwd), "utf8"));
@@ -153,7 +153,7 @@ test("set_game_dir: a path that is not the game falls back to discovery and says
   const result = await withHome(world.home, async () => run(await tool("set-game-dir.ts"), { path: stray }, cwd));
   const text = result.content[0].text;
   assert.equal(result.details.ok, true, text);
-  assert.equal(result.details.status, "WARN", text);
+  assert.match(text, /^WARN:/, text);
   assert.match(text, /^WARN: the gameDir you passed .* did not pass validation/m, text);
   assert.match(text, /^Recorded .* instead\.$/m, text);
   assert.equal(result.details.wroteState, true);
@@ -168,7 +168,7 @@ test("set_game_dir: nothing validates and nothing is discovered writes nothing",
   const result = await withHome(home, async () => run(await tool("set-game-dir.ts"), { path: stray }, cwd));
   const text = result.content[0].text;
   assert.equal(result.details.ok, false, text);
-  assert.equal(result.details.status, "FAIL", text);
+  assert.match(text, /^FAIL:/, text);
   assert.match(text, /^FAIL: could not record gameDir\./m, text);
   assert.match(text, /^NEXT: /m, text);
   assert.equal(result.details.wroteState, false);
@@ -195,7 +195,7 @@ test("try_set_game_dir: discovery records the derived keys once, and a second ca
   const cwd = tmpDir("sudan-ext-ws-");
   const first = await withHome(world.home, async () => run(await tool("try-set-game-dir.ts"), {}, cwd));
   assert.equal(first.details.ok, true, first.content[0].text);
-  assert.equal(first.details.status, "recorded", first.content[0].text);
+  assert.match(first.content[0].text, /^PASS: gameDir discovered and recorded/, first.content[0].text);
   assert.equal(first.details.wroteState, true);
   assert.match(first.content[0].text, /^PASS: gameDir discovered and recorded/m, first.content[0].text);
   const record = JSON.parse(readFileSync(stateOf(cwd), "utf8"));
@@ -207,7 +207,7 @@ test("try_set_game_dir: discovery records the derived keys once, and a second ca
   const before = readFileSync(stateOf(cwd), "utf8");
   const second = await withHome(world.home, async () => run(await tool("try-set-game-dir.ts"), {}, cwd));
   assert.equal(second.details.ok, true, second.content[0].text);
-  assert.equal(second.details.status, "already", second.content[0].text);
+  assert.match(second.content[0].text, /^PASS: gameDir already correct/, second.content[0].text);
   assert.equal(second.details.wroteState, false);
   assert.equal(readFileSync(stateOf(cwd), "utf8"), before, "a second call must not rewrite the file");
 });
@@ -218,7 +218,7 @@ test("try_set_game_dir: a stale record is replaced by the discovered game", asyn
   writeFileSync(stateOf(cwd), `${JSON.stringify({ gameDir: path.join(world.home, "gone", "Sultan's Game") })}\n`);
   const result = await withHome(world.home, async () => run(await tool("try-set-game-dir.ts"), {}, cwd));
   assert.equal(result.details.ok, true, result.content[0].text);
-  assert.equal(result.details.status, "recorded", result.content[0].text);
+  assert.match(result.content[0].text, /^PASS: gameDir discovered and recorded/, result.content[0].text);
   const record = JSON.parse(readFileSync(stateOf(cwd), "utf8"));
   assert.equal(expandHome(record.gameDir, world.home), world.install);
 });
@@ -244,7 +244,7 @@ test("validate_mod: a missing vanilla config is PARTIAL with a next step", async
   const missing = path.join(tmpDir("sudan-ext-no-vanilla-"), "config");
   const result = await run(await tool("mod-lint.ts"), { modDir: mod, vanilla: missing }, REPO);
   const text = result.content[0].text;
-  assert.equal(result.details.status, "PARTIAL", text);
+  assert.match(text, /^PARTIAL:/, text);
   assert.match(text, /^PARTIAL: 0 fail, /, text);
   assert.match(text, /vanilla config missing:/, text);
   assert.match(text, /^NEXT: /m, text);
@@ -256,7 +256,7 @@ test("validate_mod: a lint error is FAIL and keeps the whole list in details", a
   const mod = makeMod({}, { info: { name: "" } });
   const result = await run(await tool("mod-lint.ts"), { modDir: mod, vanilla: world.vanilla }, REPO);
   const text = result.content[0].text;
-  assert.equal(result.details.status, "FAIL", text);
+  assert.match(text, /^FAIL:/, text);
   assert.match(text, /^FAIL: \d+ fail, /, text);
   assert.match(text, /INFO_NAME/, text);
   assert.ok(result.details.results.some((r) => r.code === "INFO_NAME" && r.level === "FAIL"), text);

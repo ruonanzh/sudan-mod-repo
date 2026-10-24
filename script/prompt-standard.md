@@ -28,10 +28,11 @@
 | `.pi/skills/mod-audio/SKILL.md` | 换音频 |
 | `.pi/skills/setup-workspace/SKILL.md` | 准备工作区 |
 | `.pi/skills/how-to-speak/SKILL.md` | 跟玩家说话 |
+| `.pi/prompts/*.md` | 斜杠命令的模板；玩家一点按钮，agent 收到的那段指令 |
 
 **英文**（工具面，不译）：
 
-1. 工具的 stdout/stderr 与 `content` 返回文案、错误文案。
+1. 工具的 stdout/stderr 与 `content` 返回文案、错误文案，以及工具的 `description` 与 `promptGuidelines`（这两项是给 agent 看的规则，不是给玩家的文案）。
 2. 规则码（`UNKNOWN_FIELD`、`LEGACY_FIELD`、`EVENT_BRANCH_CONDITION`）与状态词（`RESULT: PASS`）。
 3. 配置键名、枚举值、文件路径、游戏日志原文、命令。
 

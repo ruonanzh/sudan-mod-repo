@@ -37,7 +37,7 @@ function parseArgs(argv) {
 
 const emit = (code, message, next) => {
   process.stdout.write(`${code}  ${message}\n`);
-  if (next) process.stdout.write(`NEXT  ${next}\n`);
+  if (next) process.stdout.write(`NEXT: ${next}\n`);
 };
 
 const TAG_ROLES = JSON.parse(readFileSync(new URL("../schema/view/tag-roles.json", import.meta.url), "utf8"));
