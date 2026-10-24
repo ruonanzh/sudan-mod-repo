@@ -477,22 +477,22 @@
   "loot": {
     "id": {
       "label": "编号",
-      "note": "游戏按文件名找这张表，这个编号只是标注，不参与查找。",
+      "note": "这个编号是这张表在配置里的身份。玩家看不到这个编号。",
       "from": "docs/sudan-game/fields/06-loot.md §`id` vs file stem — the stem is authoritative"
     },
     "name": {
       "label": "内部名称",
-      "note": "开发者给这张表起的标签，从不显示给玩家，也没有任何地方引用它。",
+      "note": "这个名称是开发者给这张表起的标签。玩家看不到这个名称。",
       "from": "docs/sudan-game/fields/06-loot.md §Keys"
     },
     "repeat": {
       "label": "抽取次数",
-      "note": "独立抽取的轮数，算法选 4 时则改为抽几个（非正数不出东西）。",
+      "note": "这个抽取次数是这张表抽多少轮，每一轮都按权重重新抽一次，写 0 或负数时什么都不出。算法选 4 时，这个数字表示一次抽几件。",
       "from": "docs/sudan-game/fields/06-loot.md §`repeat` (level 2)"
     },
     "type": {
       "label": "抽取算法",
-      "note": "2 按权重抽一个、3 只抽还没拥有的、4 按权重抽几个不重复、99 整表全掉，其它值都当 2。",
+      "note": "这个抽取算法决定从表里怎么取物品。四种取值的做法见下拉里每一项的说明。",
       "from": "docs/sudan-game/fields/06-loot.md §`type` (level 2) — the draw algorithm"
     },
     "item": {
@@ -504,27 +504,27 @@
   "lootItem": {
     "type": {
       "label": "掉落物类型",
-      "note": "决定这件东西属于哪一类，只有卡、事件、仪式、战利品四种，认不出的值什么都不出。",
+      "note": "这个类型决定编号属于哪种记录：card 是卡，event 是事件，rite 是仪式，loot 是另一张战利品表。",
       "from": "docs/sudan-game/fields/06-loot.md §`item[].type` — how the game decides what a value means"
     },
     "id": {
       "label": "掉落物编号",
-      "note": "具体是哪一件东西，按上面选的类别来解读，写编号或名字都可以。",
+      "note": "这个编号是要给出的记录，游戏按类型去对应的配置里找。编号不存在时，这一件不会给。",
       "from": "docs/sudan-game/fields/06-loot.md §Keys"
     },
     "num": {
       "label": "数量",
-      "note": "选中之后才生效的数量，只有卡牌用得上，仪式和战利品都不看它。",
+      "note": "这个数量是给几份，只对卡与事件有用。仪式与战利品表会忽略这个数字。",
       "from": "docs/sudan-game/fields/06-loot.md §`num` — a count, not a weight"
     },
     "weight": {
       "label": "权重",
-      "note": "这是相对比例不是百分比，算法 99 完全不看它，算法 4 只在候选数不超过抽取数时忽略它。",
+      "note": "这个权重是这一件在抽签里的份量，权重越大越容易被抽到。算法 4 与 99 会忽略这个权重。",
       "from": "docs/sudan-game/fields/06-loot.md §`item[].weight` — exact meaning"
     },
     "condition": {
       "label": "出现条件",
-      "note": "不满足条件的这一条会先被剔除，它的比例也不计入总概率。",
+      "note": "这个条件是这一件能不能进入抽签。条件不成立时，这一件连权重一起被剔除。",
       "from": "docs/sudan-game/fields/06-loot.md §`item[].condition` (level 3) — the gate"
     }
   },

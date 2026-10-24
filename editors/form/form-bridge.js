@@ -146,14 +146,20 @@
     });
     var rows = root.querySelectorAll("[data-item-row]");
     if (rows.length) {
-      values.item = Array.prototype.map.call(rows, function (tr) {
+      var saved = Array.isArray((state.values || {}).item) ? state.values.item : [];
+      values.item = Array.prototype.map.call(rows, function (row, index) {
         var item = {};
-        tr.querySelectorAll("[data-item]").forEach(function (element) {
+        row.querySelectorAll("[data-item]").forEach(function (element) {
           var key = element.getAttribute("data-item");
           var value = readControl(element);
           if (value === undefined || value === "") return;
           item[key] = value;
         });
+        // The condition is not a control any more: the player describes it in words. Keep the
+        // stored one so the diff does not look like a removal the player never made.
+        if (item.condition === undefined && saved[index] && saved[index].condition !== undefined) {
+          item.condition = saved[index].condition;
+        }
         return item;
       });
     }
@@ -187,13 +193,17 @@
       add.addEventListener("click", function () {
         var body = byId("item-rows");
         if (!body) return;
-        var tr = document.createElement("tr");
-        tr.setAttribute("data-item-row", "");
-        var cells = body.querySelector("[data-item-row]") || null;
-        var template = cells ? cells.innerHTML : "";
-        tr.innerHTML = template || '<td><input data-item="type" data-kind="number" type="number" value="2"></td><td><input data-item="id" data-kind="number" type="number" value=""></td><td><input data-item="num" data-kind="number" type="number" value="1"></td><td><input data-item="weight" data-kind="number" type="number" value="1"></td><td><input data-item="condition" data-kind="text" type="text" value=""></td><td><button type="button" class="pill" data-item-remove>删除</button></td>';
-        body.appendChild(tr);
-        wireRemove(tr);
+        var last = body.querySelector("[data-item-row]");
+        if (!last) return;
+        var next = last.cloneNode(true);
+        next.querySelectorAll("input").forEach(function (input) {
+          input.value = input.getAttribute("data-item") === "num" || input.getAttribute("data-item") === "weight" ? "1" : "";
+        });
+        next.querySelectorAll("textarea").forEach(function (box) { box.value = ""; });
+        var head = next.querySelector(".item-head span");
+        if (head) head.textContent = "第 " + (body.querySelectorAll("[data-item-row]").length + 1) + " 件";
+        body.appendChild(next);
+        wireRemove(next);
         markDirty();
       });
     }
@@ -282,6 +292,12 @@
     root.querySelectorAll("[data-prose]").forEach(function (element) {
       var text = String(element.value || "").trim();
       if (text) lines.push(element.getAttribute("data-prose") + "：" + text);
+    });
+    // An item's condition is described one entry at a time; name the entry so the agent knows which.
+    root.querySelectorAll("[data-item-row]").forEach(function (row, index) {
+      var box = row.querySelector("[data-prose-item]");
+      var text = box ? String(box.value || "").trim() : "";
+      if (text) lines.push("第 " + (index + 1) + " 件的条件：" + text);
     });
     return lines;
   }

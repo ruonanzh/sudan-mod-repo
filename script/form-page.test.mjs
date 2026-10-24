@@ -74,8 +74,16 @@ test("a loot table gets a form page with every field, labelled", () => {
   for (const key of ["repeat", "type", "name"]) assert.match(page, new RegExp(`data-form="${key}"`), key);
   assert.match(page, /战利品表/, "the page names what it is");
   assert.match(page, /抽取次数|name/, "each row carries its Chinese label");
-  assert.match(page, /data-item-row/, "the repeated items are rows");
-  assert.equal((page.match(/data-item-row/g) || []).length, 2, "one row per item in the record");
+  assert.match(page, /data-item-row/, "the repeated items are blocks");
+  assert.equal((page.match(/data-item-row/g) || []).length, 2, "one block per item in the record");
+  assert.match(page, /第 1 件/, "each block says which item it is");
+  for (const text of ["普通权重：每一轮按权重抽一件", "必新：每一轮先去掉玩家已有的", "无放回：一次抽 m 件，不重复", "全部：表里所有符合条件的物品都给"]) {
+    assert.ok(page.includes(text), `the algorithm pick explains ${text}`);
+  }
+  assert.doesNotMatch(page, /<input data-item="condition"/, "an item's condition is described, not typed as JSON");
+  assert.match(page, /data-prose-item="condition"/, "each item carries its own sentence box");
+  assert.match(page, /<input data-item="id" data-kind="number" type="number"/, "the card id gets a full cell");
+  assert.match(page, /<h2>放什么<\/h2>\s*<div class="panel">/, "the heading sits outside the box, as on a card page");
   assert.match(page, /id="form-values"/, "the values live in one block the editor wrapper rewrites");
 });
 
@@ -86,6 +94,7 @@ test("a fate-shop entry gets a form page with JSON boxes for the nested fields",
     assert.match(page, new RegExp(`data-prose="${key}"`), `${key} is described in the player's words, not typed as JSON`);
     assert.doesNotMatch(page, new RegExp(`data-form="${key}"`), `${key} has no JSON box the player would have to write`);
   }
+
   assert.match(page, /<div class="readonly"><code>\{&quot;all&quot;/, "the current value is still shown, read-only");
   assert.match(page, /命运商店/, "the page names the shop");
   assert.match(page, /<select data-form="icon">/, "the icon is a pick of the two names the game resolves");

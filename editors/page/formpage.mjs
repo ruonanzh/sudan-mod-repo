@@ -14,7 +14,14 @@ export const FORM_FIELDS = {
   loot: {
     label: "战利品表",
     scalar: ["repeat", "type", "name"],
-    selects: { type: [["2", "2 · 简单权重"], ["3", "3 · 权重取出 m 份"], ["4", "4 · 加权无放回"], ["99", "99 · 全部给"]] },
+    selects: {
+      type: [
+        ["2", "2 · 普通权重：每一轮按权重抽一件"],
+        ["3", "3 · 必新：每一轮先去掉玩家已有的，再按权重抽一件"],
+        ["4", "4 · 无放回：一次抽 m 件，不重复"],
+        ["99", "99 · 全部：表里所有符合条件的物品都给"],
+      ],
+    },
     numbers: ["repeat"],
     items: "item",
   },
@@ -40,12 +47,16 @@ const FORM_CSS = `
 .lbl .key-zh { display: block; color: var(--ink); }
 .readonly { padding-top: 4px; }
 .panel .row:first-of-type { padding-top: 0; }
-.items th { text-align: left; font-weight: 600; font-size: 12.5px; color: var(--dim); padding: 4px 6px; }
-.items td { padding: 4px 6px; }
-.items input, .items select { width: 100%; box-sizing: border-box; }
-.items .pill { margin: 8px 0 0; }
-.items td:last-child { width: 1%; white-space: nowrap; }
-.items td:last-child .pill { margin: 0; padding: 2px 8px; }
+.item { border: 1px solid var(--rule); border-radius: 4px; padding: 10px 12px; margin-bottom: 10px; }
+.item-head { display: flex; align-items: center; justify-content: space-between; color: var(--dim); font-size: 12.5px; margin-bottom: 8px; }
+.item-head .pill { margin: 0; padding: 2px 8px; }
+.item-fields { display: grid; grid-template-columns: 150px 1fr 78px 78px; gap: 8px; }
+.item-fields .cell { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.item-fields .cell input, .item-fields .cell select { width: 100%; box-sizing: border-box; }
+.item-condition { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.item-condition textarea { width: 100%; box-sizing: border-box; }
+.item-condition .cur { color: var(--dim); font-size: 12px; margin-left: 6px; }
+#item-add { margin-top: 2px; }
 .only-host { color: var(--dim); font-size: 13px; margin-top: 16px; }
 `;
 
@@ -93,34 +104,44 @@ function control(kind, key, value, spec) {
   return `<input data-form="${esc(key)}" data-kind="${numeric ? "number" : "text"}" type="${numeric ? "number" : "text"}" value="${esc(show(value))}">`;
 }
 
-/** The loot table's repeated rows: one table row per entry, the same width as the value column. */
+/** The loot table's repeated rows: each entry is one block of two rows — numbers, then its condition. */
 function itemsPanel(value) {
-  const rows = Array.isArray(value) ? value : [];
-  const cells = (item) =>
-    ITEM_FIELDS.map((key) => {
-      const v = item?.[key];
-      const numeric = ITEM_NUMBERS.includes(key);
-      const input =
-        key === "type"
-          ? `<select data-item="${esc(key)}" data-kind="number">${["2", "3", "99", "4"]
-              .map((t) => `<option value="${t}"${String(v ?? 2) === t ? " selected" : ""}>${t}</option>`)
-              .join("")}</select>`
-          : `<input data-item="${esc(key)}" data-kind="${numeric ? "number" : "text"}" type="${numeric ? "number" : "text"}" value="${esc(show(v))}">`;
-      return `<td>${input}</td>`;
-    }).join("");
-  return `<div class="panel">
-<h2>放什么</h2>
-<div class="row" data-items style="border-bottom:0;padding-top:0">
-  <div class="lbl"><code>item</code><span class="key-zh">放什么</span></div>
-  <div class="val">
-    <p class="note" style="margin:0 0 6px">一行就是一件东西。加一行、删一行都可以，顺序就是抽取顺序。</p>
-    <table class="items"><thead><tr>${ITEM_FIELDS.map((k) => `<th>${esc(k)}</th>`).join("")}<th></th></tr></thead>
-    <tbody id="item-rows">${rows
-      .map((item) => `<tr data-item-row>${cells(item)}<td><button type="button" class="pill" data-item-remove>删除</button></td></tr>`)
-      .join("")}</tbody></table>
-    <button type="button" class="pill" id="item-add">加一行</button>
+  return `<h2>放什么</h2>
+<div class="panel">
+<p class="note" style="margin:0 0 10px">一行就是一件东西。加一件、删一件都可以，顺序就是抽签的顺序。</p>
+<div id="item-rows">${(Array.isArray(value) ? value : []).map((item, i) => itemBlock(item, i)).join("")}</div>
+<button type="button" class="pill" id="item-add">加一件</button>
+</div>`;
+}
+
+/** The four drawn-from namespaces, with the sentence that says what each one holds. */
+const ITEM_TYPES = [
+  ["card", "card · 卡"],
+  ["event", "event · 事件"],
+  ["rite", "rite · 仪式"],
+  ["loot", "loot · 另一张战利品表"],
+];
+
+/**
+ * One entry: type, id, count and weight on the first row, the condition the player describes on
+ * the second. The id gets the room, because a card id is seven digits and the old narrow cell cut it.
+ */
+function itemBlock(item = {}, index = 0) {
+  const cell = (key, label, input) =>
+    `<label class="cell"><span class="key-zh">${esc(label)}</span>${input}</label>`;
+  const current = item.condition === undefined ? "" : `<code class="cur">${esc(JSON.stringify(item.condition))}</code>`;
+  return `<div class="item" data-item-row>
+  <div class="item-head"><span>第 ${index + 1} 件</span><button type="button" class="pill" data-item-remove>删除</button></div>
+  <div class="item-fields">
+    ${cell("type", "类型", `<select data-item="type">${ITEM_TYPES.map(([v, text]) => `<option value="${v}"${String(item.type ?? "card") === v ? " selected" : ""}>${esc(text)}</option>`).join("")}</select>`)}
+    ${cell("id", "编号", `<input data-item="id" data-kind="number" type="number" value="${esc(show(item.id))}">`)}
+    ${cell("num", "数量", `<input data-item="num" data-kind="number" type="number" value="${esc(show(item.num))}">`)}
+    ${cell("weight", "权重", `<input data-item="weight" data-kind="number" type="number" value="${esc(show(item.weight))}">`)}
   </div>
-</div>
+  <div class="item-condition">
+    <span class="key-zh">条件${current}</span>
+    <textarea data-prose-item="condition" rows="2" spellcheck="false" placeholder="用你自己的话写：这件东西什么条件下才会进抽签。"></textarea>
+  </div>
 </div>`;
 }
 
