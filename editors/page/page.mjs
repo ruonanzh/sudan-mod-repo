@@ -622,17 +622,20 @@ export function artInline(modDir, id, rare, name, type, fontFamily) {
     : "";
   const { sources, art } = plateSources(modDir, id, type);
   const payload = JSON.stringify({ plates: sources, art, name, rare });
+  // The app mounts this page with every <script> stripped, so the payload rides on the element.
+  // The page's own script and the app wrapper both read it from here.
   // A 1×1 transparent GIF as the visible fallback: real bytes would be a second copy of the art.
   const BLANK = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-  return `<div style="position:relative;width:236px">
+  return `<div id="cardFace" data-payload="${esc(payload)}" style="position:relative;width:236px">
   <img id="cardStatic" src="${BLANK}" data-art="${art ? "1" : "0"}" style="width:236px;display:block;border:1px solid #57452c" alt="${esc(tier)} card">
   <canvas id="cardCanvas" width="236" height="514" style="display:none;border:1px solid #57452c"></canvas>
   <div id="cardName" style="position:absolute;left:5%;right:5%;top:3.5%;text-align:center;white-space:nowrap;overflow:hidden;font:700 ${nameFont(name)}px/1.05 ${nameFamily};color:#20180f;letter-spacing:0;text-shadow:0 1px 0 rgba(255,255,255,.3)">${esc(name)}</div>
 </div>${plateNote}
-<script type="application/json" id="cardPayload">${payload}</script>
 <script>
 (function () {
-  var payload = JSON.parse(document.getElementById("cardPayload").textContent);
+  var face = document.getElementById("cardFace");
+  if (!face) return;
+  var payload = JSON.parse(face.getAttribute("data-payload"));
   var canvas = document.getElementById("cardCanvas");
   var staticImg = document.getElementById("cardStatic");
   if (!canvas.getContext) return;                       // no canvas: keep the static card

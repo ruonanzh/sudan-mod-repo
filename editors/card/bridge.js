@@ -309,9 +309,68 @@
     el.textContent = names.map(function (n) { return n + " " + tag[n]; }).join("、");
   }
 
+  /**
+   * The card face is a canvas drawn from the single payload the page carries. Mounting strips the
+   * page's own script, so the wrapper draws it here; the same code runs on the page itself when it
+   * is opened from disk.
+   */
+  function wireCardFace(root) {
+    var face = root.querySelector("#cardFace");
+    var canvas = root.querySelector("#cardCanvas");
+    if (!face || !canvas || !canvas.getContext) return;
+    var plate = new Image();
+    var art = new Image();
+    var payload;
+    try {
+      payload = JSON.parse(face.getAttribute("data-payload") || "");
+    } catch (error) {
+      return;
+    }
+    var ctx = canvas.getContext("2d");
+    var wantPlate = payload.rare || 1;
+    var wantArt = Boolean(payload.art);
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (plate.complete && plate.naturalWidth) ctx.drawImage(plate, 0, 0, canvas.width, canvas.height);
+      if (wantArt && art.complete && art.naturalWidth) ctx.drawImage(art, 0, 0, canvas.width, canvas.height);
+    }
+    function reveal() {
+      var img = root.querySelector("#cardStatic");
+      if (img) img.style.display = "none";
+      canvas.style.display = "block";
+      draw();
+    }
+    plate.onload = reveal;
+    art.onload = reveal;
+    if (wantArt) {
+      var still = root.querySelector("#cardStatic");
+      if (still) still.src = payload.art;
+      art.src = payload.art;
+    }
+    plate.src = payload.plates[wantPlate];
+    var rareInput = root.querySelector('[data-field="rare"]');
+    if (rareInput) {
+      rareInput.addEventListener("change", function () {
+        var next = Number(rareInput.value) || 1;
+        if (!payload.plates[next]) return;
+        wantPlate = next;
+        plate.src = payload.plates[wantPlate];
+        draw();
+      });
+    }
+    var nameInput = root.querySelector('[data-field="name"]');
+    var nameBox = root.querySelector("#cardName");
+    if (nameInput && nameBox) {
+      nameInput.addEventListener("input", function () {
+        nameBox.textContent = nameInput.value;
+      });
+    }
+  }
+
   function wire(root) {
     if (!root || root.getAttribute("data-card-wired") === "1") return;
     root.setAttribute("data-card-wired", "1");
+    wireCardFace(root);
     root.addEventListener("input", function () {
       markDirty();
       refreshSummary();
