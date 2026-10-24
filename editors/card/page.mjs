@@ -639,7 +639,7 @@ ${saveBar}
   ${cardFace({ id, record, values, modDir })}
 <h2>画面 · 这张图画成什么</h2>
 <div class="panel">
-<div class="note" style="margin-top:0">只写主体：画谁、画什么、什么神态。构图、风格、透明底由生成配方补，不用写在这里。</div>
+<div class="note" style="margin-top:0">用你自己的话说这张卡该画成什么，也可以说上一版哪里要改。agent 会判断这是新画面还是改上一版，再把它写进提示词；构图、风格、透明底由配方补，不用写在这里。</div>
 <label class="art-lbl" for="card-art-prompt">卡面图的提示词</label>
 <textarea id="card-art-prompt" data-art-prompt="1">${esc(artPrompt)}</textarea>
 <div class="savebar" style="margin-top:10px">

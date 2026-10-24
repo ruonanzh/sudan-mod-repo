@@ -5,9 +5,12 @@ argument-hint: "[卡页路径]"
 玩家在卡页上点了「修改卡面图，通知 agent」。这一步只修改卡面图：不改这一页存下的值，不改标签，也不改 `config/cards.json` 里别的键。
 
 1. 参数 `${1:-<your_mods/<ModName>/.preview/<卡 id>.card.html>}` 是玩家开着的那一页。文件名去掉 `.card.html` 就是 `<卡 id>`，`.preview` 的上一级目录名就是 `<ModName>`。
-2. 这条消息的下一行是玩家写进页面的画面内容，格式是 `卡面图的提示词：「……」`。画什么以那一句为准，卡名与 `text` 里的描述不再塞回去。
-3. 按 `card-art` SKILL 的配方拼整段提示词：头部与尾部照抄，主体换成玩家那一句。参考图取 `reference/cards/<type>-<rare>.png`。
-4. 用 `generate_2d_asset` 生成预览：`action=generate`、`prompt=<整段>`、`refs=[<参考图>]`、`out=your_mods/<ModName>/.preview/card-<卡 id>.png`、`manifest=your_mods/<ModName>/asset_manifest.jsonl`。这个工具背后是 `tools/image.mjs`，画一张要花积分。
+2. 这条消息的下一行是玩家写的那句话，格式是 `卡面图的提示词：「……」`。**这句话是原料，不是最终提示词**：措辞由你写，并用 `card-art` 的配方补上头尾。
+3. 先判断玩家要的是哪种：
+   - **新画面**（描述这张卡该画成什么）→ 它替换主体，参考图取 `reference/cards/<type>-<rare>.png`。
+   - **改上一版**（例如「剑再细一点」「把雪去掉」）→ 把这张卡已有的 `image/cards/<卡 id>.png` 放进 `refs` 的第二位，并在提示词里写明「保持 image[2] 的构图与细节，只改：<玩家说的那处>」。没有旧图时按新画面处理，并说明这次是从零画的。
+   - 玩家的话有歧义、或两种都能解释时，先问一句再生成。
+4. 用 `generate_2d_asset` 生成预览：`action=generate`、`prompt=<你写好的整段>`、`refs=[<参考图>]`（改上一版时再加旧图）、`out=your_mods/<ModName>/.preview/card-<卡 id>.png`、`manifest=your_mods/<ModName>/asset_manifest.jsonl`。这个工具背后是 `tools/image.mjs`，画一张要花积分。
 5. 把预览图的路径给玩家，问他「就要这个吗」。玩家说不像时改主体重生成，不要改尾部常量。
 6. 玩家确认后：`generate_2d_asset` 的 `action=fit`（`width=472`、`height=1028`、`mode=cover`）裁出成品，再跑 `node tools/card.mjs art --mod your_mods/<ModName> --id <卡 id> --from <裁好的图>`。它写 `image/cards/<卡 id>.png` 并把这张卡的 `resource` 指向它，`resource` 不用再手改。
 7. `node tools/preview.mjs --mod your_mods/<ModName>` 重建页面，页面会自己重新载入，玩家马上能看到新图。
