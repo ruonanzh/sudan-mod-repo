@@ -321,13 +321,13 @@ export default function (pi: ExtensionAPI) {
             : [];
           const fresh = freshness.state === "fresh";
           const head = !fresh && problem
-            ? `PARTIAL: the dump is stale or incomplete. Expected ${dir}.`
+            ? `FAIL: the dump is stale or incomplete. Expected ${dir}.`
             : freshness.state === "missing"
-              ? `PARTIAL: no dump for this repository yet. Expected ${dir}.`
+              ? `FAIL: no dump for this repository yet. Expected ${dir}.`
               : !fresh
-                ? "PARTIAL: the dump is stale."
+                ? "FAIL: the dump is stale."
                 : problem
-                  ? `PARTIAL: the dump is current, but a rebuild would stop at ${problem.name}.`
+                  ? `FAIL: the dump is current, but a rebuild would stop at ${problem.name}.`
                   : `PASS: the dump is current. ${dir}`;
           const next = problem
             ? problemText(problem)
@@ -453,11 +453,13 @@ export default function (pi: ExtensionAPI) {
       } catch (error) {
         const message = (error as Error).message;
         // The rebuild and the runtime are prerequisites, not game answers. Their own messages
-        // already carry a NEXT step; keep them as PARTIAL so the agent runs it. Anything else
+        // already carry a NEXT step; answer FAIL so the agent runs it. Anything else
         // (an unreadable file, a crash) is an environment failure: throw, with a code.
         if (/^(DOTNET_TOO_OLD|GAME_NOT_FOUND|RUNTIME_MISSING|TOOL_MISSING)\b/.test(message)) {
+          // Not ready to answer, but a business answer all the same: the caller has to fix the
+          // environment, and the message already names the step. FAIL, not throw and not PARTIAL.
           return {
-            content: [{ type: "text", text: clipUtf8(message.replace(/^FAIL: /, "PARTIAL: ")) }],
+            content: [{ type: "text", text: clipUtf8(`FAIL: ${message}${/NEXT:/.test(message) ? "" : "\nNEXT: run check_runtime and install_runtime, then retry."}`) }],
             details: { ok: false, reason: "NOT_READY", dir, sha: game ? sha256File(game.binary).slice(0, 8) : null },
           };
         }

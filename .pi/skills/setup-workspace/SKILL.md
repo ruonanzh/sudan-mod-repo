@@ -44,7 +44,7 @@ macOS 的 `MyDocuments` 是 `$HOME`，Windows 的是 `%USERPROFILE%\Documents`�
 报证据，不报感觉。按实际做过的分支报：
 
 1. 必需：`node tools/paths.mjs check` 打出 `PASS`，或三个位置各一行 `OK`。`modInstallDir` 的证据是同级 `ModLog/__mod.log`，或父目录名为 `SultansGame` 且目录已存在。
-2. 做了 A：`status` 的 `PASS` 或 `PARTIAL` 行，加 `action=setup` 的 `PASS` 或 `SKIP`。没做就明说「不需要 dump 代码」。
+2. 做了 A：`status` 的 `PASS` 行（dump 不在或过期时是 `FAIL` 加 `NEXT`），加 `action=setup` 的 `PASS` 或 `SKIP`。没做就明说「不需要 dump 代码」。
 3. 做了 B：`--check` 说参考集完整。没做就明说 `reference/` 不用。
 
 ## 工具分工（不得混用。判据是同一份实现，见 `tools/paths.mjs`）
@@ -98,7 +98,7 @@ macOS 的 `MyDocuments` 是 `$HOME`，Windows 的是 `%USERPROFILE%\Documents`�
 inspect_game_code action=status
 ```
 
-`PASS` 表示 dump 是当前时。`PARTIAL` 是业务结果，不是工具错误：下一次 `search`、`type`、`body` 会在同一次调用里重建。
+`PASS` 表示 dump 是当前时。没有 dump 或 dump 过期时 `status` 报 `FAIL` 并给 `NEXT`：下一次 `search`、`type`、`body` 会在同一次调用里重建。
 `FAIL: no dump for this repository` 时下一步是 `action=dump`，`action=dump` 需要已安装的游戏与 .NET SDK。
 `status` 打出 `GAME_NOT_FOUND` 时，传一次安装路径：`inspect_game_code action=status game=<安装目录，或该目录里的 .app>`。路径会被记住，后续调用不用再传。
 
