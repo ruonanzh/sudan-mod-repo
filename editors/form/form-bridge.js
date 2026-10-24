@@ -276,6 +276,16 @@
     return "没发出去（" + code + "）：到对话里发 /page-edited " + state.key + "。";
   }
 
+  /** What the player wrote about the fields the page does not let them type as JSON. */
+  function proseOf(root) {
+    var lines = [];
+    root.querySelectorAll("[data-prose]").forEach(function (element) {
+      var text = String(element.value || "").trim();
+      if (text) lines.push(element.getAttribute("data-prose") + "：" + text);
+    });
+    return lines;
+  }
+
   function send() {
     if (!state.host || !state.writable || !state.root) return;
     var values;
@@ -286,16 +296,18 @@
       return;
     }
     var changed = changedValues(values);
-    if (!Object.keys(changed).length) {
+    var prose = proseOf(state.root);
+    if (!Object.keys(changed).length && !prose.length) {
       setStatus("还没有改动。", "dirty");
       return;
     }
     save().then(function (ok) {
       if (!ok) return;
       setText("form-status", "正在通知 agent…");
-      request("editor:sendPrompt", {
-        text: "/page-edited " + state.key + "\n改动：" + JSON.stringify(changed),
-      }).then(function (response) {
+      var lines = ["/page-edited " + state.key];
+      if (prose.length) lines.push("说明：", prose.map(function (line) { return "- " + line; }).join("\n"));
+      if (Object.keys(changed).length) lines.push("改动：" + JSON.stringify(changed));
+      request("editor:sendPrompt", { text: lines.join("\n") }).then(function (response) {
         if (response && response.type === "editor:sent") {
           setText("form-status", "已通知 agent，它按这些值写回记录，再让这一页重新生成。");
         } else {

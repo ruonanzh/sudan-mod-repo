@@ -82,9 +82,11 @@ test("a loot table gets a form page with every field, labelled", () => {
 test("a fate-shop entry gets a form page with JSON boxes for the nested fields", () => {
   const page = pages().upgrade;
   for (const key of ["name", "text", "cost", "icon", "link_card"]) assert.match(page, new RegExp(`data-form="${key}"`), key);
-  assert.match(page, /<textarea data-form="condition"/, "a condition is edited as JSON");
-  assert.match(page, /<textarea data-form="effect"/, "so is an effect");
-  assert.match(page, /<input data-form="incompatible"[^>]*type="number"/, "incompatible is one id, so it is a number box");
+  for (const key of ["condition", "effect", "incompatible"]) {
+    assert.match(page, new RegExp(`data-prose="${key}"`), `${key} is described in the player's words, not typed as JSON`);
+    assert.doesNotMatch(page, new RegExp(`data-form="${key}"`), `${key} has no JSON box the player would have to write`);
+  }
+  assert.match(page, /<div class="readonly"><code>\{&quot;all&quot;/, "the current value is still shown, read-only");
   assert.match(page, /命运商店/, "the page names the shop");
   assert.match(page, /<select data-form="icon">/, "the icon is a pick of the two names the game resolves");
   assert.match(page, /gain · 获得/, "the option shows the label the player sees beside the value to write");
@@ -107,6 +109,13 @@ test("the wrapper mounts into the host its stylesheet pads", () => {
   assert.match(bridge, /HOST_ID = "card-host"/, "the bridge mounts into that same host");
   assert.match(html, /id="card-hint"/, "the hint keeps the card page's id and text");
   assert.match(html, /改完点「发送给 Agent」：它会先保存这一页，再把改动发给 agent 写回配置。/, "the sentence is the card page's sentence");
+});
+
+test("the three described fields travel as the player's sentences", () => {
+  const bridge = read(path.join(REPO, "editors/form/form-bridge.js"));
+  assert.match(bridge, /querySelectorAll\("\[data-prose\]"\)/, "the bridge reads the sentence boxes");
+  assert.match(bridge, /lines.push\("说明："/, "the message carries them under 说明");
+  assert.match(bridge, /改动：/, "and the changed values still travel under 改动");
 });
 
 test("the record id never travels as a change", () => {

@@ -20,10 +20,11 @@ export const FORM_FIELDS = {
   },
   upgrade: {
     label: "命运商店",
-    scalar: ["name", "text", "cost", "icon", "link_card", "incompatible"],
+    scalar: ["name", "text", "cost", "icon", "link_card"],
     selects: { icon: [["gain", "gain · 获得"], ["buff", "buff · 增益"]] },
-    numbers: ["cost", "link_card", "incompatible"],
-    json: ["condition", "effect"],
+    numbers: ["cost", "link_card"],
+    /** Fields the player describes in their own words; the agent writes the JSON, not the page. */
+    prose: ["condition", "effect", "incompatible"],
   },
 };
 
@@ -47,6 +48,17 @@ const FORM_CSS = `
 .items td:last-child .pill { margin: 0; padding: 2px 8px; }
 .only-host { color: var(--dim); font-size: 13px; margin-top: 16px; }
 `;
+
+/** A row the player reads and describes: the value is shown, the sentence travels to the agent. */
+function proseRow(kind, key, value) {
+  const current = value === undefined ? "（还没有写）" : typeof value === "string" ? value : JSON.stringify(value);
+  return row(
+    key,
+    requireLabel(kind, key),
+    `<div class="readonly"><code>${esc(current)}</code></div>
+<textarea data-prose="${esc(key)}" rows="2" spellcheck="false" placeholder="用你自己的话写：要什么条件、加什么效果、和谁互斥"></textarea>`,
+  );
+}
 
 /** One row: key and its Chinese name on the left, the control and its sentence on the right. */
 function row(key, info, control) {
@@ -115,7 +127,7 @@ export function formPageHtml({ kind, id, record = {}, origin = "new", recordKey 
   const fields = [
     row("id", requireLabel(kind, "id"), `<div class="readonly">${esc(String(id))}</div>`),
     ...spec.scalar.map((field) => row(field, requireLabel(kind, field), control(kind, field, record[field], spec))),
-    ...(spec.json || []).map((field) => row(field, requireLabel(kind, field), control(kind, field, record[field], spec))),
+    ...(spec.prose || []).map((field) => proseRow(kind, field, record[field])),
   ].join("\n");
 
   // The wrapper mounts the element that carries `data-form-page`, so that element is the whole

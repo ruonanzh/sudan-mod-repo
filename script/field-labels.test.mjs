@@ -120,6 +120,17 @@ test("L4 a note is one sentence, not a paragraph", () => {
   assert.deepEqual(long, [], `notes must stay short, the detail belongs in the research: ${long.slice(0, 15).join(", ")}`);
 });
 
+test("L4b the shop notes name their subject instead of saying 它", () => {
+  const labels = loadLabels();
+  const bad = [];
+  for (const [key, entry] of Object.entries(labels.upgrade || {})) {
+    if (typeof entry.note !== "string") continue;
+    if (!/^(这个|这段)/.test(entry.note)) bad.push(`${key}: 开头没有主语`);
+    if (/它|其|该/.test(entry.note)) bad.push(`${key}: 用了指代`);
+  }
+  assert.deepEqual(bad, [], `shop notes must name their subject: ${bad.join(", ")}`);
+});
+
 // ---------------------------------------------------------------- labels follow the glossary
 
 /** Read the `terms:keys` table of the prompt standard: key -> the Chinese gloss we agreed on. */

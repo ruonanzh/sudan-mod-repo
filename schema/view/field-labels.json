@@ -531,47 +531,47 @@
   "upgrade": {
     "id": {
       "label": "编号",
-      "note": "这一条在商店里的身份，和它写的名称对不上时，效果永远不会生效。",
+      "note": "这个编号是这条升级在命运商店里的身份。编号与配置文件名对不上时，这条升级不会生效。",
       "from": "docs/sudan-game/fields/07-upgrade.md §`id` (level 2)"
     },
     "name": {
       "label": "名称",
-      "note": "命运商店这一行的标题，买不起时的报错文字也会带上它。",
+      "note": "这个名称是命运商店里这条升级的标题。玩家买不起时，提示文字也会带上这个名称。",
       "from": "docs/sudan-game/fields/07-upgrade.md §`name` (level 2)"
     },
     "text": {
       "label": "说明文字",
-      "note": "标题下面那段描述，是普通文字不带特殊格式，剧情解锁的说明也写在这里。",
+      "note": "这段说明显示在名称下面，只显示普通文字。剧情解锁的说明也写在这里。",
       "from": "docs/sudan-game/fields/07-upgrade.md §`text` (level 2)"
     },
     "cost": {
       "label": "价格",
-      "note": "用命运点付账，买的时候从总点数里扣掉并记进已用点数，原版都在 2 到 40 之间。",
+      "note": "这个价格是购买这条升级要花的命运点数。原版的价格都在 2 到 40 之间。",
       "from": "docs/sudan-game/fields/07-upgrade.md §`cost` (level 2)"
     },
     "condition": {
       "label": "显示条件",
-      "note": "只决定这一行能不能被看到，买不买得起由价格决定，它挡不住购买。",
+      "note": "这个显示条件决定这条升级能不能出现在命运商店里。这个条件不决定玩家能不能购买这条升级。",
       "from": "docs/sudan-game/fields/07-upgrade.md §`condition` (level 2)"
     },
     "icon": {
       "label": "图标类型",
-      "note": "写 gain 或 buff，界面分别显示为「获得」与「增益」；写别的名字，图标是空白。",
+      "note": "这个图标类型决定这条升级显示哪种类型徽章。原版只有 gain 与 buff 两种取值，界面分别显示「获得」与「增益」。",
       "from": "docs/sudan-game/fields/07-upgrade.md §`icon` (level 2)"
     },
     "link_card": {
       "label": "关联卡牌",
-      "note": "商品封面和点开看到的详情卡，指向不存在的卡时整条会被悄悄跳过。",
+      "note": "这个关联卡牌是商品封面与详情里显示的卡。这个卡牌不存在时，整条升级会被跳过。",
       "from": "docs/sudan-game/fields/07-upgrade.md §`link_card` (level 2)"
     },
     "effect": {
       "label": "效果操作",
-      "note": "不是买的时候生效，而是每次开新局时把已激活的项目按顺序再执行一遍。",
+      "note": "这个效果操作在每次开新局时执行。玩家购买这条升级时，游戏不执行这个效果。",
       "from": "docs/sudan-game/fields/07-upgrade.md §`effect` (level 2)"
     },
     "incompatible": {
       "label": "互斥项目",
-      "note": "写另一条升级项的编号，买或激活时会把对方取消掉且不退款，留 0 表示没有对手。",
+      "note": "这个互斥项目是另一条命运商店升级的编号。玩家购买或激活这条升级时，游戏把那条升级的状态改成 0，并且不退款。",
       "from": "docs/sudan-game/fields/07-upgrade.md §`incompatible` (level 2)"
     }
   },
