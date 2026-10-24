@@ -66,10 +66,4 @@
 
 ## 汇报前先自验
 
-这里没有东西能编译，所以「做完了」这个说法需要三件证据：
-
-1. `node tools/lint.mjs your_mods/<ModName>` 退出码为 0。原版并不干净：随包数据里有一个文件的 `settlement`（正常结算）分支是死分支，还有两个操作指向不存在的 id。`schema/SCHEMA.md` 列了它们，所以那里报错不是你的 bug。
-2. mod 已安装，且玩家已启用。它的 `_local.log` 里有 `read mod <name> file: config/<你改的东西>`。
-3. 改动在游戏里看得见。按玩家操作过的卡或仪式 id 去读日志。
-
-lint 干净加日志干净，并不能证明改动在游戏里看得见。问玩家看到了什么，不要拿信心填这个缺口。
+「做完了」不是一种感觉，是三件证据：`validate_mod` 通过、mod 已安装且玩家已启用、玩家确认改动在游戏里看得见。三步怎么做，写在 `.pi/skills/mod-creator/` 的验收一节与 `.pi/skills/mod-installer/` 里；这一节只说它们缺一不可。

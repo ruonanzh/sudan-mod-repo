@@ -156,6 +156,7 @@ description: 写苏丹的游戏 mod、改苏丹的游戏 mod 的主参考。在�
 - `FAIL`：有硬错误，按消息改。
 - `PARTIAL`：跑过的规则全过，但**没找到原版 `config`**，所以 id 冲突与标签检查没跑。先跑 `check_game_paths` 看缺哪一项，补上 `vanilla` 再验一次，不许当 `PASS` 用。
 - `PASS`：规则全过。它不证明游戏会加载这个 mod，安装与实机验收另算。
+- 原版自己也不干净：随包数据里有一条死结算分支、两个指向不存在 id 的操作。`schema/SCHEMA.md` 的 Known defects 一节列了它们，所以拿原版目录跑 lint 也不是零错误。
 
 然后安装、启用，读 `~/DoubleCross/SultansGame/ModLog/<mod name>_local.log`。你要看到你改过的每个文件都有 `read mod <name> file: config/<file>`，并且没有 `mod <name> info.json invalid`。
 
