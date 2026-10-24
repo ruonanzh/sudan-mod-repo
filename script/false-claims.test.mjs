@@ -115,3 +115,18 @@ test("an illegal call throws; a business answer does not", async () => {
   const inspect = await loadExtension("inspect-game-code.ts");
   await assert.rejects(inspect.execute("c", { action: "search" }, undefined, undefined, { cwd: REPO }), /TARGET_MISSING/);
 });
+
+test("inspect_game_code caps content at 50 KB and says so in its description", async () => {
+  const inspect = await loadExtension("inspect-game-code.ts");
+  assert.match(inspect.description, /50 KB/, "the limit is stated where the agent reads it");
+  const target = "A".repeat(60 * 1024);
+  let result;
+  try {
+    result = await inspect.execute("c", { action: "search", target }, undefined, undefined, { cwd: REPO });
+  } catch (error) {
+    if (/GAME|DUMP|CONFIG|not found/i.test(String(error && error.message))) return; // no dump on this machine
+    throw error;
+  }
+  const text = result.content.map((c) => c.text).join("\n");
+  assert.ok(Buffer.byteLength(text, "utf8") <= 50 * 1024 + 32, `${Buffer.byteLength(text, "utf8")} bytes`);
+});

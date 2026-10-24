@@ -33,10 +33,11 @@ export default function (pi: ExtensionAPI) {
     name: "inspect_game_code",
     label: "Inspect Game Code",
     description:
-      "Read the game's code from the local decompiled dump. Actions: status, search, type, body, strings, dump, setup. The dump is rebuilt automatically when the installed game binary, its metadata, or decompile.json changed; a different tool build alone does not trigger a rebuild. setup fetches the tool that produces method bodies. The tool writes inside the product data root, and records the game directory you pass in game in this workspace's state file; it never changes the game or the mod.",
+      "Read the game's code from the local decompiled dump. Actions: status, search, type, body, strings, dump, setup. The dump is rebuilt automatically when the installed game binary, its metadata, or decompile.json changed; a different tool build alone does not trigger a rebuild. setup fetches the tool that produces method bodies. The tool writes inside the product data root, and records the game directory you pass in game in this workspace's state file; it never changes the game or the mod. Every result is capped at 50 KB of UTF-8 text: a long answer is cut and the cut is marked, so ask for a narrower target instead of a wider one.",
     promptSnippet: "Read game code from the local dump (types, bodies, strings), and dump more assemblies",
     promptGuidelines: [
       "Use inspect_game_code to read game code from the dump, and to dump more assemblies.",
+      "inspect_game_code returns at most 50 KB of text per call, in UTF-8 bytes. When a result ends with a truncation marker, narrow the target, or ask for one type or one method, rather than rereading.",
       "inspect_game_code reads signature data with search and type. For IL2CPP games, body returns ISIL pseudo-code, not C#: it has no field or local names, and its field offsets are decimal (40 is 0x28). Do not treat ISIL as source.",
       "inspect_game_code rebuilds the dump by itself when the installed game binary, its metadata, or decompile.json changed, and says in the result when it ran and how long it took. Do not rebuild the dump some other way.",
       "inspect_game_code dump writes the assemblies in decompile.json. Pass assemblies= to add one for this dump; a wider set costs disk and time.",
@@ -94,7 +95,7 @@ export default function (pi: ExtensionAPI) {
         cfg = loadConfig(cwd);
       } catch (error) {
         return {
-          content: [{ type: "text", text: `FAIL: ${(error as Error).message}` }],
+          content: [{ type: "text", text: clipUtf8(`FAIL: ${(error as Error).message}`) }],
           details: { ok: false, reason: "CONFIG" },
         };
       }
@@ -257,7 +258,7 @@ export default function (pi: ExtensionAPI) {
           );
         } catch (error) {
           return {
-            content: [{ type: "text", text: `FAIL: ${(error as Error).message}` }],
+            content: [{ type: "text", text: clipUtf8(`FAIL: ${(error as Error).message}`) }],
             details: { ok: false, reason: "SETUP" },
           };
         } finally {
@@ -387,7 +388,7 @@ export default function (pi: ExtensionAPI) {
           const file = join(dumper, "stringliteral.json");
           if (!existsSync(file)) {
             return {
-              content: [{ type: "text", text: `FAIL: this dump has no stringliteral.json (${file}).` }],
+              content: [{ type: "text", text: clipUtf8(`FAIL: this dump has no stringliteral.json (${file}).`) }],
               details: { ok: false, reason: "NO_STRINGS" },
             };
           }
@@ -404,7 +405,7 @@ export default function (pi: ExtensionAPI) {
             content: [
               {
                 type: "text",
-                text: `FAIL: no type named "${params.target}" in this dump.\nNEXT: action=search target=<substring> to get the real name.`,
+                text: clipUtf8(`FAIL: no type named "${params.target}" in this dump.\nNEXT: action=search target=<substring> to get the real name.`),
               },
             ],
             details: { ok: false, reason: "TYPE_NOT_FOUND" },
@@ -426,7 +427,7 @@ export default function (pi: ExtensionAPI) {
             content: [
               {
                 type: "text",
-                text: `FAIL: this type has no method bodies in the dump (no ISIL file).\nNEXT: action=type target=${params.target} shows its signature.`,
+                text: clipUtf8(`FAIL: this type has no method bodies in the dump (no ISIL file).\nNEXT: action=type target=${params.target} shows its signature.`),
               },
             ],
             details: { ok: false, reason: "NO_BODY" },
@@ -439,7 +440,7 @@ export default function (pi: ExtensionAPI) {
             content: [
               {
                 type: "text",
-                text: `FAIL: no method matches "${params.member ?? ""}" in ${params.target}.\n# methods in this type:\n${truncate(all.join("\n"), 80)}`,
+                text: clipUtf8(`FAIL: no method matches "${params.member ?? ""}" in ${params.target}.\n# methods in this type:\n${truncate(all.join("\n"), 80)}`),
               },
             ],
             details: { ok: false, reason: "METHOD_NOT_FOUND" },
@@ -455,7 +456,7 @@ export default function (pi: ExtensionAPI) {
       } catch (error) {
         const message = (error as Error).message;
         return {
-          content: [{ type: "text", text: `FAIL: ${message}` }],
+          content: [{ type: "text", text: clipUtf8(`FAIL: ${message}`) }],
           details: { ok: false, reason: "DUMP", dir, sha: game ? sha256File(game.binary).slice(0, 8) : null },
         };
       }
