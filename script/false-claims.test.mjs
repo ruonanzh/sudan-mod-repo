@@ -4,10 +4,14 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { REPO, cleanupAll, makeMod } from "./lib/fixture.mjs";
+import { DEFAULT_VANILLA } from "../tools/model.mjs";
+
+const VANILLA = String(DEFAULT_VANILLA).replace(/^~/, process.env.HOME || "");
+const skip = existsSync(path.join(VANILLA, "cards.json")) ? false : "the game's config is not installed on this machine";
 import { loadExtension } from "./lib/load-extension.mjs";
 import { referenceStatus, CARD_REFS } from "../tools/setup.mjs";
 
@@ -74,4 +78,40 @@ test("validate_mod keeps content under 50 KB even when every message is Chinese"
   assert.ok(Buffer.byteLength(text, "utf8") <= 50 * 1024, `content is ${Buffer.byteLength(text, "utf8")} bytes`);
   assert.match(text, /output truncated/, "the cut is labelled");
   assert.ok(JSON.stringify(result.details).includes(longKey), "details keep the whole message");
+});
+
+test("lint says a sprite is not in this mod, and does not claim it exists in vanilla", { skip }, async () => {
+  const { spawnSync } = await import("node:child_process");
+  const mod = makeMod({
+    "config/cards.json": JSON.stringify({ 9000503: { id: 9000503, type: "item", rare: 2, resource: ["cards/9999999"] } }),
+  });
+  const r = spawnSync(process.execPath, [path.join(REPO, "tools/lint.mjs"), mod, "--vanilla", VANILLA], { encoding: "utf8" });
+  assert.match(r.stdout, /SPRITE_VANILLA/);
+  assert.match(r.stdout, /not in this mod/);
+  assert.doesNotMatch(r.stdout, /reuses sprite/, "the old claim is gone");
+});
+
+test("validate_mod keeps its NEXT line even when the report is truncated", async () => {
+  const longKey = "键".repeat(400);
+  const files = {};
+  for (let i = 0; i < 40; i++) {
+    files[`config/event/99006${String(i).padStart(2, "0")}.json`] = JSON.stringify({
+      id: Number(`99006${String(i).padStart(2, "0")}`),
+      on: { round_begin_ba: 1 },
+      [`${longKey}${i}`]: 1,
+    });
+  }
+  const tool = await loadExtension("mod-lint.ts");
+  const result = await tool.execute("c", { modDir: makeMod(files) }, undefined, undefined, { cwd: REPO });
+  const text = result.content.map((c) => c.text).join("\n");
+  assert.match(text, /output truncated/);
+  assert.match(text, /NEXT: /, "the next step survives the cut");
+  assert.ok(Buffer.byteLength(text, "utf8") <= 50 * 1024 + 32);
+});
+
+test("an illegal call throws; a business answer does not", async () => {
+  const generate = await loadExtension("generate-2d-asset.ts");
+  await assert.rejects(generate.execute("c", { action: "generate", prompt: "x" }, undefined, undefined, { cwd: REPO }), /INVALID_ARGS/);
+  const inspect = await loadExtension("inspect-game-code.ts");
+  await assert.rejects(inspect.execute("c", { action: "search" }, undefined, undefined, { cwd: REPO }), /TARGET_MISSING/);
 });

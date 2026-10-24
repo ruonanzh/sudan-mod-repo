@@ -16,6 +16,11 @@ import { InstallError, installFolder, walk } from "../lib/mod-files";
 import { ascii, clipUtf8 } from "../lib/clip";
 import { absolute, identity, sameOrNested } from "../lib/workspace";
 
+/** A thrown message is shown to the agent as text too: escape it like any other content. */
+const fail = (message: string): never => {
+  throw new Error(ascii(clipUtf8(message)));
+};
+
 export default function (pi: ExtensionAPI) {
   pi.registerTool({
     name: "install_mod",
@@ -42,11 +47,11 @@ export default function (pi: ExtensionAPI) {
 
       const source = absolute(cwd, raw);
       if (!statSync(source, { throwIfNoEntry: false })?.isDirectory()) {
-        throw new Error(`INVALID_MOD_DIR: ${source} is not a directory. Check the path.`);
+        fail(`INVALID_MOD_DIR: ${source} is not a directory. Check the path.`);
       }
       const infoFile = path.join(source, "info.json");
       if (!existsSync(infoFile)) {
-        throw new Error(
+        fail(
           `INVALID_MOD: ${source} has no info.json. The game only loads a folder with a valid info.json; fix the mod first.`,
         );
       }
@@ -59,7 +64,7 @@ export default function (pi: ExtensionAPI) {
         info = (toPlain(doc, doc.root) ?? {}) as typeof info;
         if (typeof info !== "object" || info === null) throw new Error("info.json holds no object");
       } catch (error) {
-        throw new Error(`INVALID_MOD: ${infoFile} is not readable JSONC (${(error as Error).message}). Fix info.json first.`);
+        fail(`INVALID_MOD: ${infoFile} is not readable JSONC (${(error as Error).message}). Fix info.json first.`);
       }
       if (info.name !== undefined && typeof info.name !== "string") {
         throw new Error(`INVALID_MOD: info.json has a non-string "name". Give it a display name, then retry.`);
@@ -106,20 +111,20 @@ export default function (pi: ExtensionAPI) {
       // and an install target that happens to sit inside it would break that rule through the one
       // tool whose job is writing.
       if (sameOrNested(identity(cwd), identity(target))) {
-        throw new Error(
+        fail(
           `UNSAFE_TARGET: the install directory ${shorten(target)} is inside the workspace ${shorten(cwd)}. Install into the game's mod folder, not into the repo.`,
         );
       }
       const relative = path.relative(root.path, target);
       if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
-        throw new Error(
+        fail(
           `UNSAFE_TARGET: ${target} is not inside the mod install directory ${root.path}. Refusing to copy.`,
         );
       }
       // Compare real paths, not spellings: a symlink or a `..` in the argument would otherwise
       // pass the string test and let the copy delete its own source.
       if (sameOrNested(identity(source), identity(target))) {
-        throw new Error(
+        fail(
           `UNSAFE_TARGET: ${source} and ${target} are the same folder (or one holds the other). Refusing to copy.`,
         );
       }
@@ -138,7 +143,7 @@ export default function (pi: ExtensionAPI) {
           : backup
             ? `The previous copy could not be put back; it is at ${backup}. Copy it back by hand before running the game.`
             : "Nothing was installed, and there was no previous copy to restore.";
-        throw new Error(`INSTALL_FAILED: could not write ${target} (${detail}). ${state} Close the game if it is running and run install_mod again.`);
+        fail(`INSTALL_FAILED: could not write ${target} (${detail}). ${state} Close the game if it is running and run install_mod again.`);
       }
 
       const folderName = path.basename(source);

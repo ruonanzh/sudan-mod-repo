@@ -75,10 +75,9 @@ test("G6 refs lists what is missing", async () => {
   assert.match(textOf(r), /two\.png/);
 });
 
-test("G7 a generation with no out is refused before any network call", async () => {
+test("G7 a generation with no out is refused as a tool error before any network call", async () => {
   const home = dir();
-  const r = await run({ action: "generate", prompt: "x" }, home);
-  const text = textOf(r);
-  assert.match(text, /out|NO_OUT/);
+  // A missing argument is the caller's mistake, so the tool throws instead of answering FAIL.
+  await assert.rejects(run({ action: "generate", prompt: "x" }, home), /out|NO_OUT/);
   assert.ok(!existsSync(path.join(home, "image")), "nothing was written under image/");
 });

@@ -3,6 +3,7 @@ import { Type } from "typebox";
 import { probeDotnet } from "../lib/dotnet";
 import { serialize } from "../lib/proc";
 import { readModRepoConfig, writeState, expandHome, platformKey } from "../lib/state";
+import { clipUtf8 } from "../lib/clip";
 import {
   buildDump,
   checkFreshness,
@@ -83,6 +84,11 @@ export default function (pi: ExtensionAPI) {
     }),
     async execute(_toolCallId, params, _signal, onUpdate, ctx) {
       const cwd = ctx.cwd;
+      // Illegal calls throw before the work starts. Inside the try below every error becomes a
+      // FAIL line, which reads as a game answer ("no such type") rather than a caller mistake.
+      const NEEDS_TARGET = new Set(["search", "type", "body", "strings"]);
+      if (NEEDS_TARGET.has(params.action) && !params.target)
+        throw new Error(`TARGET_MISSING: action=${params.action} needs target=<name>.`);
       let cfg;
       try {
         cfg = loadConfig(cwd);
@@ -214,13 +220,15 @@ export default function (pi: ExtensionAPI) {
       };
 
       const dir = dumpDir(cwd);
+      // Every action funnels through this, so the 50 KB ceiling is applied once, on the finished
+      // text. A long `target` is echoed into the result and must not decide the size by itself.
       const wrap = (text: string, details: Record<string, unknown> = {}) => ({
-        content: [{ type: "text", text }],
+        content: [{ type: "text", text: clipUtf8(text) }],
         details: { ok: true, ...details },
       });
       /** A business result that did not pass is still a result, not an error. */
       const failed = (text: string, details: Record<string, unknown> = {}) => ({
-        content: [{ type: "text", text }],
+        content: [{ type: "text", text: clipUtf8(text) }],
         details: { ok: false, ...details },
       });
 
@@ -245,7 +253,7 @@ export default function (pi: ExtensionAPI) {
               `  sha256 ${done.sha256.slice(0, 16)}${done.signed ? " (signed locally, so it differs from the published digest)" : ""}`,
               ...done.attempts.map((a) => `  source: ${a}`),
             ].join("\n"),
-            { status: done.status, path: done.path },
+            { path: done.path },
           );
         } catch (error) {
           return {
@@ -360,13 +368,6 @@ export default function (pi: ExtensionAPI) {
               .join("\n"),
             { dir, seconds: built.seconds, coverage: kept },
           );
-        }
-
-        if (!params.target) {
-          return {
-            content: [{ type: "text", text: `FAIL: action=${params.action} needs target=<name>.` }],
-            details: { ok: false, reason: "TARGET_MISSING" },
-          };
         }
 
         const note = await refreshNote();

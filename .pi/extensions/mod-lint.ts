@@ -8,7 +8,7 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
-import { ascii, clipUtf8 } from "../lib/clip";
+import { MAX_CONTENT_BYTES, ascii, clipUtf8 } from "../lib/clip";
 import { existsSync, statSync } from "node:fs";
 import path from "node:path";
 import { pathsFile, vanillaRequirement } from "../../tools/paths.mjs";
@@ -129,22 +129,18 @@ export default function (pi: ExtensionAPI) {
       if (results.length > shown.length) {
         lines.push(`... (${results.length - shown.length} more messages; details.results has all ${results.length})`);
       }
-      if (status === "FAIL") {
-        lines.push(
-          "NEXT: fix the FAIL messages, then run validate_mod again. This tool did not edit the mod; nothing is installed.",
-        );
-      } else if (status === "PARTIAL") {
-        lines.push(
-          "NEXT: the vanilla config was not found, so id-collision and tag checks did not run. Run check_game_paths to see which sentinel is missing, then pass vanilla=<config dir> to validate_mod, or record the game directory with set_game_dir (vanilla is derived from it).",
-        );
-      } else {
-        lines.push(
-          "NEXT: the mod passes lint. Install it and confirm the game loads it; a clean lint does not prove the change is visible in the game.",
-        );
-      }
+      const next =
+        status === "FAIL"
+          ? "NEXT: fix the FAIL messages, then run validate_mod again. This tool did not edit the mod; nothing is installed."
+          : status === "PARTIAL"
+            ? "NEXT: the vanilla config was not found, so id-collision and tag checks did not run. Run check_game_paths to see which sentinel is missing, then pass vanilla=<config dir> to validate_mod, or record the game directory with set_game_dir (vanilla is derived from it)."
+            : "NEXT: the mod passes lint. Install it and confirm the game loads it; a clean lint does not prove the change is visible in the game.";
+      // The report is clipped, then the verdict and its next step are appended: a long report must
+      // never be able to push the line that says what to do out of the result.
+      const body = clipUtf8(lines.join("\n"), MAX_CONTENT_BYTES - Buffer.byteLength(`\n${next}`, "utf8"));
 
       return {
-        content: [{ type: "text", text: clipUtf8(lines.join("\n")) }],
+        content: [{ type: "text", text: `${body}\n${next}` }],
         details: {
           ok: status === "PASS",
           counts,

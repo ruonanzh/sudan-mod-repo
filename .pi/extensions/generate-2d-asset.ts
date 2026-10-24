@@ -15,7 +15,7 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
-import { clipUtf8 } from "../lib/clip";
+import { ascii, clipUtf8 } from "../lib/clip";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { runAsync } from "../lib/proc";
@@ -43,7 +43,7 @@ export default function (pi: ExtensionAPI) {
     promptSnippet: "Draw, crop, or verify a 2D picture (generate / fit / check / refs)",
     promptGuidelines: [
       "generate_2d_asset with action=generate writes the picture to out. Write previews into .preview/ and show them from the page; the page is where the player confirms a card picture. That tool never edits a game record.",
-      "generate_2d_asset with action=fit changes only the size, never the content. When a picture is the wrong shape, fix the prompt or use fit; do not ask for a redraw to change its size.",
+      "generate_2d_asset with action=fit changes how the picture is framed: cover fills the target and crops the overflow, contain fits inside and adds transparent bands. It never redraws the contents; when the contents are wrong, change the prompt.",
       "generate_2d_asset with task= downloads an existing task and spends nothing. Reuse it to crop or copy the same picture again instead of drawing a second one.",
     ],
     parameters: Type.Object({
@@ -79,6 +79,10 @@ export default function (pi: ExtensionAPI) {
       const cwd = ctx.cwd;
       // Resolved from this file, not from the caller's cwd: the tool lives beside the repo's tools.
       const cli = fileURLToPath(new URL("../../tools/image.mjs", import.meta.url));
+      // An illegal call is a tool error, not an answer about the picture. Check it before any work:
+      // "there is no out" is the caller's mistake, and the CLI's FAIL would read like a draw failure.
+      if ((params.action === "generate" || params.action === "fit") && !params.out?.trim())
+        throw new Error(`INVALID_ARGS: action=${params.action} needs out=<file>; nothing was written.`);
       const args: string[] = [params.action];
       const push = (name: string, value: unknown) => {
         if (value === undefined || value === null || value === "" || value === false) return;
@@ -123,13 +127,14 @@ export default function (pi: ExtensionAPI) {
         // The CLI reports FAIL on its own; a spawn failure is ours to explain.
         const e = error as Error & { stdout?: string; stderr?: string; code?: string };
         if (e.code === "ENOENT") throw new Error("tools/image.mjs is missing from this workspace; run setup-workspace or update the workspace.");
-        const text = summarize({ stdout: e.stdout || "", stderr: e.stderr || "" });
-        // The CLI exits 1 for WARN and FAIL too: both are answers, not spawn failures.
-        if (/(^|\n)(PASS|WARN|FAIL)/.test(text)) return { content: [{ type: "text" as const, text }] };
-        throw new Error(text || e.message);
+        const raw = `${e.stdout || ""}${e.stderr || ""}`.trim();
+        // The CLI exits 1 for WARN and FAIL too: both are answers, not spawn failures. Decide on the
+        // whole text; clipping first could hide the FAIL line and turn an answer into a thrown error.
+        if (/(^|\n)(PASS|WARN|FAIL)/.test(raw)) return { content: [{ type: "text" as const, text: clipUtf8(ascii(raw)) }] };
+        throw new Error(clipUtf8(ascii(raw || e.message)));
       }
 
-      return { content: [{ type: "text" as const, text: summarize(result) }] };
+      return { content: [{ type: "text" as const, text: clipUtf8(ascii(summarize(result))) }] };
     },
   });
 }
