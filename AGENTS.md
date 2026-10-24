@@ -8,18 +8,16 @@
 
 这些是固定的。记错会白白浪费回合。
 
-- **mod 根目录在本仓之外。**
-  macOS：`~/DoubleCross/SultansGame/Mod/`
-  Windows：`%USERPROFILE%\Documents\DoubleCross\SultansGame\Mod\`
-  游戏用 `Path.Combine(GetFolderPath(MyDocuments), Application.companyName, "SultansGame", "Mod")` 推出它。`MyDocuments` 在 macOS 上是 `$HOME`，在 Windows 上是 `Documents`。差别只有这一处。
-  在 `your_mods/` 里干活。安装就是把文件复制到 mod 根目录，之后玩家还要在游戏内的面板里启用这个 mod。不要把文件夹放进去就当作它会被加载。
+- **mod 只写在 `your_mods/`，不要写进游戏的 mod 根目录。** 路径与安装见 `setup-workspace` 与 `mod-installer`。
+
+- **`.gamer-agent.local.json` 是本机记录，不是项目文件。** 它记游戏目录、工坊内容目录、mod 安装目录与 dotnet 路径，由路径工具与 `check_runtime` 读写，已在 `.gitignore` 里。不要手写、不要提交；路径不对时用工具重记，不要自己改这个文件。
 
 - **游戏自己的日志是最快的诊断入口。**
   `~/DoubleCross/SultansGame/ModLog/__mod.log` 是全局消息，`~/DoubleCross/SultansGame/ModLog/<mod name>_local.log` 是单个 mod 的消息。加载器每读一个文件写一行 `read mod <name> file: config/...`，每找一个缺的文件写一行 `mod <name> file not exists: config/...`。缺文件是 **Warning**，不是错误。先读日志，再猜。
 
 - **不要自己在 mod 根目录里造「已启用列表」。** 哪些 mod 启用由游戏自己记（内存里的 `Global.mods`），玩家在游戏内面板里勾选。mod 不需要任何启用记录文件；伪造一个只会让状态和游戏不一致。
 
-- **mod 只提供数据。** 没有 `.dll`、没有 `.cs`、没有脚本、没有 AssetBundle。想要的改动如果不能用下面的数据键表达，就是做不到 —— 这时要说做不到，而不是编一条代码路线。有一个热门 mod 随包提供 `code/` 目录，里面全是 Python，游戏从不读它。
+- **mod 只提供数据。** 没有 `.dll`、没有 `.cs`、没有脚本、没有 AssetBundle。想要的改动如果不能用下面的数据键表达，就是做不到 —— 这时要说做不到，而不是编一条代码路线。
 
 - **脚本优先用 `node`。** 产品自带 node。`tools/lint.mjs` 无依赖。
 
