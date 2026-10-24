@@ -25,6 +25,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { openMod, locate, validateRecord, ModelError } from "../../tools/model.mjs";
 import { parseJsonc } from "../../tools/lint.mjs";
+import { parseDoc, findEntries } from "../../tools/jsonc.mjs";
 import { buildGraph } from "../../tools/graph.mjs";
 import { renderPage, payload, detailScript, writePage } from "../graph/graphpage.mjs";
 import { DEFAULT_VANILLA } from "../../tools/model.mjs";
@@ -123,10 +124,23 @@ export function saveNode(mod, kind, id, source) {
   }
 
   if (where.style === "table" || where.style === "single") {
-    // Table files hold many records: load (or start) the table, replace the one key.
-    const base = existsSync(target) ? parseJsonc(readFileSync(target, "utf8")).value : {};
-    base[id] = record;
-    writeFileSync(target, `${JSON.stringify(base, null, 1)}\n`);
+    // Table files hold many records, comments, trailing commas and duplicate keys. Rewriting the
+    // whole table as JSON threw all of that away, so only this record's value is replaced.
+    const text = existsSync(target) ? readFileSync(target, "utf8") : "{\n}\n";
+    const doc = parseDoc(text);
+    if (doc.root.type !== "object") return { ok: false, error: "这一页的表文件根节点不是对象" };
+    const entries = findEntries(doc.root, String(id));
+    const literalText = JSON.stringify(record, null, 2)
+      .split("\n")
+      .map((line, i) => (i === 0 ? line : `${doc.entryIndent(doc.root)}${line}`))
+      .join("\n");
+    if (entries.length) {
+      // The game reads the last duplicate, so the last one is the record the page showed.
+      doc.set(entries[entries.length - 1].value, literalText);
+    } else {
+      doc.appendSource(String(id), `"${id}": ${literalText}`);
+    }
+    writeFileSync(target, doc.render());
   } else {
     writeFileSync(target, source.endsWith("\n") ? source : `${source}\n`);
   }

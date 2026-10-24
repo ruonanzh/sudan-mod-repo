@@ -71,6 +71,15 @@ test("install_mod leaves the asset manifest and previews behind", async () => {
   assert.equal(existsSync(path.join(target, ".preview")), false);
 });
 
+test("install_mod reads info.json the way lint does: comments, a BOM and a trailing comma are fine", async () => {
+  const root = modRoot();
+  const cwd = workspace(root);
+  const mod = makeMod({});
+  writeFileSync(path.join(mod, "info.json"), '\ufeff{\n  // 显示名\n  "name": "断剑卡面探针",\n  "version": "1.0.0",\n}\n');
+  const result = await run(await get(), { modDir: mod }, cwd);
+  assert.equal(result.details.status, "PASS", textOf(result));
+});
+
 test("install_mod refuses a folder with no info.json", async () => {
   const root = modRoot();
   const cwd = workspace(root);
@@ -84,7 +93,7 @@ test("install_mod refuses malformed info.json", async () => {
   const cwd = workspace(root);
   const mod = makeMod({});
   writeFileSync(path.join(mod, "info.json"), "{ not json");
-  await assert.rejects(run(await get(), { modDir: mod }, cwd), /is not valid JSON/);
+  await assert.rejects(run(await get(), { modDir: mod }, cwd), /is not readable JSONC/);
 });
 
 test("install_mod reports PARTIAL when no mod directory is recorded", async () => {

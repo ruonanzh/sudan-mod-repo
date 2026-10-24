@@ -103,10 +103,15 @@ class Doc {
     }
     const nl = this.text.indexOf("\n", last.value.end);
     const at = nl === -1 || nl > this.root.closeBrace ? this.root.closeBrace : nl + 1;
-    this.applyEdit([
-      { start: last.value.end, end: last.value.end, text: "," },
-      { start: at, end: at, text: `${indent}${entrySource}\n` },
-    ]);
+    // JSONC allows a trailing comma after the last entry. When the file already has one, adding
+    // another produces `,,` — a file the game cannot read. Look at what sits between the value
+    // and the insertion point: a comma there means "already separated".
+    const between = this.text.slice(last.value.end, at);
+    const hasComma = /,/.test(between.replace(/\/\/[^\n]*/g, ""));
+    const edits = [];
+    if (!hasComma) edits.push({ start: last.value.end, end: last.value.end, text: "," });
+    edits.push({ start: at, end: at, text: `${indent}${entrySource}\n` });
+    this.applyEdit(edits);
     return this;
   }
 

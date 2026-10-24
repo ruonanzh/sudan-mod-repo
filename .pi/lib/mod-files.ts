@@ -30,6 +30,32 @@ export interface InstallResult {
   replaced: boolean;
 }
 
+/** A failed install that knows whether the old copy made it back. */
+export class InstallError extends Error {
+  readonly restored: boolean;
+  readonly backup: string | null;
+  constructor(cause: unknown, restored: boolean, backup: string | null) {
+    super(cause instanceof Error ? cause.message : String(cause));
+    this.name = "InstallError";
+    this.restored = restored;
+    this.backup = backup;
+  }
+}
+
+/**
+ * Put the old copy back. Returns whether it worked; the caller must report the truth, because a
+ * silent failure leaves the player with no installed mod and a message that says otherwise.
+ */
+export function restoreBackup(target: string, backup: string): boolean {
+  try {
+    rmSync(target, { recursive: true, force: true });
+    renameSync(backup, target);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Replace `target` with a copy of `source`. Throws on failure, after putting the old copy back.
  * The caller decides whether the paths are safe; this function only writes.
@@ -53,14 +79,7 @@ export function installFolder(source: string, target: string): InstallResult {
     return { files, replaced };
   } catch (error) {
     rmSync(staging, { recursive: true, force: true });
-    if (movedOld) {
-      try {
-        rmSync(target, { recursive: true, force: true });
-        renameSync(backup, target);
-      } catch {
-        // The old copy could not be put back; the caller reports the original failure.
-      }
-    }
-    throw error;
+    const restored = movedOld ? restoreBackup(target, backup) : !replaced;
+    throw new InstallError(error, restored, movedOld && !restored ? backup : null);
   }
 }

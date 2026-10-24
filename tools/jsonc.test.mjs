@@ -17,6 +17,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { parseDoc, getDoc, findEntries, valueOf, sourceOf, literal } from "./jsonc.mjs";
+import { parseJsonc } from "./lint.mjs";
 
 const VANILLA = path.join(
   os.homedir(),
@@ -129,4 +130,25 @@ test("an edit inside a real rite keeps the rest of the file identical", () => {
     .join("\n");
   assert.equal(filtered, expected, "only the comma and the appended line may differ");
   assert.ok(out.includes('"counter+7999001": 1'));
+});
+
+test("appending to a table whose last entry already has a trailing comma stays valid", () => {
+  const text = `{\n  "1": {"id": 1},\n  "2": {"id": 2},\n}\n`;
+  const doc = parseDoc(text);
+  doc.appendSource("3", `"3": {"id": 3}`);
+  const out = doc.render();
+  const again = parseJsonc(out); // throws on invalid JSONC
+  assert.equal(Object.keys(again.value).length, 3, "three keys");
+  assert.equal(again.value["3"].id, 3);
+  assert.equal((out.match(/,/g) || []).length, 2, "one comma between entries, no doubled comma");
+});
+
+test("appending to a table with a comment after the last entry keeps the comment", () => {
+  const text = `{\n  "1": {"id": 1} // keep me\n}\n`;
+  const doc = parseDoc(text);
+  doc.appendSource("2", `"2": {"id": 2}`);
+  const out = doc.render();
+  assert.ok(out.includes("// keep me"), "the comment survives");
+  const again = parseJsonc(out);
+  assert.deepEqual(Object.keys(again.value), ["1", "2"]);
 });

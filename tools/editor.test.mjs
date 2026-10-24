@@ -100,3 +100,31 @@ test("reading a node prefers the mod copy", () => {
   assert.match(got.text, /只在 mod 里/);
   assert.match(got.file, /config\/event\/9000004\.json$/);
 });
+
+test("a table save keeps comments, trailing commas and other records' text", { skip }, () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "editor-table-"));
+  writeFileSync(path.join(dir, "info.json"), JSON.stringify({ name: "table probe", version: "1.0.0" }));
+  mkdirSync(path.join(dir, "config"), { recursive: true });
+  const before = `{
+  // 这张卡的名字别动
+  "9000001": {
+    "id": 9000001,
+    "name": "原来的名字",
+  },
+  "9000002": {
+    "id": 9000002,
+    "name": "第二张",
+  }, // 尾逗号也是原版风格
+}
+`;
+  writeFileSync(path.join(dir, "config/cards.json"), before);
+  const mod = openMod(dir, { vanilla: VANILLA });
+  const out = saveNode(mod, "card", 9000001, JSON.stringify({ id: 9000001, name: "改过的名字", type: "item", rare: 2 }));
+  assert.equal(out.ok, true, out.error);
+  const after = readFileSync(path.join(dir, "config/cards.json"), "utf8");
+  assert.ok(after.includes("// 这张卡的名字别动"), "the comment above the record survives");
+  assert.ok(after.includes("// 尾逗号也是原版风格"), "the comment beside another record survives");
+  assert.ok(after.includes('"name": "改过的名字"'), "the record itself changed");
+  assert.ok(after.includes('"9000002"'), "the other record is still there");
+  assert.match(after, /\},\s*\/\/ 尾逗号也是原版风格/, "the trailing comma of the last entry is untouched");
+});

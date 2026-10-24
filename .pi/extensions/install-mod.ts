@@ -11,7 +11,8 @@ import { Type } from "typebox";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { judge, pathsFile, shorten } from "../../tools/paths.mjs";
-import { installFolder, walk } from "../lib/mod-files";
+import { parseDoc, toPlain } from "../../tools/jsonc.mjs";
+import { InstallError, installFolder, walk } from "../lib/mod-files";
 import { absolute, identity, sameOrNested } from "../lib/workspace";
 
 export default function (pi: ExtensionAPI) {
@@ -48,11 +49,16 @@ export default function (pi: ExtensionAPI) {
           `INVALID_MOD: ${source} has no info.json. The game only loads a folder with a valid info.json; fix the mod first.`,
         );
       }
+      // info.json is read by the game's JSONC loader, and `tools/lint.mjs` accepts comments, a BOM
+      // and trailing commas. Parsing it here as strict JSON refused files the linter had just
+      // passed, so both now read it the same way.
       let info: { name?: unknown };
       try {
-        info = JSON.parse(readFileSync(infoFile, "utf8")) as typeof info;
+        const doc = parseDoc(readFileSync(infoFile, "utf8"));
+        info = (toPlain(doc, doc.root) ?? {}) as typeof info;
+        if (typeof info !== "object" || info === null) throw new Error("info.json holds no object");
       } catch (error) {
-        throw new Error(`INVALID_MOD: ${infoFile} is not valid JSON (${(error as Error).message}). Fix info.json first.`);
+        throw new Error(`INVALID_MOD: ${infoFile} is not readable JSONC (${(error as Error).message}). Fix info.json first.`);
       }
       if (info.name !== undefined && typeof info.name !== "string") {
         throw new Error(`INVALID_MOD: info.json has a non-string "name". Give it a display name, then retry.`);
@@ -114,9 +120,17 @@ export default function (pi: ExtensionAPI) {
       try {
         copied = installFolder(source, target);
       } catch (error) {
-        throw new Error(
-          `INSTALL_FAILED: could not write ${target} (${(error as Error).message}). The previous copy, if there was one, is still in place. Close the game if it is running and run install_mod again.`,
-        );
+        // Say what actually stands on disk: a swallowed rollback used to be reported as "the old
+        // copy is still in place", which was false exactly when the player needed to know.
+        const detail = error instanceof Error ? error.message : String(error);
+        const restored = error instanceof InstallError ? error.restored : false;
+        const backup = error instanceof InstallError ? error.backup : null;
+        const state = restored
+          ? "The previous copy is still in place."
+          : backup
+            ? `The previous copy could not be put back; it is at ${backup}. Copy it back by hand before running the game.`
+            : "Nothing was installed, and there was no previous copy to restore.";
+        throw new Error(`INSTALL_FAILED: could not write ${target} (${detail}). ${state} Close the game if it is running and run install_mod again.`);
       }
 
       return {
