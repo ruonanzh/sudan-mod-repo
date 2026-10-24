@@ -29,7 +29,7 @@
 
 ## 目录地图
 
-- `AGENTS.md` —— 本文件：固定的环境事实与边界。
+- `script/` —— 测试与维护者的工具。
 - `schema/` —— 工具与页面读的数据，agent 不直接改。
   - `SCHEMA.md` 是生成物（由 `tools/gen-schema-doc.mjs` 生成），**不要手改**。要查四份 `docs/` 之外的 kind，看它的 Field tables；lint 报的错若是原版数据自带，看 Known defects。
   - `schema/view/` 是页面与故事图的呈现数据（中文标签、开关文案、分组、连线）：改它只改页面外观，不改校验结论。校验结论只由 `schema/` 根下那几份事实文件决定。
