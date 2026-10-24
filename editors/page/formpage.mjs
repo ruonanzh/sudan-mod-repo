@@ -49,6 +49,13 @@ const FORM_CSS = `
 .only-host { color: var(--dim); font-size: 13px; margin-top: 16px; }
 `;
 
+/** What each described field asks the player to write, in one sentence. */
+const PROSE_ASK = {
+  condition: "用你自己的话写：什么条件下这条升级会出现在商店里。",
+  effect: "用你自己的话写：玩家拿到这条升级以后，得到什么。",
+  incompatible: "用你自己的话写：这条升级和哪条升级互斥。",
+};
+
 /** A row the player reads and describes: the value is shown, the sentence travels to the agent. */
 function proseRow(kind, key, value) {
   const current = value === undefined ? "（还没有写）" : typeof value === "string" ? value : JSON.stringify(value);
@@ -56,7 +63,7 @@ function proseRow(kind, key, value) {
     key,
     requireLabel(kind, key),
     `<div class="readonly"><code>${esc(current)}</code></div>
-<textarea data-prose="${esc(key)}" rows="2" spellcheck="false" placeholder="用你自己的话写：要什么条件、加什么效果、和谁互斥"></textarea>`,
+<textarea data-prose="${esc(key)}" rows="2" spellcheck="false" placeholder="${esc(PROSE_ASK[key] || "用你自己的话写")}"></textarea>`,
   );
 }
 
