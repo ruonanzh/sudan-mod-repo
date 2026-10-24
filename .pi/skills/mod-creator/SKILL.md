@@ -147,6 +147,24 @@ description: 写苏丹的游戏 mod、改苏丹的游戏 mod 的主参考。在�
 
 每一份都写全了这一类记录自己的规则，读那一份不必回读本 SKILL。它们都会用到仓库里的数据与工具：有效键看 `schema/fields.json`，时机与条件语法看 `schema/vocab.json`，路径与校验靠 `tools/paths.mjs` 与 `tools/lint.mjs`。
 
+## 改玩家的存档（不是 mod）
+
+存档不是 mod，改它不经过 mod 目录。工具是 `tools/save.mjs`：
+
+```
+node tools/save.mjs show  --save <存档文件>
+node tools/save.mjs get   --save <存档文件> --path counter.7100001
+node tools/save.mjs set   --save <存档文件> --path round=12          # 只打印，不写盘
+node tools/save.mjs set   --save <存档文件> --path round=12 --write  # 写盘，先留 .bak
+node tools/save.mjs cards --save <存档文件>
+```
+
+- **存档路径必须由玩家给**。游戏没有把存档位置写进任何我们读到的推导链，猜一个只会改错文件。
+- **默认不写盘**。`set` 不带 `--write` 只打印改前改后；玩家确认后才加 `--write`。
+- `--path` 用点号分段，数字下标表示数组元素，例如 `counter.7100001`。路径不存在时工具报 `FAIL`，不会新建。
+- 写之前先跑一次 `node tools/lint.mjs --save <存档文件>`：它按 `schema/save-fields.json` 检查整份存档的形状。它报错说明这份存档不符合当前版本的字段表，不要继续改。
+- 游戏运行时会不断重写存档。让玩家先退出到标题界面，再改，否则下一次自动保存可能覆盖你的改动。
+
 ## 验收
 
 **第一步必须做：调 `validate_mod`。** 参数是 `modDir`（例如 `your_mods/<ModName>`），可选 `vanilla`（原版 `config` 目录）。它跑的就是同一个 linter，但把 FAIL、WARN、INFO 分类报回来。这一步不做，不许说 mod 写完了。
