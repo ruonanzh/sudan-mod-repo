@@ -80,6 +80,7 @@ test("a loot table gets a form page with every field, labelled", () => {
   for (const text of ["普通权重：每一轮按权重抽一件", "必新：每一轮先去掉玩家已有的", "无放回：一次抽 m 件，不重复", "全部：表里所有符合条件的物品都给"]) {
     assert.ok(page.includes(text), `the algorithm pick explains ${text}`);
   }
+  assert.match(page, /也可以直接写 JSON/, "the box says a written-out condition is welcome too");
   assert.doesNotMatch(page, /<input data-item="condition"/, "an item's condition is described, not typed as JSON");
   assert.match(page, /data-prose-item="condition"/, "each item carries its own sentence box");
   assert.match(page, /<input data-item="id" data-kind="number" type="number"/, "the card id gets a full cell");
@@ -106,6 +107,7 @@ test("a fate-shop entry gets a form page with JSON boxes for the nested fields",
 
   assert.match(page, /<div class="readonly"><code>\{&quot;all&quot;/, "the current value is still shown, read-only");
   assert.match(page, /命运商店/, "the page names the shop");
+  assert.match(page, /也可以直接写 JSON|也可以直接写条目编号/, "the shop boxes accept a written-out value too");
   assert.match(page, /<select data-form="icon">/, "the icon is a pick of the two names the game resolves");
   assert.match(page, /gain · 获得/, "the option shows the label the player sees beside the value to write");
   assert.match(page, /buff · 增益/, "so does the other one");

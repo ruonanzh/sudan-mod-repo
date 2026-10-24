@@ -73,9 +73,9 @@ const FORM_CSS = `
 
 /** What each described field asks the player to write, in one sentence. */
 const PROSE_ASK = {
-  condition: "用你自己的话写：什么条件下这条升级会出现在商店里。",
-  effect: "用你自己的话写：玩家拿到这条升级以后，得到什么。",
-  incompatible: "用你自己的话写：这条升级和哪条升级互斥。",
+  condition: '用你自己的话写什么条件，也可以直接写 JSON，例如 {"have.2000009": 1}。',
+  effect: '用你自己的话写玩家得到什么，也可以直接写 JSON，例如 {"g.card": [2000001, "已拥有+1"]}。',
+  incompatible: "用你自己的话写和哪条升级互斥，也可以直接写条目编号，例如 3300016。",
 };
 
 /** A row the player reads and describes: the value is shown, the sentence travels to the agent. */
@@ -159,7 +159,7 @@ function itemBlock(item = {}, index = 0) {
   </div>
   <div class="item-condition">
     <span class="key-zh">条件${current}</span>
-    <textarea data-prose-item="condition" rows="2" spellcheck="false" placeholder="用你自己的话写：这件东西什么条件下才会进抽签。"></textarea>
+    <textarea data-prose-item="condition" rows="2" spellcheck="false" placeholder='用你自己的话写什么条件，也可以直接写 JSON，例如 {"have.2000009": 1}。' ></textarea>
   </div>
 </div>`;
 }
