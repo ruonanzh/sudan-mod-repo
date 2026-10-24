@@ -92,6 +92,8 @@ test("the wrapper mounts into the host its stylesheet pads", () => {
   const html = read(path.join(REPO, "editors/form/index.html"));
   assert.match(html, /#card-host \{[^}]*padding: 20px/, "the stylesheet pads the host");
   assert.match(html, /<main id="card-host">/, "and the markup names the same element: a renamed host loses the padding");
+  const bridge = read(path.join(REPO, "editors/form/form-bridge.js"));
+  assert.match(bridge, /HOST_ID = "card-host"/, "the bridge mounts into that same host");
   assert.match(html, /id="card-hint"/, "the hint keeps the card page's id and text");
   assert.match(html, /改完点「发送给 Agent」：它会先保存这一页，再把改动发给 agent 写回配置。/, "the sentence is the card page's sentence");
 });

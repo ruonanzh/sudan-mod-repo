@@ -17,7 +17,7 @@
   "use strict";
 
   var BLOCK_ID = "form-values";
-  var HOST_ID = "form-host";
+  var HOST_ID = "card-host";
   var isHost = Boolean(document.getElementById(HOST_ID));
 
   var state = {
