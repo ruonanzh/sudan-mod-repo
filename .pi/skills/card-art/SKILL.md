@@ -106,7 +106,7 @@ generate_2d_asset({ action: "refs", dir: "reference/cards", expect: ["char-1.png
   `Use the style and palette of image[1]. Take the subject's shape and details from image[2].`
 - 只想要玩家的风格：只送玩家那张图，并先说明这张卡可能和其它卡不一致。
 
-### 四步：预览、确认、落地、验收
+### 四步：生成、裁切、落地、验收
 
 ```
 1. generate_2d_asset({ action: "generate",
@@ -123,7 +123,7 @@ generate_2d_asset({ action: "refs", dir: "reference/cards", expect: ["char-1.png
 
 `card.mjs art` 只收 472x1028，尺寸不对会 `FAIL`；所以 `fit` 不能省。它写 `image/cards/<卡 id>.png` 并把这张卡的 `resource` 指向它。
 
-玩家说不像时改主体重生成，不要改尾部常量。**玩家确认这张图之前，不要往下走。**
+玩家在卡页上点「修改卡面图，通知 agent」时，**不要停下来问「就要这个吗」**：页面就是确认入口，直接按四步做完；玩家不满意会再写一句。玩家说不像时改主体重生成，不要改尾部常量。
 
 ### 成本与清单
 

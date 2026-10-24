@@ -16,8 +16,9 @@ $ARGUMENTS
    - **新画面**（描述这张卡该画成什么）→ 它替换主体，参考图取 `reference/cards/<type>-<rare>.png`。
    - **改上一版**（例如「剑再细一点」「把雪去掉」）→ 把这张卡已有的 `image/cards/<卡 id>.png` 放进 `refs` 的第二位，并在提示词里写明「保持 image[2] 的构图与细节，只改：<玩家说的那处>」。没有旧图时按新画面处理，并说明这次是从零画的。
    - 玩家的话有歧义、或两种都能解释时，先问一句再生成。
-4. 用 `generate_2d_asset` 生成预览：`action=generate`、`prompt=<你写好的整段>`、`refs=[<参考图>]`（改上一版时再加旧图）、`out=your_mods/<ModName>/.preview/card-<卡 id>.png`、`manifest=your_mods/<ModName>/asset_manifest.jsonl`。这个工具背后是 `tools/image.mjs`，画一张要花积分。
-5. 把预览图的路径给玩家，问他「就要这个吗」。玩家说不像时改主体重生成，不要改尾部常量。
-6. 玩家确认后：`generate_2d_asset` 的 `action=fit`（`width=472`、`height=1028`、`mode=cover`）裁出成品，再跑 `node tools/card.mjs art --mod your_mods/<ModName> --id <卡 id> --from <裁好的图>`。它写 `image/cards/<卡 id>.png` 并把这张卡的 `resource` 指向它，`resource` 不用再手改。
-7. `node tools/preview.mjs --mod your_mods/<ModName>` 重建页面，页面会自己重新载入，玩家马上能看到新图。
-8. 报告里给卡页的**工作区相对路径**：`your_mods/<ModName>/.preview/<卡 id>.card.html`。没有清单页。
+4. 用 `generate_2d_asset` 生成：`action=generate`、`prompt=<你写好的整段>`、`refs=[<参考图>]`（改上一版时再加旧图）、`out=your_mods/<ModName>/.preview/card-<卡 id>.png`、`manifest=your_mods/<ModName>/asset_manifest.jsonl`。工具背后是 `tools/image.mjs`，这一步花积分。
+5. **不要再问玩家「就要这个吗」**：卡页本身就是确认入口，玩家不满意会再写一句重来。直接落地。
+6. `generate_2d_asset` 的 `action=fit`：把预览裁成 472×1028（`mode=cover`），输出 `.preview/card-<卡 id>-472x1028.png`。
+7. `node tools/card.mjs art --mod your_mods/<ModName> --id <卡 id> --from <裁好的图>`：写 `image/cards/<卡 id>.png` 并把这张卡的 `resource` 指向它。
+8. `generate_2d_asset` 的 `action=check` 验收尺寸与透明通道，再跑 `node tools/preview.mjs --mod your_mods/<ModName>`，卡页会自己重载出新图。
+9. 回话：一句话说这次改了什么，再给卡页的工作区相对路径。不需要贴 JSON，也不需要再问确认。
