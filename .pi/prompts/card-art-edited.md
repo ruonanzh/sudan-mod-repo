@@ -20,5 +20,5 @@ $ARGUMENTS
 5. **不要再问玩家「就要这个吗」**：卡页本身就是确认入口，玩家不满意会再写一句重来。直接落地。
 6. `generate_2d_asset` 的 `action=fit`：把预览裁成 472×1028（`mode=cover`），输出 `.preview/card-<卡 id>-472x1028.png`。
 7. `node tools/card.mjs art --mod your_mods/<ModName> --id <卡 id> --from <裁好的图>`：写 `image/cards/<卡 id>.png` 并把这张卡的 `resource` 指向它。
-8. `generate_2d_asset` 的 `action=check` 验收尺寸与透明通道，再跑 `node tools/preview.mjs --mod your_mods/<ModName>`，卡页会自己重载出新图。
+8. `generate_2d_asset` 的 `action=check` 验收尺寸与透明通道；再跑 `validate_mod`，必须 **PASS**（`PARTIAL` 不算通过）；最后跑 `node tools/preview.mjs --mod your_mods/<ModName>`，卡页会自己重载出新图。
 9. 回话：一句话说这次改了什么，再给卡页的工作区相对路径。不需要贴 JSON，也不需要再问确认。

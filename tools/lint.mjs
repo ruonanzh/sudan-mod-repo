@@ -18,6 +18,7 @@
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import { vanillaRequirement } from "./paths.mjs";
 
 // ---------------------------------------------------------------------------
 // Domain constants. Every list here was verified against the game, not guessed.
@@ -599,6 +600,7 @@ function vanillaPath(configDir, relPath) {
 }
 
 function loadVanilla(configDir) {
+  if (!configDir) return { dir: null, ids: new Map(), tags: new Set(), sprites: null };
   const dir = configDir.replace(/^~/, os.homedir());
   if (!existsSync(dir)) return { dir: null, ids: new Map(), tags: new Set(), sprites: null };
   const ids = new Map();
@@ -888,10 +890,17 @@ function lintMod(modDir, vanilla, opts) {
           checkEventBranchConditions(fileRel, value.settlement);
           checkDeadBranches(fileRel, "settlement", value.settlement);
         }
-        if (relPath === "config/loot" && Array.isArray(value.item)) {
-          value.item.forEach((item, i) => {
-            if (isPlainObject(item)) reportFields(fileRel, "lootItem", item, `item[${i}]`);
-          });
+        if (relPath === "config/loot") {
+          reportRange(fileRel, "loot", value, String(value.id ?? ""));
+          if (Array.isArray(value.item)) {
+            value.item.forEach((item, i) => {
+              if (!isPlainObject(item)) return;
+              reportFields(fileRel, "lootItem", item, `item[${i}]`);
+              reportRange(fileRel, "lootItem", item, `item[${i}]`);
+              if (item.weight !== undefined && !(Number(item.weight) >= 1))
+                fail("LOOT_WEIGHT", fileRel, `item[${i}].weight=${item.weight}; a weight of 0 or less means this entry can never be picked.`);
+            });
+          }
         }
       }
     } else if (spec === "table") {
@@ -923,6 +932,13 @@ function lintMod(modDir, vanilla, opts) {
         }
         if (tblKind) {
           reportFields(relPath, tblKind, rec, String(key));
+          if (tblKind === "quest" && rec.target !== undefined) {
+            // quest.json is a table, so the directory-branch check below never sees these records.
+            const targets = Array.isArray(rec.target) ? rec.target : [rec.target];
+            targets.forEach((t, i) => {
+              if (isPlainObject(t)) reportFields(relPath, "questTargetItem", t, `${key}.target[${i}]`);
+            });
+          }
           if (tblKind === "card") reportSettlements(relPath, rec.post_rite, `${key}.post_rite`);
           if (tblKind === "over") reportSettlements(relPath, rec.text_extra, `${key}.text_extra`);
           reportRequired(relPath, tblKind, rec, String(key));
@@ -1208,6 +1224,38 @@ function lintSave(args) {
   process.exit(counts.FAIL === 0 ? 0 : 1);
 }
 
+/**
+ * Every id a mod defines, with the kind and the file it came from. Tables are keyed by id;
+ * directory-style kinds are keyed by the file stem (the loader builds `{kind}/{id}.json` for the
+ * strict ones, and the corpus keeps stem == id everywhere).
+ */
+function idsOfMod(modDir) {
+  const out = [];
+  for (const [relPath, kind] of ID_TABLES) {
+    const full = path.join(modDir, relPath);
+    if (!existsSync(full)) continue;
+    try {
+      const { value } = parseJsonc(readText(full));
+      if (!isPlainObject(value)) continue;
+      for (const key of Object.keys(value)) out.push([relPath, kind, key]);
+    } catch {
+      /* reported per-mod */
+    }
+  }
+  for (const [relPath, spec] of DIR_STYLE) {
+    if (spec.filename !== "id") continue;
+    const kind = DIR_KIND.get(relPath);
+    if (!kind) continue;
+    const dir = path.join(modDir, relPath);
+    if (!existsSync(dir)) continue;
+    for (const name of readdirSync(dir)) {
+      if (!name.endsWith(spec.ext)) continue;
+      out.push([relPath, kind, name.slice(0, -spec.ext.length)]);
+    }
+  }
+  return out;
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   if (!args.modDir && !args.modRoot && !args.save) {
@@ -1217,8 +1265,17 @@ function main() {
     process.exit(2);
   }
   if (args.save) return lintSave(args);
-  const vanilla = loadVanilla(args.vanilla || DEFAULT_VANILLA);
-  if (!vanilla.dir) warn("VANILLA_MISSING", null, "vanilla config not found; id collision and tag checks are skipped. Pass --vanilla.");
+  // The vanilla config comes from the one path judgement (`tools/paths.mjs`): an explicit path,
+  // then the workspace record, then the install. A missing config used to be a WARN with exit 0,
+  // which reads as PASS in every script that checks the exit code.
+  const need = args.vanilla ? { dir: args.vanilla } : vanillaRequirement();
+  const vanilla = loadVanilla(need.dir);
+  if (!vanilla.dir)
+    fail(
+      "VANILLA_MISSING",
+      null,
+      `the vanilla config was not found (${need.code || "no record"}); id collision and tag checks cannot run. Pass --vanilla <config dir>, or record the game dir with try_set_game_dir.`,
+    );
 
   const mods = [];
   if (args.modRoot) {
@@ -1240,22 +1297,16 @@ function main() {
 
   for (const m of mods) lintMod(m, vanilla, args);
 
-  // Cross-mod collisions.
+  // Cross-mod collisions. Every kind the game loads by id counts, not just cards: a rite, an
+  // event and a loot table collide the same way, and the game keeps one of them without a word.
   if (args.modRoot) {
     const owner = new Map();
     for (const m of mods) {
       const label = path.basename(m);
-      const cards = path.join(m, "config/cards.json");
-      if (!existsSync(cards)) continue;
-      try {
-        const { value } = parseJsonc(readText(cards));
-        for (const key of Object.keys(value)) {
-          const k = `card:${key}`;
-          if (owner.has(k)) fail("ID_CROSS_MOD", "config/cards.json", `card id ${key} is defined by both ${owner.get(k)} and ${label}.`);
-          else owner.set(k, label);
-        }
-      } catch {
-        /* reported per-mod */
+      for (const [fileRel, kind, id] of idsOfMod(m)) {
+        const k = `${kind}:${id}`;
+        if (owner.has(k)) fail("ID_CROSS_MOD", fileRel, `${kind} id ${id} is defined by both ${owner.get(k)} and ${label}.`);
+        else owner.set(k, label);
       }
     }
   }

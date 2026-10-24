@@ -24,7 +24,7 @@ $ARGUMENTS
    玩家的要求写成这些字段表达不了时，先说清哪一句做不到，再问玩家；不要自己发明键名。
 
 3. 用 `tools/jsonc.mjs` 做 span 编辑写回：每个字段用 `set`。注释、字段顺序、重复键一律不动；**不要**读成对象再 `JSON.stringify`。
-4. 跑 `validate_mod`，有 `FAIL` 先改到没有。
+4. 跑 `validate_mod`，必须 **PASS**：`PARTIAL` 不算通过（它说明原版配置没读到），按 `NEXT` 解决后重跑；`FAIL` 先改到没有。
 5. 重跑 `node tools/preview.mjs --mod <ModName>`，让这一页反映新值。
 6. 回话：一句话说改了哪几个字段，再给这一页的工作区相对路径。玩家不需要看 JSON。
 

@@ -10,3 +10,5 @@ argument-hint: "[卡页路径]"
 4. `node tools/preview.mjs --mod your_mods/<ModName> --apply` 把值写回 `config/cards.json`。它只改第 2 步列出的键，注释、字段顺序和这一页没有显示的字段都不动。
 5. `node tools/preview.mjs --mod your_mods/<ModName>` 重建页面。重建后再跑一次 `--collect`，应看到 `no card page carries a value different`。
 6. 向玩家报告改了什么：一行一个 `<卡 id>  <键>  <旧值> -> <新值>`，再说页面已经重建。报告里给卡页的**工作区相对路径**：`your_mods/<ModName>/.preview/<卡 id>.card.html`。没有清单页。
+
+写回之后再跑一次 `validate_mod`，必须 **PASS**：`PARTIAL` 不算通过，按 `NEXT` 解决后重跑。
