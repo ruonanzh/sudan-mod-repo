@@ -128,14 +128,27 @@ agent 按 `.pi/prompts/record-edited.md` 执行：找到 `config/<kind>/<id>.jso
 
 ## 战利品表与命运商店
 
-这两页和卡页一样是可编辑表单：改完点「发送给 Agent」，会话收到
+这两页和卡页一样是可编辑表单：改完点「发送给 Agent」，会话收到下面两种之一。
+
+战利品表：
 
 ```
-/page-edited loot:6000777
-改动：{"repeat":5,"item":[{"type":2,"id":2000001,"num":1,"weight":99}]}
+/loot-edited loot:6000777
+说明：
+- 第 2 件的条件：玩家已有 2000009 时这一件才进抽签
+改动：{"repeat":5,"item":[{"type":"card","id":2000001,"num":1,"weight":99}]}
 ```
 
-只有改动过的键在「改动」里。agent 按 `.pi/prompts/page-edited.md` 用 `tools/jsonc.mjs` 做 span 写回，再跑 `validate_mod` 与 `preview.mjs`。
+命运商店：
+
+```
+/upgrade-edited upgrade:3300002
+说明：
+- effect：给玩家一张 2000001
+改动：{"cost":50}
+```
+
+`改动` 只包含改过的键；`说明` 是玩家用自己的话写的，也可能直接是 JSON 或编号。agent 按 `.pi/prompts/loot-edited.md` 或 `.pi/prompts/upgrade-edited.md` 用 `tools/jsonc.mjs` 做 span 写回，再跑 `validate_mod` 与 `preview.mjs`。
 
 ## 玩家回话之后
 
