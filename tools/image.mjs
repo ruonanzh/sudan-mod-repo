@@ -187,7 +187,9 @@ export async function generateImage({
       const api = tripoApi(apiKey, fetchImpl);
       const tokens = [];
       for (const file of refs) tokens.push(await uploadFile(apiKey, file, fetchImpl));
-      const body = { prompt, background, output_format: format };
+      // The model decides whether background and output_format are honoured at all:
+      // without it the endpoint falls back to a model that ignores both and returns a JPEG.
+      const body = { prompt, model: MODEL, background, output_format: format };
       let endpoint = "/generation/text-to-image";
       if (tokens.length === 1) {
         body.input = tokens[0];

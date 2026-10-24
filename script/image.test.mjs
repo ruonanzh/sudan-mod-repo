@@ -78,6 +78,14 @@ test("A4 every request carries a timeout, so a dead network cannot hang for minu
   assert.ok(seen.length >= 1 && seen.every((c) => c.signal), "the request was given an abort signal");
 });
 
+test("A5 the image model is named, because without it the format request is ignored", async () => {
+  const home = dir();
+  const trip = fakeTrip(png(8, 8));
+  await generateImage({ prompt: "x", out: path.join(home, "a.png"), key: "k", fetchImpl: trip.fetchImpl });
+  const body = JSON.parse(trip.calls.find((c) => c.url.includes("/generation/")).body);
+  assert.match(String(body.model), /chat_image/, "the model that honours background and output_format");
+});
+
 test("A2 without out the tool refuses before spending anything", async () => {
   await assert.rejects(
     () => generateImage({ prompt: "x", key: "k", fetchImpl: async () => ({}) }),
