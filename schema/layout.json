@@ -32,9 +32,9 @@
   "idRanges": {
     "_note": "Observed in vanilla. Not reserved: check for collisions before you pick an id.",
     "card": "2000001-2010016",
-    "event": "5300000-5329999",
+    "event": "5300000-5360066",
     "rite": "5000001-5010214",
-    "loot": "6000004-6001xxx",
+    "loot": "6000004-6001115",
     "upgrade": "3300002-3300052",
     "tag": "3000001-3020368",
     "riteTemplate": "8000001-8001141"

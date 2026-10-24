@@ -48,8 +48,10 @@ Windows  %USERPROFILE%\Documents\DoubleCross\SultansGame\Mod\
 读日志。日志能回答的问题，不要拿去问玩家。
 
 ```
-~/DoubleCross/SultansGame/ModLog/__mod.log              全局
-~/DoubleCross/SultansGame/ModLog/<mod name>_local.log   每个 mod 一份
+~/DoubleCross/SultansGame/ModLog/__mod.log                   全局（macOS）
+~/DoubleCross/SultansGame/ModLog/<mod name>_local.log        每个 mod 一份（macOS）
+<Documents>\DoubleCross\SultansGame\ModLog\__mod.log        全局（Windows）
+<Documents>\DoubleCross\SultansGame\ModLog\<mod name>_local.log   每个 mod 一份（Windows）
 ```
 
 看什么：

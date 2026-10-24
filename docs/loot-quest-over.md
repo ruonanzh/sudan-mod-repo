@@ -25,7 +25,7 @@
 | `4` | 不重复地做 `repeat` 次**带权**抽取：`repeat` 就是「n 中选 m」的 `m`，算法整体跑一遍，不是跑 `repeat` 遍 | 2 |
 | `99` | 每条合格条目都抽，忽略权重，跑 `repeat` 次 | 11 |
 
-`type: 4` 时，`repeat` 就是「n 中选 m」的 `m`。其余 `type` 下，`repeat` 是独立抽取的次数。原版 188 张表用 `1`，其余用 3、6 或 13。
+`type: 4` 时，`repeat` 就是「n 中选 m」的 `m`，抽出的几件互不重复；`type: 99` 不看 `weight`，每轮把整张表都给出去。其余 `type` 下，`repeat` 是独立抽取的次数。原版 188 张表用 `1`，其余用 3、6 或 13。
 
 每条 `item` 是 `{type, id, num, weight, condition}` 这五个键。`type` 的取值是 `card`、`event`、`rite` 与 `loot` 四个，其中 `loot` 表示表套表。`weight` 是相对值，只有比值有意义：`SimpleWeightLoot` 确实是把权重加起来之后用 `Random.Range` 抽。`num` 是给几条，原版写成字符串（`"1"`）。`condition` 过滤条目，工作方式与游戏里每一个条件一样。
 

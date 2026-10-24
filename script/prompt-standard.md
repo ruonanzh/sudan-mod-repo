@@ -4,7 +4,7 @@
 
 放在 `script/` 而不是文档目录：它是**维护者的判据**，和 `run-tests.mjs`、`check-terms.mjs` 一起被读写，不是给玩家看的说明。
 
-**适用对象**：`AGENTS.md` 与四份 `SKILL.md`。改这些文件前必须先读本文件。
+**适用对象**：`AGENTS.md` 与 `.pi/skills/` 下的七份 `SKILL.md`。改这些文件前必须先读本文件。
 
 上级：[`../AGENTS.md`](../AGENTS.md)。相关：[`../schema/SCHEMA.md`](../schema/SCHEMA.md)（生成物，键与值的权威表）；字段普查在设计仓 `desktop-gamer-agent-pi/docs/sudan-game/fields/`（本仓之外，按路径引用，不建链接）；另外两份标准在设计仓 `docs/eu5-harness/prompt-standard.md`（EU5 全英文，不能照抄）与 `docs/duckov-harness/prompt-standard.md`（duckov 版，骨架相同、术语表不同）。
 
@@ -25,6 +25,9 @@
 | `.pi/skills/card-art/SKILL.md` | 卡图 |
 | `.pi/skills/mod-installer/SKILL.md` | 安装与读日志 |
 | `.pi/skills/mod-page/SKILL.md` | 给玩家看的数据页 |
+| `.pi/skills/mod-audio/SKILL.md` | 换音频 |
+| `.pi/skills/setup-workspace/SKILL.md` | 准备工作区 |
+| `.pi/skills/how-to-speak/SKILL.md` | 跟玩家说话 |
 
 **英文**（工具面，不译）：
 

@@ -386,6 +386,7 @@ w("| `loot/6001103.json` | declares `id: 6001102`, so filename and id disagree |
 w("| `config/dt/DT3.json`, `DT4.json` | declare `dialog_tree_id: DT2` |");
 w("| `config/dt/DT9.json` | declares `dialog_tree_id: DT7` |");
 w("| `config/tag.json` | 15 tag ids are used twice, e.g. 3020142 |");
+w("| `event/5320301.json` | `settlement[0]` and `[1]` have no condition but are not last, so both are dead branches |");
 w();
 
 w("## Traps worth reading before writing a mod");

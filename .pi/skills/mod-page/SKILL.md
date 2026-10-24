@@ -107,8 +107,8 @@ node tools/page.mjs <kind> --mod your_mods/<ModName> --id <id> --out your_mods/<
 页面只显示**一条**记录。要比方案，就各生成一个提案页，文件名区分开：
 
 ```
---out .preview/card-9000001-a.html   # 数值保守
---out .preview/card-9000001-b.html   # 数值激进
+--out .preview/card-2100001-a.html   # 数值保守
+--out .preview/card-2100001-b.html   # 数值激进
 ```
 
 然后把两条工作区相对路径都给玩家，让他自己看差别。

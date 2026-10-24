@@ -519,7 +519,7 @@
     },
     "weight": {
       "label": "权重",
-      "note": "这个权重是这一件在抽签里的份量，权重越大越容易被抽到。算法 4 与 99 会忽略这个权重。",
+      "note": "这个权重是这一件在抽签里的份量，权重越大越容易被抽到；算法 99 不看权重，直接给整张表。",
       "from": "docs/sudan-game/fields/06-loot.md §`item[].weight` — exact meaning"
     },
     "condition": {

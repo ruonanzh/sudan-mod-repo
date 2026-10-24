@@ -1362,6 +1362,7 @@ positives, and they are why a vanilla run is not expected to exit 0.
 | `config/dt/DT3.json`, `DT4.json` | declare `dialog_tree_id: DT2` |
 | `config/dt/DT9.json` | declares `dialog_tree_id: DT7` |
 | `config/tag.json` | 15 tag ids are used twice, e.g. 3020142 |
+| `event/5320301.json` | `settlement[0]` and `[1]` have no condition but are not last, so both are dead branches |
 
 ## Traps worth reading before writing a mod
 

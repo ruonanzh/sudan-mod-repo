@@ -1,6 +1,6 @@
 ---
 name: setup-workspace
-description: 苏丹的游戏 mod 工作区的环境准备。先记下游戏目录，以及由它派生的创意工坊内容目录与原版配置目录，再记下 mod 安装目录和 dotnet 路径；dump 游戏代码与提取参考游戏美术是可选的，各写了什么时候需要、怎么准备。在路径未知或记错、要验证玩家给的路径、要 dump 游戏代码、或 `reference/` 为空时读取。
+description: 苏丹的游戏 mod 工作区的环境准备。先记下游戏目录，以及由它派生的创意工坊内容目录与原版配置目录，再记下 mod 安装目录和 dotnet 路径；dump 游戏代码与提取参考游戏美术是可选的，各写了什么时候需要、怎么准备。在路径未知或记错、要验证玩家给的路径、要 dump 游戏代码时读取。参考美术随仓库提供，不需要提取。
 ---
 
 # 准备工作区（苏丹的游戏）
@@ -72,7 +72,7 @@ macOS 的 `MyDocuments` 是 `$HOME`，Windows 的是 `%USERPROFILE%\Documents`�
 
 | 位置 | 哨兵 |
 |---|---|
-| `gameDir` | 目录里有**游戏自己的文件**：macOS 是 `Sultan's Game.app/Contents/Frameworks/GameAssembly.dylib` 或 `Sultan's Game.app/Contents/Resources/Data/il2cpp_data`（二者之一即可）；Windows 是 `Sultan's Game_Data/GameAssembly.dll` 与 `Sultan's Game_Data/il2cpp_data` 两个都要（未在 Windows 机器上实测）|
+| `gameDir` | 目录里有**游戏自己的文件**：macOS 是 `Sultan's Game.app/Contents/Frameworks/GameAssembly.dylib` 或 `Sultan's Game.app/Contents/Resources/Data/il2cpp_data`（二者之一即可）；Windows 是**安装根**的 `GameAssembly.dll` 与 `Sultan's Game_Data\il2cpp_data` 两个都要（未在 Windows 机器上实测）|
 | `vanilla` | 由 `gameDir` 现算，目录里同时有 `cards.json` 与 `rite/` |
 | `modInstallDir` | 同级有 `ModLog/__mod.log`；没有日志时，父目录名为 `SultansGame` 且目录已存在也算；目录要可写 |
 | `workshopDir` | 每个工坊条目目录里有 `info.json` |

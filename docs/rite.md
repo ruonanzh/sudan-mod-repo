@@ -198,11 +198,11 @@
 
 ### `start_trigger` 是未决的
 
-**不要拿 `start_trigger`（是否启动就立即开始校验条件）当设计的地基。** `EventTrigger.Add(EventNode, bool enable_start_trigger)` 把这个事件的字段与第二个参数比较，相等时跳过立即结算那条路。`event_on` 传 `true`，读档传 `false`。
+**这一节是代码推导，还没在游戏里实测过；不要拿 `start_trigger`（是否启动就立即开始校验条件）当设计的地基。**
 
-按一种读法，设了 `start_trigger` 时 `event_on` 立刻结算，读档不结算。按另一种读法，结论正好相反：恰恰是 `true` 这个值**不等于**读档传的 `false`，于是走结算那一条分支。
+`EventTrigger.Add(EventNode, bool enable_start_trigger)` 把这个事件的 `start_trigger` 与第二个参数比较：相等就只登记，不等就当场建 `TimingContext`、读 `condition`、走 `OperationsExtensions.Start`。调用点只有两处：装载（开局与读档）传 `false`，游戏用 id 拉起事件（`event_on`、战利品、脚本）传 `true`。按这段代码，写 `true` 的事件在装载时结算、被拉起时只登记；写 `false` 的相反。详细推导与计数见 `docs/event.md` 的 `start_trigger` 一节。
 
-早先的一条笔记声称有探针确认过第一种读法。那条笔记已撤回。
+早先的一条笔记声称有探针确认过相反的方向。那条笔记已撤回。要定下来，只能在游戏里改一个事件、读档、看它有没有结算。
 
 已经确定的是：`auto_start_init` 负责注册事件，`on`（时机）负责排期。所以先让设计在不用 `start_trigger` 的情况下成立，再决定要不要写它。
 

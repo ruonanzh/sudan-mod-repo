@@ -91,6 +91,8 @@ description: 写苏丹的游戏 mod、改苏丹的游戏 mod 的主参考。在�
 | `config/sfx_npc_role_dub.json` | 角色配音映射 | 少改 |
 | `config/over_music_config.json` | 结局音乐映射 | 少改 |
 | `config/sfx_settle_card_new.json` | 结算新卡音效映射 | 少改 |
+| `image/` | 贴图，递归遍历，同名覆盖原版贴图 | 加卡面、改图标时 |
+| `bgm/` | 音频，文件名即片段名，只能替换已有片段 | 换音乐或音效时，写法见 `mod-audio` |
 
 前六行是常改的六项：`cards.json`（加卡、改数值）、`rite/`（加玩法）、`event/`（加剧情）、`upgrade.json`（放进命运商店）、`tag.json`（新卡要用的状态与属性）、`loot/`（仪式或事件的奖励）。这六项之外的条目，先确认真的需要再写。
 
@@ -139,7 +141,7 @@ description: 写苏丹的游戏 mod、改苏丹的游戏 mod 的主参考。在�
 | 仪式（含触发、超时、结算顺序、条件辅助键） | `docs/rite.md` |
 | 掉落表、任务、结局、后日谈 | `docs/loot-quest-over.md` |
 
-每一份都是自包含的：读那一份，不需要再回来读这一份。
+每一份都写全了这一类记录自己的规则，读那一份不必回读本 SKILL。它们都会用到仓库里的数据与工具：有效键看 `schema/fields.json`，时机与条件语法看 `schema/vocab.json`，路径与校验靠 `tools/paths.mjs` 与 `tools/lint.mjs`。
 
 ## 验收
 
