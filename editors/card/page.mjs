@@ -19,7 +19,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { esc, pageHtml } from "../lib/shell.mjs";
 import { requireLabel } from "../lib/labels.mjs";
-import { composeSubject } from "../../tools/art.mjs";
+import { composeSubject } from "../lib/card-prompt.mjs";
 import { artInline, fontFace, fmt, legacySection, tableFor, unknownSection } from "../page/page.mjs";
 import { findEntries, literal, parseDoc, toPlain } from "../../tools/jsonc.mjs";
 

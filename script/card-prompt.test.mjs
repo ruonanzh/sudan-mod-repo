@@ -37,7 +37,7 @@ const head = (p) => p.slice(0, 24);
 
 test("P1 the default composes head, the card's own fields, and the style tail", () => {
   const p = composePrompt(CARD);
-  // The tier name carries both languages in `tools/art.mjs` (银 silver), so assert on the shape.
+  // The tier name carries both languages (银 silver), so assert on the shape.
   assert.match(p, /^A .+silver tier item card: a single object/, "head names tier and type");
   assert.ok(p.includes("断刃"), "the card name is the subject");
   assert.ok(p.includes(STYLE_TAIL), "the style tail is present");

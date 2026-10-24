@@ -19,7 +19,7 @@ export default function (pi: ExtensionAPI) {
     name: "install_mod",
     label: "Install Mod",
     description:
-      "Copy one mod folder from the workspace into the game's mod install directory. The directory is the recorded modInstallDir, or the one derived from MyDocuments when nothing is recorded; a missing folder reports PARTIAL and a wrong folder reports FAIL, never a guess. An existing copy of the same folder is replaced as a whole, so files dropped from the new version do not stay behind. This tool skips .preview, .git, .DS_Store and ._* files. It does not enable the mod, does not edit game records, and does not start the game.",
+      "Copy one mod folder from the workspace into the game's mod install directory. The directory is the recorded modInstallDir, or the one derived from MyDocuments when nothing is recorded; a missing folder reports PARTIAL and a wrong folder reports FAIL, never a guess. An existing copy of the same folder is replaced as a whole, so files dropped from the new version do not stay behind. This tool skips .preview, .git, .DS_Store, asset_manifest.jsonl and ._* files. It does not enable the mod, does not edit game records, and does not start the game.",
     promptSnippet: "Copy a mod folder into the game's mod directory",
     promptGuidelines: [
       "Use install_mod after validate_mod reports PASS, and pass modDir=<your_mods/ModName>. Do not copy the folder with a shell command: the tool replaces the whole folder and reports the install directory it used.",

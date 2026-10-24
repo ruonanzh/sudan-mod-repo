@@ -60,6 +60,17 @@ test("install_mod replaces the previous copy instead of merging into it", async 
   assert.equal(result.details.files, 2);
 });
 
+test("install_mod leaves the asset manifest and previews behind", async () => {
+  const root = modRoot();
+  const cwd = workspace(root);
+  const mod = makeMod({ "config/cards.json": "{}\n", "asset_manifest.jsonl": '{"t":"x"}\n', ".preview/a.png": "png" });
+  const result = await run(await get(), { modDir: mod }, cwd);
+  const target = path.join(root, path.basename(mod));
+  assert.equal(result.details.files, 2, "info.json and config/cards.json only");
+  assert.equal(existsSync(path.join(target, "asset_manifest.jsonl")), false, "the manifest is a work file, not a mod file");
+  assert.equal(existsSync(path.join(target, ".preview")), false);
+});
+
 test("install_mod refuses a folder with no info.json", async () => {
   const root = modRoot();
   const cwd = workspace(root);

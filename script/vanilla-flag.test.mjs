@@ -108,18 +108,6 @@ test("story.mjs finds an event through --vanilla", () => {
   assert.match(blind.stdout, /no event/);
 });
 
-test("art.mjs composes the prompt from a card read through --vanilla", () => {
-  const cfg = fakeConfig();
-  const mod = emptyMod();
-  const found = tool("art.mjs", ["prompt", "--mod", mod, "--id", String(CARD_ID), "--vanilla", cfg]);
-  assert.equal(found.status, 0, found.stdout + found.stderr);
-  assert.match(found.stdout, /item card/);
-
-  const blind = tool("art.mjs", ["prompt", "--mod", mod, "--id", String(CARD_ID)]);
-  assert.equal(blind.status, 1);
-  assert.match(blind.stdout, /no card/);
-});
-
 test("save.mjs names cards from --vanilla", () => {
   const cfg = fakeConfig();
   const dir = tmpDir("sudan-save-");

@@ -59,7 +59,8 @@ test("A1 the prompt and the reference pictures reach the request", async () => {
   assert.ok(create, "a generation call happened");
   const body = JSON.parse(create.body);
   assert.match(body.prompt, /a broken blade/);
-  assert.ok(Array.isArray(body.inputs) && body.inputs.length === 1, "the reference travels as an input");
+  const travelled = Array.isArray(body.inputs) ? body.inputs : body.input ? [body.input] : [];
+  assert.equal(travelled.length, 1, "the reference travels as an input");
   assert.ok(existsSync(path.join(home, "out.png")), "the picture landed on disk");
 });
 

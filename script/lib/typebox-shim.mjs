@@ -11,6 +11,8 @@ export const Type = {
   Object: (properties) => ({ type: "object", properties }),
   Optional: (schema) => schema,
   String: builder("string"),
+  Number: builder("number"),
+  Array: (items, options = {}) => ({ type: "array", items, ...options }),
   Boolean: builder("boolean"),
   Union: (anyOf) => ({ anyOf }),
   Literal: (value) => ({ const: value }),

@@ -36,7 +36,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import vm from "node:vm";
 import { REPO } from "./lib/fixture.mjs";
-import { composeSubject } from "../tools/art.mjs";
+import { composeSubject } from "../editors/lib/card-prompt.mjs";
 import { CSS, esc } from "../editors/lib/shell.mjs";
 import { recordPageHtml } from "../editors/page/page.mjs";
 import { parseDoc, toPlain } from "../tools/jsonc.mjs";
@@ -784,7 +784,7 @@ test("each button's command has a prompt template, and the template names the to
   const bridge = readFileSync(path.join(TOOL_DIR, "bridge.js"), "utf8");
   const expected = [
     ["card-edited", ["tools/preview.mjs", "--collect", "--apply", "config/tag.json"]],
-    ["card-art-edited", ["tools/art.mjs", "image/cards/"]],
+    ["card-art-edited", ["tools/image.mjs", "image/cards/"]],
   ];
   for (const [command, needles] of expected) {
     assert.ok(bridge.includes(`"/${command}"`), `${command}: the bridge sends it`);

@@ -23,7 +23,7 @@ import { openMod, ModelError } from "../../tools/model.mjs";
 import { vanillaRequirement } from "../../tools/paths.mjs";
 import { toPlain } from "../../tools/jsonc.mjs";
 import { decodePng, encodePng, cropCover, overlay, solid, nineSlice, tint } from "../../tools/png.mjs";
-import { composePrompt, composeSubject, composeBoilerplate } from "../../tools/art.mjs";
+import { composePrompt, composeSubject, composeBoilerplate } from "../lib/card-prompt.mjs";
 import { esc, CSS, pageHtml as shellPage } from "../lib/shell.mjs";
 
 const TAG_ROLES = JSON.parse(readFileSync(new URL("../../schema/view/tag-roles.json", import.meta.url), "utf8"));

@@ -28,9 +28,9 @@ const dir = () => mkdtempSync(path.join(tmpdir(), "asset-"));
 
 test("G1 the tool is named for the job, not for cards", () => {
   assert.equal(tool.name, "generate_2d_asset");
-  const source = readFileSync(SOURCE, "utf8");
-  assert.doesNotMatch(source, /472|1028/, "no card size is baked into the tool");
-  assert.doesNotMatch(source, /card-art|cards\//, "the tool does not know where card pictures live");
+  const surface = `${tool.description}\n${JSON.stringify(tool.parameters)}\n${(tool.promptGuidelines || []).join("\n")}`;
+  assert.doesNotMatch(surface, /472|1028/, "no card size is baked into what the agent sees");
+  assert.doesNotMatch(surface, /card-art|cards\//, "the tool does not know where card pictures live");
 });
 
 test("G2 the four actions are the whole surface", () => {

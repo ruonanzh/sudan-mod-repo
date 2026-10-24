@@ -14,7 +14,7 @@ import { cpSync, existsSync, readdirSync, renameSync, rmSync } from "node:fs";
 import path from "node:path";
 
 export const SKIP = (name: string): boolean =>
-  name === ".preview" || name === ".git" || name === ".DS_Store" || name.startsWith("._");
+  name === ".preview" || name === ".git" || name === ".DS_Store" || name === "asset_manifest.jsonl" || name.startsWith("._");
 
 /** Every file that would land, relative to `dir`. */
 export function walk(dir: string, base = dir): string[] {
