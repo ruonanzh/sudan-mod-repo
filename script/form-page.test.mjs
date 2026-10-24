@@ -88,6 +88,14 @@ test("the form page carries its values in a block and opens in the editor", () =
   assert.ok(existsSync(path.join(dir, ".preview", "6000777.loot.html")), "no separate script file: the editor wrapper supplies one");
 });
 
+test("the wrapper mounts into the host its stylesheet pads", () => {
+  const html = read(path.join(REPO, "editors/form/index.html"));
+  assert.match(html, /#card-host \{[^}]*padding: 20px/, "the stylesheet pads the host");
+  assert.match(html, /<main id="card-host">/, "and the markup names the same element: a renamed host loses the padding");
+  assert.match(html, /id="card-hint"/, "the hint keeps the card page's id and text");
+  assert.match(html, /改完点「发送给 Agent」：它会先保存这一页，再把改动发给 agent 写回配置。/, "the sentence is the card page's sentence");
+});
+
 test("the record id never travels as a change", () => {
   const bridge = read(path.join(REPO, "editors/form/form-bridge.js"));
   assert.match(bridge, /if \(key === "id"\) return;/, "the diff skips the read-only id");
