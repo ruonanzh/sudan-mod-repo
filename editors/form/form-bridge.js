@@ -211,14 +211,19 @@
 
   /* ---------- reading, saving, sending ---------- */
 
-  /** Only the keys whose value differs from the block, so the message stays short. */
+  /**
+   * Only the keys whose value differs from the block, so the message stays short. `id` never
+   * travels: the page shows it read-only, and a record that loses its id cannot be found again.
+   */
   function changedValues(values) {
     var saved = state.values || {};
     var changed = {};
     Object.keys(values).forEach(function (key) {
+      if (key === "id") return;
       if (JSON.stringify(values[key]) !== JSON.stringify(saved[key])) changed[key] = values[key];
     });
     Object.keys(saved).forEach(function (key) {
+      if (key === "id") return;
       if (!(key in values)) changed[key] = null;
     });
     return changed;

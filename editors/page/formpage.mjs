@@ -1,10 +1,10 @@
 /**
  * Editable pages for records whose fields are few and fixed: a loot table, a fate-shop entry.
  *
- * The page is static. It carries every control in the markup and the current values in one JSON
- * block at the end; the app's editor wrapper (editors/form/) mounts the page, reads the block,
- * writes the player's values back into it, and sends the change to the agent. Nothing runs in the
- * page itself, so opening it from disk only shows what the record says.
+ * The page is static and its shape is the card page's shape: one panel of rows, each row a key in
+ * a narrow left column and the value (with the sentence that explains it) in the right column.
+ * The values also sit in one JSON block at the end, which the app's editor wrapper (editors/form/)
+ * rewrites on save and reads when diffing, so sending tells the agent exactly which keys changed.
  */
 import { esc, pageHtml } from "../lib/shell.mjs";
 import { requireLabel } from "../lib/labels.mjs";
@@ -32,26 +32,26 @@ const ITEM_NUMBERS = ["id", "num", "weight", "type"];
 
 const show = (value) => (value === undefined ? "" : typeof value === "string" ? value : JSON.stringify(value));
 
-const CSS = `.srow { padding: 10px 0; border-bottom: 1px dotted #3c3227; }
-.srow:last-of-type { border-bottom: 0; }
-.srow .top { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
-.srow .top code { min-width: 92px; }
-.srow .top .lbl { font-weight: 600; }
-.srow .top .note { margin-top: 0; }
-.srow .full { margin-top: 7px; }
-.srow .full input[type="text"], .srow .full input[type="number"], .srow .full select, .srow .full textarea { width: 100%; box-sizing: border-box; }
-table.items { width: 100%; border-collapse: collapse; margin-top: 8px; }
-table.items th { text-align: left; font-weight: 600; font-size: 12.5px; color: var(--dim); padding: 4px 6px; }
-table.items td { padding: 4px 6px; }
-table.items input, table.items select { width: 100%; box-sizing: border-box; }
-.readonly { font-family: ui-monospace, monospace; color: var(--dim); }
-.only-host { color: var(--dim); font-size: 13px; margin-top: 14px; }`;
+/** The card page's row rules, so the two kinds of page read the same. */
+const FORM_CSS = `
+.lbl code { display: block; }
+.lbl .key-zh { display: block; color: var(--ink); }
+.readonly { padding-top: 4px; }
+.panel .row:first-of-type { padding-top: 0; }
+.items th { text-align: left; font-weight: 600; font-size: 12.5px; color: var(--dim); padding: 4px 6px; }
+.items td { padding: 4px 6px; }
+.items input, .items select { width: 100%; box-sizing: border-box; }
+.items .pill { margin: 8px 0 0; }
+.items td:last-child { width: 1%; white-space: nowrap; }
+.items td:last-child .pill { margin: 0; padding: 2px 8px; }
+.only-host { color: var(--dim); font-size: 13px; margin-top: 16px; }
+`;
 
-/** One labelled row: name and label on the first line, the whole control on the next. */
-function row(key, info, control, note) {
-  return `<div class="srow" data-key="${esc(key)}">
-  <div class="top"><code>${esc(key)}</code><span class="lbl">${esc(info.label)}</span><span class="note">${esc(info.note)}</span></div>
-  <div class="full">${control}</div>${note ? `\n  <div class="note">${note}</div>` : ""}
+/** One row: key and its Chinese name on the left, the control and its sentence on the right. */
+function row(key, info, control) {
+  return `<div class="row" data-key="${esc(key)}">
+  <div class="lbl"><code>${esc(key)}</code><span class="key-zh">${esc(info.label)}</span></div>
+  <div class="val">${control}<div class="note" style="margin:5px 0 0">${esc(info.note)}</div></div>
 </div>`;
 }
 
@@ -70,29 +70,34 @@ function control(kind, key, value, spec) {
   return `<input data-form="${esc(key)}" data-kind="${numeric ? "number" : "text"}" type="${numeric ? "number" : "text"}" value="${esc(show(value))}">`;
 }
 
-/** The loot table's repeated rows: a small table, one row per entry. */
-function itemRows(value) {
+/** The loot table's repeated rows: one table row per entry, the same width as the value column. */
+function itemsPanel(value) {
   const rows = Array.isArray(value) ? value : [];
   const cells = (item) =>
     ITEM_FIELDS.map((key) => {
       const v = item?.[key];
+      const numeric = ITEM_NUMBERS.includes(key);
       const input =
         key === "type"
           ? `<select data-item="${esc(key)}" data-kind="number">${["2", "3", "99", "4"]
               .map((t) => `<option value="${t}"${String(v ?? 2) === t ? " selected" : ""}>${t}</option>`)
               .join("")}</select>`
-          : `<input data-item="${esc(key)}" data-kind="${ITEM_NUMBERS.includes(key) ? "number" : "text"}" type="${ITEM_NUMBERS.includes(key) ? "number" : "text"}" value="${esc(show(v))}">`;
+          : `<input data-item="${esc(key)}" data-kind="${numeric ? "number" : "text"}" type="${numeric ? "number" : "text"}" value="${esc(show(v))}">`;
       return `<td>${input}</td>`;
     }).join("");
-  return `<div class="srow" data-items>
-  <div class="top"><code>item</code><span class="lbl">放什么</span><span class="note">一行就是一件东西。加一行、删一行都可以，顺序就是抽取顺序。</span></div>
-  <div class="full">
+  return `<div class="panel">
+<h2>放什么</h2>
+<div class="row" data-items style="border-bottom:0;padding-top:0">
+  <div class="lbl"><code>item</code><span class="key-zh">放什么</span></div>
+  <div class="val">
+    <p class="note" style="margin:0 0 6px">一行就是一件东西。加一行、删一行都可以，顺序就是抽取顺序。</p>
     <table class="items"><thead><tr>${ITEM_FIELDS.map((k) => `<th>${esc(k)}</th>`).join("")}<th></th></tr></thead>
     <tbody id="item-rows">${rows
       .map((item) => `<tr data-item-row>${cells(item)}<td><button type="button" class="pill" data-item-remove>删除</button></td></tr>`)
       .join("")}</tbody></table>
     <button type="button" class="pill" id="item-add">加一行</button>
   </div>
+</div>
 </div>`;
 }
 
@@ -103,18 +108,19 @@ export function formPageHtml({ kind, id, record = {}, origin = "new", recordKey 
   const badge = origin === "override"
     ? '<span class="origin override">覆盖原版</span>'
     : '<span class="origin">新增</span>';
-  const body = [
+  const fields = [
     row("id", requireLabel(kind, "id"), `<div class="readonly">${esc(String(id))}</div>`),
     ...spec.scalar.map((field) => row(field, requireLabel(kind, field), control(kind, field, record[field], spec))),
     ...(spec.json || []).map((field) => row(field, requireLabel(kind, field), control(kind, field, record[field], spec))),
-    spec.items ? itemRows(record[spec.items]) : "",
   ].join("\n");
 
   return pageHtml({
     title: `${spec.label} ${id}`,
     sub: `${badge}${esc(spec.label)} · id <code>${esc(String(id))}</code>`,
-    extraCss: CSS,
-    body: `<div data-form-page="${esc(key)}">${body}
+    extraCss: FORM_CSS,
+    body: `<div data-form-page="${esc(key)}">
+<div class="panel">${fields}</div>
+${spec.items ? itemsPanel(record[spec.items]) : ""}
 <p class="only-host" id="card-no-host">在应用里打开这一页才能编辑：保存会写回这条记录，发送会把改动交给 agent。</p>
 <script type="application/json" id="form-values">${JSON.stringify({ version: 1, key, values: record }).replace(/</g, "\\u003c")}</script>
 </div>`,

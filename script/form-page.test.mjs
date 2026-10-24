@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 import { cleanupAll } from "./lib/fixture.mjs";
 
 const PREVIEW = fileURLToPath(new URL("../tools/preview.mjs", import.meta.url));
+const REPO = fileURLToPath(new URL("..", import.meta.url));
 after(cleanupAll);
 
 /** A mod with the records given: relative path -> record object. */
@@ -87,15 +88,24 @@ test("the form page carries its values in a block and opens in the editor", () =
   assert.ok(existsSync(path.join(dir, ".preview", "6000777.loot.html")), "no separate script file: the editor wrapper supplies one");
 });
 
-test("one control sits under its label, not beside it", () => {
+test("the record id never travels as a change", () => {
+  const bridge = read(path.join(REPO, "editors/form/form-bridge.js"));
+  assert.match(bridge, /if \(key === "id"\) return;/, "the diff skips the read-only id");
+});
+
+test("every row is the card page's row: key on the left, control in the right column", () => {
   const dir = mod({ "config/loot/6000777.json": LOOT });
   run(["--mod", dir]);
   const page = read(path.join(dir, ".preview", "6000777.loot.html"));
-  for (const key of ["repeat", "type", "name"]) {
+  for (const key of ["id", "repeat", "type", "name"]) {
     const start = page.indexOf(`data-key="${key}"`);
     const next = page.indexOf("data-key=", start + 10);
     const row = page.slice(start, next === -1 ? undefined : next);
-    assert.match(row, /class="full"/, `${key} keeps its control in a full-width row`);
+    assert.match(row, /class="lbl"><code>/, `${key} names the key in the left column`);
+    assert.match(row, /class="key-zh"/, `${key} carries its Chinese name in the same column`);
+    assert.match(row, /class="val"/, `${key} puts its value in the right column`);
   }
-  assert.match(page, /\.srow \{ padding/, "the form has its own row style: one column of full-width controls");
+  const repeat = page.slice(page.indexOf('data-key="repeat"'), page.indexOf('data-key="type"'));
+  assert.match(repeat, /class="val"><input data-form="repeat"/, "the control sits in the value column, as on a card page");
+  assert.match(page, /class="panel"/, "the rows sit inside the same bordered box a card page uses");
 });
