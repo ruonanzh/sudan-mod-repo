@@ -65,8 +65,14 @@ export function readRepoConfig(repo = REPO) {
 /** The locations a mod cannot be made without. Everything else is reported but not judged. */
 export const REQUIRED = ["gameDir", "vanilla", "modInstallDir"];
 
-/** `~` expands against a home a caller supplied, so a test can describe another machine. */
-const expandAt = (p, home) => (p === null || p === undefined ? null : String(p).replace(/^~/, home));
+/** `~` expands against a home a caller supplied, so a test can describe another machine.
+ *  The rule matches `.pi/lib/state.ts`: trim, and only `~` or `~/...` expand. */
+const expandAt = (p, home) => {
+  if (p === null || p === undefined) return null;
+  const t = String(p).trim();
+  if (t !== "~" && !t.startsWith("~/")) return t;
+  return path.join(home, t.slice(2));
+};
 
 /** `~` expands to the account's home directory. Never process.env.HOME: Windows has no such variable. */
 const expand = (p) => expandAt(p, os.homedir());

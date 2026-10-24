@@ -10,14 +10,14 @@
  * uses; this file never decides paths, only spells them.
  */
 import { realpathSync } from "node:fs";
-import { homedir } from "node:os";
 import path from "node:path";
+import { expandHome } from "./state";
 
 /** A path from a tool argument, resolved against the workspace. */
 export const absolute = (cwd: string, p: string): string => {
   // A path copied out of our own report starts with `~`; resolving that against the workspace
-  // would invent `<workspace>/~/...`, so expand it first.
-  const expanded = p.startsWith("~") ? path.join(homedir(), p.slice(1)) : p;
+  // would invent `<workspace>/~/...`, so expand it first with the same rule every tool uses.
+  const expanded = expandHome(p);
   return path.isAbsolute(expanded) ? expanded : path.resolve(cwd, expanded);
 };
 

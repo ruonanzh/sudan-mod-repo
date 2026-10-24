@@ -76,5 +76,5 @@ export function writeState(cwd: string, patch: RuntimeState): RuntimeState {
 export const expandHome = (p: string): string => {
   const t = p.trim();
   if (t !== "~" && !t.startsWith("~/")) return t;
-  return join(process.env.HOME ?? process.env.USERPROFILE ?? os.homedir(), t.slice(2));
+  return join(os.homedir(), t.slice(2));
 };
