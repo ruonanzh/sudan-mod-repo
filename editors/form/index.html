@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>苏丹的表单页</title>
+    <!--
+      The app opens this wrapper for a matched `*.loot.html` or `*.upgrade.html` and passes the
+      file path in `editor:init`. form-bridge.js reads that file over `editor:readFile`, mounts
+      the page and saves edits back into the page's own value block over `editor:save`. Sending
+      writes the block first, then hands the changed keys to the agent. The wrapper holds no
+      inline script: the editor frame's CSP allows scripts only from this directory.
+    -->
+    <style>
+      :root {
+        --app-font: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+        --bar: #2c241c;
+        --rule: #57452c;
+        --ink: #efe3c8;
+        --dim: #b9a887;
+        --gold: #c9a227;
+        --bad: #b4543f;
+      }
+      [data-theme="light"] {
+        --bar: #f3ead8;
+        --rule: #d3c3a4;
+        --ink: #2a2119;
+        --dim: #6f6049;
+        --gold: #8a6a12;
+      }
+      * { box-sizing: border-box; }
+      /* The mounted form page brings its own `body` rules; the wrapper keeps its own frame. */
+      body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: var(--bar);
+        color: var(--ink);
+        font: 13px/1.6 var(--app-font);
+      }
+      #bar {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--rule);
+        background: var(--bar);
+        color: var(--ink);
+        font: 13px/1.6 var(--app-font);
+      }
+      #card-file {
+        color: var(--gold);
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 12.5px;
+      }
+      #card-status { color: var(--dim); }
+      #card-status[data-state="dirty"] { color: var(--gold); }
+      #card-status[data-state="error"] { color: var(--bad); }
+      #card-status[data-state="readonly"] { color: var(--dim); }
+      #card-reload, #card-send {
+        font: inherit;
+        padding: 4px 12px;
+        border: 1px solid var(--gold);
+        background: transparent;
+        color: var(--ink);
+        cursor: pointer;
+      }
+      #card-send { background: var(--gold); color: #1a1510; font-weight: 600; }
+      #card-reload:disabled, #card-send:disabled { opacity: 0.45; cursor: default; }
+      #bar .grow { flex: 1; }
+      #card-hint {
+        margin: 10px 20px 0;
+        color: var(--dim);
+        font: 12.5px/1.6 var(--app-font);
+      }
+      #card-host { display: block; padding: 20px 20px 64px; }
+    </style>
+  </head>
+  <body data-form-page-host="1">
+    <header id="bar"></header>
+    <p id="form-hint">改完点「发送给 Agent」：它会先保存这一页，再把改动的键交给 agent 写回配置。</p>
+    <main id="form-host"></main>
+    <script src="form-bridge.js"></script>
+  </body>
+</html>

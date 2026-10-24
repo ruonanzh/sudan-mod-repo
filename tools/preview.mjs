@@ -37,7 +37,7 @@ import { buildGraph } from "./graph.mjs";
 import { writePage as writeGraphPage } from "../editors/graph/graphpage.mjs";
 import { applyCardValues, cardPageHtml, missingValues, pendingValues, readPageValues } from "../editors/card/page.mjs";
 import { recordPageHtml } from "../editors/page/page.mjs";
-import { formPageHtml, formPageScript, FORM_FIELDS } from "../editors/page/formpage.mjs";
+import { formPageHtml, FORM_FIELDS } from "../editors/page/formpage.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const LAYOUT = JSON.parse(readFileSync(new URL("../schema/layout.json", import.meta.url), "utf8"));
@@ -449,7 +449,6 @@ function main() {
         return 1;
       }
     }
-    writeFileSync(path.join(outDir, "form-page.js"), formPageScript());
     if (formCount) process.stdout.write(`PASS  ${formCount} form page(s) in ${displayPath(outDir)}\n`);
   }
 

@@ -63,7 +63,7 @@ test("a loot table gets a form page with every field, labelled", () => {
   assert.match(page, /抽取次数|name/, "each row carries its Chinese label");
   assert.match(page, /data-item-row/, "the repeated items are rows");
   assert.equal((page.match(/data-item-row/g) || []).length, 2, "one row per item in the record");
-  assert.match(page, /src="form-page\.js"/, "the behaviour travels as a file: the preview forbids inline scripts");
+  assert.match(page, /id="form-values"/, "the values live in one block the editor wrapper rewrites");
 });
 
 test("a fate-shop entry gets a form page with JSON boxes for the nested fields", () => {
@@ -77,13 +77,25 @@ test("a fate-shop entry gets a form page with JSON boxes for the nested fields",
   assert.match(page, /命运商店/, "the page names the shop");
 });
 
-test("the form page sends only what changed, as /page-edited", () => {
+test("the form page carries its values in a block and opens in the editor", () => {
   const dir = mod({ "config/loot/6000777.json": LOOT });
   run(["--mod", dir]);
-  const js = read(path.join(dir, ".preview", "form-page.js"));
-  assert.match(js, /\/page-edited /, "the message names a command the agent has a template for");
-  assert.match(js, /改动：/, "and carries the changed values under a label the agent can find");
-  assert.match(js, /JSON\.stringify\(changed\)/, "only the changed keys travel");
-  assert.match(js, /itemRowsNow/, "item rows are collected");
-  assert.ok(existsSync(path.join(dir, ".preview", "form-page.js")), "the script ships beside the page");
+  const page = read(path.join(dir, ".preview", "6000777.loot.html"));
+  assert.match(page, /id="form-values"/, "the wrapper reads and writes this block");
+  assert.match(page, /"key": ?"loot:6000777"/, "the block names the record");
+  assert.match(page, /"weight": ?10/, "the block carries the current values");
+  assert.ok(existsSync(path.join(dir, ".preview", "6000777.loot.html")), "no separate script file: the editor wrapper supplies one");
+});
+
+test("one control sits under its label, not beside it", () => {
+  const dir = mod({ "config/loot/6000777.json": LOOT });
+  run(["--mod", dir]);
+  const page = read(path.join(dir, ".preview", "6000777.loot.html"));
+  for (const key of ["repeat", "type", "name"]) {
+    const start = page.indexOf(`data-key="${key}"`);
+    const next = page.indexOf("data-key=", start + 10);
+    const row = page.slice(start, next === -1 ? undefined : next);
+    assert.match(row, /class="full"/, `${key} keeps its control in a full-width row`);
+  }
+  assert.match(page, /\.srow \{ padding/, "the form has its own row style: one column of full-width controls");
 });

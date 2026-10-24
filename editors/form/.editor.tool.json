@@ -1,0 +1,12 @@
+{
+  "apiVersion": 1,
+  "id": "form",
+  "name": "苏丹的记录表单",
+  "match": [
+    "your_mods/*/.preview/*.loot.html",
+    "your_mods/*/.preview/*.upgrade.html"
+  ],
+  "entry": "index.html",
+  "mode": "edit",
+  "description": "在 app 里编辑战利品表与命运商店条目：改完发送给 agent，由它写回配置。"
+}
