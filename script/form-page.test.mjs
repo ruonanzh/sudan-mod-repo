@@ -62,8 +62,9 @@ const UPGRADE = {
   name: "测试命运商店",
   text: "用一次",
   cost: 30,
-  icon: "cards/1_char_0",
+  icon: "gain",
   link_card: 9000001,
+  incompatible: 8000776,
   condition: { all: { "have.2000001": 1 } },
   effect: { "counter+7000001": 1 },
 };
@@ -83,6 +84,7 @@ test("a fate-shop entry gets a form page with JSON boxes for the nested fields",
   for (const key of ["name", "text", "cost", "icon", "link_card"]) assert.match(page, new RegExp(`data-form="${key}"`), key);
   assert.match(page, /<textarea data-form="condition"/, "a condition is edited as JSON");
   assert.match(page, /<textarea data-form="effect"/, "so is an effect");
+  assert.match(page, /<input data-form="incompatible"[^>]*type="number"/, "incompatible is one id, so it is a number box");
   assert.match(page, /命运商店/, "the page names the shop");
   assert.match(page, /<select data-form="icon">/, "the icon is a pick of the two names the game resolves");
   assert.match(page, /gain · 获得/, "the option shows the label the player sees beside the value to write");

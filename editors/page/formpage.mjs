@@ -20,10 +20,10 @@ export const FORM_FIELDS = {
   },
   upgrade: {
     label: "命运商店",
-    scalar: ["name", "text", "cost", "icon", "link_card"],
+    scalar: ["name", "text", "cost", "icon", "link_card", "incompatible"],
     selects: { icon: [["gain", "gain · 获得"], ["buff", "buff · 增益"]] },
-    numbers: ["cost", "link_card"],
-    json: ["condition", "effect", "incompatible"],
+    numbers: ["cost", "link_card", "incompatible"],
+    json: ["condition", "effect"],
   },
 };
 
