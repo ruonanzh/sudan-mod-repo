@@ -8,6 +8,7 @@ import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { openMod } from "./model.mjs";
+import { parseJsonc } from "./lint.mjs";
 import { saveNode, readNodeSource, openModDir } from "./editor.mjs";
 import { DEFAULT_VANILLA } from "./model.mjs";
 import os from "node:os";
@@ -179,4 +180,18 @@ test("a table save keeps the comments inside the record it edits", { skip }, () 
   assert.ok(after.includes("// 编号"), "the inner comment survives");
   assert.ok(after.includes("// 显示名"), "and so does the one beside the edited value");
   assert.match(after, /"name": "新名字"/);
+});
+
+test("a record that ends with a line comment can still be saved", { skip }, () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "editor-tail-"));
+  writeFileSync(path.join(dir, "info.json"), JSON.stringify({ name: "tail probe", version: "1.0.0" }));
+  mkdirSync(path.join(dir, "config"), { recursive: true });
+  writeFileSync(path.join(dir, "config/cards.json"), `{\n  "9000001": {\n    "id": 9000001,\n    "type": "item",\n    "rare": 2,\n    "name": "名字" // 结尾注释\n  }\n}\n`);
+  const mod = openMod(dir, { vanilla: VANILLA });
+  const view = readNodeSource(mod, "card", 9000001);
+  const out = saveNode(mod, "card", 9000001, view.text);
+  assert.equal(out.ok, true, out.error);
+  const after = readFileSync(path.join(dir, "config/cards.json"), "utf8");
+  assert.ok(after.includes("// 结尾注释"), "the comment survives");
+  parseJsonc(after); // still parses
 });

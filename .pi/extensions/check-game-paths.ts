@@ -11,6 +11,7 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { ascii, clipUtf8 } from "../lib/clip";
 import path from "node:path";
 import { judge, pathsFile, readRecord, shorten } from "../../tools/paths.mjs";
 import { absolute } from "../lib/workspace";
@@ -90,7 +91,7 @@ export default function (pi: ExtensionAPI) {
       }
 
       return {
-        content: [{ type: "text", text: lines.join("\n") }],
+        content: [{ type: "text", text: clipUtf8(ascii(lines.join("\n"))) }],
         details: { ok, rows: judged, failed: failedNames(judged), wroteState: false, present: recorded.present },
       };
     },

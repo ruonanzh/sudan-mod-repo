@@ -10,6 +10,7 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { ascii, clipUtf8 } from "../lib/clip";
 import { absolute } from "../lib/workspace";
 import { pathsFile, setGameDirWithFallback } from "../../tools/paths.mjs";
 import { formatOutcome, type PathOutcome } from "../lib/paths-report";
@@ -40,7 +41,7 @@ export default function (pi: ExtensionAPI) {
       const out = setGameDirWithFallback({ given, file: pathsFile(cwd) }) as PathOutcome;
       const { text, ok, status } = formatOutcome(out);
       return {
-        content: [{ type: "text", text }],
+        content: [{ type: "text", text: clipUtf8(ascii(text)) }],
         details: {
           ok,
           given: out.given,

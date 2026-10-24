@@ -4,7 +4,7 @@
  * What this tool does not do: it does not enable the mod (the game owns enablement, in the
  * mod panel), does not edit the game's records, and does not prove the game loaded anything.
  * The install directory comes from `tools/paths.mjs`, so an unrecorded or missing folder is
- * reported as PARTIAL with the sentence that fixes it, not guessed.
+ * reported as FAIL with the sentence that fixes it, not guessed.
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
@@ -26,12 +26,12 @@ export default function (pi: ExtensionAPI) {
     name: "install_mod",
     label: "Install Mod",
     description:
-      "Copy one mod folder from the workspace into the game's mod install directory. The directory is the recorded modInstallDir, or the one derived from MyDocuments when nothing is recorded; a missing folder reports PARTIAL and a wrong folder reports FAIL, never a guess. An existing copy of the same folder is replaced as a whole, so files dropped from the new version do not stay behind. This tool skips .preview, .git, .DS_Store, asset_manifest.jsonl and ._* files. It does not enable the mod, does not edit game records, and does not start the game.",
+      "Copy one mod folder from the workspace into the game's mod install directory. The directory is the recorded modInstallDir, or the one derived from MyDocuments when nothing is recorded; a missing or wrong folder reports FAIL with the step that fixes it, never a guess. An existing copy of the same folder is replaced as a whole, so files dropped from the new version do not stay behind. This tool skips .preview, .git, .DS_Store, asset_manifest.jsonl and ._* files. It does not enable the mod, does not edit game records, and does not start the game.",
     promptSnippet: "Copy a mod folder into the game's mod directory",
     promptGuidelines: [
       "Use install_mod after validate_mod reports PASS, and pass modDir=<your_mods/ModName>. Do not copy the folder with a shell command: the tool replaces the whole folder and reports the install directory it used.",
       "install_mod never enables the mod. After it reports PASS, tell the player to enable the mod in the game's mod panel (title screen), then read ModLog/<mod name>_local.log for a `read mod` line before claiming the mod works.",
-      "A PARTIAL from install_mod means the mod folder does not exist yet: ask the player to press the \"ModList\" button in the game's mod panel, which creates the folder, then install again. A FAIL means the recorded folder is wrong: run try_set_game_dir. Do not create the folder by hand.",
+      "A FAIL naming a missing folder means the mod folder does not exist yet: ask the player to press the \"ModList\" button in the game's mod panel, which creates the folder, then install again. A FAIL naming a wrong folder means run try_set_game_dir. Do not create the folder by hand.",
     ],
     parameters: Type.Object({
       modDir: Type.String({
@@ -89,7 +89,7 @@ export default function (pi: ExtensionAPI) {
             {
               type: "text",
               text: [
-                `${missing ? "PARTIAL" : "FAIL"}: the mod install directory is not available${why}.`,
+                `FAIL: the mod install directory is not available${why}.`,
                 missing
                   ? "NEXT: ask the player to press the \"ModList\" button in the game's mod panel, which creates the mod folder, then run install_mod again. Do not create the folder by hand."
                   : "NEXT: run try_set_game_dir to find the game again, or set_game_dir with the real install folder, then run install_mod again. Do not create the folder by hand.",

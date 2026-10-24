@@ -38,7 +38,49 @@
     });
   }
 
-  var api = { keyOf: keyOf, mergeConditions: mergeConditions };
+  /**
+   * A value as text, with two normalisations the game's own files need: object key order must not
+   * matter, and a number must equal the same number written as a string. Vanilla writes `"id": "2000032"`
+   * and `"num": "1"`; the page reads them as numbers, so without this every page looks changed and
+   * the whole item array travels as a "change" the player never made.
+   */
+  function canonical(value) {
+    if (Array.isArray(value)) return "[" + value.map(canonical).join(",") + "]";
+    if (value && typeof value === "object") {
+      return (
+        "{" +
+        Object.keys(value)
+          .sort()
+          .map(function (key) {
+            return JSON.stringify(key) + ":" + canonical(value[key]);
+          })
+          .join(",") +
+        "}"
+      );
+    }
+    if (typeof value === "number") return "#" + value;
+    if (typeof value === "string" && /^-?\d+$/.test(value)) return "#" + Number(value);
+    return JSON.stringify(value);
+  }
+
+  /** The keys whose value differs from the block; `null` means the key disappeared. */
+  function changedValues(values, saved, described) {
+    var out = {};
+    var skip = function (key) {
+      return key === "id" || (described || []).indexOf(key) !== -1;
+    };
+    Object.keys(values || {}).forEach(function (key) {
+      if (skip(key)) return;
+      if (canonical(values[key]) !== canonical((saved || {})[key])) out[key] = values[key];
+    });
+    Object.keys(saved || {}).forEach(function (key) {
+      if (skip(key)) return;
+      if (!(key in (values || {}))) out[key] = null;
+    });
+    return out;
+  }
+
+  var api = { keyOf: keyOf, mergeConditions: mergeConditions, canonical: canonical, changedValues: changedValues };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.FormValues = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

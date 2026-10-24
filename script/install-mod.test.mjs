@@ -107,7 +107,7 @@ test("install_mod refuses malformed info.json", async () => {
   await assert.rejects(run(await get(), { modDir: mod }, cwd), /is not readable JSONC/);
 });
 
-test("install_mod reports PARTIAL when no mod directory is recorded", async () => {
+test("install_mod reports FAIL when no mod directory is recorded", async () => {
   const cwd = workspace(null);
   const mod = makeMod({});
   // An empty home keeps discovery from finding this machine's real install: the test must not
@@ -124,7 +124,7 @@ test("install_mod reports PARTIAL when no mod directory is recorded", async () =
     else process.env.USERPROFILE = before.USERPROFILE;
   }
   const text = textOf(result);
-  assert.match(text, /^PARTIAL:/, text);
+  assert.match(text, /^FAIL:/, text);
   assert.match(text, /ModList/, "the fix is the mod panel button, not a folder made by hand");
   assert.equal(result.details.installed, false);
 });

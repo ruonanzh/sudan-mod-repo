@@ -43,7 +43,7 @@ export class ImageError extends Error {
   }
 }
 
-const say = (level, message, next) => process.stdout.write(`${level}  ${message}${next ? `\nNEXT: ${next}` : ""}\n`);
+const say = (level, message, next) => process.stdout.write(`${level}: ${message}${next ? `\nNEXT: ${next}` : ""}\n`);
 
 // ---------------------------------------------------------------- fit / check / refs
 
@@ -392,7 +392,7 @@ async function main(argv) {
         wait: args.wait !== "false",
         manifest: typeof args.manifest === "string" ? args.manifest : undefined,
       });
-      say("PASS", `${got.out} written (${got.width}x${got.height}), task ${got.task}`, "look at it before you ship it: a second generation costs credits, the same task does not");
+      say("PASS", `${got.out} written (${got.width}x${got.height}), task ${got.task}`);
       return 0;
     }
     process.stderr.write(

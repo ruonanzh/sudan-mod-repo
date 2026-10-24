@@ -13,6 +13,7 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { ascii, clipUtf8 } from "../lib/clip";
 import { ensureGameDir, pathsFile, shorten } from "../../tools/paths.mjs";
 import { derivedLines } from "../lib/paths-report";
 
@@ -56,7 +57,7 @@ export default function (pi: ExtensionAPI) {
       ];
       for (const warning of out.warnings) lines.push(`WARN: ${warning}`);
       return {
-        content: [{ type: "text", text: lines.join("\n") }],
+        content: [{ type: "text", text: clipUtf8(ascii(lines.join("\n"))) }],
         details: {
           ok: true,
           gameDir: out.recorded,

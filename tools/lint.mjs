@@ -881,14 +881,6 @@ function lintMod(modDir, vanilla, opts) {
                 });
             });
         }
-        if (relPath === "config/sfx_config.json" && isPlainObject(value)) {
-          for (const [group, inner] of Object.entries(value)) {
-            if (!isPlainObject(inner)) continue;
-            for (const [k, loop] of Object.entries(inner)) {
-              if (isPlainObject(loop)) reportFields(fileRel, "sfxLoop", loop, `${group}.${k}`);
-            }
-          }
-        }
         if (relPath === "config/event" && Array.isArray(value.settlement)) {
           reportSettlements(fileRel, value.settlement, "settlement");
           checkEventBranchConditions(fileRel, value.settlement);
@@ -1007,6 +999,16 @@ function lintMod(modDir, vanilla, opts) {
           if (kind) {
             reportFields(relPath, kind, parsed.value, "");
             reportRequired(relPath, kind, parsed.value, "");
+            // sfx_config.json is a single object, not a directory: its nested loop groups used to
+            // be checked only in the dir branch, which this file never reaches.
+            if (relPath === "config/sfx_config.json") {
+              for (const [group, inner] of Object.entries(parsed.value)) {
+                if (!isPlainObject(inner)) continue;
+                for (const [k, loop] of Object.entries(inner)) {
+                  if (isPlainObject(loop)) reportFields(relPath, "sfxLoop", loop, `${group}.${k}`);
+                }
+              }
+            }
           }
         }
       } catch (e) {

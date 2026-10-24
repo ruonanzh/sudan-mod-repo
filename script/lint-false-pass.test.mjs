@@ -106,3 +106,11 @@ test("two mods that write the same after-story id collide", { skip }, () => {
   const r = spawnSync(process.execPath, [path.join(REPO, "tools/lint.mjs"), "--mod-root", root, "--vanilla", VANILLA], { encoding: "utf8" });
   assert.match(r.stdout, /ID_CROSS_MOD/, "the after_story id is part of the collision check");
 });
+
+test("a nested sfx loop group is checked, not skipped as dead code", { skip }, () => {
+  const mod = makeMod({
+    "config/sfx_config.json": JSON.stringify({ sfx: { music: { nosuchkey: 1 } } }),
+  });
+  const r = lint([mod]);
+  assert.match(r.stdout, /UNKNOWN_FIELD/, "the nested loop object is checked");
+});

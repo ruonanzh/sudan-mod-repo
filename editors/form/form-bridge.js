@@ -265,20 +265,9 @@
    * absent control there means "the player said nothing", not "remove this field".
    */
   function changedValues(values, described) {
-    var saved = state.values || {};
-    var changed = {};
-    var skip = function (key) {
-      return key === "id" || described.indexOf(key) !== -1;
-    };
-    Object.keys(values).forEach(function (key) {
-      if (skip(key)) return;
-      if (JSON.stringify(values[key]) !== JSON.stringify(saved[key])) changed[key] = values[key];
-    });
-    Object.keys(saved).forEach(function (key) {
-      if (skip(key)) return;
-      if (!(key in values)) changed[key] = null;
-    });
-    return changed;
+    // The comparison lives in form-values.js: it must treat "1" and 1 as the same value, or every
+    // vanilla loot table looks edited and its whole item array is sent as a change.
+    return window.FormValues.changedValues(values, state.values || {}, described);
   }
 
   function saveError(response) {

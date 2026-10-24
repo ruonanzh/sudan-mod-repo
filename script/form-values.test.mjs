@@ -39,3 +39,25 @@ test("a row that already has a condition keeps it, and each stored one is used o
   assert.deepEqual(out[0].condition, { "have.1": 1 });
   assert.deepEqual(out[1].condition, saved[0].condition, "the stored one goes to the other row once");
 });
+
+const { changedValues } = require(fileURLToPath(new URL("../editors/form/form-values.js", import.meta.url)));
+
+test("a number equal to the same number written as a string is not a change", () => {
+  const saved = { repeat: 3, item: [{ type: "card", id: "2000032", num: "1", weight: "10" }] };
+  const page = { repeat: 3, item: [{ type: "card", id: 2000032, num: 1, weight: 10 }] };
+  assert.deepEqual(changedValues(page, saved, [], undefined), {}, "vanilla strings and page numbers agree");
+});
+
+test("only the key that changed travels, not the whole item array", () => {
+  const saved = { repeat: 3, item: [{ type: "card", id: "2000032", num: "1", weight: "10" }] };
+  const page = { repeat: 5, item: [{ type: "card", id: 2000032, num: 1, weight: 10 }] };
+  const out = changedValues(page, saved, []);
+  assert.deepEqual(Object.keys(out), ["repeat"]);
+  assert.equal(out.repeat, 5);
+});
+
+test("a key the player describes in words is never sent, and a missing key is null", () => {
+  const saved = { repeat: 3, type: 2, name: "x" };
+  const page = { repeat: 3, type: 2 };
+  assert.deepEqual(changedValues(page, saved, ["condition"]), { name: null });
+});

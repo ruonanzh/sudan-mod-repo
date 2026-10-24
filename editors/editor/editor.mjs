@@ -96,7 +96,7 @@ export function saveNode(mod, kind, id, source, options = {}) {
   }
   // Duplicate keys are the game's own style (the vanilla files are full of them), so they
   // are a warning to show, not a reason to refuse the save.
-  const warnings = (parsed.dups || []).length ? [`重复键 ${parsed.dups.length} 处（游戏允许，但只会读最后一个）`] : [];
+  const warnings = (parsed.dups || []).length ? [`重复键 ${parsed.dups.length} 处（condition / action 里是追加，其他地方最后一个生效）`] : [];
   const record = parsed.value;
   if (!record || typeof record !== "object") return { ok: false, error: "内容不是一个对象" };
   try {
@@ -160,16 +160,21 @@ export function saveNode(mod, kind, id, source, options = {}) {
     // Write the text as typed. Parsing it above proved it is valid JSONC and validated the record;
     // re-serialising here would drop the comments the player left inside the record.
     const literalText = source.trim();
-    // Re-parse what will be written: a trailing line comment can swallow the comma that separates
-    // this record from the next one, and the file would stop parsing.
-    parseDoc(`{ "x": ${literalText} }`);
     if (entries.length) {
       // The game reads the last duplicate, so the last one is the record the page showed.
       doc.set(entries[entries.length - 1].value, literalText);
     } else {
       doc.appendSource(String(id), `"${id}": ${literalText}`);
     }
-    writeFileSync(target, doc.render());
+    const rendered = doc.render();
+    // Validate the finished file, not the record alone: a trailing line comment inside the record
+    // can swallow the comma that separates it from the next one, and only the whole file shows it.
+    try {
+      parseDoc(rendered);
+    } catch (error) {
+      return { ok: false, error: `写回之后这个文件解析不了：${String(error.message || error)}` };
+    }
+    writeFileSync(target, rendered);
   } else {
     writeFileSync(target, source.endsWith("\n") ? source : `${source}\n`);
   }
