@@ -64,6 +64,20 @@ test("A1 the prompt and the reference pictures reach the request", async () => {
   assert.ok(existsSync(path.join(home, "out.png")), "the picture landed on disk");
 });
 
+test("A4 every request carries a timeout, so a dead network cannot hang for minutes", async () => {
+  const home = dir();
+  const seen = [];
+  const fail = async (url, init = {}) => {
+    seen.push({ url: String(url), signal: Boolean(init.signal) });
+    throw Object.assign(new Error("connect timed out"), { name: "TimeoutError" });
+  };
+  await assert.rejects(
+    () => generateImage({ prompt: "x", out: path.join(home, "a.png"), key: "k", fetchImpl: fail }),
+    (e) => e.code === "NETWORK" && /network|proxy/i.test(e.message),
+  );
+  assert.ok(seen.length >= 1 && seen.every((c) => c.signal), "the request was given an abort signal");
+});
+
 test("A2 without out the tool refuses before spending anything", async () => {
   await assert.rejects(
     () => generateImage({ prompt: "x", key: "k", fetchImpl: async () => ({}) }),

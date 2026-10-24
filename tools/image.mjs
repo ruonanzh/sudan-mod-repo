@@ -29,6 +29,9 @@ import path from "node:path";
 import { decodePng, encodePng } from "./png.mjs";
 
 const API = "https://openapi.tripo3d.com/v3";
+/** A blackholed network must fail in seconds, not in minutes: every request carries this. */
+const NET_TIMEOUT_MS = 30_000;
+const DOWNLOAD_TIMEOUT_MS = 120_000;
 const PROVIDER = "tripo";
 const MODEL = "chat_image_2.5_flare";
 
@@ -201,7 +204,7 @@ export async function generateImage({
       if (!imageUrl) throw new ImageError("TASK_FAILED", `task ${requestId} finished with no image url`);
       writeManifest(manifest, { endpoint, name: outName(out), requestId, input, files: [], startedAt, error: null });
     }
-    const response = await fetchImpl(imageUrl);
+    const response = await fetchWithTimeout(fetchImpl, imageUrl, {}, DOWNLOAD_TIMEOUT_MS);
     if (!response.ok) throw new ImageError("DOWNLOAD_FAILED", `downloading the picture failed: HTTP ${response.status}`);
     writeFileSync(out, Buffer.from(await response.arrayBuffer()));
     return { out, task: requestId, width: decodePng(readFileSync(out)).width, height: decodePng(readFileSync(out)).height };
@@ -260,11 +263,16 @@ export function requireKey() {
 
 function tripoApi(key, fetchImpl) {
   return async (endpoint, body) => {
-    const response = await fetchImpl(API + endpoint, {
-      method: body ? "POST" : "GET",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: body ? JSON.stringify(body) : undefined,
-    });
+    const response = await fetchWithTimeout(
+      fetchImpl,
+      API + endpoint,
+      {
+        method: body ? "POST" : "GET",
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+        body: body ? JSON.stringify(body) : undefined,
+      },
+      NET_TIMEOUT_MS,
+    );
     const text = await response.text();
     let json;
     try {
@@ -283,7 +291,12 @@ async function uploadFile(key, file, fetchImpl) {
   if (!existsSync(file)) throw new ImageError("NO_FILE", `no such reference picture: ${file}`);
   const form = new FormData();
   form.append("file", new Blob([new Uint8Array(readFileSync(file))]), path.basename(file));
-  const response = await fetchImpl(API + "/files", { method: "POST", headers: { Authorization: `Bearer ${key}` }, body: form });
+  const response = await fetchWithTimeout(
+    fetchImpl,
+    API + "/files",
+    { method: "POST", headers: { Authorization: `Bearer ${key}` }, body: form },
+    NET_TIMEOUT_MS,
+  );
   const json = await response.json().catch(() => ({}));
   const token = json?.data?.file_token ?? json?.data?.image_token;
   if (!token) throw new ImageError("UPLOAD_FAILED", `uploading ${path.basename(file)} failed: ${JSON.stringify(json).slice(0, 200)}`);
@@ -301,6 +314,18 @@ async function waitForTask(api, id, { wait, pollMs, timeoutMs }) {
     if (!wait) return data;
     if (Date.now() - started > timeoutMs) throw new ImageError("TASK_TIMEOUT", `task ${id} did not finish within 15 minutes`);
     await new Promise((resolve) => setTimeout(resolve, pollMs));
+  }
+}
+
+/** A request that cannot hang forever; a blackholed host reports NETWORK instead of stalling. */
+async function fetchWithTimeout(fetchImpl, url, init, ms) {
+  try {
+    return await fetchImpl(url, { ...init, signal: AbortSignal.timeout(ms) });
+  } catch (error) {
+    const name = String(error && error.name);
+    if (name === "TimeoutError" || name === "AbortError")
+      throw new ImageError("NETWORK", `no answer from ${new URL(url).host} within ${Math.round(ms / 1000)}s; check this machine's network, VPN or proxy`);
+    throw new ImageError("NETWORK", `request to ${new URL(url).host} failed: ${String(error && error.message ? error.message : error)}`);
   }
 }
 
