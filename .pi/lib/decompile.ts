@@ -1002,3 +1002,39 @@ export function searchStrings(file: string, query: string, limit = 50): StringHi
 /** Human-readable size of a folder, used by `status`. */
 export const folderBytes = (dir: string): number => (existsSync(dir) ? dirBytes(dir) : 0);
 
+/**
+ * Ask a search for one hit more than you show. A list that ended and a list that
+ * was cut then differ, and the answer can say which one it is.
+ */
+export function takeCapped<T>(hits: T[], limit: number): { hits: T[]; capped: boolean } {
+  return { hits: hits.slice(0, limit), capped: hits.length > limit };
+}
+
+export interface SearchTally {
+  scope: "names" | "bodies" | "all" | "strings";
+  target: string;
+  matches: number;
+  /** Only `scope=bodies`: files seen before the cap. */
+  files?: number;
+  capped: boolean;
+  limit: number;
+}
+
+/** The first line of a result. A cap that is not stated reads as a complete list. */
+export function searchHeader(t: SearchTally): string {
+  if (t.scope === "strings") {
+    const cut = t.capped ? ` - capped at ${t.limit} hits, so more may match` : "";
+    return `# strings "${t.target}": ${t.matches} match(es)${cut}`;
+  }
+  // Only bodies knows its files; a name hit is always in dump.cs, and `all` mixes the two.
+  const where = t.scope === "bodies" ? ` in ${t.files ?? 0} file(s)` : "";
+  const cut = t.capped
+    ? t.scope === "bodies"
+      ? ` - capped at ${t.limit} hits, so more files may match`
+      : t.scope === "all"
+        ? ` - capped at ${t.limit} hits per scope, so more may match`
+        : ` - capped at ${t.limit} hits, so more may match`
+    : "";
+  return `# search "${t.target}" (${t.scope}): ${t.matches} match(es)${where}${cut}`;
+}
+

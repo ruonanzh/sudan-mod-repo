@@ -18,7 +18,9 @@ import {
   resolveIsilFile,
   searchBodies,
   searchDump,
+  searchHeader,
   searchStrings,
+  takeCapped,
   setupCpp2il,
   sha256File,
   toolsDir,
@@ -395,41 +397,45 @@ export default function (pi: ExtensionAPI) {
           const sections: string[] = [];
           let total = 0;
           let capped = false;
-          let files = 0;
+          let files: number | undefined;
           if (scope !== "bodies") {
-            const raw = searchDump(readFileSync(join(dumper, "dump.cs"), "utf8"), params.target, limit + 1);
-            capped ||= raw.length > limit;
-            const hits = raw.slice(0, limit);
-            total += hits.length;
-            const body = hits.length
-              ? hits.map((h) => `${String(h.line).padStart(7)}  ${h.kind.padEnd(6)}  ${h.kind === "member" ? `${h.owner}: ` : ""}${h.text}`).join("\n")
+            const part = takeCapped(
+              searchDump(readFileSync(join(dumper, "dump.cs"), "utf8"), params.target, limit + 1),
+              limit,
+            );
+            capped ||= part.capped;
+            total += part.hits.length;
+            const body = part.hits.length
+              ? part.hits
+                  .map((h) => `${String(h.line).padStart(7)}  ${h.kind.padEnd(6)}  ${h.kind === "member" ? `${h.owner}: ` : ""}${h.text}`)
+                  .join("\n")
               : "0 matches. Try a shorter substring, or a member name.";
             sections.push(scope === "all" ? `# names\n${body}` : body);
           }
           if (scope !== "names") {
-            const raw = searchBodies(dir, params.target, params.path, limit + 1);
-            capped ||= raw.length > limit;
-            const hits = raw.slice(0, limit);
-            total += hits.length;
-            files = new Set(hits.map((h) => h.file)).size;
-            const body = hits.length
-              ? hits.map((h) => `${h.file}:${h.line}  ${h.text}`).join("\n")
+            const part = takeCapped(searchBodies(dir, params.target, params.path, limit + 1), limit);
+            capped ||= part.capped;
+            total += part.hits.length;
+            files = new Set(part.hits.map((h) => h.file)).size;
+            const body = part.hits.length
+              ? part.hits.map((h) => `${h.file}:${h.line}  ${h.text}`).join("\n")
               : "0 matches. Try a shorter substring.";
             sections.push(scope === "all" ? `# bodies\n${body}` : body);
           }
-          // A cap that is not stated reads as a complete list. Say it, and say what it hides.
-          const where = scope === "names" ? "" : ` in ${files} file(s)`;
-          const cut = capped
-            ? scope === "bodies"
-              ? ` - capped at ${limit} hits, so more files may match`
-              : scope === "all"
-                ? ` - capped at ${limit} hits per scope, so more may match`
-                : ` - capped at ${limit} hits, so more may match`
-            : "";
-          return wrap(
-            `${note}# search "${params.target}" (${scope}): ${total} match(es)${where}${cut}\n${truncate(sections.join("\n\n"))}`,
-            { matches: total, scope, files, capped },
-          );
+          const header = searchHeader({
+            scope,
+            target: params.target,
+            matches: total,
+            files: scope === "bodies" ? files : undefined,
+            capped,
+            limit,
+          });
+          return wrap(`${note}${header}\n${truncate(sections.join("\n\n"))}`, {
+            matches: total,
+            scope,
+            ...(scope === "bodies" && files !== undefined ? { files } : {}),
+            capped,
+          });
         }
 
         if (params.action === "strings") {
@@ -440,14 +446,16 @@ export default function (pi: ExtensionAPI) {
               details: { ok: false, reason: "NO_STRINGS" },
             };
           }
-          const raw = searchStrings(file, params.target, 51);
-          const capped = raw.length > 50;
-          const hits = raw.slice(0, 50);
-          const body = hits.map((h) => `${h.address}  ${JSON.stringify(h.value)}`).join("\n") || "0 matches.";
-          return wrap(
-            `${note}# strings "${params.target}": ${hits.length} match(es)${capped ? " - capped at 50 hits, so more may match" : ""}\n${truncate(body)}`,
-            { matches: hits.length, capped },
-          );
+          const part = takeCapped(searchStrings(file, params.target, 51), 50);
+          const body = part.hits.map((h) => `${h.address}  ${JSON.stringify(h.value)}`).join("\n") || "0 matches.";
+          const header = searchHeader({
+            scope: "strings",
+            target: params.target,
+            matches: part.hits.length,
+            capped: part.capped,
+            limit: 50,
+          });
+          return wrap(`${note}${header}\n${truncate(body)}`, { matches: part.hits.length, capped: part.capped });
         }
 
         const block = extractTypeBlock(readFileSync(join(dumper, "dump.cs"), "utf8"), params.target);
