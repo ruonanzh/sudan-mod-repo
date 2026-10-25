@@ -158,7 +158,7 @@ test("a search header says when the list was cut, and what the file count covers
   ).toBe('# search "InitNode" (bodies): 50 match(es) in 11 file(s) - capped at 50 hits, so more files may match');
   // `all` mixes dump.cs with ISIL files: a file count would read as if the matches were spread over it.
   expect(
-    searchHeader({ scope: "all", target: "InitNode", matches: 100, files: 11, capped: true, limit: 50 }),
+    searchHeader({ scope: "all", target: "InitNode", matches: 100, capped: true, limit: 50 }),
   ).toBe('# search "InitNode" (all): 100 match(es) - capped at 50 hits per scope, so more may match');
   expect(searchHeader({ scope: "strings", target: "Rite", matches: 50, capped: true, limit: 50 })).toBe(
     '# strings "Rite": 50 match(es) - capped at 50 hits, so more may match',

@@ -192,5 +192,11 @@ test("search scope=bodies stops at 50 hits", async () => {
     write(path.join(dump, "cpp2il/IsilDump/Game/Many.txt"), `Method: public void Many.Loop ()\n${lines.join("\n")}\n`);
     const out = text(await run({ action: "search", target: "rdi+999", scope: "bodies" }));
     assert.match(out, /50 match/, "one call cannot return more than 50 hits");
+    // The whole header, not just the number: a cap that is not stated reads as a complete list.
+    assert.match(
+      out,
+      /50 match\(es\) in 1 file\(s\) - capped at 50 hits, so more files may match/,
+      "the header must say it was cut, and count the files it saw",
+    );
   });
 });

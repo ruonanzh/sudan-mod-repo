@@ -1010,15 +1010,11 @@ export function takeCapped<T>(hits: T[], limit: number): { hits: T[]; capped: bo
   return { hits: hits.slice(0, limit), capped: hits.length > limit };
 }
 
-export interface SearchTally {
-  scope: "names" | "bodies" | "all" | "strings";
-  target: string;
-  matches: number;
-  /** Only `scope=bodies`: files seen before the cap. */
-  files?: number;
-  capped: boolean;
-  limit: number;
-}
+export type SearchTally =
+  | { scope: "names" | "all"; target: string; matches: number; capped: boolean; limit: number }
+  /** `files` is required: a body hit always has a file, and a missing count must not read as 0. */
+  | { scope: "bodies"; target: string; matches: number; files: number; capped: boolean; limit: number }
+  | { scope: "strings"; target: string; matches: number; capped: boolean; limit: number };
 
 /** The first line of a result. A cap that is not stated reads as a complete list. */
 export function searchHeader(t: SearchTally): string {
@@ -1027,7 +1023,8 @@ export function searchHeader(t: SearchTally): string {
     return `# strings "${t.target}": ${t.matches} match(es)${cut}`;
   }
   // Only bodies knows its files; a name hit is always in dump.cs, and `all` mixes the two.
-  const where = t.scope === "bodies" ? ` in ${t.files ?? 0} file(s)` : "";
+  // A caller that forgets the count gets no segment, never a false "in 0 file(s)".
+  const where = t.scope === "bodies" && typeof t.files === "number" ? ` in ${t.files} file(s)` : "";
   const cut = t.capped
     ? t.scope === "bodies"
       ? ` - capped at ${t.limit} hits, so more files may match`

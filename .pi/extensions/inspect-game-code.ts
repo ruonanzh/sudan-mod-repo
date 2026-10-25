@@ -422,14 +422,11 @@ export default function (pi: ExtensionAPI) {
               : "0 matches. Try a shorter substring.";
             sections.push(scope === "all" ? `# bodies\n${body}` : body);
           }
-          const header = searchHeader({
-            scope,
-            target: params.target,
-            matches: total,
-            files: scope === "bodies" ? files : undefined,
-            capped,
-            limit,
-          });
+          const header = searchHeader(
+            scope === "bodies"
+              ? { scope, target: params.target, matches: total, files: files ?? 0, capped, limit }
+              : { scope, target: params.target, matches: total, capped, limit },
+          );
           return wrap(`${note}${header}\n${truncate(sections.join("\n\n"))}`, {
             matches: total,
             scope,
