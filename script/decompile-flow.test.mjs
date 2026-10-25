@@ -15,12 +15,14 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { loadExtension } from "./lib/load-extension.mjs";
 
-const DARWIN = process.platform === "darwin";
-const CPP2IL = DARWIN
-  ? process.arch === "arm64" ? "cpp2il-osx-arm64" : "cpp2il-osx-x64"
-  : process.arch === "arm64" ? "cpp2il-linux-arm64" : "cpp2il-linux-x64";
+// The fixture below is a POSIX game install: sh scripts stand in for the tools, and the game is a
+// .app bundle. The tool name still comes from the product table, so a Windows fixture would pick
+// the right binary the moment one exists.
+const skip = process.platform === "win32" ? "the fixture is a POSIX install: sh scripts and a .app bundle" : false;
+const posixTest = skip ? test.skip : test;
 
-const { configSignature, sha256File } = await import("../.pi/lib/decompile.ts");
+const { configSignature, sha256File, cpp2ilName } = await import("../.pi/lib/decompile.ts");
+const CPP2IL = cpp2ilName();
 
 const write = (file, body) => {
   mkdirSync(path.dirname(file), { recursive: true });
@@ -101,7 +103,7 @@ async function withWorld(body) {
   }
 }
 
-test("status of a dump that matches the game is PASS without a NEXT", async () => {
+posixTest("status of a dump that matches the game is PASS without a NEXT", async () => {
   await withWorld(async ({ run, text }) => {
     const out = await run({ action: "status" });
     const body = text(out);
@@ -110,7 +112,7 @@ test("status of a dump that matches the game is PASS without a NEXT", async () =
   });
 });
 
-test("search, type, body and strings read the fake dump", async () => {
+posixTest("search, type, body and strings read the fake dump", async () => {
   await withWorld(async ({ run, text }) => {
     const search = text(await run({ action: "search", target: "Foo" }));
     assert.match(search, /Foo/, "the type is found");
@@ -124,7 +126,7 @@ test("search, type, body and strings read the fake dump", async () => {
   });
 });
 
-test("a changed game binary makes the dump stale, and says so", async () => {
+posixTest("a changed game binary makes the dump stale, and says so", async () => {
   await withWorld(async ({ run, text, binary }) => {
     writeFileSync(binary, "a different build");
     const out = await run({ action: "status" });
@@ -135,7 +137,7 @@ test("a changed game binary makes the dump stale, and says so", async () => {
   });
 });
 
-test("a changed decompile.json makes the dump stale", async () => {
+posixTest("a changed decompile.json makes the dump stale", async () => {
   await withWorld(async ({ run, text, cwd }) => {
     writeFileSync(path.join(cwd, ".pi/lib/decompile.json"), JSON.stringify({ version: 1, runtime: "il2cpp", dump: { assemblies: ["Game", "Extra"], budgetBytes: 10_000_000 } }));
     const body = text(await run({ action: "status" }));
@@ -144,7 +146,7 @@ test("a changed decompile.json makes the dump stale", async () => {
   });
 });
 
-test("a missing dump is FAIL with NEXT, not a crash", async () => {
+posixTest("a missing dump is FAIL with NEXT, not a crash", async () => {
   await withWorld(async ({ run, text, dump }) => {
     rmSync(dump, { recursive: true, force: true });
     const body = text(await run({ action: "status" }));
@@ -153,7 +155,7 @@ test("a missing dump is FAIL with NEXT, not a crash", async () => {
   });
 });
 
-test("search scope=bodies reads inside the ISIL files; the default reads declarations", async () => {
+posixTest("search scope=bodies reads inside the ISIL files; the default reads declarations", async () => {
   await withWorld(async ({ run, text }) => {
     const bodies = text(await run({ action: "search", target: "rdi+152", scope: "bodies" }));
     assert.match(bodies, /2 match/, bodies);
@@ -168,7 +170,7 @@ test("search scope=bodies reads inside the ISIL files; the default reads declara
   });
 });
 
-test("search path= narrows scope=bodies to one folder", async () => {
+posixTest("search path= narrows scope=bodies to one folder", async () => {
   await withWorld(async ({ run, text }) => {
     const out = text(await run({ action: "search", target: "rdi+152", scope: "bodies", path: "Core/" }));
     assert.match(out, /1 match/, out);
@@ -177,7 +179,7 @@ test("search path= narrows scope=bodies to one folder", async () => {
   });
 });
 
-test("search scope=all reports names and bodies under their own headings", async () => {
+posixTest("search scope=all reports names and bodies under their own headings", async () => {
   await withWorld(async ({ run, text }) => {
     const out = text(await run({ action: "search", target: "Bar", scope: "all" }));
     assert.match(out, /# names/, out);
@@ -186,7 +188,7 @@ test("search scope=all reports names and bodies under their own headings", async
   });
 });
 
-test("search scope=bodies stops at 50 hits", async () => {
+posixTest("search scope=bodies stops at 50 hits", async () => {
   await withWorld(async ({ run, text, dump }) => {
     const lines = Array.from({ length: 60 }, (_, i) => `\t${String(i).padStart(3, "0")} Move rax, [rdi+999]`);
     write(path.join(dump, "cpp2il/IsilDump/Game/Many.txt"), `Method: public void Many.Loop ()\n${lines.join("\n")}\n`);

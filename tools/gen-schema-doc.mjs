@@ -417,7 +417,9 @@ if (CHECK) {
   } catch {
     die(`${String(target)} does not exist; run the generator`);
   }
-  if (current !== text) die(`${String(target)} is stale: run node tools/gen-schema-doc.mjs`);
+  // A checkout with core.autocrlf=true hands the file over with CRLF; the content is the same.
+  const normalize = (s) => s.replace(/\r\n/g, "\n");
+  if (normalize(current) !== normalize(text)) die(`${String(target)} is stale: run node tools/gen-schema-doc.mjs`);
   process.stdout.write(`schema/SCHEMA.md is up to date (${out.length} lines)\n`);
 } else {
   writeFileSync(target, text);

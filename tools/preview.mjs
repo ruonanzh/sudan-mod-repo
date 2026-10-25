@@ -219,6 +219,9 @@ function runCardValues({ modDir, outDir, apply, id }) {
 
   const pending = [];
   const mismatched = [];
+  // Pages nobody could compare: their card is not in the table and they are not proposals.
+  const stale = [];
+  let compared = 0;
   for (const page of pages) {
     const html = readFileSync(page.file, "utf8");
     const block = readPageValues(html);
@@ -238,9 +241,10 @@ function runCardValues({ modDir, outDir, apply, id }) {
     // Any other page with no record is stale, and writing it would resurrect a deleted card.
     const proposal = html.includes('data-proposal="1"');
     if (!record && !proposal) {
-      process.stdout.write(`WARN  ${page.name}: ${CARD_TABLE} has no card ${id}\n`);
+      stale.push(page.name);
       continue;
     }
+    compared += 1;
     const before = record || {};
     const diff = pendingValues(before, block.values);
     if (!Object.keys(diff.fields).length && !diff.removedTags.length) continue;
@@ -252,8 +256,20 @@ function runCardValues({ modDir, outDir, apply, id }) {
     return 1;
   }
 
+  if (!compared) {
+    // Saying "no page carries a value different" here is a false pass: nothing was compared.
+    process.stdout.write(`FAIL  no card page could be compared: ${CARD_TABLE} carries none of their cards\n`);
+    for (const name of stale) process.stdout.write(`      ${name}\n`);
+    process.stdout.write(`NEXT: rebuild the pages with node tools/preview.mjs --mod ${displayPath(modDir)}; --apply creates a record only for a page marked 提案 · 尚未写入\n`);
+    return 1;
+  }
+
   if (!pending.length) {
     process.stdout.write(`PASS  no card page carries a value different from ${CARD_TABLE}\n`);
+    if (stale.length) {
+      process.stdout.write(`NOTE  ${stale.length} page(s) have no card in ${CARD_TABLE}: ${stale.join(", ")}\n`);
+      process.stdout.write(`NEXT: rebuild the pages with node tools/preview.mjs --mod ${displayPath(modDir)}\n`);
+    }
     return 0;
   }
 
@@ -271,6 +287,10 @@ function runCardValues({ modDir, outDir, apply, id }) {
     for (const name of item.diff.removedTags) {
       lines.push(`${item.id}  tag.${name}  ${show(item.record.tag?.[name])} -> (removed)`);
     }
+  }
+
+  if (stale.length) {
+    process.stdout.write(`NOTE  ${stale.length} page(s) have no card in ${CARD_TABLE}: ${stale.join(", ")}\n`);
   }
 
   if (!apply) {
@@ -380,7 +400,7 @@ function runSpec({ modDir, args }) {
   mkdirSync(path.dirname(file), { recursive: true });
   writeFileSync(file, html);
   process.stdout.write(`PASS  wrote ${displayPath(file)}\n`);
-  process.stdout.write("NEXT: show it to the player; nothing was written. Write the record only after they agree\n");
+  process.stdout.write("NEXT: show it to the player; no record was written. Write the record only after they agree\n");
   return 0;
 }
 

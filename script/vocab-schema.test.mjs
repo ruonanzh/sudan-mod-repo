@@ -21,6 +21,7 @@ import assert from "node:assert/strict";
 import { copyFileSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { makeMod, lint, fieldCodes, messagesOf, cleanupAll, REPO } from "./lib/fixture.mjs";
 
@@ -134,7 +135,7 @@ test("E2 --check passes when the committed file is current", () => {
 test("E3 --check fails after a hand edit", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "sudan-schema-"));
   const copy = path.join(dir, "SCHEMA.md");
-  copyFileSync(new URL(SCHEMA).pathname, copy);
+  copyFileSync(fileURLToPath(new URL(SCHEMA)), copy);
   writeFileSync(copy, readFileSync(copy, "utf8") + "\nhand-written line\n");
   const run = gen(["--check", "--out", copy]);
   assert.notEqual(run.status, 0, "--check must notice a hand edit");
@@ -160,7 +161,8 @@ test("E4 the generated table carries the reader and the offset", () => {
 });
 
 test("E5 table rows keep the order of the fields array", () => {
-  const text = readFileSync(SCHEMA, "utf8");
+  // A CRLF checkout must read the same as an LF one: the rows are compared by hand-written order.
+  const text = readFileSync(SCHEMA, "utf8").replace(/\r\n/g, "\n");
   // Scope to the card section: the same key name also appears in the level-2 summary and in
   // other kinds, and a document-wide indexOf would compare the wrong rows.
   const start = text.indexOf("### card\n");

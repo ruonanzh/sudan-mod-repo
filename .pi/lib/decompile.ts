@@ -146,11 +146,19 @@ const CPP2IL_NAMES: Record<string, string> = {
 };
 
 /**
+ * The Cpp2IL release ships one native binary per OS and CPU. The name is a pure function of the
+ * platform, so tests can ask for it instead of repeating the table and drifting from it.
+ */
+export function cpp2ilName(platform: string = process.platform, arch: string = process.arch): string | null {
+  return CPP2IL_NAMES[`${platform}:${arch}`] ?? null;
+}
+
+/**
  * The Cpp2IL release ships one native binary per OS and CPU, so pick by platform
  * and then prove it runs: a misnamed copy from another system fails to exec.
  */
 export function cpp2ilPath(): string | null {
-  const name = CPP2IL_NAMES[`${process.platform}:${process.arch}`];
+  const name = cpp2ilName();
   return name ? join(toolsDir(), "cpp2il", name) : null;
 }
 

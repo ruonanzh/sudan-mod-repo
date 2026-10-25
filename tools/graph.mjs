@@ -33,7 +33,13 @@ function readJsonc(file) {
   // A full build parses 3365 records plus three i18n tables; within one process the same
   // file is often needed twice (two counting modes, two mod overlays). Cache by path.
   if (docCache.has(file)) return docCache.get(file);
-  const value = parseJsonc(readFileSync(file, "utf8")).value;
+  let value = null;
+  try {
+    value = parseJsonc(readFileSync(file, "utf8")).value;
+  } catch (e) {
+    // One broken record must not cost the whole graph: say which file and keep drawing the rest.
+    process.stdout.write(`WARN  ${file}: ${e.message || e} - this record has no edges on the page\n`);
+  }
   docCache.set(file, value);
   return value;
 }
@@ -76,11 +82,14 @@ function loadRecords(dir) {
   const out = { event: {}, rite: {}, loot: {}, afterStory: {}, riteTemplate: {} };
   for (const kind of ["event", "rite", "loot", "after_story", "rite_template"]) {
     const target = kind === "after_story" ? "afterStory" : kind === "rite_template" ? "riteTemplate" : kind;
-    for (const f of listJson(c(kind))) out[target][f.replace(/\.json$/, "")] = readJsonc(path.join(c(kind), f));
+    for (const f of listJson(c(kind))) {
+      const record = readJsonc(path.join(c(kind), f));
+      if (record) out[target][f.replace(/\.json$/, "")] = record;
+    }
   }
-  out.card = existsSync(c("cards.json")) ? readJsonc(c("cards.json")) : {};
-  out.quest = existsSync(c("quest.json")) ? readJsonc(c("quest.json")) : {};
-  out.over = existsSync(c("over.json")) ? readJsonc(c("over.json")) : {};
+  out.card = existsSync(c("cards.json")) ? readJsonc(c("cards.json")) || {} : {};
+  out.quest = existsSync(c("quest.json")) ? readJsonc(c("quest.json")) || {} : {};
+  out.over = existsSync(c("over.json")) ? readJsonc(c("over.json")) || {} : {};
   return out;
 }
 

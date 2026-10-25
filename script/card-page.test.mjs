@@ -768,10 +768,11 @@ test("without a host both buttons are off, and the page says why", () => {
 
 /** A prompt template's frontmatter: the `key: value` lines between the first pair of `---`. */
 function frontmatterOf(text) {
-  const match = /^---\n([\s\S]*?)\n---\n/.exec(text);
+  // A checkout with core.autocrlf=true hands the file over with CRLF; the template is the same.
+  const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n/.exec(text);
   assert.ok(match, "a prompt template starts with frontmatter");
   const fields = {};
-  for (const line of match[1].split("\n")) {
+  for (const line of match[1].split(/\r?\n/)) {
     const at = line.indexOf(":");
     if (at <= 0) continue;
     // A quoted value is YAML syntax, not part of the value.

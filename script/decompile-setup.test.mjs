@@ -17,15 +17,14 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { loadExtension } from "./lib/load-extension.mjs";
 
+// The fixture below is a POSIX install: the "tool" is a sh script. The tool name still comes from
+// the product table, so a Windows fixture would ask for the executable the product looks for.
+const skip = process.platform === "win32" ? "the fixture is a POSIX install: the tool is a sh script" : false;
+const posixTest = skip ? test.skip : test;
+
+const { cpp2ilName } = await import("../.pi/lib/decompile.ts");
 /** The name `cpp2ilPath()` expects on this machine. */
-const TOOL_NAME =
-  process.platform === "darwin"
-    ? process.arch === "arm64"
-      ? "cpp2il-osx-arm64"
-      : "cpp2il-osx-x64"
-    : process.arch === "arm64"
-      ? "cpp2il-linux-arm64"
-      : "cpp2il-linux-x64";
+const TOOL_NAME = cpp2ilName();
 
 /**
  * A mirror. Every path is answered with `body`; `status` other than 200 stands in for a mirror
@@ -124,7 +123,7 @@ async function withWorld(mirrors, asset, body) {
   }
 }
 
-test("setup downloads the tool, checks the digest, and a second call skips", async () => {
+posixTest("setup downloads the tool, checks the digest, and a second call skips", async () => {
   const server = await mirror(FAKE_TOOL);
   try {
     await withWorld([server.url], {}, async ({ run, target }) => {
@@ -149,7 +148,7 @@ test("setup downloads the tool, checks the digest, and a second call skips", asy
   }
 });
 
-test("bytes that do not match the recorded digest are refused, and nothing is written", async () => {
+posixTest("bytes that do not match the recorded digest are refused, and nothing is written", async () => {
   // Same length, different content: only the digest can tell them apart.
   const tampered = Buffer.from(FAKE_TOOL.toString("utf8").replace("2022.1.0", "2022.9.9"), "utf8");
   assert.equal(tampered.length, FAKE_TOOL.length, "the fixture must fail on the digest, not on the size");
@@ -168,7 +167,7 @@ test("bytes that do not match the recorded digest are refused, and nothing is wr
   }
 });
 
-test("a mirror that is down does not stop the next one, and both attempts are reported", async () => {
+posixTest("a mirror that is down does not stop the next one, and both attempts are reported", async () => {
   const down = await mirror(Buffer.from("gone"), 500);
   const good = await mirror(FAKE_TOOL);
   try {
@@ -192,7 +191,7 @@ test("a mirror that is down does not stop the next one, and both attempts are re
   }
 });
 
-test("an installed tool that does not run is replaced, not trusted", async () => {
+posixTest("an installed tool that does not run is replaced, not trusted", async () => {
   const server = await mirror(FAKE_TOOL);
   try {
     await withWorld([server.url], {}, async ({ run, target }) => {
