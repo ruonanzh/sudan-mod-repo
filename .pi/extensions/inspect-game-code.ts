@@ -16,6 +16,7 @@ import {
   readManifest,
   resolveGame,
   resolveIsilFile,
+  searchBodies,
   searchDump,
   searchStrings,
   setupCpp2il,
@@ -38,7 +39,8 @@ export default function (pi: ExtensionAPI) {
     promptGuidelines: [
       "Use inspect_game_code to read game code from the dump, and to dump more assemblies.",
       "inspect_game_code returns at most 50 KB of text per call, in UTF-8 bytes. When a result ends with a truncation marker, narrow the target, or ask for one type or one method, rather than rereading.",
-      "inspect_game_code reads signature data with search and type. For IL2CPP games, body returns ISIL pseudo-code, not C#: it has no field or local names, and its field offsets are decimal (40 is 0x28). Do not treat ISIL as source.",
+      "inspect_game_code reads signature data with search and type. search defaults to names in dump.cs; search scope=bodies looks for text inside the ISIL method bodies. For IL2CPP games, body returns ISIL pseudo-code, not C#: it has no field or local names, and its field offsets are decimal (40 is 0x28). Do not treat ISIL as source.",
+      "Prefer inspect_game_code for reading the dump: search, type, body, strings. It resolves the layout, caps output at 50 KB, and reports when the dump is stale. Use rg, sed, or grep on ~/.gamer-agent-pi/decompiled only for what the tool does not cover, and say why.",
       "inspect_game_code rebuilds the dump by itself when the installed game binary, its metadata, or decompile.json changed, and says in the result when it ran and how long it took. Do not rebuild the dump some other way.",
       "inspect_game_code dump writes the assemblies in decompile.json. Pass assemblies= to add one for this dump; a wider set costs disk and time.",
     ],
@@ -55,13 +57,24 @@ export default function (pi: ExtensionAPI) {
         ],
         {
           description:
-            "status: is the dump current, and what does it cover. search: find type or member names. type: one type's fields, properties and method signatures. body: a method's ISIL and disassembly. strings: string literals. dump: rebuild the dump, adding assemblies. setup: download and verify Cpp2IL for this machine.",
+            "status: is the dump current, and what does it cover. search: find type or member names; scope=bodies searches the ISIL method bodies instead. type: one type's fields, properties and method signatures. body: a method's ISIL and disassembly. strings: string literals. dump: rebuild the dump, adding assemblies. setup: download and verify Cpp2IL for this machine.",
         },
       ),
       target: Type.Optional(
         Type.String({
           description:
-            "The type name (full or short), a name substring for search, or the text to look for with strings.",
+            "The type name (full or short), a name substring for search, or the text to look for with strings or search scope=bodies.",
+        }),
+      ),
+      scope: Type.Optional(
+        Type.Union([Type.Literal("names"), Type.Literal("bodies"), Type.Literal("all")], {
+          description:
+            "Where search looks: names in dump.cs (default), text inside the ISIL method bodies, or both.",
+        }),
+      ),
+      path: Type.Optional(
+        Type.String({
+          description: "With scope=bodies, only files whose relative path contains this text (for example 'Game/').",
         }),
       ),
       member: Type.Optional(
@@ -377,13 +390,29 @@ export default function (pi: ExtensionAPI) {
         const dumper = join(dir, "il2cppdumper");
 
         if (params.action === "search") {
-          const hits = searchDump(readFileSync(join(dumper, "dump.cs"), "utf8"), params.target, 50);
-          const body = hits.length
-            ? hits.map((h) => `${String(h.line).padStart(7)}  ${h.kind.padEnd(6)}  ${h.kind === "member" ? `${h.owner}: ` : ""}${h.text}`).join("\n")
-            : `0 matches. Try a shorter substring, or a member name.`;
-          return wrap(`${note}# search "${params.target}": ${hits.length} match(es) in ${dir}\n${truncate(body)}`, {
-            matches: hits.length,
-          });
+          const scope = params.scope ?? "names";
+          const sections: string[] = [];
+          let total = 0;
+          if (scope !== "bodies") {
+            const hits = searchDump(readFileSync(join(dumper, "dump.cs"), "utf8"), params.target, 50);
+            total += hits.length;
+            const body = hits.length
+              ? hits.map((h) => `${String(h.line).padStart(7)}  ${h.kind.padEnd(6)}  ${h.kind === "member" ? `${h.owner}: ` : ""}${h.text}`).join("\n")
+              : "0 matches. Try a shorter substring, or a member name.";
+            sections.push(scope === "all" ? `# names\n${body}` : body);
+          }
+          if (scope !== "names") {
+            const hits = searchBodies(dir, params.target, params.path, 50);
+            total += hits.length;
+            const body = hits.length
+              ? hits.map((h) => `${h.file}:${h.line}  ${h.text}`).join("\n")
+              : "0 matches. Try a shorter substring.";
+            sections.push(scope === "all" ? `# bodies\n${body}` : body);
+          }
+          return wrap(
+            `${note}# search "${params.target}" (${scope}): ${total} match(es) in ${dir}\n${truncate(sections.join("\n\n"))}`,
+            { matches: total, scope },
+          );
         }
 
         if (params.action === "strings") {

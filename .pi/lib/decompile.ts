@@ -12,7 +12,7 @@
  * tools, and the platform are resolved on every call.
  */
 import { closeSync, createReadStream, createWriteStream, existsSync, chmodSync, mkdirSync, openSync, readFileSync, readdirSync, readSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 import { createGzip } from "node:zlib";
 import { pipeline } from "node:stream/promises";
 import { createHash } from "node:crypto";
@@ -674,6 +674,26 @@ export async function buildDump(
         totalBytes: bytes,
       },
     };
+    writeFileSync(
+      join(tmp, "README.md"),
+      [
+        "# Game code dump",
+        "",
+        "Written by inspect_game_code. Rebuild it with that tool, never by hand.",
+        "",
+        "| Path | What it is |",
+        "|---|---|",
+        "| `il2cppdumper/dump.cs` | Types, fields, and method signatures. No method bodies. |",
+        "| `il2cppdumper/stringliteral.json` | String literals. |",
+        "| `cpp2il/IsilDump/<Assembly>/<Type>.txt` | One file per type: ISIL pseudo-code and disassembly. |",
+        "| `_pruned/assemblies.txt` | Assemblies removed from this dump. |",
+        "| `MANIFEST.json` | What produced this dump, and when. |",
+        "",
+        "Read it through `inspect_game_code`: `search` (names, or `scope=bodies` for text inside ISIL), `type`, `body`, `strings`.",
+        "Prefer the tool over rg, sed, or grep here: it resolves these paths, caps output at 50 KB, and says when the dump is stale.",
+        "",
+      ].join("\n"),
+    );
     writeFileSync(manifestPath(tmp), `${JSON.stringify(manifest, null, 2)}\n`);
 
     onProgress("Dump complete. Swapping it in");
@@ -758,6 +778,53 @@ export function searchDump(dumpCs: string, query: string, limit = 50): SearchHit
   const types = hits.filter((h) => h.kind === "type");
   const members = hits.filter((h) => h.kind === "member");
   return [...types, ...members].slice(0, limit);
+}
+
+export interface BodyHit {
+  /** Relative to the dump folder, so it reads next to `type` and `body` results. */
+  file: string;
+  line: number;
+  text: string;
+}
+
+/**
+ * Find text inside the ISIL method bodies, one file per type. This is the one
+ * question `searchDump` cannot answer: it reads declarations only.
+ */
+export function searchBodies(
+  dumpRoot: string,
+  pattern: string,
+  filter?: string,
+  limit = 50,
+): BodyHit[] {
+  const root = join(dumpRoot, "cpp2il/IsilDump");
+  if (!existsSync(root)) return [];
+  const needle = pattern.toLowerCase();
+  const hits: BodyHit[] = [];
+  const walk = (dir: string): void => {
+    if (hits.length >= limit) return;
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (hits.length >= limit) return;
+      const p = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(p);
+        continue;
+      }
+      if (!entry.isFile() || !p.endsWith(".txt")) continue;
+      const rel = relative(root, p).split(sep).join("/");
+      if (filter && !rel.includes(filter)) continue;
+      const text = readFileSync(p, "utf8");
+      if (!text.toLowerCase().includes(needle)) continue;
+      forEachLine(text, (line, lineNo) => {
+        if (line.toLowerCase().includes(needle)) {
+          hits.push({ file: `cpp2il/IsilDump/${rel}`, line: lineNo, text: line.trim().slice(0, 200) });
+        }
+        return hits.length >= limit ? false : undefined;
+      });
+    }
+  };
+  walk(root);
+  return hits;
 }
 
 export interface TypeBlock {
