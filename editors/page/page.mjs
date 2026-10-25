@@ -24,7 +24,7 @@ import { vanillaRequirement } from "../../tools/paths.mjs";
 import { toPlain } from "../../tools/jsonc.mjs";
 import { decodePng, encodePng, cropCover, overlay, solid, nineSlice, tint } from "../../tools/png.mjs";
 import { composePrompt, composeSubject, composeBoilerplate } from "../lib/card-prompt.mjs";
-import { esc, CSS, pageHtml as shellPage } from "../lib/shell.mjs";
+import { esc, originBadge, CSS, pageHtml as shellPage } from "../lib/shell.mjs";
 
 const TAG_ROLES = JSON.parse(readFileSync(new URL("../../schema/view/tag-roles.json", import.meta.url), "utf8"));
 const CARD_ART = JSON.parse(readFileSync(new URL("../../schema/view/card-art.json", import.meta.url), "utf8"));
@@ -787,12 +787,7 @@ function bodyFor(kind, record, modDir) {
 export function recordPageHtml({ kind, id, record, modDir, origin = "new", graphLink = null, graph = null, promptSrc = null }) {
   const body = bodyFor(kind, record, modDir);
   const label = { rite: "仪式", event: "事件", loot: "战利品表", quest: "任务", over: "结局", afterStory: "后日谈", upgrade: "命运商店", tag: "标签", init: "开局" }[kind] || kind;
-  const badge =
-    origin === "override"
-      ? '<span class="origin override">覆盖原版</span>'
-      : origin === "proposal"
-        ? '<span class="origin proposal">提案 · 尚未写入</span>'
-        : '<span class="origin">新增</span>';
+  const badge = originBadge(origin);
   const graphNote = graphLink
     ? `<p class="note" style="margin:0 0 14px"><a href="${esc(graphLink)}">在剧情图里看它</a></p>`
     : "";

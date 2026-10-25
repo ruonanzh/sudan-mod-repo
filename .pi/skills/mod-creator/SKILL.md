@@ -31,7 +31,7 @@ description: 写苏丹的游戏 mod、改苏丹的游戏 mod 的主参考。在�
 原版数据回答「有哪些字段」，不回答「游戏怎么处理这个字段」：默认值、判断顺序、谁先结算，这些只在代码里。这时用 `inspect_game_code` 读本机的 dump，不要用 `rg` 或 `sed` 去翻 dump 目录。
 
 1. 先跑 `inspect_game_code action=status`。它给出五行：`dotnet`、`cpp2il`、`dumper`、`game`、`dump`。
-2. `status` 不是 `PASS` 时，照它给的 `NEXT:` 做。`cpp2il` 缺失就跑 `action=setup`：它下载 15MB 的工具，按 `tools/toolchain.json` 的摘要比对，本机只下一次。
+2. `status` 不是 `PASS` 时，照它给的 `NEXT:` 做。`cpp2il` 缺失就跑 `action=setup`：它按 `tools/toolchain.json` 下载并校验工具，本机只下一次。
 3. `action=search target=<名字片段>` 找类型与成员的名字。不知道类名时从这一步开始。
 4. `action=type target=<类型>` 看字段、属性与方法签名。字段后的十六进制是该字段的内存偏移。
 5. `action=body target=<类型> member=<方法名>` 看一个方法的方法体。

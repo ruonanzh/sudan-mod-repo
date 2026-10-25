@@ -198,7 +198,7 @@ posixTest("search scope=bodies stops at 50 hits", async () => {
     assert.match(
       out,
       /50 match\(es\) in 1 file\(s\) - capped at 50 hits, so more files may match/,
-      "the header must say it was cut, and count the files it saw",
+      "the header must say it was cut, and count the files the shown hits are in",
     );
   });
 });

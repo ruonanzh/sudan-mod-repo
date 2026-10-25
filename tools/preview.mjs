@@ -184,6 +184,12 @@ function displayPath(target) {
   return shorten(target);
 }
 
+/** The prompt box's script. The HTML preview forbids inline scripts, so it ships as a file. */
+function writePromptScript(outDir) {
+  mkdirSync(outDir, { recursive: true });
+  writeFileSync(path.join(outDir, "record-prompt.js"), readFileSync(new URL("../editors/graph/record-prompt.js", import.meta.url)));
+}
+
 /** Card pages in the preview directory. */
 function cardPages(outDir) {
   if (!existsSync(outDir)) return [];
@@ -390,11 +396,7 @@ function runSpec({ modDir, args }) {
     } else {
       file = pageFile(`${kind}-${id}.record.html`);
       html = recordPageHtml({ kind, id, record, modDir, origin: "proposal", promptSrc: "record-prompt.js" });
-      mkdirSync(outDir, { recursive: true });
-      writeFileSync(
-        path.join(outDir, "record-prompt.js"),
-        readFileSync(new URL("../editors/graph/record-prompt.js", import.meta.url)),
-      );
+      writePromptScript(outDir);
     }
   } catch (e) {
     process.stdout.write(`FAIL  could not build the proposal page: ${e.message || e}\n`);
@@ -412,7 +414,7 @@ function main() {
   const args = parseArgs(process.argv.slice(2));
   if (!args.modDir) {
     process.stderr.write(
-      "usage: node tools/preview.mjs --mod your_mods/<ModName> [--focus kind:id] [--out <dir>] | --collect | --apply | --spec <file|-> --kind <kind> --id <id>\n",
+      "usage: node tools/preview.mjs --mod your_mods/<ModName> [--focus kind:id] [--out <dir>] | --collect | --apply | --spec <file|-> --kind <kind> --id <id> [--out <dir|one .html>]\n",
     );
     return 2;
   }
@@ -550,8 +552,7 @@ function main() {
         return 1;
       }
     }
-    // The prompt box's script: the HTML preview forbids inline scripts, so it ships as a file.
-    writeFileSync(path.join(outDir, "record-prompt.js"), readFileSync(new URL("../editors/graph/record-prompt.js", import.meta.url)));
+    writePromptScript(outDir);
     if (recordCount) process.stdout.write(`PASS  ${recordCount} record page(s) in ${displayPath(outDir)}\n`);
   }
 
@@ -612,11 +613,7 @@ function main() {
         return 1;
       }
     }
-    // The box's script: the HTML preview forbids inline scripts, so it ships as a file.
-    writeFileSync(
-      path.join(outDir, "record-prompt.js"),
-      readFileSync(new URL("../editors/graph/record-prompt.js", import.meta.url)),
-    );
+    writePromptScript(outDir);
     process.stdout.write(`PASS  ${plainCount} record page(s) in ${displayPath(outDir)}\n`);
   }
 

@@ -17,7 +17,7 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { esc, pageHtml } from "../lib/shell.mjs";
+import { esc, originBadge, pageHtml } from "../lib/shell.mjs";
 import { requireLabel } from "../lib/labels.mjs";
 import { composeSubject } from "../lib/card-prompt.mjs";
 import { artInline, fontFace, fmt, legacySection, tableFor, unknownSection } from "../page/page.mjs";
@@ -623,12 +623,7 @@ export function cardPageHtml({ id, record, modDir, previous = null, origin = "ne
   const unknown = Object.keys(record).filter((key) => !live.has(key) && !(FIELDS.card.legacy || []).includes(key));
 
   const title = String(values.name ?? record.name ?? `卡 ${id}`);
-  const badge =
-    origin === "override"
-      ? '<span class="origin override">覆盖原版</span>'
-      : origin === "proposal"
-        ? '<span class="origin proposal">提案 · 尚未写入</span>'
-        : '<span class="origin">新增</span>';
+  const badge = originBadge(origin);
   const sub = `${badge}卡页 · id <code>${esc(id)}</code> · ${esc(values.type ?? record.type ?? "没写 type")} · 稀有度 ${esc(
     values.rare ?? record.rare ?? "没写",
   )}`;

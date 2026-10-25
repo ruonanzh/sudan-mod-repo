@@ -6,7 +6,7 @@
  * The values also sit in one JSON block at the end, which the app's editor wrapper (editors/form/)
  * rewrites on save and reads when diffing, so sending tells the agent exactly which keys changed.
  */
-import { esc, pageHtml } from "../lib/shell.mjs";
+import { esc, originBadge, pageHtml } from "../lib/shell.mjs";
 import { requireLabel } from "../lib/labels.mjs";
 
 /** The fields each kind shows, in the order the page prints them. `id` is read-only. */
@@ -169,12 +169,7 @@ export function formPageHtml({ kind, id, record = {}, origin = "new", recordKey 
   const spec = FORM_FIELDS[kind];
   if (!spec) throw new Error(`no form page for ${kind}`);
   const key = recordKey || `${kind}:${id}`;
-  const badge =
-    origin === "override"
-      ? '<span class="origin override">覆盖原版</span>'
-      : origin === "proposal"
-        ? '<span class="origin proposal">提案 · 尚未写入</span>'
-        : '<span class="origin">新增</span>';
+  const badge = originBadge(origin);
   const fields = [
     row("id", requireLabel(kind, "id"), `<div class="readonly">${esc(String(id))}</div>`),
     ...spec.scalar.map((field) => row(field, requireLabel(kind, field), tooltipControl(kind, field, record, spec))),

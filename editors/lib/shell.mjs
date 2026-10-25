@@ -140,4 +140,15 @@ ${scriptTag}${tail}</body>
 `;
 }
 
-export default { esc, CSS, pageHtml };
+
+/**
+ * The corner badge every page shows for where its record comes from: a written record that
+ * overrides a vanilla id, a proposal that is not in the mod yet, or a new record.
+ */
+export function originBadge(origin) {
+  if (origin === "override") return '<span class="origin override">覆盖原版</span>';
+  if (origin === "proposal") return '<span class="origin proposal">提案 · 尚未写入</span>';
+  return '<span class="origin">新增</span>';
+}
+
+export default { esc, CSS, originBadge, pageHtml };
