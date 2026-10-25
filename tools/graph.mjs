@@ -14,10 +14,11 @@ import { existsSync, readFileSync, readdirSync, mkdirSync, writeFileSync } from 
 import { spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { DEFAULT_VANILLA } from "./model.mjs";
 import { parseJsonc } from "./lint.mjs";
 
-const HERE = path.dirname(new URL(import.meta.url).pathname);
+const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(HERE, "..");
 const EDGES = JSON.parse(readFileSync(path.join(ROOT, "schema/view/edges.json"), "utf8"));
 const CATEGORIES = JSON.parse(readFileSync(path.join(ROOT, "schema/view/categories.json"), "utf8"));

@@ -38,7 +38,7 @@ import { esc, pageHtml } from "../lib/shell.mjs";
 import { DEFAULT_VANILLA } from "../../tools/model.mjs";
 import { vanillaRequirement } from "../../tools/paths.mjs";
 
-const HERE = path.dirname(new URL(import.meta.url).pathname);
+const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 /** The two UMD builds the page draws with. See editors/graph/vendor/README.md for provenance. */
 const VENDOR = [

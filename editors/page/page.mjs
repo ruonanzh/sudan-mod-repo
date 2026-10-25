@@ -60,7 +60,7 @@ function parseArgs(argv) {
  * page only uses it locally.
  */
 export function fontFace() {
-  const here = path.dirname(new URL(import.meta.url).pathname);
+  const here = path.dirname(fileURLToPath(import.meta.url));
   const f = path.join(here, "..", "..", "reference", "fonts", "HYJieLongTaoHuaYuanW-2.ttf");
   if (!existsSync(f)) return { css: "", family: "ui-serif, Georgia, 'Songti SC', serif" };
   return {
@@ -533,7 +533,7 @@ ${unknownSection(body.unknown)}`;
  * frame is stacked. The name goes on last, over the empty top fifth.
  */
 function composeCard(modDir, id, rare, name, type) {
-  const here = path.dirname(new URL(import.meta.url).pathname);
+  const here = path.dirname(fileURLToPath(import.meta.url));
   const tier = ["stone", "copper", "silver", "gold"][(rare ?? 1) - 1] || "stone";
   const plateDir = path.join(here, "..", "..", "reference", "plates");
   const fit = (f) => cropCover(decodePng(readFileSync(f)), CARD_W, CARD_H);
@@ -569,7 +569,7 @@ function blankPlate() {
 function ensureReference() {
   // The plates ship with the repository. A checkout that lost them still renders: the page
   // falls back to a plain placeholder. Nothing is downloaded and nothing is extracted.
-  const here = path.dirname(new URL(import.meta.url).pathname);
+  const here = path.dirname(fileURLToPath(import.meta.url));
   const need = ["card.png", "card-stone.png", "card-copper.png", "card-silver.png", "card-gold.png"].map((f) =>
     path.join(here, "..", "..", "reference", "plates", f)
   );
@@ -593,7 +593,7 @@ const PLATE_W = 118;
 const atWidth = (img, width) => cropCover(img, width, Math.round((width * img.height) / img.width));
 
 function plateSources(modDir, id, type) {
-  const here = path.dirname(new URL(import.meta.url).pathname);
+  const here = path.dirname(fileURLToPath(import.meta.url));
   const plateDir = path.join(here, "..", "..", "reference", "plates");
   const sources = {};
   for (const [i, tier] of ["stone", "copper", "silver", "gold"].entries()) {

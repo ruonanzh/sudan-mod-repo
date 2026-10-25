@@ -14,9 +14,10 @@
  */
 import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { judge, shorten } from "./paths.mjs";
 
-const ROOT = path.join(path.dirname(new URL(import.meta.url).pathname), "..");
+const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const REF = path.join(ROOT, "reference");
 
 /** The plate files the preview always needs. */
