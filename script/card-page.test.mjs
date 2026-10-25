@@ -250,6 +250,18 @@ function bridgeOf(html) {
       (this.listeners[type] ||= []).push(handler);
     },
   });
+  /** The header bar: the bridge writes buttons into it, so its innerHTML has to create them. */
+  const bar = {
+    set innerHTML(markup) {
+      for (const match of String(markup).matchAll(/id="([\w-]+)"/g)) {
+        const id = match[1];
+        if ((id === "card-send" || id === "card-reload") && !(id in buttons)) buttons[id] = byIdElement();
+      }
+    },
+    get innerHTML() {
+      return "";
+    },
+  };
   const buttons = { "card-notify-agent": byIdElement(), "card-art-notify": byIdElement() };
   const statuses = { "card-notify-status": byIdElement(), "card-art-status": byIdElement() };
 
@@ -258,6 +270,7 @@ function bridgeOf(html) {
   const document = {
     readyState: "complete",
     getElementById(id) {
+      if (id === "bar") return bar;
       if (id === "card-values") return block ? { textContent: block[1] } : null;
       if (id === "card-status") return status;
       if (id === "tag-name-options" || id === "tag-stat-options") return datalistOf(html, id);
@@ -685,6 +698,21 @@ test("the wrapper's send button saves the page and then asks the app for /card-e
   assert.match(body, /notifyAgent\(\s*commandFor\("\/card-edited"\)/, "then the session is asked to apply them");
   assert.match(bridge, /byId\("card-send"\)/, "the wrapper's button is wired to it");
   assert.doesNotMatch(bridge, /ctrlKey \) && event\.key\.toLowerCase\(\) === "s"/, "no Ctrl+S shortcut");
+});
+
+test("the header's 发送给 Agent saves the page and then asks the app for /card-edited", async () => {
+  const html = page();
+  const { posts, deliver, click } = bridgeOf(html);
+  deliver(hostInit());
+  deliver({ type: "editor:fileContent", requestId: posts.filter((m) => m.type === "editor:readFile").at(-1).requestId, data: html, revision: "r1" });
+  await tick();
+  click("card-send");
+  const save = posts.filter((message) => message.type === "editor:save").at(-1);
+  if (save) deliver({ type: "editor:saved", requestId: save.requestId });
+  await tick();
+  const sent = posts.filter((message) => message.type === "editor:sendPrompt").at(-1);
+  assert.ok(sent, "the header button is wired, so the click reaches the app");
+  assert.match(sent.text, /^\/card-edited /, "and names the page the agent has to apply");
 });
 
 test("「修改卡面图，通知 agent」 sends the prompt the player typed into 画面", async () => {

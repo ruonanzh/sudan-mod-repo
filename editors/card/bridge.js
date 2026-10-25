@@ -732,6 +732,10 @@
       '<span class="grow"></span>' +
       '<button id="card-reload" type="button">重新加载</button>' +
       (record ? '' : '<button id="card-send" type="button" disabled>发送给 Agent</button>');
+    var send = byId("card-send");
+    if (send) send.addEventListener("click", sendToAgent);
+    var reload = byId("card-reload");
+    if (reload) reload.addEventListener("click", function () { reloadFromDisk(); });
   }
 
   function start(init) {
@@ -791,16 +795,8 @@
     }
   });
 
-  var sendButton = byId("card-send");
-  if (sendButton) sendButton.addEventListener("click", sendToAgent);
-
-  var reloadButton = byId("card-reload");
-  if (reloadButton) {
-    // The button always re-opens the file from disk: that is what "重新加载" means here.
-    reloadButton.addEventListener("click", function () {
-      reloadFromDisk();
-    });
-  }
+  // The header's buttons are created by renderHeader, which runs on editor:init, so they are
+  // wired there. Wiring them here ran before the header existed: the click did nothing at all.
   // The agent may rebuild this file after applying a value: a reload on focus shows the new one.
   if (isHost) window.addEventListener("focus", checkDisk);
 
