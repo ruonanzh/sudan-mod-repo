@@ -34,6 +34,8 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildGraph } from "../../tools/graph.mjs";
+import { cardNames } from "../../tools/card-names.mjs";
+import { setCardNames } from "../page/page.mjs";
 import { esc, pageHtml } from "../lib/shell.mjs";
 import { DEFAULT_VANILLA } from "../../tools/model.mjs";
 import { vanillaRequirement } from "../../tools/paths.mjs";
@@ -1002,7 +1004,11 @@ function branchGroup(name, list, note) {
     .map((b, i) => {
       const cond = b.cond && Object.keys(b.cond).length ? condHtml(b.cond) : '<div class="cond muted">没有条件</div>';
       const out = [b.title, b.text].filter(Boolean).map((t) => '<div class="story">' + escHtml(t) + "</div>").join("");
-      return '<div class="branch"><div class="branchhead">第 ' + (i + 1) + " 条</div>" + cond + out + "</div>";
+      // A branch that gives a card without saying so reads as pure story: name every effect.
+      const res = (b.res || []).length
+        ? sublabel("效果") + b.res.map((t) => '<div class="cond">' + escHtml(t) + "</div>").join("")
+        : "";
+      return '<div class="branch"><div class="branchhead">第 ' + (i + 1) + " 条</div>" + cond + out + res + "</div>";
     })
     .join("");
   return sublabel(name + "（" + note + "）") + rows;
@@ -1494,6 +1500,9 @@ export function main(argv = process.argv.slice(2)) {
     process.stdout.write(`NEXT  ${requirement.next}\n`);
     return 1;
   }
+  // This runs as its own process, so the card names it prints come from here: an effect reads
+  // 生成卡牌 血滴子, not an id nobody can resolve.
+  setCardNames(cardNames([args.modDir && path.join(path.resolve(expandHome(args.modDir)), "config"), requirement.dir]));
   const g = buildGraph({ configDir: requirement.dir, modDir: args.modDir });
   const written = writePage(g, args.out, { focus: args.focus });
   // Two files, and the second one is named: a page copied on its own still draws, but its

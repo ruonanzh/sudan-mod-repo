@@ -134,6 +134,43 @@ test("P-badspec: a --spec that is not JSON fails before writing anything", (t) =
   assert.ok(!existsSync(out), "no page is written for input that cannot be parsed");
 });
 
+test("P-effect: a branch's effect names the card it gives, and the effect is not folded away", (t) => {
+  if (!existsSync(VANILLA)) return t.skip("the game is not installed on this machine");
+  const dir = mkdtempSync(path.join(tmpdir(), "sudan-effect-"));
+  dirs.push(dir);
+  writeFileSync(path.join(dir, "info.json"), JSON.stringify({ name: "x", description: "d", tags: ["Utilities"], version: "1" }));
+  mkdirSync(path.join(dir, "config/rite"), { recursive: true });
+  // The name comes from the mod's own card table: a page that prints only the id leaves the
+  // reader unable to tell what the branch gives them.
+  writeFileSync(path.join(dir, "config/cards.json"), JSON.stringify({ 9000001: { id: 9000001, name: "血滴子" } }));
+  const rite = {
+    id: 9000500,
+    name: "血的交割",
+    text: "把一张杀戮卡和一个活人放进铁笼。",
+    location: "自宅:[2,10]",
+    icon: "rite_11",
+    cards_slot: { s1: { text: "放入一张杀戮卡", condition: { 杀戮: 1 } } },
+    settlement: [
+      {
+        guid: "g1",
+        condition: { s1: 1 },
+        result_title: "铁笼收下了你的任务",
+        result_text: "血滴子留在了你手里。",
+        result: { "clean.s1": 1, "clean.s2": 1, card: 9000001 },
+        action: {},
+      },
+    ],
+  };
+  writeFileSync(path.join(dir, "config/rite/9000500.json"), JSON.stringify(rite));
+  const out = path.join(dir, "rite.html");
+  const r = page(["rite", "--mod", dir, "--id", "9000500", "--out", out]);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const html = readFileSync(out, "utf8");
+  assert.match(html, /生成卡牌/, "the effect must say what it does");
+  assert.match(html, /血滴子/, "the effect must name the card, not only its id");
+  assert.ok(!/\d+ 项<\/button>/.test(html), "an effect is the answer to the branch; a count hides it");
+});
+
 test("P-coverage: every labelled key of a card record reaches the page", (t) => {
   if (!existsSync(VANILLA)) return t.skip("the game is not installed on this machine");
   const dir = modWithVanilla("card", "2000001");

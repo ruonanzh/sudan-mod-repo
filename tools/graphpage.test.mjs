@@ -12,6 +12,8 @@ import path from "node:path";
 import os from "node:os";
 import { createRequire } from "node:module";
 import { buildGraph } from "./graph.mjs";
+import { cardNames } from "./card-names.mjs";
+import { setCardNames } from "../editors/page/page.mjs";
 import { renderPage, payload, LANE_LAYOUT_JS, detailPayload, detailScript, detailName, writePage, pageScript, vendorScripts } from "./graphpage.mjs";
 import { openMod, DEFAULT_VANILLA } from "./model.mjs";
 import { readNodeSource } from "./editor.mjs";
@@ -114,8 +116,15 @@ function mount(g, { editable = true, detail = "full", protocol = "http:", page =
 }
 
 // One build for the whole suite: the corpus is the same, and a page test changes nothing in it.
+// Card names are handed in here, the way every command that renders a page hands them in.
 let builtGraph = null;
-const graph = () => (builtGraph ??= buildGraph({}));
+const graph = () => {
+  if (!builtGraph) {
+    setCardNames(cardNames([VANILLA]));
+    builtGraph = buildGraph({});
+  }
+  return builtGraph;
+};
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
@@ -161,6 +170,21 @@ test("时机 is the timing, and everything else that gates a node is 条件", { 
   const oc = els.get("modal-body").innerHTML;
   assert.match(oc, /<div class="sublabel">开启条件：不满足时游戏会这样提示<\/div>/);
   assert.match(oc, /匪帮调动中，无法进行训练/, "the tip the game prints when unmet");
+});
+
+test("a rite's branch says what it gives, and a card is named", { skip }, async () => {
+  const { win, els } = mount(graph());
+  win.__openNode("rite:5000001");
+  await tick();
+  const html = els.get("modal-body").innerHTML;
+  assert.match(html, /<div class="sublabel">效果<\/div>/, "a branch that gives a card says so");
+  // The list form: one branch can hand over several cards at once.
+  assert.match(
+    html,
+    /生成卡牌 华丽的居所（2000179）、空置的房间（2000532）/,
+    "the card is named, not just numbered",
+  );
+  assert.match(html, /清空槽位|计数器|槽位/, "the other effects are named too");
 });
 
 test("a switch reads as the sentence its value earns", { skip }, async () => {

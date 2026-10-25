@@ -22,6 +22,7 @@ import { fileURLToPath } from "node:url";
 import { openMod, ModelError } from "../../tools/model.mjs";
 import { vanillaRequirement } from "../../tools/paths.mjs";
 import { toPlain } from "../../tools/jsonc.mjs";
+import { cardNames } from "../../tools/card-names.mjs";
 import { decodePng, encodePng, cropCover, overlay, solid, nineSlice, tint } from "../../tools/png.mjs";
 import { composePrompt, composeSubject, composeBoilerplate } from "../lib/card-prompt.mjs";
 import { esc, originBadge, CSS, pageHtml as shellPage } from "../lib/shell.mjs";
@@ -42,6 +43,55 @@ const ROW_TOGGLE = `document.addEventListener("click", (e) => {
 });`;
 const CARD_W = 472;
 const CARD_H = 1028;
+
+/**
+ * Card id → name, filled once per process by whoever renders a page.
+ *
+ * A page is built from one record and cannot look a name up itself, so the index is handed in
+ * here instead of being threaded down through every renderer.
+ */
+let cardNamesById = new Map();
+
+export function setCardNames(map) {
+  cardNamesById = map instanceof Map ? map : new Map();
+}
+
+const ENTITIES = { "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'", "&amp;": "&" };
+
+/** `opPhrase` returns HTML; a caller that builds its own markup needs the same words as text. */
+const plain = (html) =>
+  html
+    .replace(/<[^>]+>/g, "")
+    .replace(/&(lt|gt|quot|#39|amp);/g, (m) => ENTITIES[m]);
+
+/** A card id as text: the name when the tables carry it, the bare id when they do not. */
+const cardText = (id) => {
+  const name = cardNamesById.get(String(id));
+  return name ? `${name}（${id}）` : String(id);
+};
+
+/**
+ * One effect as plain text: `生成卡牌 血滴子（2800001）`.
+ *
+ * The story graph's panel builds its HTML in the browser, so it takes text instead of the tables
+ * `fmt` makes. The judgement still lives here — one word list, one card index, one place to change.
+ */
+export function effectText(key, value) {
+  const label = plain(opPhrase(String(key)));
+  // `card` is one id or a list of them: a branch can hand over several cards at once.
+  if (/^card$/.test(String(key))) {
+    const ids = Array.isArray(value) ? value : [value];
+    return `${label} ${ids.map(cardText).join("、")}`;
+  }
+  if (Array.isArray(value)) {
+    if (value.every((v) => v === null || typeof v !== "object")) return `${label} ${value.join("、")}`;
+    return `${label}（${value.length} 项）`;
+  }
+  // A dialogue table or a text template is not something to print: say how much of it there is.
+  if (value && typeof value === "object") return `${label}（${Object.keys(value).length} 项）`;
+  // An effect that only needs the key to be present is written `1`; printing it adds noise.
+  return value === 1 || value === true ? label : `${label} ${value}`;
+}
 
 function parseArgs(argv) {
   const out = { _: [] };
@@ -225,7 +275,10 @@ export function fmt(value, kind, key) {
     .map(([key, v]) => {
       const label = kind ? labelOf(kind, key)?.label : null;
       const name = label ? esc(label) : opPhrase(key);
-      return `<tr><th>${name}</th><td>${fmt(v)}</td></tr>`;
+      // `card: 2800001` gives a card; the id alone does not say which one. A list gives several.
+      const isCard = /^card$/.test(key);
+      const cell = isCard && v !== undefined ? esc((Array.isArray(v) ? v : [v]).map(cardText).join("、")) : fmt(v);
+      return `<tr><th>${name}</th><td>${cell}</td></tr>`;
     })
     .join("");
   return `<table class="sub">${rows}</table>`;
@@ -245,7 +298,9 @@ function rowWithDetails(cols, row, kind) {
     const v = row?.[c];
     const cls = TEXT_COLUMNS.has(c) ? ' class="txt"' : "";
     const size = v && typeof v === "object" ? (Array.isArray(v) ? v.length : Object.keys(v).length) : 0;
-    if (v && typeof v === "object" && size && size <= 2 && !Array.isArray(v)) {
+    // What a branch gives is what the reader came for, so an effect is never behind a count:
+    // a fold reads 「3 项」 and hides 「生成卡牌 血滴子」.
+    if (v && typeof v === "object" && size && !Array.isArray(v) && (size <= 2 || c === "result")) {
       return `<td${cls}>${fmt(v, kind, c)}</td>`;
     }
     if (v && typeof v === "object" && size) {
@@ -832,6 +887,8 @@ export function main(argv = process.argv.slice(2)) {
 
   // Opening the editor is the moment the art is first needed, so that is when it is built.
   ensureReference();
+  // The effect cells name the card an effect gives: the mod's cards first, then vanilla's.
+  setCardNames(cardNames([path.join(args.mod, "config"), requirement.dir]));
 
   let mod;
   let record;

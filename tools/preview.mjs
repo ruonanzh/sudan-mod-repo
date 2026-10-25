@@ -42,7 +42,8 @@ import { shorten, vanillaRequirement } from "./paths.mjs";
 import { buildGraph } from "./graph.mjs";
 import { writePage as writeGraphPage } from "../editors/graph/graphpage.mjs";
 import { applyCardValues, cardPageHtml, missingValues, pendingValues, readPageValues } from "../editors/card/page.mjs";
-import { recordPageHtml } from "../editors/page/page.mjs";
+import { recordPageHtml, setCardNames } from "../editors/page/page.mjs";
+import { cardNames } from "./card-names.mjs";
 import { formPageHtml, FORM_FIELDS } from "../editors/page/formpage.mjs";
 import { expandHome } from "./paths.mjs";
 
@@ -436,6 +437,9 @@ function main() {
   } catch {
     // A description file that does not parse is lint's finding, not a reason to refuse a preview.
   }
+  // Every page below is built from one record, so the card names are handed in here: an effect
+  // cell reads 生成卡牌 血滴子 instead of an id the player cannot resolve.
+  setCardNames(cardNames([path.join(modDir, "config"), vanillaRequirement(args.vanilla).dir]));
 
   let records;
   // A proposal is a page about a record the mod does not carry yet, so it comes before any scan:

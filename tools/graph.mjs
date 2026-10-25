@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 import { DEFAULT_VANILLA } from "./model.mjs";
 import { parseJsonc } from "./lint.mjs";
 import { expandHome } from "./paths.mjs";
-
+import { effectText } from "../editors/page/page.mjs";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(HERE, "..");
 const EDGES = JSON.parse(readFileSync(path.join(ROOT, "schema/view/edges.json"), "utf8"));
@@ -244,6 +244,17 @@ function firstNarration(rec) {
 }
 
 /**
+ * The effect of one branch, as text: `["清空槽位 s1", "生成卡牌 血滴子（2800001）"]`.
+ *
+ * The words come from the page renderer, so the graph and a record page never disagree about
+ * what an effect is called, and the card name is the same lookup in both.
+ */
+function effectsOf(result) {
+  if (!result || typeof result !== "object") return [];
+  return Object.entries(result).map(([key, value]) => effectText(key, value));
+}
+
+/**
  * What a rite asks for and what it can turn into. Slots list the cards the board wants, each
  * with the condition that decides what may be dropped there; the three settlement arrays are
  * separate lists, not one (see plans/story-graph.md §六): prior and normal stop at the first
@@ -262,7 +273,13 @@ function riteInfoOf(rec) {
   const branches = (arr) =>
     (Array.isArray(arr) ? arr : [])
       .filter((b) => b && typeof b === "object")
-      .map((b) => ({ cond: b.condition || null, title: b.result_title || "", text: b.result_text || "" }));
+      .map((b) => ({
+        cond: b.condition || null,
+        title: b.result_title || "",
+        text: b.result_text || "",
+        // What the branch gives is the answer to "what do I get", so the panel carries it.
+        res: effectsOf(b.result),
+      }));
   const info = {
     type: rec.type || "",
     location: rec.location || "",
