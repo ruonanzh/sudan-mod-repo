@@ -169,9 +169,12 @@ export function formPageHtml({ kind, id, record = {}, origin = "new", recordKey 
   const spec = FORM_FIELDS[kind];
   if (!spec) throw new Error(`no form page for ${kind}`);
   const key = recordKey || `${kind}:${id}`;
-  const badge = origin === "override"
-    ? '<span class="origin override">覆盖原版</span>'
-    : '<span class="origin">新增</span>';
+  const badge =
+    origin === "override"
+      ? '<span class="origin override">覆盖原版</span>'
+      : origin === "proposal"
+        ? '<span class="origin proposal">提案 · 尚未写入</span>'
+        : '<span class="origin">新增</span>';
   const fields = [
     row("id", requireLabel(kind, "id"), `<div class="readonly">${esc(String(id))}</div>`),
     ...spec.scalar.map((field) => row(field, requireLabel(kind, field), tooltipControl(kind, field, record, spec))),

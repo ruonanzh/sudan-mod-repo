@@ -70,7 +70,7 @@ export function fontFace() {
   };
 }
 
-function pageHtml({ title, sub, body, script = "" }) {
+function pageHtml({ title, sub, body, script = "", document = false, tail = "" }) {
   const ff = fontFace();
   return shellPage({
     title,
@@ -78,6 +78,8 @@ function pageHtml({ title, sub, body, script = "" }) {
     font: ff.css ? ff : null,
     body,
     script,
+    document,
+    tail,
   });
 }
 
@@ -782,12 +784,15 @@ function bodyFor(kind, record, modDir) {
  * A whole page for one record of any kind `bodyFor` knows: the preview writes these into a
  * mod's `.preview/` so the app can open them the same way it opens a card page.
  */
-export function recordPageHtml({ kind, id, record, modDir, origin = "new", graphLink = null, graph = null }) {
+export function recordPageHtml({ kind, id, record, modDir, origin = "new", graphLink = null, graph = null, promptSrc = null }) {
   const body = bodyFor(kind, record, modDir);
   const label = { rite: "仪式", event: "事件", loot: "战利品表", quest: "任务", over: "结局", afterStory: "后日谈", upgrade: "命运商店", tag: "标签", init: "开局" }[kind] || kind;
-  const badge = origin === "override"
-    ? '<span class="origin override">覆盖原版</span>'
-    : '<span class="origin">新增</span>';
+  const badge =
+    origin === "override"
+      ? '<span class="origin override">覆盖原版</span>'
+      : origin === "proposal"
+        ? '<span class="origin proposal">提案 · 尚未写入</span>'
+        : '<span class="origin">新增</span>';
   const graphNote = graphLink
     ? `<p class="note" style="margin:0 0 14px"><a href="${esc(graphLink)}">在剧情图里看它</a></p>`
     : "";
@@ -796,7 +801,7 @@ export function recordPageHtml({ kind, id, record, modDir, origin = "new", graph
   // words; the agent edits the record and regenerates this page.
   const ask = `<h2>要改什么</h2>
 <p class="note" style="margin-top:0">用平时的话说就行，例如「第二个结算改成给一张卡」。Agent 会按这句话改记录，再重新生成这一页。</p>
-<textarea id="record-prompt" data-record-prompt rows="4" placeholder="例如：这句台词再狠一点；每 3 回合改成每 5 回合"></textarea>
+<textarea id="record-prompt" data-record="${esc(`${kind}:${id}`)}" data-record-prompt rows="4" placeholder="例如：这句台词再狠一点；每 3 回合改成每 5 回合"></textarea>
 <div class="savebar" style="margin-top:8px">
 <button class="exp" id="record-notify" type="button" disabled>发送给 Agent</button>
 <span class="note" id="record-status"></span>
@@ -807,6 +812,8 @@ export function recordPageHtml({ kind, id, record, modDir, origin = "new", graph
     title: `${label} ${id}`,
     sub: `${badge}${record && record.name ? esc(String(record.name)) : ""}`,
     body: `${graphNote}<div data-record-page="${esc(kind)}:${esc(id)}">${ask}${body}</div>`,
+    document: Boolean(promptSrc),
+    tail: promptSrc ? `<script src="${esc(promptSrc)}"></script>\n` : "",
   });
 }
 

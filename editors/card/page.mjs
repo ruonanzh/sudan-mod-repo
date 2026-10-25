@@ -320,11 +320,22 @@ export function applyCardValues(text, changes) {
   for (const change of changes || []) {
     const id = String(change?.id ?? "");
     if (!id) continue;
-    for (const [key, value] of Object.entries(change.fields || {})) {
+    const fields = { ...(change.fields || {}) };
+    // A proposal page is about a card the mod does not carry yet: applying it creates the entry in
+    // one piece, so the record lands with exactly the keys the page showed and no empty shell.
+    if (!nodeAt(doc, [id])) {
+      // The page names its record by key and never edits `id` as a field, so a new record has to
+      // carry it: the game reads it, and a record without one would land broken.
+      const fresh = fields.id === undefined ? { id: /^\d+$/.test(id) ? Number(id) : id, ...fields } : fields;
+      doc.append(doc.root, id, JSON.stringify(fresh, null, 4).replace(/\n/g, "\n    "));
+      written += Object.keys(fresh).length;
+      continue;
+    }
+    for (const [key, value] of Object.entries(fields)) {
       if (key === "tag") continue;
       if (writeValue(doc, [id, key], value)) written += 1;
     }
-    written += writeTagMap(doc, id, change.fields?.tag || {}, change.removedTags || []);
+    written += writeTagMap(doc, id, fields.tag || {}, change.removedTags || []);
   }
   return { text: doc.render(), written };
 }
@@ -612,9 +623,12 @@ export function cardPageHtml({ id, record, modDir, previous = null, origin = "ne
   const unknown = Object.keys(record).filter((key) => !live.has(key) && !(FIELDS.card.legacy || []).includes(key));
 
   const title = String(values.name ?? record.name ?? `卡 ${id}`);
-  const badge = origin === "override"
-    ? '<span class="origin override">覆盖原版</span>'
-    : '<span class="origin">新增</span>';
+  const badge =
+    origin === "override"
+      ? '<span class="origin override">覆盖原版</span>'
+      : origin === "proposal"
+        ? '<span class="origin proposal">提案 · 尚未写入</span>'
+        : '<span class="origin">新增</span>';
   const sub = `${badge}卡页 · id <code>${esc(id)}</code> · ${esc(values.type ?? record.type ?? "没写 type")} · 稀有度 ${esc(
     values.rare ?? record.rare ?? "没写",
   )}`;
@@ -672,7 +686,7 @@ ${unknownSection(unknown)}
     script: BRIDGE_SOURCE,
     tail: `<script type="application/json" id="${CARD_VALUES_ID}">\n${blockText(id, values, artPrompt)}\n</script>\n`,
     document: true,
-    wrapAttrs: `data-card-page="${esc(id)}"`,
+    wrapAttrs: `data-card-page="${esc(id)}"${origin === "proposal" ? ' data-proposal="1"' : ""}`,
   });
 }
 

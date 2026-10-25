@@ -5,6 +5,7 @@
  *   node tools/preview.mjs --mod your_mods/<ModName> [--focus kind:id] [--out <dir>]
  *   node tools/preview.mjs --mod your_mods/<ModName> --collect [--id <card id>]
  *   node tools/preview.mjs --mod your_mods/<ModName> --apply [--id <card id>]
+ *   node tools/preview.mjs --mod your_mods/<ModName> --spec <file|-> --kind card --id 2800001
  *
  * A mod is data, and a page is how a player checks that data before installing it:
  *
@@ -24,6 +25,11 @@
  * already carries, because an edit waiting to be applied must not be lost to a layout refresh.
  * The story graph is still written by editors/graph/graphpage.mjs, which owns that view, and `--focus` is
  * handed to it so the preview opens on the thing it was run for.
+ *
+ * `--spec` renders the same page a written record gets, from a JSON that is not in the mod yet, and
+ * marks it a proposal. The player then edits one kind of page in the discussion and in the mod: the
+ * card page stays editable, and loot, upgrade, quest, ending and epilogue pages keep their box.
+ * Nothing is written to the mod: building a proposal page is not a decision.
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
@@ -122,7 +128,7 @@ function vanillaIds(dir) {
 }
 
 function parseArgs(argv) {
-  const out = { modDir: null, focus: null, out: null, vanilla: null, collect: false, apply: false, id: null };
+  const out = { modDir: null, focus: null, out: null, vanilla: null, collect: false, apply: false, id: null, spec: null, kind: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--mod") out.modDir = argv[++i];
@@ -130,6 +136,8 @@ function parseArgs(argv) {
     else if (a === "--out") out.out = argv[++i];
     else if (a === "--vanilla") out.vanilla = argv[++i];
     else if (a === "--id") out.id = argv[++i];
+    else if (a === "--spec") out.spec = argv[++i];
+    else if (a === "--kind") out.kind = argv[++i];
     else if (a === "--collect") out.collect = true;
     else if (a === "--apply") out.apply = true;
   }
@@ -207,16 +215,13 @@ function runCardValues({ modDir, outDir, apply, id }) {
     return 0;
   }
   const table = cardTable(modDir);
-  if (!table) {
-    process.stdout.write(`FAIL  ${displayPath(modDir)} has no ${CARD_TABLE}\n`);
-    process.stdout.write("NEXT: a card page is built from the mod's card table; write that file first\n");
-    return 1;
-  }
+  const tableFile = table?.file || path.join(modDir, CARD_TABLE);
 
   const pending = [];
   const mismatched = [];
   for (const page of pages) {
-    const block = readPageValues(readFileSync(page.file, "utf8"));
+    const html = readFileSync(page.file, "utf8");
+    const block = readPageValues(html);
     if (!block) {
       process.stdout.write(`WARN  ${page.name}: no readable value block; rebuild it with node tools/preview.mjs --mod\n`);
       continue;
@@ -228,14 +233,18 @@ function runCardValues({ modDir, outDir, apply, id }) {
       continue;
     }
     const id = page.id;
-    const record = table.records.get(id);
-    if (!record) {
+    const record = table?.records.get(id);
+    // A proposal page is about a card the mod does not carry: applying it creates the record.
+    // Any other page with no record is stale, and writing it would resurrect a deleted card.
+    const proposal = html.includes('data-proposal="1"');
+    if (!record && !proposal) {
       process.stdout.write(`WARN  ${page.name}: ${CARD_TABLE} has no card ${id}\n`);
       continue;
     }
-    const diff = pendingValues(record, block.values);
+    const before = record || {};
+    const diff = pendingValues(before, block.values);
     if (!Object.keys(diff.fields).length && !diff.removedTags.length) continue;
-    pending.push({ page, id, record, diff, missing: missingValues(record, block.values) });
+    pending.push({ page, id, record: before, diff, missing: missingValues(before, block.values), fresh: !record });
   }
   if (mismatched.length) {
     for (const line of mismatched) process.stdout.write(`FAIL  ${line}\n`);
@@ -271,7 +280,8 @@ function runCardValues({ modDir, outDir, apply, id }) {
     return 0;
   }
 
-  const text = readFileSync(table.file, "utf8");
+  const text = existsSync(tableFile) ? readFileSync(tableFile, "utf8") : "{}";
+  const newTable = !existsSync(tableFile);
   let result;
   try {
     result = applyCardValues(
@@ -279,12 +289,16 @@ function runCardValues({ modDir, outDir, apply, id }) {
       pending.map((item) => ({ id: item.id, ...item.diff })),
     );
   } catch (e) {
-    process.stdout.write(`FAIL  could not write ${displayPath(table.file)}: ${e.message || e}\n`);
+    process.stdout.write(`FAIL  could not write ${displayPath(tableFile)}: ${e.message || e}\n`);
     process.stdout.write("NEXT: fix the file so it parses, then run this again\n");
     return 1;
   }
-  if (result.text !== text) writeFileSync(table.file, result.text);
-  process.stdout.write(`PASS  wrote ${result.written} value(s) into ${displayPath(table.file)}\n`);
+  if (result.text !== text) {
+    mkdirSync(path.dirname(tableFile), { recursive: true });
+    const body = newTable && !result.text.endsWith("\n") ? `${result.text}\n` : result.text;
+    writeFileSync(tableFile, body);
+  }
+  process.stdout.write(`PASS  wrote ${result.written} value(s) into ${displayPath(tableFile)}\n`);
   for (const line of lines) process.stdout.write(`      ${line}\n`);
   // The game replaces a card entry as a whole when it merges by id, so a page that never carried
   // one of the record's keys is worth saying out loud. Apply is per key, so this is a warning.
@@ -300,11 +314,81 @@ function runCardValues({ modDir, outDir, apply, id }) {
   return 0;
 }
 
+/**
+ * A proposal page: the same page a written record gets, built from a JSON that is not in the mod.
+ *
+ * The mod is read for the palette, the art and the field labels; nothing is written into it.
+ */
+function runSpec({ modDir, args }) {
+  const kind = String(args.kind || "");
+  const id = String(args.id || "");
+  if (!kind || !id) {
+    process.stdout.write("FAIL  --spec needs --kind <kind> and --id <id>\n");
+    process.stdout.write(
+      "NEXT: node tools/preview.mjs --mod your_mods/<ModName> --kind card --id 2800001 --spec proposal.json\n",
+    );
+    return 1;
+  }
+  let text;
+  try {
+    text =
+      args.spec === "-"
+        ? readFileSync(0, "utf8")
+        : readFileSync(path.resolve(String(args.spec).replace(/^~/, os.homedir())), "utf8");
+  } catch (e) {
+    process.stdout.write(`FAIL  cannot read --spec ${args.spec}: ${e.message || e}\n`);
+    process.stdout.write("NEXT: pass a JSON file, or - to read it from stdin\n");
+    return 1;
+  }
+  let record;
+  try {
+    record = JSON.parse(text);
+  } catch (e) {
+    process.stdout.write(`FAIL  --spec is not valid JSON: ${e.message}\n`);
+    process.stdout.write("NEXT: the proposal is one record object, not a table of records\n");
+    return 1;
+  }
+
+  // `--out` is a directory everywhere else in this tool; a path ending in .html names this one
+  // page instead, so two variants can sit side by side without inventing a second flag.
+  const outArg = args.out ? path.resolve(String(args.out).replace(/^~/, os.homedir())) : null;
+  const outDir = outArg && outArg.endsWith(".html") ? path.dirname(outArg) : outArg || path.join(modDir, ".preview");
+  const pageFile = (name) => (outArg && outArg.endsWith(".html") ? outArg : path.join(outDir, name));
+  let file;
+  let html;
+  try {
+    if (kind === "card") {
+      file = pageFile(`${id}.card.html`);
+      html = cardPageHtml({ id, record, modDir, origin: "proposal" });
+    } else if (FORM_FIELDS[kind]) {
+      file = pageFile(`${id}.${kind}.html`);
+      html = formPageHtml({ kind, id, record, origin: "proposal", recordKey: `${kind}:${id}` });
+    } else {
+      file = pageFile(`${kind}-${id}.record.html`);
+      html = recordPageHtml({ kind, id, record, modDir, origin: "proposal", promptSrc: "record-prompt.js" });
+      mkdirSync(outDir, { recursive: true });
+      writeFileSync(
+        path.join(outDir, "record-prompt.js"),
+        readFileSync(new URL("../editors/graph/record-prompt.js", import.meta.url)),
+      );
+    }
+  } catch (e) {
+    process.stdout.write(`FAIL  could not build the proposal page: ${e.message || e}\n`);
+    process.stdout.write("NEXT: check the record against schema/SCHEMA.md, then run this again\n");
+    return 1;
+  }
+  mkdirSync(path.dirname(file), { recursive: true });
+  writeFileSync(file, html);
+  process.stdout.write(`PASS  wrote ${displayPath(file)}\n`);
+  process.stdout.write("NEXT: show it to the player; nothing was written. Write the record only after they agree\n");
+  return 0;
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   if (!args.modDir) {
     process.stderr.write(
-      "usage: node tools/preview.mjs --mod your_mods/<ModName> [--focus kind:id] [--out <dir>] | --collect | --apply\n",
+      "usage: node tools/preview.mjs --mod your_mods/<ModName> [--focus kind:id] [--out <dir>] | --collect | --apply | --spec <file|-> --kind <kind> --id <id>\n",
     );
     return 2;
   }
@@ -328,6 +412,13 @@ function main() {
   }
 
   let records;
+  // A proposal is a page about a record the mod does not carry yet, so it comes before any scan:
+  // a mod with an empty config still has a proposal to show.
+  if (args.spec !== null) return runSpec({ modDir, args });
+  const outDir = path.resolve(String(args.out || path.join(modDir, ".preview")).replace(/^~/, os.homedir()));
+  // Collect and apply read the pages and the card table only. They run before the record scan,
+  // because a proposal page is the one page a mod with no records at all can still carry.
+  if (args.collect || args.apply) return runCardValues({ modDir, outDir, apply: args.apply, id: args.id });
   try {
     records = modRecords(modDir);
   } catch (e) {
@@ -343,10 +434,6 @@ function main() {
 
   const cards = records.filter((r) => r.kind === "card");
   const story = records.filter((r) => GRAPH_KINDS.has(r.kind));
-
-  const outDir = path.resolve(String(args.out || path.join(modDir, ".preview")).replace(/^~/, os.homedir()));
-  // Collect and apply only read the pages and the card table; neither needs the game's config.
-  if (args.collect || args.apply) return runCardValues({ modDir, outDir, apply: args.apply, id: args.id });
 
   // Only the story graph reads the game's own config. A mod of cards needs nothing but its file:
   // the card page is built from the card table, so requiring an install here would refuse a
@@ -382,6 +469,7 @@ function main() {
   const pages = { graph: null, files: [] };
   let recordCount = 0;
   let formCount = 0;
+  let plainCount = 0;
   const vanilla = vanillaIds(requirement.dir);
   const originOf = (kind, id) => (vanilla.get(kind) && vanilla.get(kind).has(String(id)) ? "override" : "new");
   const focusFlag = picked ? ["--focus", `${picked.kind}:${picked.id}`] : [];
@@ -470,6 +558,42 @@ function main() {
       }
     }
     if (formCount) process.stdout.write(`PASS  ${formCount} form page(s) in ${displayPath(outDir)}\n`);
+  }
+
+  // A quest, an ending or an epilogue has the same page shape as any record: the fields it carries,
+  // then the box where the player says what to change. rite and event get the story graph instead;
+  // loot and upgrade got the form page above.
+  const plainKinds = new Set(["quest", "over", "afterStory"]);
+  const plainList = records.filter((r) => plainKinds.has(r.kind) && CARD_ID_FILE.test(String(r.id)));
+  if (plainList.length) {
+    for (const r of plainList) {
+      const file = path.join(outDir, `${r.kind}-${r.id}.record.html`);
+      try {
+        writeFileSync(
+          file,
+          recordPageHtml({
+            kind: r.kind,
+            id: r.id,
+            record: r.record,
+            modDir,
+            origin: originOf(r.kind, r.id),
+            promptSrc: "record-prompt.js",
+          }),
+        );
+        pages.files.push(file);
+        plainCount += 1;
+      } catch (e) {
+        process.stdout.write(`FAIL  could not write ${path.basename(file)}: ${e.message || e}\n`);
+        process.stdout.write("NEXT: add the missing label to schema/view/field-labels.json, then run this again\n");
+        return 1;
+      }
+    }
+    // The box's script: the HTML preview forbids inline scripts, so it ships as a file.
+    writeFileSync(
+      path.join(outDir, "record-prompt.js"),
+      readFileSync(new URL("../editors/graph/record-prompt.js", import.meta.url)),
+    );
+    process.stdout.write(`PASS  ${plainCount} record page(s) in ${displayPath(outDir)}\n`);
   }
 
   if (story.length) {
