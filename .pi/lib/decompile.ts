@@ -690,8 +690,8 @@ export async function buildDump(
         "| `MANIFEST.json` | What produced this dump, and when. |",
         "",
         "Read it through `inspect_game_code`: `search` (names, or `scope=bodies` for text inside ISIL), `type`, `body`, `strings`.",
-        "Prefer the tool over rg, sed, or grep here: it resolves these paths, caps output at 50 KB, and says when the dump is stale.",
-        "",
+        "Use rg, sed, or grep only for what the tool cannot express (a regex with context lines, several patterns at once, a",
+        "script). Names, one type, one member, strings, and a literal search across ISIL all belong to the tool.",        "",
       ].join("\n"),
     );
     writeFileSync(manifestPath(tmp), `${JSON.stringify(manifest, null, 2)}\n`);
