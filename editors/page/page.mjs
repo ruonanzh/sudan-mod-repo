@@ -65,8 +65,8 @@ const plain = (html) =>
     .replace(/&(lt|gt|quot|#39|amp);/g, (m) => ENTITIES[m]);
 
 /** A card id as text: the name when the tables carry it, the bare id when they do not. */
-const cardText = (id) => {
-  const name = cardNamesById.get(String(id));
+const cardText = (id, names = cardNamesById) => {
+  const name = names.get(String(id));
   return name ? `${name}（${id}）` : String(id);
 };
 
@@ -76,12 +76,12 @@ const cardText = (id) => {
  * The story graph's panel builds its HTML in the browser, so it takes text instead of the tables
  * `fmt` makes. The judgement still lives here — one word list, one card index, one place to change.
  */
-export function effectText(key, value) {
+export function effectText(key, value, names = cardNamesById) {
   const label = plain(opPhrase(String(key)));
   // `card` is one id or a list of them: a branch can hand over several cards at once.
   if (/^card$/.test(String(key))) {
     const ids = Array.isArray(value) ? value : [value];
-    return `${label} ${ids.map(cardText).join("、")}`;
+    return `${label} ${ids.map((id) => cardText(id, names)).join("、")}`;
   }
   if (Array.isArray(value)) {
     // One branch can list several targets, and an action nests its list one level deeper:
@@ -282,7 +282,7 @@ export function fmt(value, kind, key) {
       const name = label ? esc(label) : opPhrase(key);
       // `card: 2800001` gives a card; the id alone does not say which one. A list gives several.
       const isCard = /^card$/.test(key);
-      const cell = isCard && v !== undefined ? esc((Array.isArray(v) ? v : [v]).map(cardText).join("、")) : fmt(v);
+      const cell = isCard && v !== undefined ? esc((Array.isArray(v) ? v : [v]).map((id) => cardText(id)).join("、")) : fmt(v);
       return `<tr><th>${name}</th><td>${cell}</td></tr>`;
     })
     .join("");

@@ -19,6 +19,7 @@ import { DEFAULT_VANILLA } from "./model.mjs";
 import { parseJsonc } from "./lint.mjs";
 import { expandHome } from "./paths.mjs";
 import { effectText } from "../editors/page/page.mjs";
+import { cardNames } from "./card-names.mjs";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(HERE, "..");
 const EDGES = JSON.parse(readFileSync(path.join(ROOT, "schema/view/edges.json"), "utf8"));
@@ -245,24 +246,35 @@ function firstNarration(rec) {
 
 /**
  * What an event settles into. An event has no branches to choose between: its settlement is a
- * sequence of stages, each running on its own, and each stage's `action` is a set of outcomes
- * (确认 / 成功 / 失败) that carry what actually happens.
+ * sequence of stages, and every stage runs.
+ *
+ * A stage's `action` is usually the operations themselves (`{"rite": 5000508}`), and only rarely
+ * splits into outcomes (`confirm` / `success` / `failed`, 3 stages of 1874 in vanilla). Both read
+ * here: the outcome names get their own heading, and everything else is an operation of the stage.
  */
-function eventInfoOf(rec) {
+function eventInfoOf(rec, cardIndex) {
   const stages = (Array.isArray(rec.settlement) ? rec.settlement : [])
     .filter((s) => s && typeof s === "object")
     .map((s) => {
-      const tips = String(s.tips_text || "").trim();
-      const steps = Object.entries(s.action && typeof s.action === "object" ? s.action : {}).map(([k, v]) => {
+      const ops = {};
+      const steps = [];
+      for (const [key, v] of Object.entries(s.action && typeof s.action === "object" ? s.action : {})) {
+        if (!EVENT_OUTCOMES.has(key) || !v || typeof v !== "object") {
+          ops[key] = v;
+          continue;
+        }
         // A prompt is shown, not executed: its own fields are how it looks, not what it does.
-        const ops = v && typeof v === "object" ? Object.fromEntries(Object.entries(v).filter(([key]) => !SHOWN_IN_ACTION.has(key))) : {};
-        return { k, text: String((v && v.text) || "").trim(), res: effectsOf(ops) };
-      });
-      return { tips, steps };
+        const inner = Object.fromEntries(Object.entries(v).filter(([k]) => !SHOWN_IN_ACTION.has(k)));
+        steps.push({ k: key, text: String(v.text || "").trim(), res: effectsOf(inner, cardIndex) });
+      }
+      return { tips: String(s.tips_text || "").trim(), res: effectsOf(ops, cardIndex), steps };
     })
-    .filter((s) => s.tips || s.steps.length);
+    .filter((s) => s.tips || s.res.length || s.steps.length);
   return stages.length ? { stages } : null;
 }
+
+/** The keys an event's action splits into. Every other key is an operation the stage runs. */
+const EVENT_OUTCOMES = new Set(["confirm", "success", "failed"]);
 
 /** Fields of an action outcome that describe how it is drawn, not what it does. */
 const SHOWN_IN_ACTION = new Set(["id", "text", "icon", "confirm_text", "cancel_text"]);
@@ -273,9 +285,9 @@ const SHOWN_IN_ACTION = new Set(["id", "text", "icon", "confirm_text", "cancel_t
  * The words come from the page renderer, so the graph and a record page never disagree about
  * what an effect is called, and the card name is the same lookup in both.
  */
-function effectsOf(result) {
+function effectsOf(result, names) {
   if (!result || typeof result !== "object") return [];
-  return Object.entries(result).map(([key, value]) => effectText(key, value));
+  return Object.entries(result).map(([key, value]) => effectText(key, value, names));
 }
 
 /**
@@ -284,7 +296,7 @@ function effectsOf(result) {
  * separate lists, not one (see plans/story-graph.md §六): prior and normal stop at the first
  * branch whose condition holds, extre runs all of them.
  */
-function riteInfoOf(rec) {
+function riteInfoOf(rec, cardIndex) {
   const slots = Object.entries(rec.cards_slot || {}).map(([k, s]) => ({
     k,
     text: (s && s.text) || "",
@@ -302,7 +314,7 @@ function riteInfoOf(rec) {
         title: b.result_title || "",
         text: b.result_text || "",
         // What the branch gives is the answer to "what do I get", so the panel carries it.
-        res: effectsOf(b.result),
+        res: effectsOf(b.result, cardIndex),
       }));
   const info = {
     type: rec.type || "",
@@ -335,9 +347,13 @@ function flagsOf(kind, rec) {
 
 // ---------------------------------------------------------------- build
 
-export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = "zh", edgeMode = "nested" } = {}) {
+export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = "zh", edgeMode = "nested", names = null } = {}) {
   configDir = expandHome(configDir);
   if (modDir) modDir = expandHome(modDir);
+  // Card names for the effect lines come from the same two directories the graph reads, or from
+  // the caller when it already has them. Loaded here rather than from a module-level switch, so
+  // every caller — page, editor server, --out JSON — gets names without setting them first.
+  const cardIndex = names || cardNames([modDir && path.join(modDir, "config"), configDir]);
   const assets = path.dirname(configDir);
   const vanilla = loadRecords(configDir);
   const i18n = loadI18n(assets);
@@ -376,8 +392,8 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
       if (kind === "rite" && Array.isArray(rec.open_conditions)) {
         node.oc = rec.open_conditions.map((x) => x && x.tips).filter(Boolean);
       }
-      if (kind === "rite") node.ri = riteInfoOf(rec);
-      if (kind === "event") node.ev = eventInfoOf(rec);
+      if (kind === "rite") node.ri = riteInfoOf(rec, cardIndex);
+      if (kind === "event") node.ev = eventInfoOf(rec, cardIndex);
     }
   }
 
@@ -458,8 +474,8 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
         if (kind === "rite" && Array.isArray(rec.open_conditions)) {
           node.oc = rec.open_conditions.map((x) => x && x.tips).filter(Boolean);
         }
-        if (kind === "rite") node.ri = riteInfoOf(rec);
-        if (kind === "event") node.ev = eventInfoOf(rec);
+        if (kind === "rite") node.ri = riteInfoOf(rec, cardIndex);
+        if (kind === "event") node.ev = eventInfoOf(rec, cardIndex);
       }
     }
     // counters referenced only by the mod

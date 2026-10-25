@@ -33,12 +33,11 @@ function addFile(map, file) {
  * Card id → name from each directory's `cards.json`, earlier directories winning.
  *
  * The directories are config directories, the same shape `vanillaRequirement()` returns. A mod
- * that redefines a vanilla id carries the same key, so the mod's directory must be read last.
+ * that redefines a vanilla id carries the same key, so its directory is read afterwards and its
+ * name replaces vanilla's.
  */
 export function cardNames(dirs = []) {
   const map = new Map();
   for (const dir of [...dirs].reverse()) if (dir) addFile(map, path.join(dir, CARDS));
   return map;
 }
-
-export default { cardNames };

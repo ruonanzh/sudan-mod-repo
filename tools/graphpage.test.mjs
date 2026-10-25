@@ -12,8 +12,6 @@ import path from "node:path";
 import os from "node:os";
 import { createRequire } from "node:module";
 import { buildGraph } from "./graph.mjs";
-import { cardNames } from "./card-names.mjs";
-import { setCardNames } from "../editors/page/page.mjs";
 import { renderPage, payload, LANE_LAYOUT_JS, detailPayload, detailScript, detailName, writePage, pageScript, vendorScripts } from "./graphpage.mjs";
 import { openMod, DEFAULT_VANILLA } from "./model.mjs";
 import { readNodeSource } from "./editor.mjs";
@@ -116,15 +114,9 @@ function mount(g, { editable = true, detail = "full", protocol = "http:", page =
 }
 
 // One build for the whole suite: the corpus is the same, and a page test changes nothing in it.
-// Card names are handed in here, the way every command that renders a page hands them in.
+// Card names are the graph's own business now — `buildGraph` reads them from the config it reads.
 let builtGraph = null;
-const graph = () => {
-  if (!builtGraph) {
-    setCardNames(cardNames([VANILLA]));
-    builtGraph = buildGraph({});
-  }
-  return builtGraph;
-};
+const graph = () => (builtGraph ??= buildGraph({}));
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
@@ -198,6 +190,18 @@ test("an event settles into stages, and a stage says what it does", { skip }, as
   assert.match(html, /<div class="branchhead">成功<\/div>/);
   assert.match(html, /打开幕后事件 5300300、5300301、5300302、5300303、5300066/);
   assert.match(html, /<div class="branchhead">失败<\/div>/);
+});
+
+// Almost every vanilla stage writes its operations straight into `action`, with no outcome to
+// split on. A key printed as a heading is the bug this case exists to catch.
+test("an event stage whose action is the operation itself reads as a sentence", { skip }, async () => {
+  const { win, els } = mount(graph());
+  win.__openNode("event:5300002");
+  await tick();
+  const html = els.get("modal-body").innerHTML;
+  const settled = html.split("<h3>结算</h3>")[1] || "";
+  assert.match(settled, /开始仪式 5000508/, "the operation is what the stage does");
+  assert.doesNotMatch(settled, /branchhead">rite</, "a raw key must never be a heading");
 });
 
 test("a switch reads as the sentence its value earns", { skip }, async () => {

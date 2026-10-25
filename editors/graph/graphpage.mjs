@@ -34,8 +34,6 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildGraph } from "../../tools/graph.mjs";
-import { cardNames } from "../../tools/card-names.mjs";
-import { setCardNames } from "../page/page.mjs";
 import { esc, pageHtml } from "../lib/shell.mjs";
 import { DEFAULT_VANILLA } from "../../tools/model.mjs";
 import { vanillaRequirement } from "../../tools/paths.mjs";
@@ -1015,8 +1013,8 @@ function branchGroup(name, list, note) {
   return sublabel(name + "（" + note + "）") + rows;
 }
 
-// An event settles into stages, not into branches: every stage runs, and each stage's action
-// names the outcomes (确认 / 成功 / 失败) that carry what actually happens.
+// An event settles into stages: every stage runs. A stage's action is usually the operations it
+// performs; when it splits into outcomes (确认 / 成功 / 失败), those carry the operations instead.
 const OUTCOME_NAME = { confirm: "确认", success: "成功", failed: "失败" };
 
 function eventBlock(n) {
@@ -1026,6 +1024,9 @@ function eventBlock(n) {
     .map((st, i) => {
       const head = ev.stages.length > 1 ? '<div class="branchhead">第 ' + (i + 1) + " 段</div>" : "";
       const tips = st.tips ? '<div class="cond">' + escHtml(st.tips) + "</div>" : "";
+      const own = (st.res || []).length
+        ? sublabel("效果") + st.res.map((t) => '<div class="cond">' + escHtml(t) + "</div>").join("")
+        : "";
       const steps = st.steps
         .map((step) => {
           const text = step.text ? '<div class="story">' + escHtml(step.text) + "</div>" : "";
@@ -1035,10 +1036,10 @@ function eventBlock(n) {
           return '<div class="branch"><div class="branchhead">' + escHtml(OUTCOME_NAME[step.k] || step.k) + "</div>" + text + res + "</div>";
         })
         .join("");
-      return head + tips + steps;
+      return head + tips + own + steps;
     })
     .join("");
-  return "<h3>结算</h3>" + sublabel("每一段各自执行；段内的结果分支当事件走到才会发生") + body;
+  return "<h3>结算</h3>" + sublabel("每一段各自执行；分了结果的段，结果走上哪一路才会发生") + body;
 }
 
 function riteBlock(n) {
@@ -1528,9 +1529,6 @@ export function main(argv = process.argv.slice(2)) {
     process.stdout.write(`NEXT  ${requirement.next}\n`);
     return 1;
   }
-  // This runs as its own process, so the card names it prints come from here: an effect reads
-  // 生成卡牌 血滴子, not an id nobody can resolve.
-  setCardNames(cardNames([args.modDir && path.join(path.resolve(expandHome(args.modDir)), "config"), requirement.dir]));
   const g = buildGraph({ configDir: requirement.dir, modDir: args.modDir });
   const written = writePage(g, args.out, { focus: args.focus });
   // Two files, and the second one is named: a page copied on its own still draws, but its
