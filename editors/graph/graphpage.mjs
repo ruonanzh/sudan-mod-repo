@@ -95,7 +95,7 @@ const groupOf = (n) => (n.t === "card" ? "card" : n.t === "rite" ? "rite" : n.t 
  * pulls that file in when a panel first opens. Splitting the difference here, in one place,
  * is what keeps the two halves from drifiting.
  */
-const DETAIL_FIELDS = ["nr", "dl", "ri", "fl", "on", "cond", "oc"];
+const DETAIL_FIELDS = ["nr", "dl", "ri", "ev", "fl", "on", "cond", "oc"];
 
 /** One node's detail, in the shape the panel reads. */
 function detailOf(n) {
@@ -107,6 +107,7 @@ function detailOf(n) {
     on: n.on || null,
     cond: n.cond || null,
     oc: n.oc || null,
+    ev: n.ev || null,
   };
 }
 
@@ -1014,6 +1015,32 @@ function branchGroup(name, list, note) {
   return sublabel(name + "（" + note + "）") + rows;
 }
 
+// An event settles into stages, not into branches: every stage runs, and each stage's action
+// names the outcomes (确认 / 成功 / 失败) that carry what actually happens.
+const OUTCOME_NAME = { confirm: "确认", success: "成功", failed: "失败" };
+
+function eventBlock(n) {
+  const ev = n.ev;
+  if (!ev) return "";
+  const body = ev.stages
+    .map((st, i) => {
+      const head = ev.stages.length > 1 ? '<div class="branchhead">第 ' + (i + 1) + " 段</div>" : "";
+      const tips = st.tips ? '<div class="cond">' + escHtml(st.tips) + "</div>" : "";
+      const steps = st.steps
+        .map((step) => {
+          const text = step.text ? '<div class="story">' + escHtml(step.text) + "</div>" : "";
+          const res = (step.res || []).length
+            ? sublabel("效果") + step.res.map((t) => '<div class="cond">' + escHtml(t) + "</div>").join("")
+            : "";
+          return '<div class="branch"><div class="branchhead">' + escHtml(OUTCOME_NAME[step.k] || step.k) + "</div>" + text + res + "</div>";
+        })
+        .join("");
+      return head + tips + steps;
+    })
+    .join("");
+  return "<h3>结算</h3>" + sublabel("每一段各自执行；段内的结果分支当事件走到才会发生") + body;
+}
+
 function riteBlock(n) {
   const ri = n.ri;
   if (!ri) return "";
@@ -1096,6 +1123,7 @@ function panelHtml(n, all = expandAll) {
     ) +
     nb +
     (n.t === "rite" ? riteBlock(n) : "") +
+    (n.t === "event" ? eventBlock(n) : "") +
     sec("结果", outRows || hint("没有结果。它不引发别的事。"))
   );
 }

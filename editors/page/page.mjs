@@ -84,8 +84,13 @@ export function effectText(key, value) {
     return `${label} ${ids.map(cardText).join("、")}`;
   }
   if (Array.isArray(value)) {
-    if (value.every((v) => v === null || typeof v !== "object")) return `${label} ${value.join("、")}`;
-    return `${label}（${value.length} 项）`;
+    // One branch can list several targets, and an action nests its list one level deeper:
+    // `event_on: [[5300300, 5300301], 5300066]` is still a list of ids, not a table.
+    const flat = [];
+    const walk = (v) => (Array.isArray(v) ? v.forEach(walk) : flat.push(v));
+    walk(value);
+    if (flat.every((v) => v === null || typeof v !== "object")) return `${label} ${flat.join("、")}`;
+    return `${label}（${flat.length} 项）`;
   }
   // A dialogue table or a text template is not something to print: say how much of it there is.
   if (value && typeof value === "object") return `${label}（${Object.keys(value).length} 项）`;

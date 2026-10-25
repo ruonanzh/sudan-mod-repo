@@ -244,6 +244,30 @@ function firstNarration(rec) {
 }
 
 /**
+ * What an event settles into. An event has no branches to choose between: its settlement is a
+ * sequence of stages, each running on its own, and each stage's `action` is a set of outcomes
+ * (确认 / 成功 / 失败) that carry what actually happens.
+ */
+function eventInfoOf(rec) {
+  const stages = (Array.isArray(rec.settlement) ? rec.settlement : [])
+    .filter((s) => s && typeof s === "object")
+    .map((s) => {
+      const tips = String(s.tips_text || "").trim();
+      const steps = Object.entries(s.action && typeof s.action === "object" ? s.action : {}).map(([k, v]) => {
+        // A prompt is shown, not executed: its own fields are how it looks, not what it does.
+        const ops = v && typeof v === "object" ? Object.fromEntries(Object.entries(v).filter(([key]) => !SHOWN_IN_ACTION.has(key))) : {};
+        return { k, text: String((v && v.text) || "").trim(), res: effectsOf(ops) };
+      });
+      return { tips, steps };
+    })
+    .filter((s) => s.tips || s.steps.length);
+  return stages.length ? { stages } : null;
+}
+
+/** Fields of an action outcome that describe how it is drawn, not what it does. */
+const SHOWN_IN_ACTION = new Set(["id", "text", "icon", "confirm_text", "cancel_text"]);
+
+/**
  * The effect of one branch, as text: `["清空槽位 s1", "生成卡牌 血滴子（2800001）"]`.
  *
  * The words come from the page renderer, so the graph and a record page never disagree about
@@ -353,6 +377,7 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
         node.oc = rec.open_conditions.map((x) => x && x.tips).filter(Boolean);
       }
       if (kind === "rite") node.ri = riteInfoOf(rec);
+      if (kind === "event") node.ev = eventInfoOf(rec);
     }
   }
 
@@ -434,6 +459,7 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
           node.oc = rec.open_conditions.map((x) => x && x.tips).filter(Boolean);
         }
         if (kind === "rite") node.ri = riteInfoOf(rec);
+        if (kind === "event") node.ev = eventInfoOf(rec);
       }
     }
     // counters referenced only by the mod

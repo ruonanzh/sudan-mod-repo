@@ -187,6 +187,19 @@ test("a rite's branch says what it gives, and a card is named", { skip }, async 
   assert.match(html, /清空槽位|计数器|槽位/, "the other effects are named too");
 });
 
+test("an event settles into stages, and a stage says what it does", { skip }, async () => {
+  const { win, els } = mount(graph());
+  win.__openNode("event:5300000");
+  await tick();
+  const html = els.get("modal-body").innerHTML;
+  assert.match(html, /<h3>结算<\/h3>/, "an event's settlement is a section of its own");
+  // The outcomes are named in Chinese, and the action says which events it opens.
+  assert.match(html, /<div class="branchhead">确认<\/div>/);
+  assert.match(html, /<div class="branchhead">成功<\/div>/);
+  assert.match(html, /打开幕后事件 5300300、5300301、5300302、5300303、5300066/);
+  assert.match(html, /<div class="branchhead">失败<\/div>/);
+});
+
 test("a switch reads as the sentence its value earns", { skip }, async () => {
   const { win, els, document } = mount(graph());
   win.__openNode("event:5300090");
