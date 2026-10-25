@@ -113,7 +113,9 @@ function mount(g, { editable = true, detail = "full", protocol = "http:", page =
   return { win, els, document, posts, scripts, fetched };
 }
 
-const graph = () => buildGraph({});
+// One build for the whole suite: the corpus is the same, and a page test changes nothing in it.
+let builtGraph = null;
+const graph = () => (builtGraph ??= buildGraph({}));
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 

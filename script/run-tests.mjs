@@ -15,6 +15,7 @@
  */
 import { readdirSync } from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
@@ -59,6 +60,7 @@ if (!files.length && !libFiles.length) {
 /** Run one suite and return { file, pass, fail, output, code }. */
 function runOne(file) {
   return new Promise((resolve) => {
+    const started = Date.now();
     const child = spawn(process.execPath, ["--test", "--test-reporter=spec", file], {
       cwd: REPO,
       stdio: ["ignore", "pipe", "pipe"],
@@ -74,21 +76,35 @@ function runOne(file) {
       };
       const pass = grab("pass") ?? 0;
       const fail = grab("fail") ?? 0;
-      resolve({ file, pass, fail, output: out, code });
+      resolve({ file, pass, fail, output: out, code, ms: Date.now() - started });
     });
   });
 }
 
 const results = [];
-for (const file of files) {
-  const r = await runOne(file);
-  results.push(r);
+
+// One process per suite, several suites at once: every suite is spawn-only and works in its own
+// temp directory, so they do not share state. Results keep the file order so a red run reads the
+// same every time, whatever finished first.
+const JOBS = Math.max(1, Number(process.env.TEST_JOBS) || Math.min(files.length, os.availableParallelism() || 4));
+let cursor = 0;
+async function worker() {
+  while (true) {
+    const index = cursor++;
+    if (index >= files.length) return;
+    results[index] = await runOne(files[index]);
+  }
+}
+await Promise.all(Array.from({ length: JOBS }, worker));
+
+for (const r of results) {
   const label = r.fail === 0 && r.code === 0 ? "PASS" : "FAIL";
-  process.stdout.write(`${label}  ${String(r.pass).padStart(3)} pass  ${String(r.fail).padStart(2)} fail  ${r.file}\n`);
+  const secs = r.ms === undefined ? "" : `  ${(r.ms / 1000).toFixed(1)}s`;
+  process.stdout.write(`${label}  ${String(r.pass).padStart(3)} pass  ${String(r.fail).padStart(2)} fail  ${r.file}${secs}\n`);
   if (!(r.fail === 0 && r.code === 0)) {
     // The failing test names are the whole point of a red run: keep them.
-    const lines = r.output.split("\n").filter((l) => /✖|not ok|Error|AssertionError/.test(l));
-    process.stdout.write(lines.slice(0, 30).map((l) => `        ${l.trim()}`).join("\n") + "\n");
+    const failLines = r.output.split("\n").filter((l) => /✖|not ok|Error|AssertionError/.test(l));
+    process.stdout.write(failLines.slice(0, 30).map((l) => `        ${l.trim()}`).join("\n") + "\n");
     if (VERBOSE) process.stdout.write(r.output + "\n");
   }
 }
