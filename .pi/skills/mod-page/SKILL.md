@@ -1,6 +1,6 @@
 ---
 name: mod-page
-description: 把 mod 说明渲染成玩家看得懂的 HTML 预览页，三个用途：讲清一条游戏机制、摆出还没写进 mod 的方案、说明写好的 mod 现在做什么。讨论需求、定范围、改剧情文字、玩家问「这个 mod 改了什么」、mod 已写好而玩家还没看到它改了什么时用它，不要在回复里堆选项。方案可以是已经写进 mod 的配置记录，也可以是还没写盘的提案（`--spec`）。产物写在 `your_mods/<ModName>/.preview/`。卡页可在应用内直接改值；记录页（仪式、事件）用一句大白话告诉 agent 要改什么；剧情图只读。
+description: 把 mod 记录渲染成玩家看得懂的 HTML 预览页：讨论一张卡、一个仪式、一段剧情文字，讲清一条机制，或给玩家看写好的 mod 改了什么。讨论需求、定范围、改剧情文字、玩家问「这个 mod 改了什么」、mod 已写好而玩家还没看到它改了什么时用它。页面从 `your_mods/<ModName>/config/` 里的记录生成，产物在 `.preview/`。卡页可在应用内直接改值；记录页（仪式、事件、任务、结局、后日谈）用一句大白话告诉 agent 要改什么；剧情图只读。
 ---
 
 # mod 说明页
@@ -9,7 +9,7 @@ description: 把 mod 说明渲染成玩家看得懂的 HTML 预览页，三个�
 
 ## 这是什么
 
-**需求讨论的载体。** 玩家对着一个页面，比对着一段 JSON 好说话：他能看见要做哪张卡、哪些字段取什么值、卡面拼出来什么效果、剧情按什么顺序走。你写页面，他给意见，你改方案。
+**讨论与展示的载体，页面从记录生成。** 讨论一个 mod 时，先把设想写进 `your_mods/<ModName>/config/` 的记录，再生成页面：玩家对着页面看见要做哪张卡、哪些字段取什么值、卡面拼出来什么效果、剧情按什么顺序走。玩家给意见，你改那几条记录，再重新生成这一页。
 
 页面是**给玩家看的**，不是给开发看的：上面只有方案本身，没有「我做了什么」的说明。卡页有输入框：玩家在应用里改值，点「发送给 Agent」，页面先保存、再把改动发进会话；剧情图与只读页没有输入框。
 
@@ -17,11 +17,11 @@ description: 把 mod 说明渲染成玩家看得懂的 HTML 预览页，三个�
 
 用它：
 
-- 还没定要做什么：一个 mod 想法、几种可能的做法，都可以先有一页摆给玩家挑。
 - 你们要先定范围或某个值，才动手写 mod。
 - 玩家要改**剧情文字**：事件叙事、选项按钮、结算提示、仪式与卡面的文案。这些文字要读起来自然，只看 JSON 里的字符串判断不出来。
 - 玩家问「这个 mod 改了什么」。
 - mod 已写好，玩家还没看到它改了什么。
+- 要解释一条游戏机制或一个数值。
 - 结论要摆数字或做对比。
 
 不用它：
@@ -29,7 +29,13 @@ description: 把 mod 说明渲染成玩家看得懂的 HTML 预览页，三个�
 - 玩家只是闲聊，或者问题一句话能答完。
 - 要把 mod 装进游戏验收——那是 `mod-installer` 的事，页面证明不了任何东西能被加载。
 
-页面要放在 `your_mods/<ModName>/.preview/` 下。还没有 mod 目录时，先调 `create_mod_folder`，再写页面。目录只是页面的落点，不代表你已经决定要写这个 mod。
+页面产物在 `your_mods/<ModName>/.preview/`；它不属于 mod，git 忽略，也不要装进游戏。
+
+## 讨论一个 mod 的步骤
+
+1. 把设想写进 `config/`：卡写 `config/cards.json`，仪式写 `config/rite/<id>.json`，其余同理。
+2. 生成页面：全部记录用 `node tools/preview.mjs --mod your_mods/<ModName>`；只要一条用 `node tools/page.mjs <kind> --mod your_mods/<ModName> --id <id> --out <文件>`。
+3. 把页面的工作区相对路径给玩家。他回话后改那几条记录，再生成一次。
 
 ## 生成卡的编辑页
 
@@ -62,24 +68,16 @@ node tools/preview.mjs --mod your_mods/<ModName>
 
 ## 生成一页
 
-`page.mjs` 与 `preview.mjs` 分工不同，不要混用：
+`page.mjs` 出只读页，`preview.mjs` 出能改值的页。按目的选：
 
 | 要做什么 | 用哪条 |
 |---|---|
 | 给玩家看这个 mod 改了什么，并让他改值 | `preview.mjs`（一条命令出全部页面，并把每页路径打印出来） |
-| 讨论一个**还没写进 mod** 的方案 | `preview.mjs --spec`（和最终页同形，玩家能改值，副标题标「提案 · 尚未写入」） |
-| 只想看一条记录，不要控件 | `page.mjs --spec`（只读页） |
-| 只看一条已写入的记录（仪式、事件、掉落、任务、结局、升级、标签、开局） | `page.mjs <kind> --id <id>` |
-
-```
-node tools/preview.mjs --mod your_mods/<ModName> --spec <文件或 -> --kind <kind> --id <id> [--out <目录或 .html>]
-```
-
-`--out` 给目录时按默认文件名落盘，给 `.html` 路径时就用这个文件名。两个候选方案可以用 `--out` 写成两份页。
+| 只看一条记录，不要控件 | `page.mjs <kind> --id <id> --out <文件>` |
 
 任务、结局、后日谈也有单条页：`your_mods/<ModName>/.preview/<kind>-<id>.record.html`。
 
-`page.mjs` 一次只出一条记录，页面是**只读**的：它不能写回配置，也没有索引页。`preview.mjs` 生成的记录页不是只读的，它下方有一个「要改什么」输入框，玩家写完点发送，agent 按这句话去改记录。卡页一律走 `preview.mjs`；提案也用 `preview.mjs --spec`，这样讨论页和最终页是同一种页。
+`page.mjs` 一次只出一条记录，页面是**只读**的：它不能写回配置，也没有索引页。`preview.mjs` 生成的记录页不是只读的，它下方有一个「要改什么」输入框，玩家写完点发送，agent 按这句话去改记录。卡页一律走 `preview.mjs`。
 
 ```
 node tools/page.mjs <kind> --mod your_mods/<ModName> --id <id> --out your_mods/<ModName>/.preview/<名字>.html
@@ -100,7 +98,6 @@ node tools/page.mjs <kind> --mod your_mods/<ModName> --id <id> --out your_mods/<
 | `tag` | 标签 |
 | `init` | 开局 |
 
-- **提案还没写进 mod**：加 `--spec - < 提案.json`（或用 `--spec 文件`），副标题会标「提案 · 尚未写入 mod」，不产生任何 config 文件。
 - **`ModName` 还没定**：先调 `create_mod_folder(name="<小写 snake_case>")` 建目录并绑定会话，再写 `info.json`。细节在 `mod-creator` 的 `## 建 mod 骨架` 与 `## info.json`。
 - `.preview/` 不属于 mod：它被 git 忽略，也不要装进游戏。
 
@@ -112,18 +109,11 @@ node tools/page.mjs <kind> --mod your_mods/<ModName> --id <id> --out your_mods/<
 4. **对象点开在下一行展开**：点「3 项」，当前行下面出现整行宽的缩进小表，不挤在单元格里。
 5. **游戏不认识的键单独一节**：活键没有中文标签时页面直接失败，`FAIL` 里点名是哪个键、要加到哪个文件。
 
-版式由 `editors/page/page.mjs` 与 `editors/lib/shell.mjs` 决定。你只管把记录或提案写对。
+版式由 `editors/page/page.mjs` 与 `editors/lib/shell.mjs` 决定。你只管把记录写对。
 
 ## 要对比几个方案
 
-页面只显示**一条**记录。要比方案，就各生成一个提案页，文件名区分开：
-
-```
---out .preview/card-2100001-a.html   # 数值保守
---out .preview/card-2100001-b.html   # 数值激进
-```
-
-然后把两条工作区相对路径都给玩家，让他自己看差别。
+页面只显示**一条**记录。要摆两个取值，先用两句话说清差别；一定要看页，就各写一条记录（不同 id），再分别生成。
 
 ## 记录页怎么改
 
@@ -164,7 +154,7 @@ agent 按 `.pi/prompts/record-edited.md` 执行：找到 `config/<kind>/<id>.jso
 
 ## 玩家回话之后
 
-1. 按玩家说的改**记录**（或 `--spec` 里的提案）。
+1. 按玩家说的改**记录**。
 2. 用同一个 `--out` 重新生成页面，页面就更新了。
 3. 把新页面的工作区相对路径再给玩家一次，说明这次改了哪几处。
 
