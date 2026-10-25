@@ -390,11 +390,16 @@ export default function (pi: ExtensionAPI) {
         const dumper = join(dir, "il2cppdumper");
 
         if (params.action === "search") {
+          const limit = 50;
           const scope = params.scope ?? "names";
           const sections: string[] = [];
           let total = 0;
+          let capped = false;
+          let files = 0;
           if (scope !== "bodies") {
-            const hits = searchDump(readFileSync(join(dumper, "dump.cs"), "utf8"), params.target, 50);
+            const raw = searchDump(readFileSync(join(dumper, "dump.cs"), "utf8"), params.target, limit + 1);
+            capped ||= raw.length > limit;
+            const hits = raw.slice(0, limit);
             total += hits.length;
             const body = hits.length
               ? hits.map((h) => `${String(h.line).padStart(7)}  ${h.kind.padEnd(6)}  ${h.kind === "member" ? `${h.owner}: ` : ""}${h.text}`).join("\n")
@@ -402,16 +407,28 @@ export default function (pi: ExtensionAPI) {
             sections.push(scope === "all" ? `# names\n${body}` : body);
           }
           if (scope !== "names") {
-            const hits = searchBodies(dir, params.target, params.path, 50);
+            const raw = searchBodies(dir, params.target, params.path, limit + 1);
+            capped ||= raw.length > limit;
+            const hits = raw.slice(0, limit);
             total += hits.length;
+            files = new Set(hits.map((h) => h.file)).size;
             const body = hits.length
               ? hits.map((h) => `${h.file}:${h.line}  ${h.text}`).join("\n")
               : "0 matches. Try a shorter substring.";
             sections.push(scope === "all" ? `# bodies\n${body}` : body);
           }
+          // A cap that is not stated reads as a complete list. Say it, and say what it hides.
+          const where = scope === "names" ? "" : ` in ${files} file(s)`;
+          const cut = capped
+            ? scope === "bodies"
+              ? ` - capped at ${limit} hits, so more files may match`
+              : scope === "all"
+                ? ` - capped at ${limit} hits per scope, so more may match`
+                : ` - capped at ${limit} hits, so more may match`
+            : "";
           return wrap(
-            `${note}# search "${params.target}" (${scope}): ${total} match(es) in ${dir}\n${truncate(sections.join("\n\n"))}`,
-            { matches: total, scope },
+            `${note}# search "${params.target}" (${scope}): ${total} match(es)${where}${cut}\n${truncate(sections.join("\n\n"))}`,
+            { matches: total, scope, files, capped },
           );
         }
 
@@ -423,11 +440,14 @@ export default function (pi: ExtensionAPI) {
               details: { ok: false, reason: "NO_STRINGS" },
             };
           }
-          const hits = searchStrings(file, params.target, 50);
+          const raw = searchStrings(file, params.target, 51);
+          const capped = raw.length > 50;
+          const hits = raw.slice(0, 50);
           const body = hits.map((h) => `${h.address}  ${JSON.stringify(h.value)}`).join("\n") || "0 matches.";
-          return wrap(`${note}# strings "${params.target}": ${hits.length} match(es)\n${truncate(body)}`, {
-            matches: hits.length,
-          });
+          return wrap(
+            `${note}# strings "${params.target}": ${hits.length} match(es)${capped ? " - capped at 50 hits, so more may match" : ""}\n${truncate(body)}`,
+            { matches: hits.length, capped },
+          );
         }
 
         const block = extractTypeBlock(readFileSync(join(dumper, "dump.cs"), "utf8"), params.target);
