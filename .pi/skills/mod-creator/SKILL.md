@@ -26,6 +26,24 @@ description: 写苏丹的游戏 mod、改苏丹的游戏 mod 的主参考。在�
 
 要改卡面图，或者改动需要图片时，读 `card-art`。需要玩家先就某个范围或某个值达成一致时，答案是页面：读 `mod-page`。写完之后，`mod-installer` 负责把它装进游戏并读回日志。
 
+## 要读游戏代码时
+
+原版数据回答「有哪些字段」，不回答「游戏怎么处理这个字段」：默认值、判断顺序、谁先结算，这些只在代码里。这时用 `inspect_game_code` 读本机的 dump，不要用 `rg` 或 `sed` 去翻 dump 目录。
+
+1. 先跑 `inspect_game_code action=status`。它给出五行：`dotnet`、`cpp2il`、`dumper`、`game`、`dump`。
+2. `status` 不是 `PASS` 时，照它给的 `NEXT:` 做。`cpp2il` 缺失就跑 `action=setup`：它下载 15MB 的工具，按 `tools/toolchain.json` 的摘要比对，本机只下一次。
+3. `action=search target=<名字片段>` 找类型与成员的名字。不知道类名时从这一步开始。
+4. `action=type target=<类型>` 看字段、属性与方法签名。字段后的十六进制是该字段的内存偏移。
+5. `action=body target=<类型> member=<方法名>` 看一个方法的方法体。
+6. `action=search target=<文本> scope=bodies` 搜方法体里的内容，例如某个字段偏移被谁读过。加 `path=Game/` 只搜一个目录或一个类型。`search` 不区分大小写。
+7. `action=strings target=<文本>` 找字符串字面量。
+
+方法体是 ISIL 伪代码，不是 C#：没有字段名，也没有局部变量名。字段偏移是十进制（`[r14+40]` 是 `0x28`），反汇编段的偏移是十六进制（`+58h` 是 `88`）。不要把 ISIL 当源码读。
+
+`rg` 只用于工具表达不了的三件事：带上下文行的正则、一次多模式、按行号读一段。其它都用上面这些动作：bash 不判断路径，猜错一次就白跑。
+
+dump 在 `~/.gamer-agent-pi/decompiled/`，不在仓库里，也不要手改。结论要标构建。`status` 报 `PASS` 才说明 dump 对应这台机器上装着的游戏。
+
 ## mod 布局
 
 ```
