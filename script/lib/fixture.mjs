@@ -172,21 +172,42 @@ export function fakeLibrary(root, { installdir = "Sultan's Game", install = true
   return lib;
 }
 
-/** The game's own files in a macOS-shaped install: the sentinel `tools/paths.mjs` judges by.
- *  `fakeVanilla` builds the config, not the game, so a test that wants a game directory the
- *  judge accepts says so with this; a test that wants the sentinel to fail leaves it out. */
-export function fakeGame(installDir, { dylib = true, il2cpp = true } = {}) {
-  const contents = path.join(installDir, "Sultan's Game.app", "Contents");
-  mkdirSync(path.join(contents, "Frameworks"), { recursive: true });
-  mkdirSync(path.join(contents, "Resources", "Data"), { recursive: true });
-  if (dylib) writeFileSync(path.join(contents, "Frameworks", "GameAssembly.dylib"), "\n");
-  if (il2cpp) mkdirSync(path.join(contents, "Resources", "Data", "il2cpp_data"), { recursive: true });
+/**
+ * Where the game's own files sit on this platform, so a fixture matches the sentinels
+ * `tools/paths.mjs` judges by instead of describing a macOS install on every machine.
+ *
+ * `dllLabel` is the shape the tool prints in its own words, with `/`.
+ */
+export function gameInstall(installDir, platform = process.platform) {
+  const win = platform === "win32";
+  const data = win
+    ? path.join(installDir, "Sultan's Game_Data")
+    : path.join(installDir, "Sultan's Game.app", "Contents", "Resources", "Data");
+  return {
+    win,
+    data,
+    dll: win
+      ? path.join(installDir, "GameAssembly.dll")
+      : path.join(installDir, "Sultan's Game.app", "Contents", "Frameworks", "GameAssembly.dylib"),
+    il2cpp: path.join(data, "il2cpp_data"),
+    config: path.join(data, "StreamingAssets", "config"),
+    dllLabel: win ? "GameAssembly.dll" : "Contents/Frameworks/GameAssembly.dylib",
+  };
+}
+
+/** The game's own files in an install shaped the way this platform ships it. */
+export function fakeGame(installDir, { dylib = true, il2cpp = true, platform = process.platform } = {}) {
+  const shape = gameInstall(installDir, platform);
+  mkdirSync(path.dirname(shape.dll), { recursive: true });
+  mkdirSync(path.dirname(shape.il2cpp), { recursive: true });
+  if (dylib) writeFileSync(shape.dll, "\n");
+  if (il2cpp) mkdirSync(shape.il2cpp, { recursive: true });
   return installDir;
 }
 
-/** The config directory of a macOS-shaped install, with its two sentinels. */
-export function fakeVanilla(installDir, { cards = true, rite = true } = {}) {
-  const cfg = path.join(installDir, "Sultan's Game.app", "Contents", "Resources", "Data", "StreamingAssets", "config");
+/** The config directory of an install shaped the way this platform ships it, with its sentinels. */
+export function fakeVanilla(installDir, { cards = true, rite = true, platform = process.platform } = {}) {
+  const cfg = gameInstall(installDir, platform).config;
   mkdirSync(cfg, { recursive: true });
   if (cards) writeFileSync(path.join(cfg, "cards.json"), "{}\n");
   if (rite) mkdirSync(path.join(cfg, "rite"), { recursive: true });
@@ -195,11 +216,14 @@ export function fakeVanilla(installDir, { cards = true, rite = true } = {}) {
 
 /** `<base>/DoubleCross/SultansGame/{Mod,ModLog}` — a mod root the game has written a log beside. */
 export function fakeModRoot(base, { log = true } = {}) {
-  const dir = path.join(base, "DoubleCross", "SultansGame", "Mod");
+  // The game computes MyDocuments with Environment.GetFolderPath: %USERPROFILE%\Documents on
+  // Windows, $HOME elsewhere. tools/paths.mjs derives the same base, so the fixture must too.
+  const docs = process.platform === "win32" ? path.join(base, "Documents") : base;
+  const dir = path.join(docs, "DoubleCross", "SultansGame", "Mod");
   mkdirSync(dir, { recursive: true });
   if (log) {
-    mkdirSync(path.join(base, "DoubleCross", "SultansGame", "ModLog"), { recursive: true });
-    writeFileSync(path.join(base, "DoubleCross", "SultansGame", "ModLog", "__mod.log"), "");
+    mkdirSync(path.join(docs, "DoubleCross", "SultansGame", "ModLog"), { recursive: true });
+    writeFileSync(path.join(docs, "DoubleCross", "SultansGame", "ModLog", "__mod.log"), "");
   }
   return dir;
 }

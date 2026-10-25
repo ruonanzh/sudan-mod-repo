@@ -37,6 +37,7 @@ import { buildGraph } from "../../tools/graph.mjs";
 import { esc, pageHtml } from "../lib/shell.mjs";
 import { DEFAULT_VANILLA } from "../../tools/model.mjs";
 import { vanillaRequirement } from "../../tools/paths.mjs";
+import { expandHome } from "../../tools/paths.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
@@ -1447,7 +1448,7 @@ function parseArgs(argv) {
  * the page alone still draws and still opens panels, and says which file is missing.
  */
 export function writePage(g, outPath, opts = {}) {
-  const file = path.resolve(String(outPath).replace(/^~/, os.homedir()));
+  const file = path.resolve(expandHome(outPath));
   const detail = path.join(path.dirname(file), detailName(file));
   mkdirSync(path.dirname(file), { recursive: true });
   const data = path.join(path.dirname(file), opts.dataUrl || dataName(file));

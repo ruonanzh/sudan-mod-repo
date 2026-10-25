@@ -14,7 +14,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
-import { REPO, cleanupAll, fakeGame, fakeLibrary, fakeModRoot, fakeVanilla, tmpDir } from "./lib/fixture.mjs";
+import { REPO, cleanupAll, fakeGame, fakeLibrary, fakeModRoot, fakeVanilla, gameInstall, tmpDir } from "./lib/fixture.mjs";
 import { GAME_MARKERS, REQUIRED, judge } from "../tools/paths.mjs";
 
 const PATHS = path.join(REPO, "tools/paths.mjs");
@@ -37,13 +37,21 @@ const run = (args, home) =>
 /** The printed line for one location, whatever the alignment. */
 const lineOf = (out, name) => out.split("\n").find((l) => new RegExp(`^${name}\\s`).test(l)) ?? "";
 
-/** A path the way the report prints it: under the fake home it is shortened to `~/...`. */
-const shown = (p, home) => String(p).replace(home, "~");
+/** A path the way the report prints it: under the fake home it is shortened to `~/...`, and the
+ *  report prints `/` on every platform because the agent copies these lines into chat. */
+const shown = (p, home) => String(p).replace(home, "~").split(path.sep).join("/");
 
-/** The inverse, for a value read back from the state file. */
-const expandHome = (p, home) => String(p).replace(/^~/, home);
+/** The inverse, for a value read back from the state file: the file holds native paths. */
+const expandHome = (p, home) => String(p).replace(/^~/, home).split("/").join(path.sep);
 
 const MODULE = pathToFileURL(PATHS).href;
+
+/** The fixture is a macOS install and the CLI judges the host, so this belongs to macOS. */
+const MAC_ONLY =
+  process.platform === "win32" ? "the fixture is a macOS install, and the CLI judges the host" : false;
+/** Windows discovery walks real drive letters, so a fake home cannot isolate a fallback to it. */
+const HOST_DISCOVERY =
+  process.platform === "win32" ? "Windows discovery walks the real drives, so a fake home cannot isolate it" : false;
 
 /**
  * A child process is the only honest place to put a fake home: `os.homedir()` is read inside
@@ -83,12 +91,15 @@ process.stdout.write(
  * library, the install it names, the game's own files, the vanilla config and the mod
  * install directory beside the game's log.
  */
-function homeWorld({ manifest = true, game = true, config = true } = {}) {
+function homeWorld({ manifest = true, game = true, config = true, platform = process.platform } = {}) {
   const home = tmpDir("sudan-home-");
-  const lib = fakeLibrary(path.join(home, "Library", "Application Support"), { manifest });
+  // The CLI judges the host platform, so the discovery root and the install shape follow it.
+  // fakeLibrary appends "Steam" itself; Windows discovery looks for <home>/Steam on its drive walk.
+  const steamRoot = platform === "win32" ? home : path.join(home, "Library", "Application Support");
+  const lib = fakeLibrary(steamRoot, { manifest });
   const install = path.join(lib, "steamapps", "common", "Sultan's Game");
-  if (game) fakeGame(install);
-  const vanilla = config ? fakeVanilla(install) : null;
+  if (game) fakeGame(install, { platform });
+  const vanilla = config ? fakeVanilla(install, { platform }) : null;
   const mods = fakeModRoot(home);
   return { home, lib, install, vanilla, mods };
 }
@@ -106,7 +117,7 @@ test("a folder holding the game's own files is OK, and the vanilla config is der
   assert.equal(r.status, 0, r.stdout + r.stderr);
   const game = lineOf(r.stdout, "gameDir");
   assert.match(game, /^gameDir\s+OK\b/, r.stdout);
-  assert.ok(game.includes("GameAssembly.dylib"), `the sentinel that decided it must be named: ${game}`);
+  assert.ok(game.includes(gameInstall(install).dllLabel), `the sentinel that decided it must be named: ${game}`);
   assert.match(lineOf(r.stdout, "vanilla"), /^vanilla\s+OK\b/);
   assert.ok(lineOf(r.stdout, "vanilla").includes(shown(config, root)), r.stdout);
   assert.match(lineOf(r.stdout, "modInstallDir"), /^modInstallDir\s+OK\b/);
@@ -122,11 +133,11 @@ test("an app manifest alone is not the game: the install and the library both FA
     assert.equal(r.status, 1, r.stdout + r.stderr);
     const game = lineOf(r.stdout, "gameDir");
     assert.match(game, /^gameDir\s+FAIL\b/, r.stdout);
-    assert.ok(game.includes("Contents/Frameworks/GameAssembly.dylib"), `the sentinel must be named: ${game}`);
+    assert.ok(game.includes(gameInstall(install).dllLabel), `the sentinel must be named: ${game}`);
   }
 });
 
-test("either macOS marker passes, and the one that exists is the reason reported", () => {
+test("either macOS marker passes, and the one that exists is the reason reported", { skip: MAC_ONLY }, () => {
   const root = tmpDir();
   const lib = fakeLibrary(root);
   const install = path.join(lib, "steamapps", "common", "Sultan's Game");
@@ -144,7 +155,7 @@ test("either macOS marker passes, and the one that exists is the reason reported
   assert.match(lineOf(failed.stdout, "gameDir"), /^gameDir\s+FAIL\b/);
 });
 
-test("the install is accepted through the app bundle or a folder inside it", () => {
+test("the install is accepted through the app bundle or a folder inside it", { skip: MAC_ONLY }, () => {
   const root = tmpDir();
   const lib = fakeLibrary(root);
   const install = path.join(lib, "steamapps", "common", "Sultan's Game");
@@ -260,7 +271,7 @@ test("set drops a retired vanillaDir the file still carries", () => {
   assert.equal("vanillaDir" in JSON.parse(readFileSync(file, "utf8")), false);
 });
 
-test("set refuses a location that is not the game and writes nothing", () => {
+test("set refuses a location that is not the game and writes nothing", { skip: HOST_DISCOVERY }, () => {
   const root = tmpDir();
   const file = stateFile();
   const r = run(["set", "--game-dir", path.join(tmpDir("sudan-stray-"), "not-the-game"), "--paths", file], root);
@@ -270,7 +281,7 @@ test("set refuses a location that is not the game and writes nothing", () => {
   assert.match(r.stdout, /^NEXT:?\s/m);
 });
 
-test("set finds the game when the given path does not validate, and says so", () => {
+test("set finds the game when the given path does not validate, and says so", { skip: HOST_DISCOVERY }, () => {
   const world = homeWorld();
   const file = stateFile();
   const stray = tmpDir("sudan-stray-");
@@ -304,7 +315,7 @@ test("a mod install directory nothing confirms is FAIL, not a guess", () => {
 
 // ----------------------------------------------------------------------------- discovery
 
-test("a library without the app manifest is still walked, because the manifest is only a hint", () => {
+test("a library without the app manifest is still walked, because the manifest is only a hint", { skip: HOST_DISCOVERY }, () => {
   const world = homeWorld({ manifest: false });
   const r = spawnSync(process.execPath, ["-e", SCRIPT_JUDGE], {
     cwd: REPO,
@@ -327,7 +338,7 @@ test("a library on a second volume is found through libraryfolders.vdf", () => {
   // client. Before this file was parsed, the macOS branch could not see it at all.
   const second = fakeLibrary(tmpDir("sudan-volume-"));
   const install = path.join(second, "steamapps", "common", "Sultan's Game");
-  fakeGame(install);
+  fakeGame(install, { platform: "darwin" });
   writeFileSync(
     path.join(steam, "config", "libraryfolders.vdf"),
     `"libraryfolders"\n{\n\t"0"\n\t{\n\t\t"path"\t\t"${steam}"\n\t}\n\t"1"\n\t{\n\t\t"path"\t\t"${second}"\n\t}\n}\n`,
@@ -350,7 +361,7 @@ test("the legacy steamapps/libraryfolders.vdf is read as well as config/", () =>
   mkdirSync(path.join(steam, "steamapps"), { recursive: true });
   const second = fakeLibrary(tmpDir("sudan-volume-"));
   const install = path.join(second, "steamapps", "common", "Sultan's Game");
-  fakeGame(install);
+  fakeGame(install, { platform: "darwin" });
   // Pre-2021 Steam kept the list here; both copies must be read, not just the new one.
   writeFileSync(
     path.join(steam, "steamapps", "libraryfolders.vdf"),
@@ -363,13 +374,13 @@ test("the legacy steamapps/libraryfolders.vdf is read as well as config/", () =>
 });
 
 test("the state file beats discovery, and an explicit argument beats the state file", () => {
-  const world = homeWorld();
+  const world = homeWorld({ platform: "darwin" });
   const recorded = fakeLibrary(tmpDir("sudan-recorded-"));
   const recordedInstall = path.join(recorded, "steamapps", "common", "Sultan's Game");
-  fakeGame(recordedInstall);
+  fakeGame(recordedInstall, { platform: "darwin" });
   const pinned = fakeLibrary(tmpDir("sudan-pinned-"));
   const pinnedInstall = path.join(pinned, "steamapps", "common", "Sultan's Game");
-  fakeGame(pinnedInstall);
+  fakeGame(pinnedInstall, { platform: "darwin" });
   const file = stateFile();
   writeFileSync(file, `${JSON.stringify({ gameDir: recordedInstall }, null, 2)}\n`);
 
@@ -380,7 +391,7 @@ test("the state file beats discovery, and an explicit argument beats the state f
   assert.equal(gameOf({ gameDir: pinnedInstall }).path, pinnedInstall, "an explicit game directory wins over the record");
 });
 
-test("a stale recorded game directory is reported, not skipped for discovery", () => {
+test("a stale recorded game directory is reported, not skipped for discovery", { skip: HOST_DISCOVERY }, () => {
   const world = homeWorld();
   const stale = path.join(world.home, "gone", "Sultan's Game");
   const file = stateFile();

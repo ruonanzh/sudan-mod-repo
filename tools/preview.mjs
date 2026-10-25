@@ -44,6 +44,7 @@ import { writePage as writeGraphPage } from "../editors/graph/graphpage.mjs";
 import { applyCardValues, cardPageHtml, missingValues, pendingValues, readPageValues } from "../editors/card/page.mjs";
 import { recordPageHtml } from "../editors/page/page.mjs";
 import { formPageHtml, FORM_FIELDS } from "../editors/page/formpage.mjs";
+import { expandHome } from "./paths.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const LAYOUT = JSON.parse(readFileSync(new URL("../schema/layout.json", import.meta.url), "utf8"));
@@ -108,7 +109,9 @@ export function modRecords(modDir) {
  * that already exists there, and 新增 when it does not.
  */
 function vanillaIds(dir) {
-  const root = String(dir).replace(/^~/, os.homedir());
+  // A mod of cards needs no game config: no config means nothing it carries is a vanilla id.
+  if (!dir) return new Map();
+  const root = expandHome(dir);
   const out = new Map();
   const add = (kind, id) => {
     if (!out.has(kind)) out.set(kind, new Set());
@@ -176,7 +179,8 @@ function cardTable(modDir) {
  */
 function displayPath(target) {
   const relative = path.relative(process.cwd(), target);
-  if (relative && !relative.startsWith("..") && !path.isAbsolute(relative)) return relative;
+  // `/` on every platform: the agent copies this line into chat, where a backslash is an escape.
+  if (relative && !relative.startsWith("..") && !path.isAbsolute(relative)) return relative.split(path.sep).join("/");
   return shorten(target);
 }
 
@@ -354,7 +358,7 @@ function runSpec({ modDir, args }) {
     text =
       args.spec === "-"
         ? readFileSync(0, "utf8")
-        : readFileSync(path.resolve(String(args.spec).replace(/^~/, os.homedir())), "utf8");
+        : readFileSync(path.resolve(expandHome(args.spec)), "utf8");
   } catch (e) {
     process.stdout.write(`FAIL  cannot read --spec ${args.spec}: ${e.message || e}\n`);
     process.stdout.write("NEXT: pass a JSON file, or - to read it from stdin\n");
@@ -371,7 +375,7 @@ function runSpec({ modDir, args }) {
 
   // `--out` is a directory everywhere else in this tool; a path ending in .html names this one
   // page instead, so two variants can sit side by side without inventing a second flag.
-  const outArg = args.out ? path.resolve(String(args.out).replace(/^~/, os.homedir())) : null;
+  const outArg = args.out ? path.resolve(expandHome(args.out)) : null;
   const outDir = outArg && outArg.endsWith(".html") ? path.dirname(outArg) : outArg || path.join(modDir, ".preview");
   const pageFile = (name) => (outArg && outArg.endsWith(".html") ? outArg : path.join(outDir, name));
   let file;
@@ -412,7 +416,7 @@ function main() {
     );
     return 2;
   }
-  const modDir = path.resolve(String(args.modDir).replace(/^~/, os.homedir()));
+  const modDir = path.resolve(expandHome(args.modDir));
   if (!existsSync(modDir)) {
     process.stdout.write(`FAIL  no such directory: ${displayPath(modDir)}\n`);
     process.stdout.write("NEXT: pass --mod your_mods/<ModName>\n");
@@ -435,7 +439,7 @@ function main() {
   // A proposal is a page about a record the mod does not carry yet, so it comes before any scan:
   // a mod with an empty config still has a proposal to show.
   if (args.spec !== null) return runSpec({ modDir, args });
-  const outDir = path.resolve(String(args.out || path.join(modDir, ".preview")).replace(/^~/, os.homedir()));
+  const outDir = path.resolve(expandHome(args.out || path.join(modDir, ".preview")));
   // Collect and apply read the pages and the card table only. They run before the record scan,
   // because a proposal page is the one page a mod with no records at all can still carry.
   if (args.collect || args.apply) return runCardValues({ modDir, outDir, apply: args.apply, id: args.id });

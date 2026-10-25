@@ -70,20 +70,31 @@ export const REQUIRED = ["gameDir", "vanilla", "modInstallDir"];
 const expandAt = (p, home) => {
   if (p === null || p === undefined) return null;
   const t = String(p).trim();
-  if (t !== "~" && !t.startsWith("~/")) return t;
-  return path.join(home, t.slice(2));
+  if (t !== "~" && !t.startsWith("~/") && !t.startsWith("~\\")) return t;
+  return t === "~" ? home : path.join(home, t.slice(2));
 };
+
+/**
+ * `~` expands to the account's home directory. Never process.env.HOME: Windows has no such variable.
+ * Shared with every tool that takes a path from the agent, because string-replacing `~` with the
+ * home directory yields `C:\Users\x/y.json` on Windows when the argument was written `~/y.json`.
+ */
+export const expandHome = (p) => expandAt(p, os.homedir());
 
 /** `~` expands to the account's home directory. Never process.env.HOME: Windows has no such variable. */
 const expand = (p) => expandAt(p, os.homedir());
 
-/** The inverse, for printing: a path under the home directory shows as `~/...`. */
+/**
+ * The inverse, for printing: a path under the home directory shows as `~/...`.
+ * Print paths with `/` on every platform: they are copied into chat, into a command and into a
+ * SKILL, and a backslash there reads as an escape or disappears.
+ */
 export function shorten(p) {
   if (!p) return String(p);
   const home = os.homedir();
   const s = String(p);
-  if (s === home) return "~";
-  return s.startsWith(home + path.sep) ? `~${s.slice(home.length)}` : s;
+  const out = s === home ? "~" : s.startsWith(home + path.sep) ? `~${s.slice(home.length)}` : s;
+  return out.split(path.sep).join("/");
 }
 
 /** path.join per platform, so a Windows shape can be built on a Mac and asserted on. */

@@ -29,6 +29,7 @@ import { parseDoc, findEntries, sourceOf } from "../../tools/jsonc.mjs";
 import { buildGraph } from "../../tools/graph.mjs";
 import { renderPage, payload, detailScript, writePage } from "../graph/graphpage.mjs";
 import { DEFAULT_VANILLA } from "../../tools/model.mjs";
+import { expandHome } from "../../tools/paths.mjs";
 
 const KIND_OF = { event: "event", rite: "rite", card: "card", loot: "loot", quest: "quest", afterStory: "afterStory", riteTemplate: "riteTemplate", over: "over" };
 
@@ -45,7 +46,7 @@ function parseArgs(argv) {
   return out;
 }
 
-const expand = (p) => String(p || "").replace(/^~/, os.homedir());
+const expand = (p) => expandHome(p || "");
 
 /**
  * Where this node's JSON lives: the mod's copy first, then the game's.

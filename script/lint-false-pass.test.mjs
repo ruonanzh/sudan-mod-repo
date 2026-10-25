@@ -79,7 +79,7 @@ test("a rite id defined by two mods in one root is a cross-mod collision", { ski
 test("a missing vanilla config is a FAIL with a non-zero exit, not a warning", () => {
   const home = mkdtempSync(path.join(tmpdir(), "novanilla-"));
   const mod = makeMod({ "config/cards.json": "{}\n" });
-  const r = spawnSync(process.execPath, [path.join(REPO, "tools/lint.mjs"), mod], {
+  const r = spawnSync(process.execPath, [path.join(REPO, "tools/lint.mjs"), mod, "--vanilla", path.join(home, "no-such-vanilla")], {
     encoding: "utf8",
     env: { ...process.env, HOME: home, USERPROFILE: home, GAMER_AGENT_NO_DISCOVERY: "1" },
   });

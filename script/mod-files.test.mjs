@@ -8,6 +8,10 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import "./lib/load-extension.mjs";
 
+/** POSIX permissions: chmod 000 does not make a file unreadable on Windows. */
+const POSIX_ONLY =
+  process.platform === "win32" ? "chmod 000 does not make a file unreadable on Windows" : false;
+
 const { installFolder, restoreBackup, InstallError } = await import("../.pi/lib/mod-files.ts");
 
 test("a missing backup is reported, not assumed restored", () => {
@@ -17,7 +21,7 @@ test("a missing backup is reported, not assumed restored", () => {
   assert.equal(restoreBackup(target, path.join(home, "nope")), false, "no backup means the restore failed");
 });
 
-test("installFolder keeps the old copy when the copy itself fails", () => {
+test("installFolder keeps the old copy when the copy itself fails", { skip: POSIX_ONLY }, () => {
   const home = mkdtempSync(path.join(tmpdir(), "modfiles-"));
   const source = path.join(home, "source");
   const target = path.join(home, "target");
@@ -41,7 +45,7 @@ test("installFolder keeps the old copy when the copy itself fails", () => {
   assert.equal(threw, true, "an unreadable source must fail the install");
 });
 
-test("a first install that fails says there was no previous copy", () => {
+test("a first install that fails says there was no previous copy", { skip: POSIX_ONLY }, () => {
   const home = mkdtempSync(path.join(tmpdir(), "modfiles-"));
   const source = path.join(home, "source");
   mkdirSync(source, { recursive: true });

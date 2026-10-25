@@ -19,6 +19,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { vanillaRequirement } from "./paths.mjs";
+import { expandHome } from "./paths.mjs";
 
 // ---------------------------------------------------------------------------
 // Domain constants. Every list here was verified against the game, not guessed.
@@ -603,7 +604,7 @@ function vanillaPath(configDir, relPath) {
 
 function loadVanilla(configDir) {
   if (!configDir) return { dir: null, ids: new Map(), tags: new Set(), sprites: null };
-  const dir = configDir.replace(/^~/, os.homedir());
+  const dir = expandHome(configDir);
   if (!existsSync(dir)) return { dir: null, ids: new Map(), tags: new Set(), sprites: null };
   const ids = new Map();
   const tags = new Set();
@@ -1165,7 +1166,7 @@ function saveShapeFor(file) {
  */
 function lintSave(args) {
   const shapes = JSON.parse(readFileSync(new URL("../schema/save-fields.json", import.meta.url), "utf8"));
-  const target = String(args.save).replace(/^~/, os.homedir());
+  const target = expandHome(args.save);
   if (!existsSync(target)) {
     process.stderr.write(`no such save path: ${target}\n`);
     process.exit(2);
@@ -1322,7 +1323,7 @@ function main() {
 
   const mods = [];
   if (args.modRoot) {
-    const root = args.modRoot.replace(/^~/, os.homedir());
+    const root = expandHome(args.modRoot);
     if (!existsSync(root)) {
       process.stderr.write(`no such mod root: ${root}\n`);
       process.exit(2);
@@ -1335,7 +1336,7 @@ function main() {
     }
     if (!mods.length) info("NO_MODS", null, `no mod with info.json under ${root}`);
   } else {
-    mods.push(args.modDir.replace(/^~/, os.homedir()));
+    mods.push(expandHome(args.modDir));
   }
 
   for (const m of mods) lintMod(m, vanilla, args);

@@ -17,6 +17,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { DEFAULT_VANILLA } from "./model.mjs";
 import { parseJsonc } from "./lint.mjs";
+import { expandHome } from "./paths.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(HERE, "..");
@@ -61,11 +62,17 @@ export function vanillaNodes(configDir) {
   const c = (p) => path.join(configDir, p);
   const nodes = { event: [], rite: [], card: [], loot: [], over: [], quest: [], afterStory: [], riteTemplate: [] };
 
-  for (const f of listJson(c("event"))) nodes.event.push(f.replace(/\.json$/, ""));
-  for (const f of listJson(c("rite"))) nodes.rite.push(f.replace(/\.json$/, ""));
-  for (const f of listJson(c("loot"))) nodes.loot.push(f.replace(/\.json$/, ""));
-  for (const f of listJson(c("after_story"))) nodes.afterStory.push(f.replace(/\.json$/, ""));
-  for (const f of listJson(c("rite_template"))) nodes.riteTemplate.push(f.replace(/\.json$/, ""));
+  // A file that does not parse is named by readJsonc and left out: a node with no record would
+  // draw an empty dot and make the counts disagree with the nodes on the same page.
+  const readable = (dir, f) => {
+    const id = f.replace(/\.json$/, "");
+    return readJsonc(path.join(dir, f)) ? id : null;
+  };
+  for (const f of listJson(c("event"))) { const id = readable(c("event"), f); if (id) nodes.event.push(id); }
+  for (const f of listJson(c("rite"))) { const id = readable(c("rite"), f); if (id) nodes.rite.push(id); }
+  for (const f of listJson(c("loot"))) { const id = readable(c("loot"), f); if (id) nodes.loot.push(id); }
+  for (const f of listJson(c("after_story"))) { const id = readable(c("after_story"), f); if (id) nodes.afterStory.push(id); }
+  for (const f of listJson(c("rite_template"))) { const id = readable(c("rite_template"), f); if (id) nodes.riteTemplate.push(id); }
 
   if (existsSync(c("cards.json"))) nodes.card = Object.keys(readJsonc(c("cards.json"))).filter((k) => !k.startsWith("_"));
   if (existsSync(c("quest.json"))) nodes.quest = Object.keys(readJsonc(c("quest.json"))).filter((k) => !k.startsWith("_"));
@@ -288,8 +295,8 @@ function flagsOf(kind, rec) {
 // ---------------------------------------------------------------- build
 
 export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = "zh", edgeMode = "nested" } = {}) {
-  configDir = String(configDir).replace(/^~/, os.homedir());
-  if (modDir) modDir = String(modDir).replace(/^~/, os.homedir());
+  configDir = expandHome(configDir);
+  if (modDir) modDir = expandHome(modDir);
   const assets = path.dirname(configDir);
   const vanilla = loadRecords(configDir);
   const i18n = loadI18n(assets);
@@ -934,7 +941,7 @@ export function summarize(g) {
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
-  args.configDir = String(args.configDir).replace(/^~/, os.homedir());
+  args.configDir = expandHome(args.configDir);
   if (!args.check && !args.out) {
     process.stderr.write("usage: node tools/graph.mjs --check | --out <file> [--mod <dir>] [--vanilla <config>]\n");
     return 2;

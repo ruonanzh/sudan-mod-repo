@@ -99,7 +99,7 @@ test("reading a node prefers the mod copy", () => {
   saveNode(mod, "event", 9000004, RECORD({ id: 9000004, text: "只在 mod 里" }));
   const got = readNodeSource(mod, "event", "9000004");
   assert.match(got.text, /只在 mod 里/);
-  assert.match(got.file, /config\/event\/9000004\.json$/);
+  assert.match(got.file, /config[\\/]event[\\/]9000004\.json$/);
 });
 
 test("a table save keeps comments, trailing commas and other records' text", { skip }, () => {

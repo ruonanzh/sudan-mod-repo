@@ -13,7 +13,7 @@ import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { REPO, cleanupAll, fakeGame, fakeLibrary, fakeModRoot, fakeVanilla, makeMod, tmpDir } from "./lib/fixture.mjs";
+import { REPO, cleanupAll, fakeGame, fakeLibrary, fakeModRoot, fakeVanilla, gameInstall, makeMod, tmpDir } from "./lib/fixture.mjs";
 import { loadExtension } from "./lib/load-extension.mjs";
 
 after(cleanupAll);
@@ -86,7 +86,7 @@ test("a missing mod root tells the agent to launch the game once, not to search"
 // ---------------------------------------------- validate_mod: PASS, PARTIAL, and the vanilla flag
 
 const vanillaOf = (install) =>
-  path.join(install, "Sultan's Game.app/Contents/Resources/Data/StreamingAssets/config");
+  gameInstall(install).config;
 
 test("validate_mod reports PASS on a clean mod when the vanilla config is given", async () => {
   const { install } = world();

@@ -16,6 +16,7 @@ import os from "node:os";
 import path from "node:path";
 import { parseDoc, findEntry, valueOf, literal } from "./jsonc.mjs";
 import { vanillaRequirement } from "./paths.mjs";
+import { expandHome } from "./paths.mjs";
 
 function parseArgs(argv) {
   const out = { _: [], write: false };
@@ -47,7 +48,7 @@ function resolve(root, dotted) {
 }
 
 function open(file) {
-  const p = String(file).replace(/^~/, os.homedir());
+  const p = expandHome(file);
   if (!existsSync(p)) throw new Error(`no such save file: ${p}`);
   return { p, doc: parseDoc(readFileSync(p, "utf8")) };
 }

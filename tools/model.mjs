@@ -15,6 +15,7 @@ import path from "node:path";
 import os from "node:os";
 import { parseDoc, getDoc, findEntry, findEntries, valueOf, literal } from "./jsonc.mjs";
 import { resolveVanilla } from "./paths.mjs";
+import { expandHome } from "./paths.mjs";
 
 const here = (p) => new URL(p, import.meta.url);
 const LAYOUT = JSON.parse(readFileSync(here("../schema/layout.json"), "utf8"));
@@ -28,7 +29,7 @@ const FIELDS = JSON.parse(readFileSync(here("../schema/fields.json"), "utf8"));
  */
 export const DEFAULT_VANILLA = resolveVanilla();
 
-const expand = (p) => (p === null || p === undefined ? null : String(p).replace(/^~/, os.homedir()));
+const expand = (p) => expandHome(p);
 
 /** Thrown for a caller mistake. The CLI turns this into a FAIL line plus a NEXT line. */
 export class ModelError extends Error {}

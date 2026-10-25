@@ -14,8 +14,12 @@ import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { mkdirSync, existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { REPO, cleanupAll, fakeGame, fakeLibrary, fakeModRoot, fakeVanilla, makeMod, tmpDir } from "./lib/fixture.mjs";
+import { REPO, cleanupAll, fakeGame, fakeLibrary, fakeModRoot, fakeVanilla, gameInstall, makeMod, tmpDir } from "./lib/fixture.mjs";
 import { loadExtension } from "./lib/load-extension.mjs";
+
+/** Windows discovery walks the real drive letters, so a fake home cannot isolate a fallback to it. */
+const HOST_DISCOVERY =
+  process.platform === "win32" ? "Windows discovery walks the real drives, so a fake home cannot isolate it" : false;
 
 after(cleanupAll);
 
@@ -83,7 +87,7 @@ test("check_game_paths: a fake install passes and derives the vanilla config", a
   assert.match(text, /^gameDir\s+OK/m, text);
   assert.match(text, /^vanilla\s+OK/m, text);
   assert.match(text, /^modInstallDir\s+OK/m, text);
-  assert.match(text, /Contents\/Frameworks\/GameAssembly\.dylib/, text);
+  assert.ok(text.includes(gameInstall(world.install).dllLabel), text);
   assert.match(text, /^PASS: every required location is OK$/m, text);
   assert.equal(result.details.wroteState, false);
   assert.equal(existsSync(stateOf(cwd)), false);
@@ -99,7 +103,7 @@ test("check_game_paths: neither the app manifest nor the library makes a game di
     const text = result.content[0].text;
     assert.equal(result.details.ok, false, text);
     assert.match(text, /^gameDir\s+FAIL/m, text);
-    assert.match(text, /Contents\/Frameworks\/GameAssembly\.dylib/, text);
+  assert.ok(text.includes(gameInstall(install).dllLabel), text);
     assert.ok(result.details.failed.includes("gameDir"), text);
   }
   assert.equal(existsSync(stateOf(cwd)), false);
@@ -134,10 +138,7 @@ test("set_game_dir resolves a relative path against the workspace, not the host 
   const cwd = tmpDir("ws-rel-cwd-");
   // A game folder inside the workspace, shaped like the real install so the sentinel passes.
   const game = path.join(cwd, "The Game");
-  mkdirSync(path.join(game, "Sultan's Game.app/Contents/Frameworks"), { recursive: true });
-  mkdirSync(path.join(game, "Sultan's Game.app/Contents/Resources/Data"), { recursive: true });
-  writeFileSync(path.join(game, "Sultan's Game.app/Contents/Frameworks/GameAssembly.dylib"), "x");
-  mkdirSync(path.join(game, "Sultan's Game.app/Contents/Resources/Data/il2cpp_data"), { recursive: true });
+  fakeGame(game);
   const result = await withHome(world.home, async () => run(await tool("set-game-dir.ts"), { path: "The Game" }, cwd));
   const recorded = JSON.parse(readFileSync(path.join(cwd, ".gamer-agent.local.json"), "utf8"));
   assert.equal(recorded.gameDir, game, `the workspace-relative path is the one recorded: ${result.content[0].text}`);
@@ -160,7 +161,7 @@ test("set_game_dir: a game directory is recorded with what it derives, and vanil
   assert.deepEqual(readdirSync(cwd), [".gamer-agent.local.json"], "one state file, and no hidden folder left behind");
 });
 
-test("set_game_dir: a path that is not the game falls back to discovery and says so", async () => {
+test("set_game_dir: a path that is not the game falls back to discovery and says so", { skip: HOST_DISCOVERY }, async () => {
   const world = discoverableWorld();
   const cwd = tmpDir("sudan-ext-ws-");
   const stray = tmpDir("sudan-ext-stray-");
@@ -175,7 +176,7 @@ test("set_game_dir: a path that is not the game falls back to discovery and says
   assert.equal(expandHome(record.gameDir, world.home), world.install, "the discovered path is the one in use");
 });
 
-test("set_game_dir: nothing validates and nothing is discovered writes nothing", async () => {
+test("set_game_dir: nothing validates and nothing is discovered writes nothing", { skip: HOST_DISCOVERY }, async () => {
   const home = tmpDir("sudan-ext-empty-home-");
   const cwd = tmpDir("sudan-ext-ws-");
   const stray = tmpDir("sudan-ext-stray-");
@@ -189,7 +190,7 @@ test("set_game_dir: nothing validates and nothing is discovered writes nothing",
   assert.equal(existsSync(stateOf(cwd)), false);
 });
 
-test("try_set_game_dir: a failed discovery writes nothing", async () => {
+test("try_set_game_dir: a failed discovery writes nothing", { skip: HOST_DISCOVERY }, async () => {
   const home = tmpDir("sudan-ext-empty-home-");
   const cwd = tmpDir("sudan-ext-ws-");
   const before = readdirSync(cwd).sort();
@@ -204,7 +205,7 @@ test("try_set_game_dir: a failed discovery writes nothing", async () => {
   assert.deepEqual(readdirSync(cwd).sort(), before);
 });
 
-test("try_set_game_dir: discovery records the derived keys once, and a second call writes nothing", async () => {
+test("try_set_game_dir: discovery records the derived keys once, and a second call writes nothing", { skip: HOST_DISCOVERY }, async () => {
   const world = discoverableWorld();
   const cwd = tmpDir("sudan-ext-ws-");
   const first = await withHome(world.home, async () => run(await tool("try-set-game-dir.ts"), {}, cwd));
@@ -226,7 +227,7 @@ test("try_set_game_dir: discovery records the derived keys once, and a second ca
   assert.equal(readFileSync(stateOf(cwd), "utf8"), before, "a second call must not rewrite the file");
 });
 
-test("try_set_game_dir: a stale record is replaced by the discovered game", async () => {
+test("try_set_game_dir: a stale record is replaced by the discovered game", { skip: HOST_DISCOVERY }, async () => {
   const world = discoverableWorld();
   const cwd = tmpDir("sudan-ext-ws-");
   writeFileSync(stateOf(cwd), `${JSON.stringify({ gameDir: path.join(world.home, "gone", "Sultan's Game") })}\n`);
@@ -237,7 +238,7 @@ test("try_set_game_dir: a stale record is replaced by the discovered game", asyn
   assert.equal(expandHome(record.gameDir, world.home), world.install);
 });
 
-test("try_set_game_dir: a rewrite keeps runtime and any key it does not own", async () => {
+test("try_set_game_dir: a rewrite keeps runtime and any key it does not own", { skip: HOST_DISCOVERY }, async () => {
   const world = discoverableWorld();
   const cwd = tmpDir("sudan-ext-ws-");
   const file = stateOf(cwd);

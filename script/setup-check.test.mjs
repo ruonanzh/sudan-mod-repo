@@ -15,6 +15,10 @@ import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { REPO, cleanupAll, fakeGame, fakeLibrary, fakeModRoot, fakeVanilla, tmpDir } from "./lib/fixture.mjs";
+import { shorten } from "../tools/paths.mjs";
+
+/** A path as the report prints it: `/` on every platform, and `~` under the home directory. */
+const shown = (p) => shorten(p);
 
 const SETUP = path.join(REPO, "tools/setup.mjs");
 after(cleanupAll);
@@ -43,9 +47,9 @@ test("--check reports the locations paths.mjs verified, in the existing OK/MISS 
   const r = run(["--check", "--paths", w.file]);
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(lineOf(r.stdout, "gameDir"), /^OK\s+gameDir\s/);
-  assert.ok(lineOf(r.stdout, "gameDir").includes(w.install), lineOf(r.stdout, "gameDir"));
+  assert.ok(lineOf(r.stdout, "gameDir").includes(shown(w.install)), lineOf(r.stdout, "gameDir"));
   assert.match(lineOf(r.stdout, "vanilla"), /^OK\s+vanilla\s/);
-  assert.ok(lineOf(r.stdout, "vanilla").includes(w.cfg), lineOf(r.stdout, "vanilla"));
+  assert.ok(lineOf(r.stdout, "vanilla").includes(shown(w.cfg)), lineOf(r.stdout, "vanilla"));
   assert.match(r.stdout, /All required files present\./);
 });
 
@@ -75,6 +79,6 @@ test("the check names the same vanilla directory as tools/paths.mjs", () => {
   });
   const fromSetup = run(["--check", "--paths", w.file]);
   const vanillaRow = fromPaths.stdout.split("\n").find((l) => l.startsWith("vanilla")) ?? "";
-  assert.ok(vanillaRow.includes(w.cfg), fromPaths.stdout);
-  assert.ok(lineOf(fromSetup.stdout, "vanilla").includes(w.cfg), fromSetup.stdout);
+  assert.ok(vanillaRow.includes(shown(w.cfg)), fromPaths.stdout);
+  assert.ok(lineOf(fromSetup.stdout, "vanilla").includes(shown(w.cfg)), fromSetup.stdout);
 });

@@ -218,7 +218,8 @@ test("a warning that fires twice is named once", () => {
 });
 
 test("every kind gets its own group, and the pills count what they show", { skip }, async () => {
-  const p = payload(graph());
+  const g = graph();
+  const p = payload(g);
   const at = (k) => p.nodes.find((n) => n.k === k);
   assert.equal(at("event:5300090").c, "daily", "an event keeps its category");
   assert.equal(at("rite:5008014").c, "reputation", "a rite inherits the category of the events that open it");
@@ -229,10 +230,10 @@ test("every kind gets its own group, and the pills count what they show", { skip
   // 其他 must mean the residual events only, or its badge lies about what clicking it shows.
   assert.equal(p.nodes.filter((n) => n.c === "other").length, p.nodes.filter((n) => n.c === "other" && n.t === "event").length + p.nodes.filter((n) => n.c === "other" && n.t === "rite").length);
 
-  const { els } = mount(graph());
+  const { els } = mount(g);
   const pills = els.get("cats").innerHTML;
-  assert.match(pills, /仪式 <b>1498<\/b>/, "all rites, whatever category they landed in");
-  assert.match(pills, /事件 <b>1867<\/b>/);
+  assert.match(pills, new RegExp(`仪式 <b>${g.counts.rite}</b>`), "all rites, whatever category they landed in");
+  assert.match(pills, new RegExp(`事件 <b>${g.counts.event}</b>`));
   const other = p.nodes.filter((n) => n.c === "other").length;
   assert.match(pills, new RegExp("其他 <b>" + other + "<\\/b>"), "the badge is the canvas count");
 });
