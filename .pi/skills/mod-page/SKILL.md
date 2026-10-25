@@ -66,11 +66,20 @@ node tools/preview.mjs --mod your_mods/<ModName>
 
 | 要做什么 | 用哪条 |
 |---|---|
-| 给玩家看这个 mod 改了什么，并让他在卡页上改值 | `preview.mjs`（一条命令出全部页面，并把每页路径打印出来） |
-| 讨论一个**还没写进 mod** 的方案 | `page.mjs --spec`（不落盘，副标题标「提案」） |
-| 只看一条记录（仪式、事件、掉落、任务、结局、升级、标签、开局） | `page.mjs <kind> --id <id>` |
+| 给玩家看这个 mod 改了什么，并让他改值 | `preview.mjs`（一条命令出全部页面，并把每页路径打印出来） |
+| 讨论一个**还没写进 mod** 的方案 | `preview.mjs --spec`（和最终页同形，玩家能改值，副标题标「提案 · 尚未写入」） |
+| 只想看一条记录，不要控件 | `page.mjs --spec`（只读页） |
+| 只看一条已写入的记录（仪式、事件、掉落、任务、结局、升级、标签、开局） | `page.mjs <kind> --id <id>` |
 
-`page.mjs` 一次只出一条记录，页面是**只读**的：它不能写回配置，也没有索引页。`preview.mjs` 生成的记录页不是只读的，它下方有一个「要改什么」输入框，玩家写完点发送，agent 按这句话去改记录。卡页一律走 `preview.mjs`。
+```
+node tools/preview.mjs --mod your_mods/<ModName> --spec <文件或 -> --kind <kind> --id <id> [--out <目录或 .html>]
+```
+
+`--out` 给目录时按默认文件名落盘，给 `.html` 路径时就用这个文件名。两个候选方案可以用 `--out` 写成两份页。
+
+任务、结局、后日谈也有单条页：`your_mods/<ModName>/.preview/<kind>-<id>.record.html`。
+
+`page.mjs` 一次只出一条记录，页面是**只读**的：它不能写回配置，也没有索引页。`preview.mjs` 生成的记录页不是只读的，它下方有一个「要改什么」输入框，玩家写完点发送，agent 按这句话去改记录。卡页一律走 `preview.mjs`；提案也用 `preview.mjs --spec`，这样讨论页和最终页是同一种页。
 
 ```
 node tools/page.mjs <kind> --mod your_mods/<ModName> --id <id> --out your_mods/<ModName>/.preview/<名字>.html
