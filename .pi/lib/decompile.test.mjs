@@ -6,7 +6,8 @@
  * absent, so the suite stays honest on a machine that never dumped the game.
  */
 import { test, expect } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   checkFreshness,
@@ -18,6 +19,7 @@ import {
   loadConfig,
   resolveGame,
   resolveIsilFile,
+  searchBodies,
   searchDump,
   searchStrings,
   truncate,
@@ -112,6 +114,37 @@ test("searchDump finds type declarations by substring", () => {
     "EventNode",
     "EventNode_JsonHandler",
   ]);
+});
+
+test("searchBodies reads inside ISIL files, filters by path, and caps the hits", () => {
+  const root = mkdtempSync(join(tmpdir(), "isil-"));
+  mkdirSync(join(root, "cpp2il/IsilDump/Game"), { recursive: true });
+  mkdirSync(join(root, "cpp2il/IsilDump/Core"), { recursive: true });
+  writeFileSync(join(root, "cpp2il/IsilDump/Game/A.txt"), "Method: A\n\t004 Move rax, [rdi+40]\n");
+  writeFileSync(join(root, "cpp2il/IsilDump/Core/B.txt"), "Method: B\n\t004 Move rax, [rdi+40]\n");
+  writeFileSync(
+    join(root, "cpp2il/IsilDump/Game/Many.txt"),
+    ["Method: Many", ...Array.from({ length: 60 }, (_, i) => `\t${i} Move rax, [rdi+999]`)].join("\n"),
+  );
+
+  try {
+    // Case is ignored, and a hit says which file and line it came from.
+    const all = searchBodies(root, "[RDI+40]");
+    expect(all.map((h) => h.file).sort()).toEqual(["cpp2il/IsilDump/Core/B.txt", "cpp2il/IsilDump/Game/A.txt"]);
+    expect(all[0].line).toBe(2);
+
+    // A path fragment narrows the walk before the file is read.
+    expect(searchBodies(root, "[rdi+40]", "Game/").map((h) => h.file)).toEqual(["cpp2il/IsilDump/Game/A.txt"]);
+
+    // 60 matching lines arrive as 50 hits, so one call cannot flood the context.
+    expect(searchBodies(root, "[rdi+999]").length).toBe(50);
+
+    // No hit, and no ISIL tree at all, are both empty results rather than errors.
+    expect(searchBodies(root, "nothing here")).toEqual([]);
+    expect(searchBodies(join(root, "no-such-dump"), "[rdi+40]")).toEqual([]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("extractMethods splits blocks and filters by member", () => {
