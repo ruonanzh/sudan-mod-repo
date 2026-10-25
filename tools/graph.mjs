@@ -31,6 +31,13 @@ const LANGS = ["zh", "en", "ja", "zhTW"];
 // ---------------------------------------------------------------- loading
 
 /** Read a JSONC file into a plain value, keeping duplicate keys as arrays. */
+/** The file as written, comments and spacing included: the 原码 view shows exactly this. */
+const textCache = new Map();
+function readText(file) {
+  if (!textCache.has(file)) textCache.set(file, readFileSync(file, "utf8"));
+  return textCache.get(file);
+}
+
 function readJsonc(file) {
   // A full build parses 3365 records plus three i18n tables; within one process the same
   // file is often needed twice (two counting modes, two mod overlays). Cache by path.
@@ -87,12 +94,18 @@ function loadRecords(dir) {
   // Accept either a mod root (which holds config/) or a config directory itself.
   const configDir = existsSync(path.join(dir, "cards.json")) || existsSync(path.join(dir, "event")) ? dir : path.join(dir, "config");
   const c = (p) => path.join(configDir, p);
-  const out = { event: {}, rite: {}, loot: {}, afterStory: {}, riteTemplate: {} };
+  const out = { event: {}, rite: {}, loot: {}, afterStory: {}, riteTemplate: {}, raw: {} };
   for (const kind of ["event", "rite", "loot", "after_story", "rite_template"]) {
     const target = kind === "after_story" ? "afterStory" : kind === "rite_template" ? "riteTemplate" : kind;
     for (const f of listJson(c(kind))) {
-      const record = readJsonc(path.join(c(kind), f));
-      if (record) out[target][f.replace(/\.json$/, "")] = record;
+      const file = path.join(c(kind), f);
+      const id = f.replace(/\.json$/, "");
+      const record = readJsonc(file);
+      if (!record) continue;
+      out[target][id] = record;
+      // Only the two kinds with a record page keep their own text: the 原码 view shows the file
+      // as written, comments included, so it needs the text and not the parsed record.
+      if (target === "event" || target === "rite") out.raw[`${target}:${id}`] = readText(file);
     }
   }
   out.card = existsSync(c("cards.json")) ? readJsonc(c("cards.json")) || {} : {};
@@ -692,6 +705,9 @@ export function buildGraph({ configDir = DEFAULT_VANILLA, modDir = null, lang = 
     categoryCounts: countBy([...nodes.values()].filter((n) => n.t === "event"), (n) => n.cat),
     fieldSwitches: { event: FIELD_SWITCHES.event, rite: FIELD_SWITCHES.rite },
     lint: { FAIL: lintSummary.FAIL, WARN: lintSummary.WARN, INFO: lintSummary.INFO },
+    // The record files as written, keyed kind:id — what the 原码 button shows. Kept out of the
+    // page payload (16 MB of vanilla text) and written to a file of its own.
+    source: { ...vanilla.raw, ...(modDir ? loadRecords(modDir).raw : {}) },
   };
 }
 
@@ -1014,8 +1030,11 @@ function main() {
   if (args.check) process.stdout.write(`${report}\n`);
   if (args.out) {
     mkdirSync(path.dirname(args.out), { recursive: true });
-    writeFileSync(args.out, JSON.stringify(g));
-    process.stdout.write(`wrote ${args.out}  (${(JSON.stringify(g).length / 1048576).toFixed(1)} MB)\n`);
+    // The record text is for the page's 原码 view, not part of the graph: the dump stays a graph.
+    const { source, ...graph } = g;
+    void source;
+    writeFileSync(args.out, JSON.stringify(graph));
+    process.stdout.write(`wrote ${args.out}  (${(JSON.stringify(graph).length / 1048576).toFixed(1)} MB)\n`);
     if (!args.check) process.stdout.write(`${report}\n`);
   }
   return 0;

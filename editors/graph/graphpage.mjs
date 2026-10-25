@@ -227,6 +227,9 @@ const cyEl = document.getElementById("cy");
 const listEl = document.getElementById("list"), qEl = document.getElementById("q");
 const capEl = document.getElementById("cap");
 let lang = "zh", cat = DATA.defaultCat || null, chainOnly = false, selected = null, depth = 1;
+// The node the panel is showing. selected is the canvas selection, which a row click sets first;
+// the panel keeps its own key so the 原码 button always reads the node it describes.
+let panelKey = null;
 // A lane is a column: gap between columns, headroom for the lane title above them.
 const LANE_GAP = 44, LANE_HEAD = 44;
 // The libraries are inlined ahead of this script and land on the window object. Without them
@@ -309,6 +312,7 @@ const idxOf = new Map(DATA.nodes.map((n, i) => [n.k, i]));
 // The page is one file plus graph.detail.js. A page copied without it still draws and still
 // opens a panel; the panel then says which file is missing instead of going blank.
 let detailState = "idle"; // idle | loading | ready | missing
+let sourceOpen = false; // the 原码 toggle: true while the panel shows the file instead of the panel
 const detailWaiters = [];
 
 function graphDetail() {
@@ -330,6 +334,28 @@ function nodeOf(key) {
 
 function missingDetailText() {
   return "没有找到 " + DETAIL_URL + "，这一页只画了结构和连线。把 " + DETAIL_URL + " 和页面放在同一个目录，描述、结算分支和开关就会出现。";
+}
+
+// The 原码 view: the record file as it is written. Nothing is bundled for the whole corpus —
+// a record page carries the one record it is about, and the editor server hands over the rest.
+function graphSource() {
+  const s = window.__GRAPH_SOURCE__;
+  return s && typeof s === "object" ? s : null;
+}
+
+/** The record's own text: what this page carries, else what the editor server can read. */
+function recordSourceText(key, done) {
+  const own = (graphSource() || {})[key];
+  if (typeof own === "string") return done(own);
+  if (location.protocol !== "http:") return done(null);
+  nodeSource(key)
+    .then((r) => done(r && r.ok && typeof r.source === "string" ? r.source : null))
+    .catch(() => done(null));
+}
+
+function sourceMissingText(kind) {
+  if (kind !== "event" && kind !== "rite") return "原码只对仪式与事件开放：这两类记录各一个文件，其他类是一张大表里的一行。";
+  return "这一页只带了它聚焦的那条记录。看别的节点，用 node tools/editor.mjs --mod … 打开再点原码；或直接读 config/ 里这一条的文件。";
 }
 
 function ensureDetail(done) {
@@ -1232,6 +1258,8 @@ async function fillSource(key) {
 
 window.__openNode = (key) => {
   if (!byKey.has(key)) return;
+  panelKey = key;
+  sourceOpen = false;
   ensureDetail((ok) => {
   const box = document.getElementById("modal-body");
   // The node's own reading first, then the file it lives in: one column, so the panel stays a
@@ -1239,7 +1267,8 @@ window.__openNode = (key) => {
   box.innerHTML =
     '<div class="drawerbar"><button id="panelexpand" class="pill">展开</button>' +
     '<button id="panelshink" class="pill">缩小</button>' +
-    '<button id="panelclose" class="pill">关闭</button></div>' +
+    '<button id="panelclose" class="pill">关闭</button>' +
+    '<button id="panelsource" class="pill">原码</button></div>' +
     '<div class="editsplit">' +
     '<div class="editview" id="panelview">' +
     (ok ? "" : '<div class="note bad">' + escHtml(missingDetailText()) + "</div>") +
@@ -1258,6 +1287,8 @@ window.__openNode = (key) => {
 })();
 document.getElementById("panelexpand").onclick = () => {
   expandAll = true;
+  sourceOpen = false;
+  document.getElementById("panelsource").textContent = "原码";
   document.getElementById("modal").classList.add("expanded");
   // Redraw the panel in place: every relation the node has, not the first 30.
   var view = document.getElementById("panelview");
@@ -1265,9 +1296,32 @@ document.getElementById("panelexpand").onclick = () => {
 };
 document.getElementById("panelshink").onclick = () => {
   expandAll = false;
+  sourceOpen = false;
+  document.getElementById("panelsource").textContent = "原码";
   document.getElementById("modal").classList.remove("expanded");
   var view = document.getElementById("panelview");
   if (view && selected) view.innerHTML = panelHtml(nodeOf(selected), false);
+};
+// The last resort: the record file itself, so anything the panel cannot explain is still readable.
+// It is a toggle — asking twice gives the explanation back.
+document.getElementById("panelsource").onclick = () => {
+  var view = document.getElementById("panelview");
+  var btn = document.getElementById("panelsource");
+  var key = panelKey || selected;
+  if (!view || !key) return;
+  if (sourceOpen) {
+    sourceOpen = false;
+    btn.textContent = "原码";
+    view.innerHTML = panelHtml(nodeOf(key), expandAll);
+    return;
+  }
+  recordSourceText(key, (text) => {
+    sourceOpen = true;
+    btn.textContent = "返回";
+    view.innerHTML = text
+      ? '<h3>原码</h3><div class="note">' + escHtml(key) + ' · 文件原样，注释也在。</div><pre class="srcpre">' + escHtml(text) + "</pre>"
+      : '<h3>原码</h3><div class="note bad">' + escHtml(sourceMissingText((nodeOf(key) || {}).t)) + "</div>";
+  });
 };
 document.getElementById("panelclose").onclick = closePanel;
   openPanel();
@@ -1432,11 +1486,12 @@ export function renderPage(g, { title = "苏丹的游戏 · 剧情图", editable
 .drawerbar { display: flex; justify-content: flex-end; margin: 0 0 6px; }
 .editsplit { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-items: start; }
 .editview { padding-bottom: 10px; border-bottom: 1px solid #2f2a24; }
-.editsrc { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.editsrc textarea { min-height: 40vh; font-family: ui-monospace, Menlo, monospace; font-size: 12px; line-height: 1.55; tab-size: 4; }
+.editsrc { display: flex; flex-direction: column; gap: 8px; min-width: 0; }.editsrc textarea { min-height: 40vh; font-family: ui-monospace, Menlo, monospace; font-size: 12px; line-height: 1.55; tab-size: 4; }
 .editsrc .src { background: #1d1710; border-left: 2px solid #4a3c28; margin: 6px 0; padding: 8px 10px; max-height: 40vh; overflow: auto; font-family: ui-monospace, Menlo, monospace; font-size: 12px; line-height: 1.55; white-space: pre; color: #cfc0a4; }
 .editsrc .src .dead { color: #7a6f5e; }
 .editsrc .src .dead i { color: #b4543f; font-style: normal; }
+/* The 原码 view: the record file as written, in the panel's own column. */
+.srcpre { background: #1d1710; border-left: 2px solid #4a3c28; margin: 6px 0; padding: 8px 10px; max-height: 62vh; overflow: auto; font-family: ui-monospace, Menlo, monospace; font-size: 12px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; color: #cfc0a4; }
 `;
   const promptBlock = prompt
     ? `<div class="wrap" style="padding-bottom:32px">
@@ -1505,12 +1560,30 @@ export function writePage(g, outPath, opts = {}) {
   const dir = path.dirname(file);
   writeFileSync(path.join(dir, scripts.vendor), vendorScripts().map((v) => `/* ${v.file.replace(".min.js", "")} ${v.version} (MIT) - editors/graph/vendor/${v.file} */\n/* Local copy of the library the story graph ships with; never fetched from the network. */\n${v.text}`).join("\n"));
   writeFileSync(path.join(dir, scripts.page), `${pageScript(scripts.vendor, opts.editable !== false, opts.detailUrl || detailName(file))}\n`);
-  if (opts.focus) writeFileSync(path.join(dir, scripts.focus), `window.__GRAPH_FOCUS__ = ${JSON.stringify(String(opts.focus))};\n`);
+  // A record page carries the one record it is about, so its 原码 button always has something to
+  // show. The corpus itself is never bundled: 19 MB of vanilla text is not a page asset.
+  if (opts.focus)
+    writeFileSync(
+      path.join(dir, scripts.focus),
+      `window.__GRAPH_FOCUS__ = ${JSON.stringify(String(opts.focus))};\n` + focusSourceScript(g, String(opts.focus)),
+    );
   if (opts.dataUrl) return { file, bytes: Buffer.byteLength(html), data: null, dataBytes: 0, detail: null, detailBytes: 0 };
   writeFileSync(data, `// graph.data.js - nodes, edges and switches. Loaded by ${path.basename(file)}. Generated by tools/graphpage.mjs.\nwindow.__GRAPH_DATA__ = ${payloadJson};\n`);
   writeFileSync(detail, script);
   // Bytes, not characters: the page is full of CJK, where the two differ by a factor of three.
   return { file, bytes: Buffer.byteLength(html), data, dataBytes: Buffer.byteLength(`window.__GRAPH_DATA__ = ${payloadJson};`), detail, detailBytes: Buffer.byteLength(script) };
+}
+
+/**
+ * The focused record's own file text, as one more assignment in the page's focus file.
+ *
+ * Empty when the graph carries no text for it — a card or a loot row lives inside a table, and a
+ * full-graph page has no focus at all — and the panel then says where to read it instead.
+ */
+function focusSourceScript(g, key) {
+  const text = g && g.source ? g.source[key] : null;
+  if (typeof text !== "string") return "";
+  return `window.__GRAPH_SOURCE__ = { ${JSON.stringify(key)}: ${JSON.stringify(text)} };\n`;
 }
 
 const megabytes = (n) => (n / 1048576).toFixed(2) + " MB";

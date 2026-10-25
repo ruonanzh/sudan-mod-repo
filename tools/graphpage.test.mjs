@@ -52,7 +52,7 @@ function el(id, onHtml) {
  * graph.detail.js has it; `detail: null` leaves it out, so the page has to ask for the file.
  * `protocol` is what the page sees in location: a page opened from disk has no server.
  */
-function mount(g, { editable = true, detail = "full", protocol = "http:", page = {} } = {}) {
+function mount(g, { editable = true, detail = "full", source = "event:5300002", protocol = "http:", page = {} } = {}) {
   const els = new Map();
   // A textarea read back through `.value` is how the save button gets its text, so the shim
   // turns the markup the page wrote into that value, the way a browser does.
@@ -110,6 +110,8 @@ function mount(g, { editable = true, detail = "full", protocol = "http:", page =
     fetch
   );
   if (detail === "full") win.__GRAPH_DETAIL__ = detailPayload(g);
+  // A record page carries the one record it is about: that is what `source` names here.
+  if (source) win.__GRAPH_SOURCE__ = { [source]: (g.source || {})[source] };
   return { win, els, document, posts, scripts, fetched };
 }
 
@@ -202,6 +204,44 @@ test("an event stage whose action is the operation itself reads as a sentence", 
   const settled = html.split("<h3>结算</h3>")[1] || "";
   assert.match(settled, /开始仪式 5000508/, "the operation is what the stage does");
   assert.doesNotMatch(settled, /branchhead">rite</, "a raw key must never be a heading");
+});
+
+test("the panel's last resort is the record file itself", { skip }, async () => {
+  const { win, els } = mount(graph());
+  win.__openNode("event:5300002");
+  await tick();
+  els.get("panelsource").onclick();
+  await tick();
+  const html = els.get("panelview").innerHTML;
+  assert.match(html, /<h3>原码<\/h3>/, "the button shows the file, not a summary of it");
+  // The file as written: comments are what a reader uses to check the panel's wording.
+  assert.match(html, /向神殿求助/, "the record's own text is there");
+  assert.match(html, /\/\/策划看的备注|\/\/是否可以重复触发/, "comments survive, so this is the file and not a re-serialisation");
+  assert.equal(els.get("panelsource").textContent, "返回", "asking again gives the explanation back");
+  els.get("panelsource").onclick();
+  await tick();
+  assert.doesNotMatch(els.get("panelview").innerHTML, /<h3>原码<\/h3>/);
+});
+
+test("a page that does not carry the record asks the editor server for it", { skip }, async () => {
+  const { win, els, fetched } = mount(graph(), { source: null, protocol: "http:" });
+  win.__openNode("event:5300002");
+  await tick();
+  els.get("panelsource").onclick();
+  await tick();
+  assert.ok(fetched.some((u) => u.startsWith("/api/node/event%3A5300002")), "the server is asked for the file");
+  assert.match(els.get("panelview").innerHTML, /向神殿求助/, "and the panel shows what it answered");
+});
+
+test("with neither the record nor a server, the panel says where to read it", { skip }, async () => {
+  const { win, els } = mount(graph(), { source: null, protocol: "file:" });
+  win.__openNode("event:5300002");
+  await tick();
+  els.get("panelsource").onclick();
+  await tick();
+  const html = els.get("panelview").innerHTML;
+  assert.match(html, /这一页只带了它聚焦的那条记录/, "it names the limit instead of going blank");
+  assert.doesNotMatch(html, /<pre/, "and it does not pretend to show a file it does not have");
 });
 
 test("a switch reads as the sentence its value earns", { skip }, async () => {
