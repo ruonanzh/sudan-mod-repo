@@ -13,7 +13,13 @@ $ARGUMENTS
 
 按这个顺序做：
 
-1. 用参数找文件：`config/<kind>/<id>.json`。文件不在这个 mod 里时，先看这一页是否标着「提案 · 尚未写入」：标着表示这条记录还没写进 mod；没标着，才去确认玩家指的是不是原版那条记录（若是，按目录式条目整份复制过来再改）。
+1. 按参数里的 `<kind>` 找记录：
+   - `event`、`rite`、`loot`、`init`、`riteTemplate`：`config/<kind>/<id>.json`。
+   - `afterStory`：目录名是 `config/after_story/<id>.json`。
+   - `quest`：`config/quest.json` 里 `id` 等于该值的那一条。
+   - `over`：`config/over.json` 里键等于该值的那一条；这条记录没有 `id` 字段。
+
+   文件或这一条不在 mod 里时，先看这一页是否标着「提案 · 尚未写入」：标着表示这条记录还没写进 mod；没标着，才去确认玩家指的是不是原版那条记录（若是，目录式条目整份复制过来，表条目按 key 复制这一条再改）。
 2. 按玩家原话改**这一份记录**：改文本就改文本，改数字就改数字，改结构（加/删结算分支、换引用的卡）就改数组。不要顺手改别的字段。
 3. 跑 `validate_mod`，必须 **PASS**：`PARTIAL` 不算通过（它说明原版配置没读到），按 `NEXT` 解决后重跑；`FAIL` 先改到没有。
 4. 重跑 `node tools/preview.mjs --mod your_mods/<ModName>`，让这一页反映新内容。
