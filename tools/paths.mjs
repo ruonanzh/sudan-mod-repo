@@ -339,30 +339,37 @@ let documentsCache;
  * pins the answer outright, which is what a test that only fakes the environment needs, and
  * `read` replaces the registry call itself so a test can state what the machine would answer.
  */
-export function documentsDirFor({ platform = process.platform, home = null, documents = null, read = null } = {}) {
-  const p = styleOf(platform);
-  const pinned = documents ?? (process.env.SUDAN_DOCUMENTS_DIR ? process.env.SUDAN_DOCUMENTS_DIR.trim() : null);
-  if (pinned) return p.normalize(pinned);
-  if (home !== null) return p.join(home, "Documents");
-  const fallback = p.join(os.homedir(), "Documents");
-  if (platform !== "win32" || process.platform !== "win32") return fallback;
-  const lookup = read ?? personalFolder;
-  if (!read && documentsCache !== undefined) return documentsCache ?? fallback;
-  let answer = null;
-  for (const key of [
-    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders",
-    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders",
-  ]) {
-    const raw = lookup(key);
+const SHELL_FOLDER_KEYS = [
+  "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders",
+  "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders",
+];
+
+/** Ask the registry, key by key, and expand the variables `User Shell Folders` may hold. */
+function shellDocuments(read, p) {
+  for (const key of SHELL_FOLDER_KEYS) {
+    const raw = read(key);
     if (!raw) continue;
     const expanded = raw.replace(/%([^%]+)%/g, (_m, name) => process.env[name] ?? process.env[name.toUpperCase()] ?? "");
     const dir = p.win32.normalize(expanded.replace(/[\\/]+$/, ""));
     if (expanded.includes("%") || !dir) continue;
-    answer = dir;
-    break;
+    return dir;
   }
-  if (!read) documentsCache = answer;
-  return answer ?? fallback;
+  return null;
+}
+
+export function documentsDirFor({ platform = process.platform, home = null, documents = null, read = null } = {}) {
+  const p = styleOf(platform);
+  // Most specific first: a stated folder, a stated registry answer, a made-up machine's home, a
+  // pinned folder, the real registry, the old assumption.
+  if (documents) return p.normalize(documents);
+  if (read) return shellDocuments(read, p) ?? p.join(os.homedir(), "Documents");
+  if (home !== null) return p.join(home, "Documents");
+  const pinned = process.env.SUDAN_DOCUMENTS_DIR ? process.env.SUDAN_DOCUMENTS_DIR.trim() : null;
+  if (pinned) return p.normalize(pinned);
+  const fallback = p.join(os.homedir(), "Documents");
+  if (platform !== "win32" || process.platform !== "win32") return fallback;
+  if (documentsCache === undefined) documentsCache = shellDocuments(personalFolder, p);
+  return documentsCache ?? fallback;
 }
 
 /**
@@ -576,9 +583,20 @@ export function judge(opts = {}) {
   // vanilla: derived from whichever game directory was judged, every time.
   const vanilla = judgeVanilla(game.status === "OK" ? vanillaFrom(game.path, platform) : null);
 
-  // modInstallDir: explicit -> the state file -> the MyDocuments base for this platform.
-  const namedMod = opts.modInstallDir ?? saved.modInstallDir;
-  const modInstall = judgeModInstallDir(namedMod ? expandAt(namedMod, home) : modInstallDirFor({ platform, home: opts.home, cfg }));
+  // modInstallDir: explicit -> derived from the shell's Documents folder -> the state file. The
+  // derivation is a measurement (the shell answers where Documents is), so it wins over the
+  // record, which is only a cache of it. `workshopDir` follows the same rule for the same reason:
+  // a stale record must not survive the thing it was derived from.
+  const derivedMod = modInstallDirFor({ platform, home: opts.home, cfg });
+  const derivedRow = judgeModInstallDir(derivedMod);
+  const recordedMod = saved.modInstallDir ? judgeModInstallDir(expandAt(saved.modInstallDir, home)) : null;
+  // The record stands only when it works and the derivation does not: a machine whose registry
+  // cannot be read keeps the path that was right before.
+  const modInstall = opts.modInstallDir
+    ? judgeModInstallDir(expandAt(opts.modInstallDir, home))
+    : derivedRow.status === "OK" || !recordedMod || recordedMod.status !== "OK"
+      ? derivedRow
+      : recordedMod;
 
   // workshopDir: explicit -> derived from a game directory that judged OK -> the state file. The
   // derived value must win while gameDir is OK, or a stale record points at another library.
@@ -648,7 +666,7 @@ export function ensureGameDir(opts = {}) {
     status = "recorded";
   }
 
-  const judged = judge({ gameDir: install, file: null, platform, home, env, cfg });
+  const judged = judge({ gameDir: install, file: null, platform, home: opts.home, env, cfg });
   const body = recordOf(judged.rows);
   const same = Object.keys(body).every((key) => saved[key] === body[key]);
   // Nothing was discovered when the recorded game directory still holds the game: only the keys
@@ -692,7 +710,7 @@ export function setGameDirWithFallback(opts = {}) {
 
   const judgedGiven = judgeGameDir(given, platform);
   if (judgedGiven.status === "OK") {
-    const judged = judge({ gameDir: judgedGiven.path, file: null, platform, home, env, cfg });
+    const judged = judge({ gameDir: judgedGiven.path, file: null, platform, home: opts.home, env, cfg });
     writeRecord(judged.rows, file);
     return {
       status: "PASS",
@@ -705,7 +723,7 @@ export function setGameDirWithFallback(opts = {}) {
 
   const found = discoverGameDir({ cfg, state: readRecord(file), platform, home, env });
   if (found.install) {
-    const judged = judge({ gameDir: found.install, file: null, platform, home, env, cfg });
+    const judged = judge({ gameDir: found.install, file: null, platform, home: opts.home, env, cfg });
     writeRecord(judged.rows, file);
     return {
       status: "WARN",

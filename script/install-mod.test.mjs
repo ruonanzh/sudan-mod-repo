@@ -138,16 +138,22 @@ test("install_mod refuses an install folder inside the workspace", async () => {
   const mod = path.join(cwd, "your_mods", "inside_probe");
   mkdirSync(mod, { recursive: true });
   writeFileSync(path.join(mod, "info.json"), JSON.stringify({ name: "inside_probe", version: "1.0.0" }));
-  mkdirSync(path.join(cwd, "SultansGame/Mod"), { recursive: true });
-  mkdirSync(path.join(cwd, "SultansGame/ModLog"), { recursive: true });
-  writeFileSync(path.join(cwd, "SultansGame/ModLog/__mod.log"), "");
-  writeFileSync(path.join(cwd, ".gamer-agent.local.json"), JSON.stringify({ modInstallDir: path.join(cwd, "SultansGame/Mod") }));
+  mkdirSync(path.join(cwd, "DoubleCross/SultansGame/Mod"), { recursive: true });
+  mkdirSync(path.join(cwd, "DoubleCross/SultansGame/ModLog"), { recursive: true });
+  writeFileSync(path.join(cwd, "DoubleCross/SultansGame/ModLog/__mod.log"), "");
+  // The record is no longer consulted — the derivation is — so the machine's Documents folder has
+  // to be the workspace for the guard to see an install landing inside it.
+  const before = process.env.SUDAN_DOCUMENTS_DIR;
+  process.env.SUDAN_DOCUMENTS_DIR = cwd;
   let out = null;
   try {
     out = await run(await get(), { modDir: mod }, cwd);
   } catch (e) {
     assert.match(String(e.message), /UNSAFE_TARGET: the install directory .* is inside the workspace/);
     return;
+  } finally {
+    if (before === undefined) delete process.env.SUDAN_DOCUMENTS_DIR;
+    else process.env.SUDAN_DOCUMENTS_DIR = before;
   }
   assert.fail(`expected a refusal, got: ${textOf(out)}`);
 });
@@ -243,13 +249,16 @@ test("install_mod refuses a folder that contains its own target", async () => {
   assert.ok(existsSync(path.join(inner, "info.json")));
 });
 
-test("install_mod reports FAIL, not PARTIAL, when a recorded folder is not the mod folder", async () => {
+// A recorded path is a cache of what the machine derives. A player who moves Documents leaves a
+// stale record behind, and the tool has to follow the derivation rather than the cache.
+test("install_mod follows the derived mod folder, not a stale record", async () => {
+  const root = modRoot();
   const cwd = workspace(tmpDir("install-wrong-root-"));
   const mod = makeMod({});
   const result = await run(await get(), { modDir: mod }, cwd);
   const text = textOf(result);
-  assert.match(text, /^FAIL:/, text);
-  assert.match(text, /^NEXT: run try_set_game_dir/m, "a wrong folder is fixed by finding the game again");
+  assert.match(text, /^PASS:/, text);
+  assert.ok(existsSync(path.join(root, path.basename(mod), "info.json")), `the mod landed under the derived root: ${text}`);
 });
 
 test("install_mod replaces the bytes, not just the file names", async () => {

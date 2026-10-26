@@ -216,9 +216,11 @@ export function fakeVanilla(installDir, { cards = true, rite = true, platform = 
 
 /** `<base>/DoubleCross/SultansGame/{Mod,ModLog}` — a mod root the game has written a log beside. */
 export function fakeModRoot(base, { log = true } = {}) {
-  // The game computes MyDocuments with Environment.GetFolderPath: %USERPROFILE%\Documents on
-  // Windows, $HOME elsewhere. tools/paths.mjs derives the same base, so the fixture must too.
+  // The game computes MyDocuments with Environment.GetFolderPath, and on Windows that is whatever
+  // the shell says — not %USERPROFILE%\Documents, which a player can move away from. The fixture
+  // therefore pins the Documents folder the tools read, so the derivation lands in this fake one.
   const docs = process.platform === "win32" ? path.join(base, "Documents") : base;
+  process.env.SUDAN_DOCUMENTS_DIR = docs;
   const dir = path.join(docs, "DoubleCross", "SultansGame", "Mod");
   mkdirSync(dir, { recursive: true });
   if (log) {
