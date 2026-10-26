@@ -228,3 +228,22 @@ test("a derived-only write says so, and reports that it wrote", async () => {
   const saved = JSON.parse(readFileSync(stateOf(cwd), "utf8"));
   assert.ok(saved.modInstallDir, "the derived key is in the file now");
 });
+
+// --------------------- check_game_paths: the lines it prints, not only the rows judge returns
+
+test("check_game_paths prints the derived path, names the stale record, and points at the setter", async () => {
+  const { home, install } = world();
+  const cwd = tmpDir("contract-ws-");
+  // A record from before the player moved the folder: the row is OK because the derived path wins,
+  // and the WARN says which key is old, so the agent does not install into the recorded one.
+  const old = path.join(tmpDir("contract-old-"), "DoubleCross", "SultansGame", "Mod");
+  writeFileSync(stateOf(cwd), JSON.stringify({ gameDir: install, modInstallDir: old }, null, 2));
+  const def = await tool("check-game-paths.ts");
+  const result = await withHome(home, () => run(def, {}, cwd));
+  const text = textOf(result);
+  assert.match(text, /^modInstallDir\s+OK\s/m, text);
+  assert.match(text, /WARN: the state file records modInstallDir .*but this machine derives/, text);
+  assert.match(text, /Run try_set_game_dir \(no arguments\) to repair it\./, text);
+  assert.equal(result.details.wroteState, false, "check never writes");
+  assert.deepEqual(result.details.stale.map((s) => s.key), ["modInstallDir"], "and it reports which key is old");
+});

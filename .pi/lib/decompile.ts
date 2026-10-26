@@ -929,7 +929,9 @@ export function isilRelPath(namespace: string, fullTypeName: string): string {
   const parts = fullTypeName.split(".").map(segment);
   const file = parts.join("_NestedType_") + ".txt";
   const ns = namespace.trim();
-  return ns ? join(ns.split(".").join("/"), file) : file;
+  // A `/` on every platform: this is the path Cpp2IL writes, not one this machine composes, and
+  // `join` on Windows would hand back `DataNode\\Json\\...` and match nothing on disk.
+  return ns ? `${ns.split(".").join("/")}/${file}` : file;
 }
 
 /** Locate a type's ISIL file across assembly folders. */

@@ -253,7 +253,7 @@ export function gameDirCandidates({
     if (typeof v === "string" && v.trim()) out.push(expandAt(v, home));
   };
   push(state.gameDir);
-  const hint = cfg?.game?.installDirHint?.[platform];
+  const hint = cfg?.game?.installDirHint?.[configKey(platform)];
   push(hint);
   const folder = (hint && p.basename(hint)) || "Sultan's Game";
   for (const lib of steamCandidates({ platform, home, env })) {
@@ -377,6 +377,9 @@ function shellDocuments(read, p) {
   for (const key of SHELL_FOLDER_KEYS) {
     const raw = read(key);
     if (!raw) continue;
+    // A replacement character means the answer was decoded with the wrong table, and half a path
+    // would be recorded as if it were the folder. No answer is better than a mangled one.
+    if (raw.includes("\uFFFD")) continue;
     const expanded = raw.replace(/%([^%]+)%/g, (_m, name) => process.env[name] ?? process.env[name.toUpperCase()] ?? "");
     const dir = p.win32.normalize(expanded.replace(/[\\/]+$/, ""));
     if (expanded.includes("%") || !dir) continue;
@@ -409,15 +412,16 @@ export function documentsDirFor({ platform = process.platform, home = null, docu
 export function modInstallDirFor({ platform = process.platform, home = null, cfg = null, documents = null } = {}) {
   const p = styleOf(platform);
   const spec = cfg?.modInstall ?? null;
-  // The file names the platforms the way it ships them: `windows` and `mac`. Indexing it with
-  // Node's `win32`/`darwin` finds nothing, and the defaults below would then stand forever.
-  const key = platform === "win32" ? "windows" : platform === "darwin" ? "mac" : platform;
-  const declared = spec?.path?.[key];
+  const declared = spec?.path?.[configKey(platform)];
   const rel = typeof declared === "string" && declared.trim() ? declared : "DoubleCross/SultansGame/Mod";
-  const relativeTo = spec?.relativeTo?.[key] ?? (platform === "win32" ? "userDocuments" : "home");
+  const relativeTo = spec?.relativeTo?.[configKey(platform)] ?? (platform === "win32" ? "userDocuments" : "home");
   const base = relativeTo === "userDocuments" ? (documents ?? documentsDirFor({ platform, home })) : (home ?? os.homedir());
   return p.join(base, rel);
 }
+
+/** The key `mod-repo.json` uses for a platform: the file names them `windows` and `mac`.
+ *  Indexing it with Node's `win32`/`darwin` finds nothing, and the defaults then stand forever. */
+const configKey = (platform) => (platform === "win32" ? "windows" : platform === "darwin" ? "mac" : platform);
 
 const writable = (dir) => {
   try {

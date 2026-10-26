@@ -426,6 +426,11 @@ test("a row's description starts closed, and the ？ opens it", () => {
     // A screen reader reads 「？」 as a question mark, and every button would sound the same. The
     // control names the description it opens, so both are announced.
     assert.match(row.html, /aria-label="[^"]+"/, `${row.key}: the ？ has an accessible name`);
+    // A constant label makes every one of them read the same: the name must carry this row's label.
+    assert.ok(
+      row.html.includes(`aria-label="${esc(LABELS.card[row.key].label)}`),
+      `${row.key}: the accessible name is this row's label, not a shared sentence`,
+    );
     assert.ok(
       row.html.includes(`aria-controls="note-${esc(row.key)}"`),
       `${row.key}: the ？ names the description it opens`,

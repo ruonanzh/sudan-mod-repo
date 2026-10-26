@@ -14,7 +14,7 @@ macOS    ~/DoubleCross/SultansGame/Mod/
 Windows  <系统的「文档」文件夹>\DoubleCross\SultansGame\Mod\   （玩家可以搬走它）
 ```
 
-游戏用 `GetFolderPath(MyDocuments)` 拼上公司名、`"SultansGame"` 与 `"Mod"` 推出它。macOS 上 `MyDocuments` 是家目录，Windows 上是 `Documents`。两条路径的差别只有这一处，不要拿一个去推另一个。
+游戏用 `GetFolderPath(MyDocuments)` 拼上公司名、`"SultansGame"` 与 `"Mod"` 推出它。macOS 上 `MyDocuments` 是家目录；Windows 上是系统的「文档」文件夹（玩家可以搬到别的盘）。两条路径的差别只有这一处，不要拿一个去推另一个。
 
 玩家找不到这个文件夹时，游戏内的 mod 面板上有一个按钮可以打开它。文件夹不存在时，这个按钮会把文件夹建出来，所以「文件夹原来不存在」不是去别处找的理由。
 

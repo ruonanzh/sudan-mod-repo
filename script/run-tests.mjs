@@ -130,9 +130,13 @@ if (libFiles.length) {
 
 /** Run bun on a list of files; null when bun is not on this machine. */
 function runBun(files) {
-  const probe = spawnSync("bun", ["--version"], { stdio: "ignore" });
+  // Windows installs bun as `bun.cmd`, and Node cannot start that without a shell: the probe
+  // answered "not installed" while the runner was on PATH the whole time, so `.pi/lib` skipped
+  // forever. A shell resolves the name on every platform.
+  const shell = process.platform === "win32";
+  const probe = spawnSync("bun", ["--version"], { stdio: "ignore", shell });
   if (probe.error || probe.status !== 0) return null;
-  const r = spawnSync("bun", ["test", ...files], { cwd: REPO, encoding: "utf8" });
+  const r = spawnSync("bun", ["test", ...files], { cwd: REPO, encoding: "utf8", shell });
   const output = `${r.stdout || ""}${r.stderr || ""}`;
   const pass = Number((output.match(/(\d+) pass/) || [])[1] ?? 0);
   const fail = Number((output.match(/(\d+) fail/) || [])[1] ?? 0);

@@ -16,7 +16,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { REPO, cleanupAll, fakeGame, fakeLibrary, fakeModRoot, fakeVanilla, gameInstall, tmpDir } from "./lib/fixture.mjs";
-import { GAME_MARKERS, REQUIRED, ensureGameDir, judge, documentsDirFor, decodeRegistryAnswer, modInstallDirFor } from "../tools/paths.mjs";
+import { GAME_MARKERS, REQUIRED, discoverGameDir, ensureGameDir, judge, documentsDirFor, decodeRegistryAnswer, modInstallDirFor } from "../tools/paths.mjs";
 
 const PATHS = path.join(REPO, "tools/paths.mjs");
 after(cleanupAll);
@@ -587,4 +587,21 @@ test("cleanupAll puts the pinned environment back", () => {
   cleanupAll();
   assert.equal(process.env.SUDAN_DOCUMENTS_DIR, before, "and cleanupAll restores it");
   assert.equal(process.env["0"], undefined, "restoring must not invent a key named 0");
+});
+
+test("mod-repo.json's installDirHint is a discovery candidate", () => {
+  const root = tmpDir("sudan-hint-");
+  const install = path.join(root, "Program Files (x86)", "Steam", "steamapps", "common", "Sultan's Game");
+  fakeGame(install, { platform: "win32" });
+  // The hint is tried before the Steam libraries, so a machine whose library is not under a
+  // default root still has a candidate. Read with Node's platform key it never was one.
+  const cfg = { game: { installDirHint: { windows: install } } };
+  const found = discoverGameDir({ cfg, platform: "win32", home: tmpDir("sudan-hinthome-"), env: {} });
+  assert.equal(found.install, install);
+});
+
+test("a registry answer that decoded into replacement characters is not used", () => {
+  // No full-ICU build decodes nothing: the mangled answer would be recorded as the folder.
+  const garbled = (key) => (key.includes("User Shell Folders") ? null : `C:\Users\\uFFFD\uFFFD\Documents`);
+  assert.equal(documentsDirFor({ platform: "win32", read: garbled }), path.win32.join(os.homedir(), "Documents"));
 });
