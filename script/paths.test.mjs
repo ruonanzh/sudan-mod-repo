@@ -549,3 +549,42 @@ test("a derivation that cannot be confirmed does not overwrite a record that sti
   assert.equal(out.modInstallDir, oldMods, JSON.stringify(out));
   assert.equal(expandHome(JSON.parse(readFileSync(file, "utf8")).modInstallDir, home), oldMods);
 });
+
+test("an unconfirmed derivation is not called out of date, so the warning can be cleared", () => {
+  const home = tmpDir("sudan-quiet-");
+  const lib = fakeLibrary(home);
+  const install = path.join(lib, "steamapps", "common", "Sultan's Game");
+  fakeGame(install, { platform: "win32" });
+  const oldBase = path.join(tmpDir("sudan-oldroot2-"), "SultansGame");
+  mkdirSync(path.join(oldBase, "Mod"), { recursive: true });
+  mkdirSync(path.join(oldBase, "ModLog"), { recursive: true });
+  writeFileSync(path.join(oldBase, "ModLog", "__mod.log"), "");
+  const file = stateFile();
+  writeFileSync(file, JSON.stringify({ gameDir: install, modInstallDir: path.join(oldBase, "Mod") }, null, 2));
+  // The derived folder does not exist, so the record stands. Calling it stale would repeat a WARN
+  // that `try_set_game_dir` answers with "already" and can never clear.
+  assert.deepEqual(judge({ platform: "win32", home, file }).stale, []);
+});
+
+test("mod-repo.json names its platforms windows and mac, and those values are read", () => {
+  // Indexing the file with Node's `win32`/`darwin` finds nothing, and the defaults quietly win.
+  const win = { modInstall: { relativeTo: { windows: "userDocuments" }, path: { windows: "Custom/Mod" } } };
+  assert.equal(
+    modInstallDirFor({ platform: "win32", home: String.raw`C:\Users\tester`, cfg: win }),
+    String.raw`C:\Users\tester\Documents\Custom\Mod`,
+  );
+  const mac = { modInstall: { relativeTo: { mac: "home" }, path: { mac: "Mods/Hers" } } };
+  assert.equal(modInstallDirFor({ platform: "darwin", home: "/Users/tester", cfg: mac }), "/Users/tester/Mods/Hers");
+});
+
+test("cleanupAll puts the pinned environment back", () => {
+  // Earlier fixtures pinned the variable too, so start from the environment as it was before any of
+  // them ran: that is the value this test must see restored.
+  cleanupAll();
+  const before = process.env.SUDAN_DOCUMENTS_DIR;
+  fakeModRoot(tmpDir("sudan-env-"));
+  assert.notEqual(process.env.SUDAN_DOCUMENTS_DIR, before, "the fixture pins Documents");
+  cleanupAll();
+  assert.equal(process.env.SUDAN_DOCUMENTS_DIR, before, "and cleanupAll restores it");
+  assert.equal(process.env["0"], undefined, "restoring must not invent a key named 0");
+});

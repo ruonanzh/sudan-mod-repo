@@ -354,7 +354,7 @@ export function applyCardValues(text, changes) {
 function rowHtml({ key, label, note, control }) {
   // The description is long and most rows do not need it, so it stays closed behind the ？.
   const tip = note
-    ? `<button class="why" type="button" data-why="${esc(key)}" aria-expanded="false" aria-controls="note-${esc(key)}" aria-label="这一项是什么意思" title="这一项是什么意思">？</button>` +
+    ? `<button class="why" type="button" data-why="${esc(key)}" aria-expanded="false" aria-controls="note-${esc(key)}" aria-label="${esc(label)}：这一项是什么意思" title="这一项是什么意思">？</button>` +
       `<div class="note hint" id="note-${esc(key)}" hidden>${esc(note)}</div>`
     : "";
   return `<div class="row" data-key="${esc(key)}">

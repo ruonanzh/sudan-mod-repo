@@ -209,3 +209,22 @@ test("a check never claims to have written anything", async () => {
   assert.equal(result.details.wroteState, false);
   assert.equal(existsSync(stateOf(cwd)), false, "check must not create the state file");
 });
+
+// ------------------------- a record that only needs its derived keys renewed says exactly that
+
+test("a derived-only write says so, and reports that it wrote", async () => {
+  const { home, install } = world();
+  const cwd = tmpDir("contract-ws-");
+  // The game is recorded and still holds the game; the derived keys are missing, so nothing is
+  // discovered and only the record is refreshed. Saying "discovered" there would describe a search
+  // that never ran, and wroteState:false would contradict the file that changed.
+  writeFileSync(stateOf(cwd), JSON.stringify({ gameDir: install }, null, 2));
+  const def = await tool("try-set-game-dir.ts");
+  const result = await withHome(home, () => run(def, {}, cwd));
+  const text = textOf(result);
+  assert.match(text, /^PASS: gameDir already correct - the derived paths were recorded again/, text);
+  assert.doesNotMatch(text, /discovered and recorded/, text);
+  assert.equal(result.details.wroteState, true, "the record changed, so the tool must say it wrote");
+  const saved = JSON.parse(readFileSync(stateOf(cwd), "utf8"));
+  assert.ok(saved.modInstallDir, "the derived key is in the file now");
+});

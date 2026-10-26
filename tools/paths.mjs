@@ -404,14 +404,17 @@ export function documentsDirFor({ platform = process.platform, home = null, docu
  * `<MyDocuments>/DoubleCross/SultansGame/Mod`. The game computes it with
  * `Environment.GetFolderPath(MyDocuments)`: the folder Windows reports on Windows (a player can
  * move it, so it is not `%USERPROFILE%\Documents`), `$HOME` on macOS. `mod-repo.json` records the
- * same two facts, and is read when a caller passes `cfg`.
+ * same two facts under different keys, and is read when a caller passes `cfg`.
  */
 export function modInstallDirFor({ platform = process.platform, home = null, cfg = null, documents = null } = {}) {
   const p = styleOf(platform);
   const spec = cfg?.modInstall ?? null;
-  const declared = spec?.path?.[platform];
+  // The file names the platforms the way it ships them: `windows` and `mac`. Indexing it with
+  // Node's `win32`/`darwin` finds nothing, and the defaults below would then stand forever.
+  const key = platform === "win32" ? "windows" : platform === "darwin" ? "mac" : platform;
+  const declared = spec?.path?.[key];
   const rel = typeof declared === "string" && declared.trim() ? declared : "DoubleCross/SultansGame/Mod";
-  const relativeTo = spec?.relativeTo?.[platform] ?? (platform === "win32" ? "userDocuments" : "home");
+  const relativeTo = spec?.relativeTo?.[key] ?? (platform === "win32" ? "userDocuments" : "home");
   const base = relativeTo === "userDocuments" ? (documents ?? documentsDirFor({ platform, home })) : (home ?? os.homedir());
   return p.join(base, rel);
 }
@@ -649,9 +652,12 @@ export function judge(opts = {}) {
   // library). A recorded key that disagrees names a folder this machine no longer uses, so the
   // report says which key is out of date and points at the tool that repairs it. Nothing here
   // writes: `ensureGameDir` records again, and only when it is asked to.
+  // `stale` compares what the record says with what this machine derives, so a derivation that
+  // could not be confirmed has nothing to say: the record stands, and calling it out of date would
+  // repeat a warning the repair tool cannot clear.
   const derived = {
     gameDir: game.status === "OK" ? game.path : null,
-    modInstallDir: derivedMod,
+    modInstallDir: derivedRow.status === "OK" ? derivedMod : null,
     workshopDir: workshopFrom(game.status === "OK" ? game.path : null),
   };
   const stale = [];

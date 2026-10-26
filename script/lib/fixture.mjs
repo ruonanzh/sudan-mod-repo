@@ -83,7 +83,7 @@ export function makeMod(files, { info = {} } = {}) {
 /** Remove every directory this process created, and put back the environment the fixtures pinned. Tests call it in `after()`. */
 export function cleanupAll() {
   for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
-  for (const [key, value] of Object.entries(pinnedEnv).splice(0)) {
+  for (const [key, value] of pinnedEnv.splice(0)) {
     if (value === undefined) delete process.env[key];
     else process.env[key] = value;
   }

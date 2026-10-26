@@ -93,7 +93,7 @@ function main() {
   if (missing.some((r) => r.game)) {
     console.log(`\nThe game was not found. Record it with:\n  node tools/paths.mjs set --game-dir "<install folder>"`);
   } else if (missing.some((r) => !r.location)) {
-    console.log("\nrequired file group(s) missing: the preview art ships with this repository, so a checkout is incomplete. Re-clone the workspace or restore reference/plates and reference/cards.");
+    console.log("\nrequired file group(s) missing: the preview art ships with this repository, so a checkout is incomplete. Re-clone the workspace or restore reference/plates, reference/cards and reference/placeholders.");
   } else if (missing.length) {
     console.log("\nThe game's config was not found. Record the install with `node tools/paths.mjs set --game-dir <install>`; vanilla is derived from it.");
   } else {
