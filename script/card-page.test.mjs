@@ -423,7 +423,17 @@ test("a row's description starts closed, and the ？ opens it", () => {
   assert.ok(described.length >= 5, `expected rows with a description, got ${described.length}`);
   for (const row of described) {
     assert.match(row.html, /<button class="why" type="button" data-why="[^"]+" aria-expanded="false"/, `${row.key}: the ？ starts closed`);
-    assert.match(row.html, /<div class="note hint" hidden>/, `${row.key}: its description is hidden, not removed`);
+    // A screen reader reads 「？」 as a question mark, and every button would sound the same. The
+    // control names the description it opens, so both are announced.
+    assert.match(row.html, /aria-label="[^"]+"/, `${row.key}: the ？ has an accessible name`);
+    assert.ok(
+      row.html.includes(`aria-controls="note-${esc(row.key)}"`),
+      `${row.key}: the ？ names the description it opens`,
+    );
+    assert.ok(
+      row.html.includes(`<div class="note hint" id="note-${esc(row.key)}" hidden>`),
+      `${row.key}: its description is hidden, not removed, and the id is the one the button names`,
+    );
   }
 
   // The page's own script owns the toggle: a click on ？ opens that row and nothing else.

@@ -42,6 +42,15 @@ export const FILE_OF = {
 
 const dirs = [];
 
+/** Environment values a fixture pinned, with what was there before, so `cleanupAll()` can put it back. */
+const pinnedEnv = [];
+
+/** Pin an environment variable for this process, and remember how to undo it. */
+function pinEnv(key, value) {
+  if (!pinnedEnv.some(([name]) => name === key)) pinnedEnv.push([key, process.env[key]]);
+  process.env[key] = value;
+}
+
 /**
  * Write a throwaway mod. `files` maps a repo-relative path to either an object
  * (rendered as JSON) or a string (written verbatim, for JSONC edge cases).
@@ -71,9 +80,13 @@ export function makeMod(files, { info = {} } = {}) {
   return dir;
 }
 
-/** Remove every directory this process created. Tests call it in `after()`. */
+/** Remove every directory this process created, and put back the environment the fixtures pinned. Tests call it in `after()`. */
 export function cleanupAll() {
   for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+  for (const [key, value] of Object.entries(pinnedEnv).splice(0)) {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
 }
 
 /** Run tools/lint.mjs on a directory and return its parsed --json payload. */
@@ -220,7 +233,7 @@ export function fakeModRoot(base, { log = true } = {}) {
   // the shell says — not %USERPROFILE%\Documents, which a player can move away from. The fixture
   // therefore pins the Documents folder the tools read, so the derivation lands in this fake one.
   const docs = process.platform === "win32" ? path.join(base, "Documents") : base;
-  process.env.SUDAN_DOCUMENTS_DIR = docs;
+  pinEnv("SUDAN_DOCUMENTS_DIR", docs);
   const dir = path.join(docs, "DoubleCross", "SultansGame", "Mod");
   mkdirSync(dir, { recursive: true });
   if (log) {

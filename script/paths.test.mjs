@@ -16,7 +16,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { REPO, cleanupAll, fakeGame, fakeLibrary, fakeModRoot, fakeVanilla, gameInstall, tmpDir } from "./lib/fixture.mjs";
-import { GAME_MARKERS, REQUIRED, judge, documentsDirFor, decodeRegistryAnswer, modInstallDirFor } from "../tools/paths.mjs";
+import { GAME_MARKERS, REQUIRED, ensureGameDir, judge, documentsDirFor, decodeRegistryAnswer, modInstallDirFor } from "../tools/paths.mjs";
 
 const PATHS = path.join(REPO, "tools/paths.mjs");
 after(cleanupAll);
@@ -527,4 +527,25 @@ test("a registry answer in the console's codepage is decoded, not mangled", () =
   const gbk = Buffer.from([0xcf, 0xb2, 0xc2, 0xed, 0xc5, 0xc0, 0xd1, 0xc5]);
   assert.equal(gbk.toString("utf8").includes("\uFFFD"), true, "the fixture must fail as UTF-8");
   assert.equal(decodeRegistryAnswer(gbk), new TextDecoder("gbk").decode(gbk));
+});
+
+test("a derivation that cannot be confirmed does not overwrite a record that still works", () => {
+  const home = tmpDir("sudan-keep-");
+  const lib = fakeLibrary(home);
+  const install = path.join(lib, "steamapps", "common", "Sultan's Game");
+  fakeGame(install, { platform: "win32" });
+  // A mod root the game really wrote, away from the Documents folder this fake machine derives.
+  const oldBase = path.join(tmpDir("sudan-oldroot-"), "SultansGame");
+  mkdirSync(path.join(oldBase, "Mod"), { recursive: true });
+  mkdirSync(path.join(oldBase, "ModLog"), { recursive: true });
+  writeFileSync(path.join(oldBase, "ModLog", "__mod.log"), "");
+  const oldMods = path.join(oldBase, "Mod");
+  const file = stateFile();
+  writeFileSync(file, JSON.stringify({ gameDir: install, modInstallDir: oldMods }, null, 2));
+
+  // The derived folder does not exist (the game never launched under this Documents folder), and
+  // the recorded one still works: the record stands.
+  const out = ensureGameDir({ platform: "win32", home, file });
+  assert.equal(out.modInstallDir, oldMods, JSON.stringify(out));
+  assert.equal(expandHome(JSON.parse(readFileSync(file, "utf8")).modInstallDir, home), oldMods);
 });

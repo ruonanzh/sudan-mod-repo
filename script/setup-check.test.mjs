@@ -50,6 +50,10 @@ test("--check reports the locations paths.mjs verified, in the existing OK/MISS 
   assert.ok(lineOf(r.stdout, "gameDir").includes(shown(w.install)), lineOf(r.stdout, "gameDir"));
   assert.match(lineOf(r.stdout, "vanilla"), /^OK\s+vanilla\s/);
   assert.ok(lineOf(r.stdout, "vanilla").includes(shown(w.cfg)), lineOf(r.stdout, "vanilla"));
+  // The stand-ins install_mod and card-art copy are required files too: a missing one is silent
+  // in the tool (it skips the placeholder), so the check must name it.
+  assert.match(r.stdout, /^OK\s+reference\/placeholders\/preview\.png$/m);
+  assert.match(r.stdout, /^OK\s+reference\/placeholders\/card\.png$/m);
   assert.match(r.stdout, /All required files present\./);
 });
 

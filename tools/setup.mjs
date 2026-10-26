@@ -26,6 +26,9 @@ export const PLATES = ["card.png", "card-stone.png", "card-copper.png", "card-si
 /** The twelve style references the card SKILL tells the agent to expect, one per type and rarity. */
 export const CARD_REFS = ["char", "item", "sudan"].flatMap((type) => [1, 2, 3, 4].map((rare) => `${type}-${rare}.png`));
 
+/** The stand-ins `install_mod` and `card-art` hand to a mod that has no art of its own. */
+export const PLACEHOLDERS = ["preview.png", "card.png"];
+
 /** The files this repository must ship for the preview. Exported so a test can drive it with a fixture. */
 export function referenceStatus(ref = REF) {
   const need = PLATES.map((f) => {
@@ -38,6 +41,9 @@ export function referenceStatus(ref = REF) {
   const cardsPresent = CARD_REFS.filter((f) => existsSync(path.join(ref, "cards", f))).length;
   return [
     ...need,
+    // A missing stand-in is silent otherwise: install_mod skips the placeholder and the player
+    // sees a mod with no picture, with no line saying why.
+    ...PLACEHOLDERS.map((f) => ({ file: `reference/placeholders/${f}`, ok: existsSync(path.join(ref, "placeholders", f)), required: true })),
     { file: "reference/fonts/ (card title font, optional)", ok: fonts > 0, required: false, detail: `${fonts} files` },
     // "One picture is there" is not "the set is complete": the SKILL promises twelve, and a
     // missing one makes the agent draw a card with no style reference instead of stopping.

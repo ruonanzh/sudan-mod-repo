@@ -68,7 +68,8 @@ export function readRepoConfig(repo = REPO) {
 export const REQUIRED = ["gameDir", "vanilla", "modInstallDir"];
 
 /** `~` expands against a home a caller supplied, so a test can describe another machine.
- *  The rule matches `.pi/lib/state.ts`: trim, and only `~` or `~/...` expand. */
+ *  The rule is the one `.pi/lib/state.ts` uses, plus `~\\`: a path pasted from a Windows shell
+ *  arrives with a backslash, and refusing it would leave the tilde in the value. */
 const expandAt = (p, home) => {
   if (p === null || p === undefined) return null;
   const t = String(p).trim();
@@ -724,7 +725,10 @@ export function ensureGameDir(opts = {}) {
     status = "recorded";
   }
 
-  const judged = judge({ gameDir: install, file: null, platform, home: opts.home, env, cfg });
+  // `file` is passed, not null: the record is what `judge` falls back to when the derivation
+  // cannot be confirmed. Judging without it would let a failed derivation overwrite a recorded
+  // path that still works, and a deleted path costs the player more than a stale one.
+  const judged = judge({ gameDir: install, file, platform, home: opts.home, env, cfg });
   const body = recordOf(judged.rows);
   const same = Object.keys(body).every((key) => saved[key] === body[key]);
   // Nothing was discovered when the recorded game directory still holds the game: only the keys
@@ -768,7 +772,7 @@ export function setGameDirWithFallback(opts = {}) {
 
   const judgedGiven = judgeGameDir(given, platform);
   if (judgedGiven.status === "OK") {
-    const judged = judge({ gameDir: judgedGiven.path, file: null, platform, home: opts.home, env, cfg });
+    const judged = judge({ gameDir: judgedGiven.path, file, platform, home: opts.home, env, cfg });
     writeRecord(judged.rows, file);
     return {
       status: "PASS",
@@ -781,7 +785,7 @@ export function setGameDirWithFallback(opts = {}) {
 
   const found = discoverGameDir({ cfg, state: readRecord(file), platform, home, env });
   if (found.install) {
-    const judged = judge({ gameDir: found.install, file: null, platform, home: opts.home, env, cfg });
+    const judged = judge({ gameDir: found.install, file, platform, home: opts.home, env, cfg });
     writeRecord(judged.rows, file);
     return {
       status: "WARN",
