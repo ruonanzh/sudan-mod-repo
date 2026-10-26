@@ -112,7 +112,7 @@ test("the legacy status words do not grow", () => {
   }
   const grown = Object.entries(ceiling)
     .filter(([word, max]) => seen[word].length > max)
-    .map(([word]) => `${word}: ${seen[word].length} > ${max} (${seen[word].join(", ")})`);
+    .map(([word, max]) => `${word}: ${seen[word].length} > ${max} (${seen[word].join(", ")})`);
   assert.deepEqual(
     grown,
     [],

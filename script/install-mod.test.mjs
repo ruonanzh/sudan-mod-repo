@@ -58,7 +58,7 @@ test("install_mod replaces the previous copy instead of merging into it", async 
   const result = await run(await get(), { modDir: mod }, cwd);
   assert.equal(result.details.replaced, true, textOf(result));
   assert.equal(existsSync(path.join(target, "stale.json")), false, "a dropped file must not survive an update");
-  assert.equal(result.details.files, 2);
+  assert.equal(result.details.files, 3, "info.json and config/cards.json, plus the placeholder preview");
 });
 
 test("install_mod leaves the asset manifest and previews behind", async () => {
@@ -67,7 +67,7 @@ test("install_mod leaves the asset manifest and previews behind", async () => {
   const mod = makeMod({ "config/cards.json": "{}\n", "asset_manifest.jsonl": '{"t":"x"}\n', ".preview/a.png": "png" });
   const result = await run(await get(), { modDir: mod }, cwd);
   const target = path.join(root, path.basename(mod));
-  assert.equal(result.details.files, 2, "info.json and config/cards.json only");
+  assert.equal(result.details.files, 3, "info.json and config/cards.json, plus the placeholder preview");
   assert.equal(existsSync(path.join(target, "asset_manifest.jsonl")), false, "the manifest is a work file, not a mod file");
   assert.equal(existsSync(path.join(target, ".preview")), false);
 });
@@ -181,7 +181,35 @@ test("install_mod aligns the file count with what actually lands", async () => {
   assert.equal(existsSync(path.join(target, ".preview")), false, "a mod page is not part of the mod");
   assert.equal(existsSync(path.join(target, ".DS_Store")), false);
   assert.equal(existsSync(path.join(target, "._junk")), false);
-  assert.equal(result.details.files, 2, "info.json and config/cards.json only");
+  assert.equal(result.details.files, 3, "info.json, config/cards.json and the placeholder preview");
+});
+
+// A mod with no thumbnail shows an empty card in the mod panel and on the Workshop page.
+test("install_mod gives a mod without a preview the placeholder thumbnail", async () => {
+  const root = modRoot();
+  const cwd = workspace(root);
+  const mod = makeMod({ "config/cards.json": "{}\n" });
+  const result = await run(await get(), { modDir: mod }, cwd);
+  const text = textOf(result);
+  const target = path.join(root, path.basename(mod));
+  assert.equal(result.details.placeholderPreview, true, text);
+  assert.match(text, /placeholder preview was added/, "the extra file is announced in the PASS line, not silently");
+  const placed = path.join(target, "preview.png");
+  assert.ok(existsSync(placed), text);
+  assert.equal(result.details.files, 3, "the count includes the file that landed");
+  assert.equal(existsSync(path.join(mod, "preview.png")), false, "the mod folder is left alone");
+  assert.ok(readFileSync(placed).length > 1000, "the placeholder is a real image");
+});
+
+test("install_mod keeps a mod's own preview", async () => {
+  const root = modRoot();
+  const cwd = workspace(root);
+  const mod = makeMod({ "config/cards.json": "{}\n", "preview.jpg": "their own" });
+  const result = await run(await get(), { modDir: mod }, cwd);
+  const target = path.join(root, path.basename(mod));
+  assert.equal(result.details.placeholderPreview, false);
+  assert.equal(readFileSync(path.join(target, "preview.jpg"), "utf8"), "their own");
+  assert.equal(existsSync(path.join(target, "preview.png")), false, "no placeholder beside their own thumbnail");
 });
 
 test("install_mod refuses a symlink that points at its own source", async (t) => {

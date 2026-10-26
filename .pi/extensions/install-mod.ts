@@ -8,13 +8,17 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync, copyFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { judge, pathsFile, shorten } from "../../tools/paths.mjs";
 import { parseDoc, toPlain } from "../../tools/jsonc.mjs";
 import { InstallError, installFolder, walk } from "../lib/mod-files";
 import { ascii, clipUtf8 } from "../lib/clip";
 import { absolute, identity, sameOrNested } from "../lib/workspace";
+
+/** The thumbnail the installed copy gets when the mod ships none of its own. */
+const PLACEHOLDER_PREVIEW = fileURLToPath(new URL("../../reference/placeholders/preview.png", import.meta.url));
 
 /** A thrown message is shown to the agent as text too: escape it like any other content. */
 const fail = (message: string): never => {
@@ -150,6 +154,16 @@ export default function (pi: ExtensionAPI) {
       }
 
       const folderName = path.basename(source);
+      // A mod with no thumbnail shows an empty card in the game's mod panel and on the Workshop
+      // page. The placeholder lands in the installed copy only — the mod folder stays as the
+      // author left it — and a mod that later ships its own preview wins, because every install
+      // replaces the whole folder.
+      let placeholder = false;
+      if (!["preview.png", "preview.jpg"].some((n) => existsSync(path.join(target, n))) && existsSync(PLACEHOLDER_PREVIEW)) {
+        copyFileSync(PLACEHOLDER_PREVIEW, path.join(target, "preview.png"));
+        placeholder = true;
+      }
+      const files = copied.files + (placeholder ? 1 : 0);
       // The game shows `info.json`'s `name` and names `ModLog/<name>_local.log` after it; the folder
       // name is only where the files sit. A workshop mod's folder is a numeric id and its name is
       // Chinese, so the two differing is normal — say which name to look for, do not ask for a rename.
@@ -165,7 +179,7 @@ export default function (pi: ExtensionAPI) {
               ascii(
                 [
                   // The name is the player's own text; escape it for a console that cannot print it.
-                  `PASS: installed ${name} to ${shorten(target)} (${copied.files} files${copied.replaced ? ", the previous copy was replaced" : ""}).`,
+                  `PASS: installed ${name} to ${shorten(target)} (${files} files${copied.replaced ? ", the previous copy was replaced" : ""}${placeholder ? ", the placeholder preview was added because the mod ships none" : ""}).`,
                   // No NEXT on PASS: the mod-installer SKILL already tells the agent to have the
                   // player enable the mod and to read the log. Repeating it here adds noise.
                   ...(shown ? [shown] : []),
@@ -180,7 +194,8 @@ export default function (pi: ExtensionAPI) {
           installed: true,
           replaced: copied.replaced,
           target,
-          files: copied.files,
+          files,
+          placeholderPreview: placeholder,
           fileList: walk(source),
           modName: name,
         },
