@@ -314,14 +314,21 @@ function judgeVanilla(dir) {
  * A moved Documents directory shows up only here, never in the environment.
  */
 function personalFolder(key) {
-  try {
-    const out = execFileSync("reg", ["query", key, "/v", "Personal"], { encoding: "utf8", timeout: 5000, windowsHide: true });
-    const line = out.match(/^\s*Personal\s+REG_(?:SZ|EXPAND_SZ)\s+(.+?)\s*$/m);
-    return line ? line[1] : null;
-  } catch {
-    // The key can be missing and reg.exe can be absent: both mean the same thing, no answer.
-    return null;
+  // `reg` by bare name is not enough: the app host runs with its own PATH, and one without
+  // C:\Windows\System32 would silently answer "no registry" and fall back to the wrong folder.
+  const systemRoot = process.env.SystemRoot || process.env.windir || "C:\\Windows";
+  const candidates = [path.win32.join(systemRoot, "System32", "reg.exe"), "reg"];
+  for (const exe of candidates) {
+    try {
+      const out = execFileSync(exe, ["query", key, "/v", "Personal"], { encoding: "utf8", timeout: 5000, windowsHide: true });
+      const line = out.match(/^\s*Personal\s+REG_(?:SZ|EXPAND_SZ)\s+(.+?)\s*$/m);
+      return line ? line[1] : null;
+    } catch (error) {
+      // A missing key is an answer; a missing executable is a reason to try the next spelling.
+      if (error?.code !== "ENOENT") return null;
+    }
   }
+  return null;
 }
 
 let documentsCache;
