@@ -96,6 +96,10 @@ button.exp:disabled { opacity: 0.45; cursor: default; }
 .tags td .note { margin-top: 5px; }
 .tags td .note.bad { color: var(--bad); }
 .readonly { padding-top: 4px; }
+/* A row's description is opt-in: the ？ beside the value opens this one row's note. */
+.why { width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--rule); background: transparent; color: var(--dim); font-size: 12px; line-height: 1; padding: 0; margin-left: 8px; cursor: pointer; vertical-align: middle; }
+.why:hover, .why.open { color: var(--ink); border-color: var(--gold); }
+.val .hint { margin: 6px 0 0; }
 `;
 
 // ---------------------------------------------------------------- values
@@ -343,7 +347,11 @@ export function applyCardValues(text, changes) {
 // ---------------------------------------------------------------- the page
 
 function rowHtml({ key, label, note, control }) {
-  const tip = note ? `<div class="note" style="margin:5px 0 0">${esc(note)}</div>` : "";
+  // The description is long and most rows do not need it, so it stays closed behind the ？.
+  const tip = note
+    ? `<button class="why" type="button" data-why="${esc(key)}" aria-expanded="false" title="这一项是什么意思">？</button>` +
+      `<div class="note hint" hidden>${esc(note)}</div>`
+    : "";
   return `<div class="row" data-key="${esc(key)}">
   <div class="lbl"><code>${esc(key)}</code><span class="key-zh">${esc(label)}</span></div>
   <div class="val">${control}${tip}</div>

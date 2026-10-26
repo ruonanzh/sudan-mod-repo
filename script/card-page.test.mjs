@@ -416,6 +416,37 @@ test("every visible row shows its raw key and its Chinese label", () => {
   assert.match(html, /id="tag-stats"/, "and so is the stat table");
 });
 
+test("a row's description starts closed, and the ？ opens it", () => {
+  const html = page();
+  const rows = rowsOf(html);
+  const described = rows.filter((row) => row.html.includes('class="why"'));
+  assert.ok(described.length >= 5, `expected rows with a description, got ${described.length}`);
+  for (const row of described) {
+    assert.match(row.html, /<button class="why" type="button" data-why="[^"]+" aria-expanded="false"/, `${row.key}: the ？ starts closed`);
+    assert.match(row.html, /<div class="note hint" hidden>/, `${row.key}: its description is hidden, not removed`);
+  }
+
+  // The page's own script owns the toggle: a click on ？ opens that row and nothing else.
+  const { root } = bridgeOf(html);
+  const note = { hidden: true };
+  const row = { querySelector: (selector) => (selector === ".hint" ? note : null) };
+  const button = {
+    attrs: {},
+    classList: { open: false, toggle(_name, on) { this.open = on; } },
+    setAttribute(name, value) { button.attrs[name] = value; },
+    closest: (selector) => (selector === "button.why" ? button : selector === ".row" ? row : null),
+  };
+  const press = () => (root.handlers.click || []).forEach((handler) => handler({ target: { closest: () => button } }));
+
+  press();
+  assert.equal(note.hidden, false, "the click shows the description");
+  assert.equal(button.attrs["aria-expanded"], "true");
+  assert.equal(button.classList.open, true, "the button shows it is open");
+  press();
+  assert.equal(note.hidden, true, "and asking again closes it");
+  assert.equal(button.attrs["aria-expanded"], "false");
+});
+
 test("a marker tag is a checkbox, and a stat tag a number input with its vanilla range", () => {
   const html = page();
   const marker = /<input[^>]*data-tag-level="男性"[^>]*>/.exec(html);

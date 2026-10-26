@@ -394,6 +394,19 @@
     });
     wireNotifyButtons();
     wireRecordAsk();
+    // A paragraph beside every control drowns the values, so each row's description starts
+    // closed: the ? opens one, and asking the same one again closes it.
+    root.addEventListener("click", function (event) {
+      var button = event.target && event.target.closest ? event.target.closest("button.why") : null;
+      if (!button || (root.contains && !root.contains(button))) return;
+      var row = button.closest(".row");
+      var note = row && row.querySelector(".hint");
+      if (!note) return;
+      var open = note.hidden;
+      note.hidden = !open;
+      button.setAttribute("aria-expanded", open ? "true" : "false");
+      button.classList.toggle("open", open);
+    });
   }
 
 
