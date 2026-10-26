@@ -481,3 +481,34 @@ test("the mod directory follows the Documents folder the system reports", () => 
     String.raw`C:\Users\tester\Documents\DoubleCross\SultansGame\Mod`,
   );
 });
+
+// ------------------------------------------------- the record is a cache of what this machine derives
+
+test("a recorded key this machine no longer derives is reported as stale", () => {
+  const world = homeWorld();
+  const file = stateFile();
+  // A record from before the player moved the Documents folder: the game directory still holds
+  // the game, so the row is OK, and only the derived key disagrees.
+  const oldMods = path.join(tmpDir("sudan-old-documents-"), "Documents", "DoubleCross", "SultansGame", "Mod");
+  writeFileSync(file, JSON.stringify({ gameDir: world.install, modInstallDir: oldMods }, null, 2));
+
+  const judged = judge({ home: world.home, file });
+  assert.deepEqual(judged.stale.map((s) => s.key), ["modInstallDir"], JSON.stringify(judged.stale));
+  assert.equal(judged.stale[0].recorded, oldMods);
+  assert.equal(judged.stale[0].derived, world.mods);
+  // The report still names the working path: staleness is a warning, never a failure.
+  assert.equal(judged.rows.find((r) => r.name === "gameDir").status, "OK");
+});
+
+test("a record that agrees with the derivation is not stale, and a path the caller states is not compared", () => {
+  const world = homeWorld();
+  const file = stateFile();
+  writeFileSync(file, JSON.stringify({ gameDir: world.install, modInstallDir: world.mods }, null, 2));
+  assert.deepEqual(judge({ home: world.home, file }).stale, []);
+
+  // A caller that passes a mod root of its own asks about that folder, so the record is not the
+  // subject of the check and must not be called out of date.
+  const elsewhere = path.join(tmpDir("sudan-stated-"), "Mod");
+  const stated = judge({ home: world.home, file, modInstallDir: elsewhere });
+  assert.deepEqual(stated.stale, [], JSON.stringify(stated.stale));
+});

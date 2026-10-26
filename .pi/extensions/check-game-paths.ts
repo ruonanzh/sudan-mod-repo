@@ -65,15 +65,23 @@ export default function (pi: ExtensionAPI) {
               text: clipUtf8(ascii(`FAIL: nothing to check - no paths were given and none are recorded in this workspace's state file (${shorten(file)}).\nNEXT: run try_set_game_dir with no arguments to find the game, or pass gameDir explicitly. See the 'setup-workspace' skill if discovery fails.`)),
             },
           ],
-          details: { ok: false, reason: "NOTHING_TO_CHECK", rows: [], failed: [], wroteState: false, present: recorded.present },
+          details: { ok: false, reason: "NOTHING_TO_CHECK", rows: [], failed: [], stale: [], wroteState: false, present: recorded.present },
         };
       }
 
-      const { rows, ok, problem } = judge({ ...targets, file });
+      const { rows, ok, problem, stale } = judge({ ...targets, file });
       const judged = rows as PathRow[];
 
       const lines = formatRows(judged);
       if (problem) lines.push(`WARN: ${problem}`);
+      // The record is a cache of what this machine derives. When the two disagree, one of them is
+      // old, and the derived value is the measurement: the player moved the folder, or installed
+      // the game in another library. Name both, and the tool that records the derived value.
+      for (const entry of stale as Array<{ key: string; recorded: string; derived: string }>) {
+        lines.push(
+          `WARN: the state file records ${entry.key} ${shorten(entry.recorded)}, but this machine derives ${shorten(entry.derived)} - the record is out of date. Run try_set_game_dir (no arguments) to repair it.`,
+        );
+      }
       if (!recorded.present) {
         lines.push(
           `NOTE: ${shorten(file)} does not exist yet; the locations below came from the arguments you passed and what they derive.`,
@@ -92,7 +100,7 @@ export default function (pi: ExtensionAPI) {
 
       return {
         content: [{ type: "text", text: clipUtf8(ascii(lines.join("\n"))) }],
-        details: { ok, rows: judged, failed: failedNames(judged), wroteState: false, present: recorded.present },
+        details: { ok, rows: judged, failed: failedNames(judged), stale, wroteState: false, present: recorded.present },
       };
     },
   });

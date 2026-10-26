@@ -561,12 +561,20 @@ export function writeRecord(rows, file = pathsFile()) {
 // The judgment
 // ---------------------------------------------------------------------------
 
+/** Two paths name the same directory. Windows and macOS compare case-insensitively, and either can mix separators. */
+function samePath(a, b, platform) {
+  const norm = (v) => String(v).replace(/\\/g, "/").replace(/\/+$/, "");
+  const [x, y] = [norm(a), norm(b)];
+  return platform === "linux" ? x === y : x.toLowerCase() === y.toLowerCase();
+}
+
 /**
  * Judge every location once. `opts` exists so a test can build a whole world in a temp
  * directory: pass `platform`, `home`, `env`, `cfg` or `file` to replace the real ones.
  *
- * Returns `{ rows, ok, problem, present }`; `ok` is true when every required row is OK, and
- * `present` is false when the state file does not exist yet.
+ * Returns `{ rows, ok, problem, present, stale }`; `ok` is true when every required row is OK,
+ * `present` is false when the state file does not exist yet, and `stale` lists the recorded keys
+ * that disagree with what this machine derives (empty when the file describes it correctly).
  */
 export function judge(opts = {}) {
   const platform = opts.platform ?? process.platform;
@@ -614,7 +622,30 @@ export function judge(opts = {}) {
 
   const rows = [game, vanilla, modInstall, workshop];
   const ok = REQUIRED.every((name) => rows.find((r) => r.name === name)?.status === "OK");
-  return { rows, ok, problem: saved.problem, present: saved.present };
+
+  // The state file is a cache of what this machine derives, and the thing it derives from can
+  // change under it (a player moves the Documents folder, or installs the game in another
+  // library). A recorded key that disagrees names a folder this machine no longer uses, so the
+  // report says which key is out of date and points at the tool that repairs it. Nothing here
+  // writes: `ensureGameDir` records again, and only when it is asked to.
+  const derived = {
+    gameDir: game.status === "OK" ? game.path : null,
+    modInstallDir: derivedMod,
+    workshopDir: workshopFrom(game.status === "OK" ? game.path : null),
+  };
+  const stale = [];
+  for (const key of Object.keys(derived)) {
+    const recordedValue = saved[key];
+    const now = derived[key];
+    if (!recordedValue || !now) continue;
+    // A caller that passes a path of its own is asking about that path, not about the record.
+    const stated = opts[key];
+    if (stated !== undefined && !samePath(expandAt(stated, home), expandAt(recordedValue, home), platform)) continue;
+    if (samePath(expandAt(recordedValue, home), now, platform)) continue;
+    stale.push({ key, recorded: recordedValue, derived: now });
+  }
+
+  return { rows, ok, problem: saved.problem, present: saved.present, stale };
 }
 
 /** The three derived locations a recording tool reports, taken from its judged rows. */
@@ -824,9 +855,16 @@ const judgeArgs = (args) => ({
 });
 
 function check(args) {
-  const { rows, ok, problem } = judge(judgeArgs(args));
+  const { rows, ok, problem, stale } = judge(judgeArgs(args));
   printRows(rows);
   if (problem) emit("WARN", problem, "fix or delete the file, or pass --paths <file>");
+  for (const entry of stale) {
+    emit(
+      "WARN",
+      `the state file records ${entry.key} ${shorten(entry.recorded)}, but this machine derives ${shorten(entry.derived)} - the record is out of date`,
+      "run `node tools/paths.mjs set` with no --game-dir to record the derived paths again",
+    );
+  }
   if (ok) {
     emit("PASS", "every required location is OK");
     return 0;
