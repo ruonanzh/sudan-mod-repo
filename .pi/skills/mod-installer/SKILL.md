@@ -11,7 +11,7 @@ description: 把一个苏丹的游戏 mod 装进游戏，并确认游戏真的�
 
 ```
 macOS    ~/DoubleCross/SultansGame/Mod/
-Windows  %USERPROFILE%\Documents\DoubleCross\SultansGame\Mod\
+Windows  <系统的「文档」文件夹>\DoubleCross\SultansGame\Mod\   （玩家可以搬走它）
 ```
 
 游戏用 `GetFolderPath(MyDocuments)` 拼上公司名、`"SultansGame"` 与 `"Mod"` 推出它。macOS 上 `MyDocuments` 是家目录，Windows 上是 `Documents`。两条路径的差别只有这一处，不要拿一个去推另一个。
@@ -22,7 +22,7 @@ Windows  %USERPROFILE%\Documents\DoubleCross\SultansGame\Mod\
 
 先把 `validate_mod` 跑到 `PASS`（见 `mod-creator` 的验收）。装一个没验过的 mod，出错时无法分辨是数据写错还是复制出错。
 
-调 `install_mod`，参数 `modDir=your_mods/<ModName>`。它把整个文件夹复制到 `<ModRoot>/<ModName>/`；遇到旧副本时先删掉再复制，所以旧版多出来的文件不会残留。仓库里的那一份是源文件，工具只读不写。不要改用 shell 复制：工具会整份替换并报告实际写入的目录。mod 没写 `preview.png` 时，安装副本会得到 `reference/placeholders/preview.png`，PASS 行会说出来。
+调 `install_mod`，参数 `modDir=your_mods/<ModName>`。它把整个文件夹复制到 `<ModRoot>/<ModName>/`；遇到旧副本时先删掉再复制，所以旧版多出来的文件不会残留。仓库里的那一份是源文件，工具只读不写。不要改用 shell 复制：工具会整份替换并报告实际写入的目录。mod 没写 `preview.png`、`preview.jpg` 时，安装副本会得到 `reference/placeholders/preview.png`，PASS 行会说出来。
 
 文件夹名与 `info.json` 的 `name` 字段互不相干。文件夹名出现在文件路径里，`name` 字段是 mod 面板上显示的名字。
 

@@ -27,7 +27,7 @@ description: 苏丹的游戏 mod 工作区的环境准备。先记下游戏目�
 
 `vanillaDir` 与 `workshopDir` 都由 `gameDir` 派生：把 `gameDir` 弄对（`try_set_game_dir` 或 `set_game_dir`），这两项会在**当前平台**上一起算好。
 `modInstallDir` **不**由 `gameDir` 派生。游戏用 `Environment.GetFolderPath(MyDocuments)` 加 `Application.companyName`（`DoubleCross`）算 `modInstallDir`，与游戏装在哪无关。
-macOS 的 `MyDocuments` 是 `$HOME`，Windows 的是 `%USERPROFILE%\Documents`。`mod-repo.json` 的 `modInstall` 记着同一条推导。
+macOS 的 `MyDocuments` 是 `$HOME`；Windows 的是系统的「文档」文件夹，玩家可以搬到别的盘，工具读注册表的 `Personal` 值（`%USERPROFILE%\Documents` 只是默认值）。`mod-repo.json` 的 `modInstall` 记着同一条推导。
 所以只把 `gameDir` 弄对，`modInstallDir` 仍可能是错的。
 
 报告逐行叫 `gameDir`、`vanilla`、`modInstallDir`、`workshopDir`；`vanilla` 这一行就是派生的 `vanillaDir`，命令行与工具读的是同一份判定，看哪一份都一样。
