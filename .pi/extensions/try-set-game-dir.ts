@@ -51,10 +51,15 @@ export default function (pi: ExtensionAPI) {
         };
       }
 
-      const lines = [
-        `PASS: gameDir ${out.status === "already" ? "already correct" : "discovered and recorded"} (${shorten(out.recorded)})`,
-        ...derivedLines(out),
-      ];
+      // `already` means nothing was written. `derived` means the game directory was already
+      // correct and only the locations derived from it changed, so no search ran.
+      const said =
+        out.status === "already"
+          ? "already correct"
+          : out.status === "derived"
+            ? "already correct - the derived paths were recorded again"
+            : "discovered and recorded";
+      const lines = [`PASS: gameDir ${said} (${shorten(out.recorded)})`, ...derivedLines(out)];
       for (const warning of out.warnings) lines.push(`WARN: ${warning}`);
       return {
         content: [{ type: "text", text: clipUtf8(ascii(lines.join("\n"))) }],
@@ -64,7 +69,7 @@ export default function (pi: ExtensionAPI) {
           vanillaDir: out.vanillaDir,
           modInstallDir: out.modInstallDir,
           workshopDir: out.workshopDir,
-          wroteState: out.status === "recorded",
+          wroteState: out.status !== "already",
         },
       };
     },

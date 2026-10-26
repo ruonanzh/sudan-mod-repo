@@ -16,7 +16,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { REPO, cleanupAll, fakeGame, fakeLibrary, fakeModRoot, fakeVanilla, gameInstall, tmpDir } from "./lib/fixture.mjs";
-import { GAME_MARKERS, REQUIRED, judge, documentsDirFor, modInstallDirFor } from "../tools/paths.mjs";
+import { GAME_MARKERS, REQUIRED, judge, documentsDirFor, decodeRegistryAnswer, modInstallDirFor } from "../tools/paths.mjs";
 
 const PATHS = path.join(REPO, "tools/paths.mjs");
 after(cleanupAll);
@@ -456,7 +456,12 @@ test("the Windows shape joins with a backslash and needs no HOME", () => {
 test("a moved Documents folder is the one the mod directory sits in", { skip: process.platform === "win32" ? false : "reads the Windows registry" }, () => {
   const shellFolders = (answer) => (key) => (key.includes("User Shell Folders") ? null : answer);
 
-  assert.equal(documentsDirFor({ platform: "win32", read: shellFolders("D:\Doc\Document") }), "D:\Doc\Document");
+  // String.raw keeps the backslashes: a Windows path written with `\` loses them to escape rules,
+  // and both sides of the comparison would then be the same wrong string.
+  const moved = String.raw`D:\Doc\Documents`;
+  assert.equal(documentsDirFor({ platform: "win32", read: shellFolders(moved) }), moved);
+  const dotted = String.raw`D:\Doc\A.B`;
+  assert.equal(documentsDirFor({ platform: "win32", read: shellFolders(dotted) }), dotted, "a path is not a regular expression");
   // `User Shell Folders` can hold `%USERPROFILE%`; it is expanded, never taken literally.
   const expected = path.win32.join(process.env.USERPROFILE || process.env.HOME || "", "Documents");
   assert.equal(documentsDirFor({ platform: "win32", read: () => "%USERPROFILE%\\Documents" }), expected);
@@ -511,4 +516,15 @@ test("a record that agrees with the derivation is not stale, and a path the call
   const elsewhere = path.join(tmpDir("sudan-stated-"), "Mod");
   const stated = judge({ home: world.home, file, modInstallDir: elsewhere });
   assert.deepEqual(stated.stale, [], JSON.stringify(stated.stale));
+});
+
+test("a registry answer in the console's codepage is decoded, not mangled", () => {
+  const plain = Buffer.from(String.raw`C:\Users\tester\Documents`, "utf8");
+  assert.equal(decodeRegistryAnswer(plain), String.raw`C:\Users\tester\Documents`);
+
+  // A Chinese Windows answers in GBK. Decoded as UTF-8 those bytes are replacement characters, so
+  // the fallback is the only thing that keeps the path usable.
+  const gbk = Buffer.from([0xcf, 0xb2, 0xc2, 0xed, 0xc5, 0xc0, 0xd1, 0xc5]);
+  assert.equal(gbk.toString("utf8").includes("\uFFFD"), true, "the fixture must fail as UTF-8");
+  assert.equal(decodeRegistryAnswer(gbk), new TextDecoder("gbk").decode(gbk));
 });

@@ -43,21 +43,18 @@ export default function (pi: ExtensionAPI) {
       const cwd = ctx.cwd;
       const file = pathsFile(cwd);
       const recorded = readRecord(file);
-      // A passed path replaces the recorded one, per key. A key left out is judged from the
-      // record, and `judge` starts a discovery scan when no game directory is recorded — this tool
-      // is read-only, but it is not scan-free.
-      const anyGiven = Boolean(params.gameDir?.trim() || params.workshopDir?.trim() || params.modInstallDir?.trim());
-      const use = (given: string | undefined, saved: string | null): string | undefined => {
-        if (anyGiven) return given?.trim() ? absolute(cwd, given.trim()) : undefined;
-        return saved ? absolute(cwd, saved) : undefined;
-      };
-
+      // A passed path replaces the recorded one, per key. A key left out is left out: `judge` reads
+      // the record itself and prefers the value this machine derives, so a stale record cannot
+      // stand in for the live one (passing the record back as an argument would make it explicit,
+      // and an explicit value wins).
+      const target = (given: string | undefined) => (given?.trim() ? absolute(cwd, given.trim()) : undefined);
       const targets = {
-        gameDir: use(params.gameDir, recorded.gameDir),
-        workshopDir: use(params.workshopDir, recorded.workshopDir),
-        modInstallDir: use(params.modInstallDir, recorded.modInstallDir),
+        gameDir: target(params.gameDir),
+        workshopDir: target(params.workshopDir),
+        modInstallDir: target(params.modInstallDir),
       };
-      if (!targets.gameDir && !targets.workshopDir && !targets.modInstallDir) {
+      const nothing = !targets.gameDir && !targets.workshopDir && !targets.modInstallDir && !recorded.gameDir && !recorded.workshopDir && !recorded.modInstallDir;
+      if (nothing) {
         return {
           content: [
             {

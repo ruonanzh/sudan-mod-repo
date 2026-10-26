@@ -310,6 +310,23 @@ function judgeVanilla(dir) {
 // ---------------------------------------------------------------------------
 
 /**
+ * The text `reg.exe` printed. A Windows console answers in the machine's ANSI codepage, never in
+ * UTF-8: on a Chinese Windows the path comes back as GBK, and decoding that as UTF-8 turns every
+ * CJK character into U+FFFD, so the derived mod directory points at a folder that does not exist.
+ * The answer is read as bytes, tried as UTF-8, and read as GBK when that attempt failed.
+ */
+export function decodeRegistryAnswer(buffer) {
+  const utf8 = buffer.toString("utf8");
+  if (!utf8.includes("\uFFFD")) return utf8;
+  try {
+    return new TextDecoder("gbk").decode(buffer);
+  } catch {
+    // No GBK table in this build: the mangled answer is still better than throwing at import time.
+    return utf8;
+  }
+}
+
+/**
  * The `Personal` value under one registry key: the line reads `    Personal    REG_SZ    <path>`.
  * A moved Documents directory shows up only here, never in the environment.
  */
@@ -320,7 +337,10 @@ function personalFolder(key) {
   const candidates = [path.win32.join(systemRoot, "System32", "reg.exe"), "reg"];
   for (const exe of candidates) {
     try {
-      const out = execFileSync(exe, ["query", key, "/v", "Personal"], { encoding: "utf8", timeout: 5000, windowsHide: true });
+      // Bytes, not text: the console codepage decides how the path is encoded, and `encoding:
+      // "utf8"` would decode a GBK answer into replacement characters.
+      const raw = execFileSync(exe, ["query", key, "/v", "Personal"], { encoding: "buffer", timeout: 5000, windowsHide: true });
+      const out = decodeRegistryAnswer(raw);
       const line = out.match(/^\s*Personal\s+REG_(?:SZ|EXPAND_SZ)\s+(.+?)\s*$/m);
       return line ? line[1] : null;
     } catch (error) {

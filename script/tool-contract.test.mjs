@@ -16,6 +16,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { REPO, cleanupAll, makeMod } from "./lib/fixture.mjs";
 import { loadExtension } from "./lib/load-extension.mjs";
+import { modInstallDirFor } from "../tools/paths.mjs";
 
 test.after(cleanupAll);
 
@@ -81,16 +82,32 @@ test("an illegal call throws with a code; a missing prerequisite is PARTIAL", as
 test("a tool that worked returns PASS and no NEXT", async () => {
   const tool = await loadExtension("install-mod.ts");
   const home = mkdtempSync(path.join(tmpdir(), "contract-install-"));
-  const root = path.join(home, "SultansGame", "Mod");
-  mkdirSync(root, { recursive: true });
-  mkdirSync(path.join(home, "SultansGame", "ModLog"), { recursive: true });
-  writeFileSync(path.join(home, "SultansGame", "ModLog", "__mod.log"), "");
-  const cwd = mkdtempSync(path.join(tmpdir(), "contract-ws-"));
-  writeFileSync(path.join(cwd, ".gamer-agent.local.json"), JSON.stringify({ modInstallDir: root }));
-  const result = await tool.execute("c", { modDir: makeMod({}) }, undefined, undefined, { cwd });
-  const text = result.content.map((c) => c.text).join("\n");
-  assert.match(text, /^PASS:/);
-  assert.doesNotMatch(text, /NEXT:/);
+  // The mod root comes from the derivation itself, and the environment is pinned to the throwaway
+  // home first: the derived value wins over the record, so an unpinned run resolves the player's
+  // real Documents folder and installs the fixture mod there.
+  const before = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE, SUDAN_DOCUMENTS_DIR: process.env.SUDAN_DOCUMENTS_DIR };
+  process.env.HOME = home;
+  process.env.USERPROFILE = home;
+  process.env.SUDAN_DOCUMENTS_DIR = path.join(home, "Documents");
+  try {
+    const root = modInstallDirFor({ platform: process.platform, home });
+    const base = path.dirname(root);
+    mkdirSync(root, { recursive: true });
+    mkdirSync(path.join(base, "ModLog"), { recursive: true });
+    writeFileSync(path.join(base, "ModLog", "__mod.log"), "");
+    const cwd = mkdtempSync(path.join(tmpdir(), "contract-ws-"));
+    writeFileSync(path.join(cwd, ".gamer-agent.local.json"), JSON.stringify({ modInstallDir: root }));
+    const result = await tool.execute("c", { modDir: makeMod({}) }, undefined, undefined, { cwd });
+    const text = result.content.map((c) => c.text).join("\n");
+    assert.match(text, /^PASS:/);
+    assert.doesNotMatch(text, /NEXT:/);
+    assert.equal(root.startsWith(home), true, `the mod root must be inside the throwaway home: ${root}`);
+  } finally {
+    for (const [key, value] of Object.entries(before)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
 });
 
 // The vocabulary is closed: script/prompt-standard.md §5.4 names PASS, WARN, FAIL and PARTIAL as
