@@ -49,7 +49,7 @@ dump 在 `~/.gamer-agent-pi/decompiled/`，不在仓库里，也不要手改。�
 ```
 <ModName>/
   info.json          必需
-  preview.png|jpg    可选, 创意工坊缩略图, 游戏用 "preview.*" 通配, 不校验尺寸
+  preview.png|jpg    可选, 创意工坊缩略图, 游戏用 "preview.*" 通配, 不校验尺寸；不写时安装副本会得到占位图
   config/            数据, 镜像 StreamingAssets/config/
   image/             贴图, 递归遍历
   bgm/               音频, 递归遍历
