@@ -96,8 +96,13 @@ button.exp:disabled { opacity: 0.45; cursor: default; }
 .tags td .note { margin-top: 5px; }
 .tags td .note.bad { color: var(--bad); }
 .readonly { padding-top: 4px; }
-/* A row's description is opt-in: the ？ beside the value opens this one row's note. */
-.why { width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--rule); background: transparent; color: var(--dim); font-size: 12px; line-height: 1; padding: 0; margin-left: 8px; cursor: pointer; vertical-align: middle; }
+/* The ？ sits on the control's own line: the field flexes, the button keeps its size, and the
+   description drops to a line of its own under both. */
+.val { display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px; }
+.val > input, .val > select, .val > textarea, .val > .readonly { flex: 1 1 auto; width: auto; min-width: 0; }
+.val > .why { flex: 0 0 auto; margin-left: 0; }
+.val > .hint { flex: 1 1 100%; }
+.why { width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--rule); background: transparent; color: var(--dim); font-size: 12px; line-height: 1; padding: 0; cursor: pointer; flex: 0 0 auto; }
 .why:hover, .why.open { color: var(--ink); border-color: var(--gold); }
 .val .hint { margin: 6px 0 0; }
 `;
