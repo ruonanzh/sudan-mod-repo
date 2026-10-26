@@ -11,11 +11,12 @@
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { REPO, cleanupAll, fakeGame, fakeLibrary, fakeModRoot, fakeVanilla, gameInstall, tmpDir } from "./lib/fixture.mjs";
-import { GAME_MARKERS, REQUIRED, judge } from "../tools/paths.mjs";
+import { GAME_MARKERS, REQUIRED, judge, documentsDirFor, modInstallDirFor } from "../tools/paths.mjs";
 
 const PATHS = path.join(REPO, "tools/paths.mjs");
 after(cleanupAll);
@@ -31,7 +32,9 @@ const run = (args, home) =>
   spawnSync(process.execPath, [PATHS, ...args], {
     cwd: REPO,
     encoding: "utf8",
-    env: home ? { ...process.env, HOME: home, USERPROFILE: home } : process.env,
+    // A faked home also fakes Documents: on Windows the real folder is read from the registry,
+    // and that one is not the folder this made-up machine has.
+    env: home ? { ...process.env, HOME: home, USERPROFILE: home, SUDAN_DOCUMENTS_DIR: path.join(home, "Documents") } : process.env,
   });
 
 /** The printed line for one location, whatever the alignment. */
@@ -444,5 +447,37 @@ test("the Windows shape joins with a backslash and needs no HOME", () => {
   assert.ok(
     got.candidates.every((c) => !c.includes("/")),
     `a Windows candidate must not be a POSIX path: ${JSON.stringify(got.candidates)}`,
+  );
+});
+
+// A player can move Documents to another drive, and `%USERPROFILE%\Documents` is then either
+// missing or an empty leftover. The game asks Windows for the folder, so the mod directory has
+// to come from the same answer.
+test("a moved Documents folder is the one the mod directory sits in", { skip: process.platform === "win32" ? false : "reads the Windows registry" }, () => {
+  const shellFolders = (answer) => (key) => (key.includes("User Shell Folders") ? null : answer);
+
+  assert.equal(documentsDirFor({ platform: "win32", read: shellFolders("D:\Doc\Document") }), "D:\Doc\Document");
+  // `User Shell Folders` can hold `%USERPROFILE%`; it is expanded, never taken literally.
+  const expected = path.win32.join(process.env.USERPROFILE || process.env.HOME || "", "Documents");
+  assert.equal(documentsDirFor({ platform: "win32", read: () => "%USERPROFILE%\\Documents" }), expected);
+  // An unreadable registry keeps the old answer instead of failing the check.
+  assert.equal(documentsDirFor({ platform: "win32", read: () => null }), path.win32.join(os.homedir(), "Documents"));
+});
+
+test("the mod directory follows the Documents folder the system reports", () => {
+  const moved = tmpDir("sudan-docs-");
+  const before = process.env.SUDAN_DOCUMENTS_DIR;
+  process.env.SUDAN_DOCUMENTS_DIR = moved;
+  try {
+    assert.equal(modInstallDirFor({ platform: "win32" }), path.win32.join(moved, "DoubleCross", "SultansGame", "Mod"));
+  } finally {
+    if (before === undefined) delete process.env.SUDAN_DOCUMENTS_DIR;
+    else process.env.SUDAN_DOCUMENTS_DIR = before;
+  }
+  // An explicit home still describes a made-up machine, so a test never reads the real folder.
+  // String.raw keeps the backslashes: a Windows path written with `\` loses them to escape rules.
+  assert.equal(
+    modInstallDirFor({ platform: "win32", home: String.raw`C:\Users\tester` }),
+    String.raw`C:\Users\tester\Documents\DoubleCross\SultansGame\Mod`,
   );
 });

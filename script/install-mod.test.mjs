@@ -111,10 +111,12 @@ test("install_mod reports FAIL when no mod directory is recorded", async () => {
   const cwd = workspace(null);
   const mod = makeMod({});
   // An empty home keeps discovery from finding this machine's real install: the test must not
-  // write into it.
-  const before = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE };
+  // write into it. Documents is pinned too, because the real one is read from the registry and
+  // this machine therefore has a mod directory that a bare HOME does not hide.
+  const before = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE, SUDAN_DOCUMENTS_DIR: process.env.SUDAN_DOCUMENTS_DIR };
   process.env.HOME = tmpDir("install-empty-home-");
   process.env.USERPROFILE = process.env.HOME;
+  process.env.SUDAN_DOCUMENTS_DIR = process.env.HOME;
   let result;
   try {
     result = await run(await get(), { modDir: mod }, cwd);
@@ -122,6 +124,8 @@ test("install_mod reports FAIL when no mod directory is recorded", async () => {
     process.env.HOME = before.HOME;
     if (before.USERPROFILE === undefined) delete process.env.USERPROFILE;
     else process.env.USERPROFILE = before.USERPROFILE;
+    if (before.SUDAN_DOCUMENTS_DIR === undefined) delete process.env.SUDAN_DOCUMENTS_DIR;
+    else process.env.SUDAN_DOCUMENTS_DIR = before.SUDAN_DOCUMENTS_DIR;
   }
   const text = textOf(result);
   assert.match(text, /^FAIL:/, text);

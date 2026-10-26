@@ -11,7 +11,7 @@
     }
   },
   "modInstall": {
-    "_note": "The game computes MOD_ROOT with Environment.GetFolderPath(MyDocuments). On Windows that is %USERPROFILE%\\Documents; on macOS/Unix it is $HOME. So the two platforms have different roots. Verified in game: /Users/<user>/DoubleCross/SultansGame/Mod/",
+    "_note": "The game computes MOD_ROOT with Environment.GetFolderPath(MyDocuments). Windows answers with the folder the player picked in the properties of Documents, so it is not always %USERPROFILE%\\Documents (a moved one is common); macOS/Unix answers $HOME. So the two platforms have different roots. Verified in game: /Users/<user>/DoubleCross/SultansGame/Mod/",
     "relativeTo": {
       "windows": "userDocuments",
       "mac": "home"

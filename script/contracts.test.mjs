@@ -28,9 +28,12 @@ const textOf = (result) => (result.content || []).map((c) => c.text || "").join(
 const stateOf = (cwd) => path.join(cwd, ".gamer-agent.local.json");
 
 async function withHome(home, body) {
-  const before = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE };
+  // A faked home also fakes the Documents folder: the real one is read from the registry, and it
+  // is not the one this made-up machine has.
+  const before = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE, SUDAN_DOCUMENTS_DIR: process.env.SUDAN_DOCUMENTS_DIR };
   process.env.HOME = home;
   process.env.USERPROFILE = home;
+  process.env.SUDAN_DOCUMENTS_DIR = path.join(home, "Documents");
   try {
     return await body();
   } finally {

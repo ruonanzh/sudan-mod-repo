@@ -25,7 +25,8 @@
  *
  *   gameDir        the install, the folder holding Sultan's Game.app / Sultan's Game_Data
  *   workshopDir    <library>/steamapps/workshop/content/3117820, derived from gameDir by path
- *   modInstallDir  <MyDocuments>/DoubleCross/SultansGame/Mod, derived from MyDocuments
+ *   modInstallDir  <MyDocuments>/DoubleCross/SultansGame/Mod, derived from MyDocuments, which on
+ *                  Windows is whatever the shell reports: a player can move it to another drive
  *   runtime        the dotnet path check_runtime resolved; never read or written here
  *
  * `vanillaDir` is not a key: it is derived from `gameDir` on every call, so a recorded one could
@@ -41,6 +42,7 @@
  * Exit codes: 0 when every required location is OK, 1 otherwise, 2 for a usage mistake.
  */
 import { accessSync, constants, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -308,17 +310,74 @@ function judgeVanilla(dir) {
 // ---------------------------------------------------------------------------
 
 /**
- * `<MyDocuments>/DoubleCross/SultansGame/Mod`. The game computes it with
- * `Environment.GetFolderPath(MyDocuments)`: `%USERPROFILE%\Documents` on Windows, `$HOME` on
- * macOS. `mod-repo.json` records the same two facts, and is read when a caller passes `cfg`.
+ * The `Personal` value under one registry key: the line reads `    Personal    REG_SZ    <path>`.
+ * A moved Documents directory shows up only here, never in the environment.
  */
-export function modInstallDirFor({ platform = process.platform, home = os.homedir(), cfg = null } = {}) {
+function personalFolder(key) {
+  try {
+    const out = execFileSync("reg", ["query", key, "/v", "Personal"], { encoding: "utf8", timeout: 5000, windowsHide: true });
+    const line = out.match(/^\s*Personal\s+REG_(?:SZ|EXPAND_SZ)\s+(.+?)\s*$/m);
+    return line ? line[1] : null;
+  } catch {
+    // The key can be missing and reg.exe can be absent: both mean the same thing, no answer.
+    return null;
+  }
+}
+
+let documentsCache;
+
+/**
+ * The player's Documents directory, asked of the system on Windows.
+ *
+ * A player can move it (a second drive is the common reason), and `<home>/Documents` then either
+ * does not exist or is an empty leftover. The game asks the shell for the folder, so the answer
+ * comes from the same two registry keys: `Shell Folders` holds it resolved, `User Shell Folders`
+ * may hold `%USERPROFILE%` and is expanded.
+ *
+ * A caller that passes `home` is describing a machine it made up; the lookup is skipped and
+ * `<home>/Documents` stands in, so a test never reads the real registry. `SUDAN_DOCUMENTS_DIR`
+ * pins the answer outright, which is what a test that only fakes the environment needs, and
+ * `read` replaces the registry call itself so a test can state what the machine would answer.
+ */
+export function documentsDirFor({ platform = process.platform, home = null, documents = null, read = null } = {}) {
+  const p = styleOf(platform);
+  const pinned = documents ?? (process.env.SUDAN_DOCUMENTS_DIR ? process.env.SUDAN_DOCUMENTS_DIR.trim() : null);
+  if (pinned) return p.normalize(pinned);
+  if (home !== null) return p.join(home, "Documents");
+  const fallback = p.join(os.homedir(), "Documents");
+  if (platform !== "win32" || process.platform !== "win32") return fallback;
+  const lookup = read ?? personalFolder;
+  if (!read && documentsCache !== undefined) return documentsCache ?? fallback;
+  let answer = null;
+  for (const key of [
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders",
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders",
+  ]) {
+    const raw = lookup(key);
+    if (!raw) continue;
+    const expanded = raw.replace(/%([^%]+)%/g, (_m, name) => process.env[name] ?? process.env[name.toUpperCase()] ?? "");
+    const dir = p.win32.normalize(expanded.replace(/[\\/]+$/, ""));
+    if (expanded.includes("%") || !dir) continue;
+    answer = dir;
+    break;
+  }
+  if (!read) documentsCache = answer;
+  return answer ?? fallback;
+}
+
+/**
+ * `<MyDocuments>/DoubleCross/SultansGame/Mod`. The game computes it with
+ * `Environment.GetFolderPath(MyDocuments)`: the folder Windows reports on Windows (a player can
+ * move it, so it is not `%USERPROFILE%\Documents`), `$HOME` on macOS. `mod-repo.json` records the
+ * same two facts, and is read when a caller passes `cfg`.
+ */
+export function modInstallDirFor({ platform = process.platform, home = null, cfg = null, documents = null } = {}) {
   const p = styleOf(platform);
   const spec = cfg?.modInstall ?? null;
   const declared = spec?.path?.[platform];
   const rel = typeof declared === "string" && declared.trim() ? declared : "DoubleCross/SultansGame/Mod";
   const relativeTo = spec?.relativeTo?.[platform] ?? (platform === "win32" ? "userDocuments" : "home");
-  const base = relativeTo === "userDocuments" ? p.join(home, "Documents") : home;
+  const base = relativeTo === "userDocuments" ? (documents ?? documentsDirFor({ platform, home })) : (home ?? os.homedir());
   return p.join(base, rel);
 }
 
@@ -519,7 +578,7 @@ export function judge(opts = {}) {
 
   // modInstallDir: explicit -> the state file -> the MyDocuments base for this platform.
   const namedMod = opts.modInstallDir ?? saved.modInstallDir;
-  const modInstall = judgeModInstallDir(namedMod ? expandAt(namedMod, home) : modInstallDirFor({ platform, home, cfg }));
+  const modInstall = judgeModInstallDir(namedMod ? expandAt(namedMod, home) : modInstallDirFor({ platform, home: opts.home, cfg }));
 
   // workshopDir: explicit -> derived from a game directory that judged OK -> the state file. The
   // derived value must win while gameDir is OK, or a stale record points at another library.
